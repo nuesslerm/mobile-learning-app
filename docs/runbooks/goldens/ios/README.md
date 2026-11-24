@@ -25,3 +25,26 @@ images. Update a reviewed baseline explicitly with `--update-goldens`.
 The [LeetCode reference recording frames](../../../../frontend/reference-material/leetcode/README.md)
 are design targets. Native golden checks track changes from an accepted
 application state.
+
+## Compare against a design reference
+
+Use the same screen state as the reference. The screenshot guard checks the
+visible accessibility tree before saving the capture.
+
+```sh
+wf test ios-visual keyboard-symbols --device <simulator-udid> \
+  --expect SymbolBarGroup-g3 \
+  --reference frontend/reference-material/leetcode/16-keyboard-symbol-groups.png \
+  --ignore 0,0,1284,174 --out .context/ios-reference
+```
+
+The run keeps the original simulator PNG and uses macOS `sips` to convert both
+images to sRGB at the reference dimensions. The images must have a portrait
+aspect ratio within 1% of each other. Ignore rectangles are measured in
+reference pixels. The full viewport is compared unless you explicitly
+pass a rectangle. The example excludes the status bar.
+
+The output includes paths to the normalized capture and reference. A
+pixelmatch difference over the usual 0.2% tolerance exits with status 1 and
+writes a diff. This is a visual comparison with a tolerance. Each reference
+comparison writes its own run folder, and the supplied image is read-only.

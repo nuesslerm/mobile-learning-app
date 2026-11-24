@@ -38,3 +38,44 @@ fn a_published_runs_named_screenshots_become_the_goldens_of_its_harness() {
     assert!(none.exit_code == 1 && e["error"].as_str().unwrap().contains("no named screenshots") && e["next"].as_str().unwrap().contains("wf test goldens"), "{e}");
     assert!(bare.exit_code == 1 && bare.stdout.contains("wf test goldens <runId|bundle URL>"), "{}", bare.stdout);
 }
+
+#[test]
+fn ios_reference_comparison_keeps_the_source_and_writes_a_diff() {
+    // Given a portrait screenshot, a different design reference, and the expected accessibility element
+    let s = crate::support::SlotSandbox::new("wf-ios-reference-");
+    let png = |value: u8| {
+        wf_harness::golden::encode(&wf_harness::golden::Image {
+            width: 4,
+            height: 8,
+            rgba: [value, value, value, 255].repeat(32),
+        }).unwrap()
+    };
+    let captured = s.file("captured.png", png(0));
+    let source = png(255);
+    let reference = s.file("reference.png", &source);
+    s.stub("idb", r#"case "$1" in
+        ui) echo '[{"AXUniqueId":"Editor"}]' ;;
+        screenshot) cat "$CAPTURED" ;;
+    esac"#);
+    s.stub("sips", r#"while [ "$2" != "--out" ] && [ "$#" -gt 2 ]; do shift; done
+        cp "$1" "$3""#);
+
+    // When the simulator screenshot is compared directly with the supplied reference
+    let r = s.run(&["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &reference, "--out", "run"], &[("CAPTURED", &captured)]);
+
+    // Then the comparison fails with both images and a diff, and the input reference remains intact
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    let result: Value = serde_json::from_str(r.stdout.trim()).unwrap();
+    assert_eq!(result["verdict"], "mismatch");
+    assert_eq!(result["differing_pixels"], 32);
+    for field in ["actual", "expected", "diff"] {
+        assert!(s.repo.join(result[field].as_str().unwrap()).is_file(), "{result}");
+    }
+    assert_eq!(std::fs::read(&reference).unwrap(), source);
+
+    // When a comparison is combined with an update, then the command rejects it
+    let update = s.run(&["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &reference, "--update-goldens"], &[]);
+    assert_eq!(update.exit_code, 2, "{}{}", update.stdout, update.stderr);
+    assert!(update.stdout.contains("cannot be used with --update-goldens"), "{}", update.stdout);
+    assert_eq!(std::fs::read(reference).unwrap(), source);
+}

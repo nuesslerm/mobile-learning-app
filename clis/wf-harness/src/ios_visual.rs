@@ -1,6 +1,6 @@
 use harness_core::golden::{self, Outcome, Tolerance};
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
@@ -9,7 +9,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     let args = parse_spec(
         args,
         &Spec {
-            values: &["device", "expect", "out", "ignore"],
+            values: &["device", "expect", "out", "ignore", "reference"],
             required: &["device", "expect"],
             flags: &["update-goldens"],
             positional: Positional::Exactly(1),
@@ -33,6 +33,10 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') {
         return Err("use letters, digits, dashes or underscores for the screenshot name".into());
     }
+    let reference = args.val("reference").map(Path::new);
+    if reference.is_some() && args.flag("update-goldens") {
+        return Err("--reference compares against a supplied image and cannot be used with --update-goldens".into());
+    }
     let device = args.val("device").expect("required by parse_spec");
     let expected_id = args.val("expect").expect("required by parse_spec");
     let tree: Vec<Value> = serde_json::from_slice(&idb(device, &["ui", "describe-all", "--json"])?)
@@ -41,7 +45,8 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
         return Err(format!("'{expected_id}' is missing from the simulator's accessibility tree"));
     }
 
-    let img = golden::decode(&idb(device, &["screenshot", "-"])?)?;
+    let bytes = idb(device, &["screenshot", "-"])?;
+    let img = golden::decode(&bytes)?;
     if img.width >= img.height {
         return Err("rotate the simulator to portrait before capturing".into());
     }
@@ -49,16 +54,65 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     let baseline = root.join("docs/runbooks/goldens/ios").join(format!("{name}.png"));
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|err| err.to_string())?.as_millis();
     let out = args.val("out").map(PathBuf::from).unwrap_or_else(|| root.join(".agents/tmp/runs").join(format!("ios-visual-{stamp}-{}", std::process::id())));
-    let mut ignore = vec![(0, 0, img.width, img.height * 7 / 100)];
-    for area in args.values("ignore") {
-        ignore.push(rect(area, img.width, img.height)?);
+    let meta = json!({ "platform": "ios", "expectedTestID": expected_id });
+    if let Some(reference) = reference {
+        let run = out.join(format!("{name}-{stamp}-{}", std::process::id()));
+        return compare_reference(args, name, reference, &run, &bytes, &img, meta);
     }
+    let mut ignore = vec![(0, 0, img.width, img.height * 7 / 100)];
+    ignore.extend(ignore_rectangles(args, &img)?);
     let tol = Tolerance {
         ignore,
         ..Tolerance::default()
     };
-    let meta = json!({ "platform": "ios", "expectedTestID": expected_id });
     golden::check(name, &img, &baseline, &out.join(name), args.flag("update-goldens"), &tol, meta)
+}
+
+fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, bytes: &[u8], native: &golden::Image, mut meta: Value) -> Result<Outcome, String> {
+    let reference_image = golden::decode(&std::fs::read(reference).map_err(|e| format!("cannot read {}: {e}", reference.display()))?)?;
+    let aspect_ratio = reference_image.width as f64 * native.height as f64 / (reference_image.height as f64 * native.width as f64);
+    if !(0.99..=1.01).contains(&aspect_ratio) {
+        return Err(format!(
+            "reference must have the same portrait aspect ratio as the capture (reference {}x{}, capture {}x{})",
+            reference_image.width, reference_image.height, native.width, native.height,
+        ));
+    }
+    let tol = Tolerance { ignore: ignore_rectangles(args, &reference_image)?, ..Tolerance::default() };
+    if let Some(parent) = run.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+    }
+    std::fs::create_dir(run).map_err(|e| format!("cannot create {}: {e}", run.display()))?;
+    let raw = run.join("capture.png");
+    let normalized = run.join("capture-srgb.png");
+    let target = run.join("reference-srgb.png");
+    std::fs::write(&raw, bytes).map_err(|e| format!("cannot write {}: {e}", raw.display()))?;
+    normalize(&raw, &normalized, &reference_image)?;
+    normalize(reference, &target, &reference_image)?;
+    let actual = golden::decode(&std::fs::read(&normalized).map_err(|e| format!("cannot read {}: {e}", normalized.display()))?)?;
+    meta["reference"] = json!(reference);
+    meta["nativeCapture"] = json!({ "path": raw, "width": native.width, "height": native.height });
+    meta["comparisonColorSpace"] = json!("sRGB");
+    golden::check(name, &actual, &target, &run.join(name), false, &tol, meta)
+}
+
+fn normalize(source: &Path, out: &Path, size: &golden::Image) -> Result<(), String> {
+    let output = Command::new("sips")
+        .args(["--matchTo", "/System/Library/ColorSync/Profiles/sRGB Profile.icc", "--resampleHeightWidth"])
+        .arg(size.height.to_string())
+        .arg(size.width.to_string())
+        .arg(source)
+        .arg("--out")
+        .arg(out)
+        .output()
+        .map_err(|e| format!("cannot run sips to normalize the iOS capture or reference: {e}"))?;
+    if !output.status.success() {
+        return Err(format!("cannot normalize {}: {}", source.display(), String::from_utf8_lossy(&output.stderr).trim()));
+    }
+    Ok(())
+}
+
+fn ignore_rectangles(args: &Parsed, image: &golden::Image) -> Result<Vec<(usize, usize, usize, usize)>, String> {
+    args.values("ignore").into_iter().map(|area| rect(area, image.width, image.height)).collect()
 }
 
 fn rect(area: &str, width: usize, height: usize) -> Result<(usize, usize, usize, usize), String> {
