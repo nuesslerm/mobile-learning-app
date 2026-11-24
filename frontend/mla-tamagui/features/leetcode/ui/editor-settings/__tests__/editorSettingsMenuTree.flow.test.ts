@@ -140,8 +140,8 @@ describe('editorSettingsMenu', () => {
     expect(rows.map((row) => (row as MenuActionNode).sfSymbol)).toEqual([
       'textformat.size',
       'space',
-      'arrow.turn.down.left',
-      'increase.indent',
+      'decrease.indent',
+      'text.alignleft',
       'keyboard',
       'wand.and.sparkles',
     ]);
