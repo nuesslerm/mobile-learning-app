@@ -3,7 +3,7 @@ import type { RunCodeParams } from '../ports';
 import { parameterNames } from '../run/customCase';
 import { runParamsFor } from '../run/runParams';
 import { parseCaseFields } from './caseFields';
-import { consoleCases, selectedCase, type ConsoleDrafts } from './testcases';
+import { bundledCaseIdentity, consoleCases, selectedCase, type ConsoleDrafts } from './testcases';
 
 export type RunMode = 'run' | 'submit';
 
@@ -28,10 +28,10 @@ export function planRun({ problem, lang, code, mode, drafts, selectedId }: PlanI
   const bundled = problem.testCases ?? [];
   if (bundled.length === 0) return { ok: false, reason: 'no-cases' };
   if (mode === 'submit') {
-    const cases = consoleCases(problem, drafts).filter((entry) => entry.kind === 'bundled');
+    const cases = bundled.map((entry, index) => ({ ...bundledCaseIdentity(index), inputs: entry.inputs }));
     return {
       ok: true,
-      plan: { mode, lang, params: runParamsFor(problem, lang, code), custom: false, cases: cases.map((entry) => ({ id: entry.id, label: entry.label, inputs: entry.kind === 'bundled' ? entry.testCase.inputs : {} })) },
+      plan: { mode, lang, params: runParamsFor(problem, lang, code), custom: false, cases },
     };
   }
   const chosen = selectedCase(consoleCases(problem, drafts), selectedId);

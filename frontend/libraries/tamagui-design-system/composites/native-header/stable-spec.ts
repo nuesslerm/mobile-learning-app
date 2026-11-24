@@ -55,6 +55,10 @@ export function withStableHandlers(
   return {
     ...spec,
     onBack: spec.onBack ? () => call(BACK_KEY) : undefined,
+    leadingStatus: spec.leadingStatus?.menu ? {
+      ...spec.leadingStatus,
+      menu: { ...spec.leadingStatus.menu, items: spec.leadingStatus.menu.items.map((item) => stableNode(item, call)) },
+    } : spec.leadingStatus,
     actions: spec.actions?.map((action) => stableAction(action, call)),
     menu: spec.menu ? stableMenu(spec.menu, call) : undefined,
     groups: spec.groups?.map((group) =>
@@ -82,6 +86,7 @@ export function collectHandlers(
 ): Map<string, () => void> {
   const handlers = new Map<string, () => void>();
   if (spec.onBack) handlers.set(BACK_KEY, spec.onBack);
+  if (spec.leadingStatus?.menu) collectNodes(spec.leadingStatus.menu.items, handlers);
   const members: HeaderGroupItem[] = [
     ...(spec.actions ?? []),
     ...(spec.menu ? [spec.menu] : []),

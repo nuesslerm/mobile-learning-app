@@ -3,7 +3,7 @@ import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import { Trash2 } from '@lib/tamagui-design-system/icons';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Keyboard, Platform } from 'react-native';
 
 import { captionsOf } from '../../domain/console/caseFields';
 import { CONSOLE_SNAP_PERCENT, FLOATING_CONSOLE_SNAP_PERCENT } from '../../domain/console/layout';
@@ -33,13 +33,22 @@ const floating = Platform.OS === 'ios';
 export function ConsoleSheet({ problem, console: state, fieldError, result, footer, onSheetClosed }: Props) {
   const captions = React.useMemo(() => captionsOf(problem), [problem]);
   const [focusToken, setFocusToken] = React.useState(0);
+  const [editing, setEditing] = React.useState(false);
   const { selected } = state;
+  React.useEffect(() => {
+    if (!state.open) setEditing(false);
+  }, [state.open]);
 
   const add = () => {
-    if (state.addCase()) setFocusToken((token) => token + 1);
+    if (!state.addCase()) return;
+    if (floating) setEditing(true);
+    else setFocusToken((token) => token + 1);
   };
   const edit = () => {
-    if (selected?.kind === 'bundled') add();
+    if (floating) {
+      if (editing) Keyboard.dismiss();
+      setEditing(!editing);
+    } else if (selected?.kind === 'bundled') add();
     else setFocusToken((token) => token + 1);
   };
 
@@ -61,11 +70,11 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       <Sheet.ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 12 }} testID="ConsoleBody">
         {state.tab === 'testcase' ? (
           <YStack gap="$3" role="tabpanel" testID="ConsolePanel-testcase">
-            <CaseChips neutral={floating} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} />
+            <CaseChips neutral={floating} editing={editing} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} />
             {selected ? (
               <>
-                <CaseFields entry={selected} captions={captions} focusToken={focusToken} fieldError={fieldError} onEdit={(name, text) => state.editField(selected.id, name, text)} />
-                {selected.kind === 'custom' ? (
+                <CaseFields inset={floating} entry={selected} captions={captions} focusToken={focusToken} fieldError={fieldError} onEdit={(name, text) => state.editField(selected.id, name, text)} />
+                {selected.kind === 'custom' && (!floating || editing) ? (
                   <Button testID="ConsoleDeleteCase" variant="outline" size="$3" icon={Trash2} pressLog="off" onPress={() => state.removeCase(selected.id)}>
                     Delete case
                   </Button>

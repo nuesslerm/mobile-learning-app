@@ -1,6 +1,6 @@
-import { Button, IconButton, Text } from '@lib/tamagui-design-system';
+import { Button, Icon, IconButton, MenuPanel, Text } from '@lib/tamagui-design-system';
 import { Play, RotateCcw, Terminal } from '@lib/tamagui-design-system/icons';
-import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
+import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
 import { Platform } from 'react-native';
 
 export type ConsoleActionsProps = {
@@ -16,7 +16,46 @@ export type ConsoleActionsProps = {
 };
 
 /** The console's actions in two forms: the bar above the keyboard and the dock (Console, Reset, Run, Submit), the footer inside the sheet (a Reset pill, Run, Submit). */
-const iosIconSize = Platform.OS === 'ios' ? 14 : undefined;
+const ios = Platform.OS === 'ios';
+const iosIconSize = ios ? 14 : undefined;
+const RESET_CONFIRM = 'ConsoleResetConfirmation';
+const RESET_PATH = [RESET_CONFIRM];
+
+function ConsoleReset({ footer, onReset }: { footer: boolean; onReset: () => void }) {
+  const theme = useTheme();
+  const testID = footer ? 'ConsoleFooterReset' : 'ConsoleBarReset';
+  if (ios) {
+    return (
+      <MenuPanel
+        testID={testID}
+        accessibilityLabel="Reset testcases"
+        size={36}
+        icon={RotateCcw}
+        trigger={footer ? <Text variant="small" px="$2">Reset</Text> : <Icon as={RotateCcw} size={14} />}
+        triggerStyle={{ backgroundColor: theme.color4?.val }}
+        placement="above"
+        panelWidth={224}
+        openPath={RESET_PATH}
+        items={[{
+          kind: 'confirm',
+          testID: RESET_CONFIRM,
+          label: 'Reset',
+          title: 'Reset to sample test cases',
+          message: '',
+          confirmLabel: 'Reset',
+          onConfirm: onReset,
+        }]}
+      />
+    );
+  }
+  return footer ? (
+    <Button testID={testID} variant="secondary" size="$3" rounded="$10" pressLog="off" accessibilityLabel="Reset testcases" onPress={onReset}>
+      Reset
+    </Button>
+  ) : (
+    <IconButton testID={testID} icon={RotateCcw} variant="secondary" size="$3" pressLog="off" accessibilityLabel="Reset testcases" onPress={onReset} />
+  );
+}
 
 export function ConsoleActions({ variant, onOpen, onReset, onRun, onSubmit, pending, noCases }: ConsoleActionsProps) {
   const prefix = variant === 'footer' ? 'ConsoleFooter' : 'ConsoleBar';
@@ -38,9 +77,7 @@ export function ConsoleActions({ variant, onOpen, onReset, onRun, onSubmit, pend
     return (
       <YStack gap="$1.5" testID="ConsoleFooter">
         <XStack items="center" justify="space-between" gap="$2">
-          <Button testID="ConsoleFooterReset" variant="secondary" size="$3" rounded="$10" pressLog="off" accessibilityLabel="Reset testcases" onPress={onReset}>
-            Reset
-          </Button>
+          <ConsoleReset footer onReset={onReset} />
           <XStack items="center" gap="$2">
             {run}
             {submit}
@@ -56,7 +93,7 @@ export function ConsoleActions({ variant, onOpen, onReset, onRun, onSubmit, pend
         Console
       </Button>
       <XStack items="center" gap="$2">
-        <IconButton testID="ConsoleBarReset" icon={RotateCcw} iconSize={iosIconSize} variant="secondary" size="$3" pressLog="off" accessibilityLabel="Reset testcases" onPress={onReset} />
+        <ConsoleReset footer={false} onReset={onReset} />
         {run}
         {submit}
       </XStack>

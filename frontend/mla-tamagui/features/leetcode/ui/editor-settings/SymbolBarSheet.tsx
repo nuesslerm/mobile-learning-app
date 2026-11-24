@@ -1,9 +1,10 @@
 import { Logger } from '@lib/logging';
-import { Button, Input, Switch, Text } from '@lib/tamagui-design-system';
+import { Button, Input, PageSheet, Switch, Text } from '@lib/tamagui-design-system';
 import { Menu } from '@lib/tamagui-design-system/icons';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
 import { useCallback, type ReactNode } from 'react';
+import { Platform, ScrollView } from 'react-native';
 
 import {
   groupLabel,
@@ -19,6 +20,7 @@ import {
 import { ReorderableList } from '../ReorderableList';
 
 const ROW_HEIGHT = 56;
+const nativePage = Platform.OS === 'ios';
 const CHARS_STYLE = { fontFamily: 'Menlo, Courier, monospace', textAlign: 'right' } as const;
 
 const RAIL_STYLE_LABELS: Record<RailStyle, string> = {
@@ -29,6 +31,7 @@ const RAIL_STYLE_LABELS: Record<RailStyle, string> = {
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDismiss?: () => void;
   testID?: string;
 };
 
@@ -60,7 +63,7 @@ function GroupRow({ group, index, handle }: { group: SymbolGroup; index: number;
  * The recording's Symbol Bar sheet: the switch, the eight groups (each edited in place and reordered by its handle) and Reset and Done. It reads and writes only the symbol bar store; the caller owns whether it is open.
  * The Classic | Symbols control switches back to the classic character-key rail; Symbols is the default.
  */
-export function SymbolBarSheet({ open, onOpenChange, testID = 'SymbolBarSheet' }: Props) {
+export function SymbolBarSheet({ open, onOpenChange, onDismiss, testID = 'SymbolBarSheet' }: Props) {
   const shown = useSymbolBarStore((s) => s.shown);
   const groups = useSymbolBarStore((s) => s.groups);
   const railStyle = useSymbolBarStore((s) => s.railStyle);
@@ -79,14 +82,15 @@ export function SymbolBarSheet({ open, onOpenChange, testID = 'SymbolBarSheet' }
   const keyOf = useCallback((group: SymbolGroup) => group.id, []);
   const indexOf = (group: SymbolGroup) => groups.findIndex((candidate) => candidate.id === group.id);
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange} snapPoints={[92]} disableContentPanningGesture testID={testID}>
+  const BodyScrollView = nativePage ? ScrollView : Sheet.ScrollView;
+  const content = (
+    <>
       <SheetHeader
         testID={`${testID}Header`}
         leading={
           <Button
             testID="SymbolBarReset"
-            variant="outline"
+            variant={nativePage ? "secondary" : "outline"}
             size="$3"
             rounded="$10"
             disabled={isDefaultGroups(groups)}
@@ -102,7 +106,7 @@ export function SymbolBarSheet({ open, onOpenChange, testID = 'SymbolBarSheet' }
         trailing={
           <Button
             testID="SymbolBarDone"
-            variant="default"
+            variant={nativePage ? "secondary" : "default"}
             size="$3"
             rounded="$10"
             pressLog="off"
@@ -120,7 +124,7 @@ export function SymbolBarSheet({ open, onOpenChange, testID = 'SymbolBarSheet' }
         </Text>
       </SheetHeader>
 
-      <Sheet.ScrollView testID="SymbolBarScroll">
+      <BodyScrollView testID="SymbolBarScroll" keyboardShouldPersistTaps="handled">
         <YStack gap="$4" pb="$6">
           <YStack gap="$2">
             <XStack items="center" justify="space-between" px="$4" py="$3" rounded="$5" bg="$color3">
@@ -175,7 +179,17 @@ export function SymbolBarSheet({ open, onOpenChange, testID = 'SymbolBarSheet' }
             </Text>
           </YStack>
         </YStack>
-      </Sheet.ScrollView>
+      </BodyScrollView>
+    </>
+  );
+
+  return nativePage ? (
+    <PageSheet open={open} onOpenChange={onOpenChange} onDismiss={onDismiss} testID={testID}>
+      {content}
+    </PageSheet>
+  ) : (
+    <Sheet open={open} onOpenChange={onOpenChange} snapPoints={[92]} disableContentPanningGesture testID={testID}>
+      {content}
     </Sheet>
   );
 }

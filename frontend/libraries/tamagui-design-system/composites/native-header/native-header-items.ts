@@ -16,6 +16,7 @@ import {
   headerGroups,
   isMenuSpec,
   type HeaderActionSpec,
+  type HeaderStatusSpec,
   type ScreenHeaderSpec,
 } from './header-spec';
 
@@ -25,6 +26,7 @@ export const GROUP_SPACING = 8;
 export type NativeHeaderFactories = {
   /** The spinner on its own piece of glass; a bar item is sized by its element, so the size is passed in. */
   busy: (size: number) => ReactElement;
+  status?: (status: HeaderStatusSpec) => ReactElement;
 };
 
 export type NativeHeaderItems = {
@@ -152,6 +154,9 @@ export function buildNativeHeaderItems(
     });
   }
 
+  if (spec.leadingStatus && factories.status) {
+    left.push({ type: 'custom', element: factories.status(spec.leadingStatus), hidesSharedBackground: true });
+  }
   const right: NativeStackHeaderItem[] = [];
   const separate = () => {
     if (right.length > 0)

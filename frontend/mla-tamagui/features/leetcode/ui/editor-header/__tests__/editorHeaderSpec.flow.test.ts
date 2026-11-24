@@ -57,6 +57,24 @@ describe('the editor header spec', () => {
     expect(login).toMatchObject({ label: 'Log out', detail: 'flow-user' });
   });
 
+  it('given the native workspace has edits, when the header is built, then Undo and the language stay visible and problem actions move under the save status', () => {
+    const onUndo = vi.fn();
+    const input = inputs({
+      onUndo,
+      nativeWorkspace: { dirty: true, language: { ...settingsMenu(), testID: 'ProblemEditorLanguageMenu' } },
+    });
+
+    const spec = editorHeaderSpec(input);
+
+    expect(spec.nativeTitle).toBe('hidden');
+    expect(spec.leadingStatus).toMatchObject({ label: 'Unsaved', menu: { accessibilityLabel: 'Problem actions' } });
+    expect(spec.leadingStatus?.menu?.items.map((item) => item.kind === 'section' ? item.title : item.label)).toEqual(['Problem description', 'Version history', 'Login']);
+    expect(spec.groups?.map((group) => group.map((member) => member.testID))).toEqual([['ProblemEditorUndo'], ['ProblemEditorLanguageMenu', 'EditorSettingsButton']]);
+    const undo = spec.groups?.[0]?.[0];
+    if (undo && 'onPress' in undo) undo.onPress();
+    expect(onUndo).toHaveBeenCalledOnce();
+  });
+
   it('given no run in flight, when built, then busy is false', () => {
     expect(editorHeaderSpec(inputs({ settings: settingsMenu() })).busy).toBe(false);
   });

@@ -11,11 +11,12 @@ import {
   Spinner,
   Text,
   useKeyboardFrame,
+  useNativeHeaderStore,
   View,
 } from '@lib/tamagui-design-system';
 import type { EditAlternative } from '@lib/voice-edit-dsl';
 import { router } from 'expo-router';
-import { Mic, Pencil } from '@lib/tamagui-design-system/icons';
+import { Code, Mic, Pencil } from '@lib/tamagui-design-system/icons';
 import React from 'react';
 import { BackHandler, Platform, Pressable, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
@@ -127,6 +128,8 @@ export function ProblemEditorScreen({
   });
 
   const editorRef = React.useRef<EditorInputHandle>(null);
+  const editorFocusedRef = React.useRef(false);
+  const refocusAfterConsole = React.useRef(false);
   // The editor's focus lives in a WebView that React Native does not track, so Keyboard.dismiss() and the scroll view's
   // tap-away reach nothing; the editor is told to blur itself.
   const dismissEditorKeyboard = React.useCallback(() => {
@@ -161,6 +164,7 @@ export function ProblemEditorScreen({
   const consolePendingRef = React.useRef(false);
   consolePendingRef.current = consolePending !== null;
   const keyboard = useKeyboardFrame();
+  const nativeEditorHeader = useNativeHeaderStore((state) => state.enabled) && iosCanvas;
   const [rootHeight, setRootHeight] = React.useState(0);
   React.useEffect(() => {
     onConsoleOpenChange?.(consoleOpen);
@@ -177,9 +181,16 @@ export function ProblemEditorScreen({
     return () => subscription.remove();
   }, [consoleOpen, closeConsole]);
   const handleOpenConsole = React.useCallback(() => {
+    refocusAfterConsole.current = iosCanvas && keyboard.visible && editorFocusedRef.current;
     dismissEditorKeyboard();
     openConsole('testcase');
-  }, [dismissEditorKeyboard, openConsole]);
+  }, [dismissEditorKeyboard, keyboard.visible, openConsole]);
+  const handleConsoleClosed = React.useCallback(() => {
+    closeConsole('sheet');
+    if (!refocusAfterConsole.current) return;
+    refocusAfterConsole.current = false;
+    requestAnimationFrame(() => editorRef.current?.focus());
+  }, [closeConsole]);
   const handleResetCases = React.useCallback(() => {
     resetCases();
     toast('Testcases reset');
@@ -437,8 +448,6 @@ export function ProblemEditorScreen({
   const setWrap = useEditorPreferencesStore((s) => s.setWrap);
   const setWhitespace = useEditorPreferencesStore((s) => s.setWhitespace);
   const [symbolBarOpen, setSymbolBarOpen] = React.useState(false);
-  // Whether the editor held the caret when the sheet opened: Done gives the keyboard back only then.
-  const editorFocusedRef = React.useRef(false);
   const refocusAfterSheetRef = React.useRef(false);
   const handleSymbolBarOpen = React.useCallback(() => {
     Logger.info('editor_v2.symbol_bar.open', { problemId: problem?.id });
@@ -446,12 +455,15 @@ export function ProblemEditorScreen({
     dismissEditorKeyboard();
     setSymbolBarOpen(true);
   }, [dismissEditorKeyboard, problem?.id]);
-  const handleSymbolBarOpenChange = React.useCallback((open: boolean) => {
-    setSymbolBarOpen(open);
-    if (open || !refocusAfterSheetRef.current) return;
+  const restoreAfterSymbolBar = React.useCallback(() => {
+    if (!refocusAfterSheetRef.current) return;
     refocusAfterSheetRef.current = false;
     editorRef.current?.focus();
   }, []);
+  const handleSymbolBarOpenChange = React.useCallback((open: boolean) => {
+    setSymbolBarOpen(open);
+    if (!open && !iosCanvas) restoreAfterSymbolBar();
+  }, [restoreAfterSymbolBar]);
 
   const handleBack = () => {
     Logger.info('editor.back', {
@@ -554,6 +566,21 @@ export function ProblemEditorScreen({
     isLoggedIn,
     username,
     busy: consolePending !== null,
+    nativeWorkspace: nativeEditorHeader ? {
+      dirty: isDirty,
+      language: {
+        testID: 'ProblemEditorLanguageMenu',
+        accessibilityLabel: 'Language',
+        icon: Code,
+        label: lang === 'python3' ? 'Python3' : languageLabel(lang),
+        items: availableLanguages.map((choice) => ({
+          testID: `ProblemEditorLanguagePicker-${languageLabel(choice)}`,
+          label: choice === 'python3' ? 'Python3' : languageLabel(choice),
+          checked: choice === lang,
+          onPress: () => { if (choice !== lang) handleLanguageChange(choice); },
+        })),
+      },
+    } : undefined,
     settings: editorSettingsMenu(
           { fontSize, tabSize, wrap, whitespace },
           {
@@ -567,10 +594,11 @@ export function ProblemEditorScreen({
               void handleFormat();
             },
           },
-          languageLabel(lang)
+          nativeEditorHeader ? undefined : languageLabel(lang)
         ),
     onBack: handleBack,
     onInfo: handleInfo,
+    onUndo: iosCanvas && isDirty ? () => editorRef.current?.undo() : undefined,
     onHistory: handleHistory,
     onLogin: handleLogin,
     onResetCode: handleResetCode,
@@ -600,6 +628,7 @@ export function ProblemEditorScreen({
               router.push('/leetcode/toolbar');
             }}
             onDismissKeyboard={dismissEditorKeyboard}
+            compactSymbols={iosCanvas && !aiEdit}
             topRow={<ConsoleActionBar {...consoleActions} />}
           />
         )}
@@ -657,14 +686,14 @@ export function ProblemEditorScreen({
               pt="$2"
               testID="ProblemEditorDiffRow"
             >
-              <LanguagePicker
+              {!nativeEditorHeader ? <LanguagePicker
                 value={lang}
                 onOpen={() => setLanguageSheetOpen(true)}
                 // exactly one: the page the web export prerenders has no problem yet (no languages), and a trigger disabled there
                 // would not match the enabled one a problem with two languages hydrates into
                 disabled={availableLanguages.length === 1}
                 testID="ProblemEditorLanguagePicker"
-              />
+              /> : null}
               {hasEdit ? (
                 <DiffToggle
                   enabled={diffMode}
@@ -687,7 +716,7 @@ export function ProblemEditorScreen({
           fieldError={consoleState.fieldError}
           result={<RunResult outcome={consoleState.outcome} actions={{ onShowLine: () => void consoleState.showLine(), canOpenCase: (label) => consoleState.caseIdOf(label) !== null, onOpenCase: consoleState.openCase }} />}
           footer={<ConsoleFooter {...consoleActions} />}
-          onSheetClosed={() => closeConsole('sheet')}
+          onSheetClosed={handleConsoleClosed}
         />
       ) : null}
       <LanguageSheet
@@ -698,7 +727,7 @@ export function ProblemEditorScreen({
         languages={availableLanguages}
         testID="ProblemEditorLanguagePicker"
       />
-      <SymbolBarSheet open={symbolBarOpen} onOpenChange={handleSymbolBarOpenChange} />
+      <SymbolBarSheet open={symbolBarOpen} onOpenChange={handleSymbolBarOpenChange} onDismiss={restoreAfterSymbolBar} />
       {consolePending ? <PendingOverlay /> : null}
       {voiceEdit.state.phase === 'planning' ? (
         <XStack

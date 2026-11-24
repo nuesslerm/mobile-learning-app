@@ -270,22 +270,25 @@ export type KeyboardToolbarRailProps = {
    * `${testID}Leading`, so a swipe along the rail that starts at the region's edge never starts on the slot.
    */
   leading?: ReactNode;
+  density?: 'default' | 'compact';
 };
 
 const RAIL_CONTENT = { paddingHorizontal: 8, paddingVertical: 6, gap: 6 } as const;
+const COMPACT_RAIL_CONTENT = { flexGrow: 1, paddingHorizontal: 6, paddingVertical: 3, gap: 4 } as const;
 const SCROLL_REGION = { flex: 1 } as const;
 
 export function KeyboardToolbarRail({
   children,
   testID,
   leading,
+  density = 'default',
 }: KeyboardToolbarRailProps) {
   const keys = (regionTestID?: string) => (
     <ScrollView
       horizontal
       keyboardShouldPersistTaps="always"
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={RAIL_CONTENT}
+      contentContainerStyle={density === 'compact' ? COMPACT_RAIL_CONTENT : RAIL_CONTENT}
       {...(regionTestID ? { testID: regionTestID, style: SCROLL_REGION } : {})}
     >
       {children}
@@ -316,13 +319,15 @@ export function KeyboardToolbarRail({
 }
 
 export type KeyboardToolbarButtonProps = {
-  label: string;
+  label?: string;
   accessibilityLabel: string;
   onPress: () => void;
   testID: string;
   icon?: LucideIcon;
   disabled?: boolean;
   tone?: 'default' | 'accent' | 'success' | 'danger';
+  density?: 'default' | 'compact';
+  stretch?: boolean;
 };
 
 const TONE_COLOR = {
@@ -340,6 +345,8 @@ export function KeyboardToolbarButton({
   icon,
   disabled = false,
   tone = 'default',
+  density = 'default',
+  stretch,
 }: KeyboardToolbarButtonProps) {
   return (
     <XStack
@@ -347,9 +354,11 @@ export function KeyboardToolbarButton({
       role="button"
       aria-label={accessibilityLabel}
       items="center"
+      flex={stretch ? 1 : undefined}
       gap="$1.5"
-      px="$2.5"
-      height={38}
+      px={density === 'compact' ? "$2" : "$2.5"}
+      height={density === 'compact' ? 36 : 38}
+      justify="center"
       rounded="$3"
       bg="$color3"
       opacity={disabled ? 0.4 : 1}
@@ -358,9 +367,7 @@ export function KeyboardToolbarButton({
       onPress={disabled ? undefined : onPress}
     >
       {icon ? <Icon as={icon} size={16} color={TONE_COLOR[tone]} /> : null}
-      <Text variant="small" color={TONE_COLOR[tone]}>
-        {label}
-      </Text>
+      {label ? <Text variant="small" color={TONE_COLOR[tone]}>{label}</Text> : null}
     </XStack>
   );
 }

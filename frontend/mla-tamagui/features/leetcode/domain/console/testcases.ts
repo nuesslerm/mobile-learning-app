@@ -16,11 +16,15 @@ export type ConsoleCase =
 
 export const EMPTY_DRAFTS: ConsoleDrafts = { items: [], nextKey: 0 };
 
-/** Bundled cases as Case 1..n in catalog order, then the custom ones numbered on; labels are positional and ids are stable. */
+export function bundledCaseIdentity(index: number) {
+  return { id: `bundled:${index}`, label: `Case ${index + 1}` };
+}
+
+/** Sample cases in catalog order, then custom cases. IDs stay stable as custom labels shift. */
 export function consoleCases(problem: Blind75Problem, drafts: ConsoleDrafts): ConsoleCase[] {
   const names = parameterNames(problem);
-  const bundled = (problem.testCases ?? []).map(
-    (testCase, index): ConsoleCase => ({ id: `bundled:${index}`, label: `Case ${index + 1}`, kind: 'bundled', testCase, fields: fieldTextsOf(testCase, names) })
+  const bundled = (problem.testCases ?? []).slice(0, problem.sampleCaseCount).map(
+    (testCase, index): ConsoleCase => ({ ...bundledCaseIdentity(index), kind: 'bundled', testCase, fields: fieldTextsOf(testCase, names) })
   );
   const custom = drafts.items.map((draft, index): ConsoleCase => ({ id: draft.id, label: `Case ${bundled.length + index + 1}`, kind: 'custom', fields: draft.fields }));
   return [...bundled, ...custom];

@@ -1,5 +1,5 @@
 import { IconButton, Text } from '@lib/tamagui-design-system';
-import { Pencil, Plus } from '@lib/tamagui-design-system/icons';
+import { Check, Pencil, Plus } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
 import React from 'react';
 import { Pressable, ScrollView, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
@@ -12,13 +12,14 @@ type Props = {
   selectedId: string | null;
   atCap: boolean;
   neutral?: boolean;
+  editing?: boolean;
   onSelect: (id: string) => void;
   onAdd: () => void;
   onEdit: () => void;
 };
 
 /** One chip per case in a plain horizontal scroller (the sheet's one registered scrollable is its body), with + and the pencil pinned at the right. */
-export function CaseChips({ cases, selectedId, atCap, neutral = false, onSelect, onAdd, onEdit }: Props) {
+export function CaseChips({ cases, selectedId, atCap, neutral = false, editing = false, onSelect, onAdd, onEdit }: Props) {
   const scrollRef = React.useRef<ScrollViewInstance>(null);
   const viewport = React.useRef(0);
   const scrollX = React.useRef(0);
@@ -74,7 +75,7 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, onSelect,
         })}
       </ScrollView>
       <IconButton testID="ConsoleChipAdd" icon={Plus} iconSize={neutral ? 14 : undefined} variant="secondary" size="$3" pressLog="off" disabled={atCap} accessibilityLabel="Add a case" onPress={onAdd} />
-      <IconButton testID="ConsoleChipEdit" icon={Pencil} iconSize={neutral ? 14 : undefined} variant="secondary" size="$3" pressLog="off" accessibilityLabel="Edit this case" onPress={onEdit} />
+      <IconButton testID="ConsoleChipEdit" icon={editing ? Check : Pencil} iconSize={neutral ? 14 : undefined} variant="secondary" size="$3" pressLog="off" accessibilityLabel={editing ? "Done editing test cases" : "Edit this case"} onPress={onEdit} />
     </XStack>
   );
 }

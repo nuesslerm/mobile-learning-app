@@ -25,6 +25,7 @@ import ChevronLeftIcon from 'lucide-react-native/dist/esm/icons/chevron-left.mjs
 import ChevronRightIcon from 'lucide-react-native/dist/esm/icons/chevron-right.mjs';
 import CircleMinusIcon from 'lucide-react-native/dist/esm/icons/circle-minus.mjs';
 import ClipboardPasteIcon from 'lucide-react-native/dist/esm/icons/clipboard-paste.mjs';
+import CloudIcon from 'lucide-react-native/dist/esm/icons/cloud.mjs';
 import CodeIcon from 'lucide-react-native/dist/esm/icons/code.mjs';
 import CopyIcon from 'lucide-react-native/dist/esm/icons/copy.mjs';
 import CornerDownLeftIcon from 'lucide-react-native/dist/esm/icons/corner-down-left.mjs';
@@ -104,6 +105,7 @@ export const ChevronLeft: LucideIcon = ChevronLeftIcon;
 export const ChevronRight: LucideIcon = ChevronRightIcon;
 export const CircleMinus: LucideIcon = CircleMinusIcon;
 export const ClipboardPaste: LucideIcon = ClipboardPasteIcon;
+export const Cloud: LucideIcon = CloudIcon;
 export const Code: LucideIcon = CodeIcon;
 export const Copy: LucideIcon = CopyIcon;
 export const CornerDownLeft: LucideIcon = CornerDownLeftIcon;

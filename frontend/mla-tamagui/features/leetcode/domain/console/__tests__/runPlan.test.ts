@@ -4,7 +4,7 @@ import type { Blind75Problem } from '../../models';
 import { ProblemCatalog } from '../../problemCatalog';
 import { runParamsFor } from '../../run/runParams';
 import { planRun, type RunPlan } from '../runPlan';
-import { addDraft, editDraft, EMPTY_DRAFTS } from '../testcases';
+import { addDraft, consoleCases, editDraft, EMPTY_DRAFTS } from '../testcases';
 
 const catalog = (id: string): Blind75Problem => {
   const found = ProblemCatalog.getById(id);
@@ -48,6 +48,22 @@ describe('planRun', () => {
     const plan = planned(planRun({ problem, lang: 'python3', code: 'c', mode: 'submit', drafts: EMPTY_DRAFTS, selectedId: null }));
     expect(plan.params).toEqual(runParamsFor(problem, 'python3', 'c'));
     expect(plan.params.paramTypes).toBeTruthy();
+  });
+
+  it('given the catalog identifies sample cases, when the console opens and Submit is planned, then the console numbers custom cases after the samples and Submit still runs the full suite', () => {
+    const problem = catalog('merge-two-sorted-lists');
+    const added = addDraft(problem, EMPTY_DRAFTS, 'bundled:2');
+    const drafts = added?.drafts ?? EMPTY_DRAFTS;
+
+    expect(consoleCases(problem, drafts).map((entry) => [entry.label, entry.kind])).toEqual([
+      ['Case 1', 'bundled'],
+      ['Case 2', 'bundled'],
+      ['Case 3', 'bundled'],
+      ['Case 4', 'custom'],
+    ]);
+    const submission = planned(planRun({ problem, lang: 'javascript', code: 'code', mode: 'submit', drafts, selectedId: added?.id ?? null }));
+    expect(submission.params.testCases).toEqual(problem.testCases);
+    expect(submission.cases).toHaveLength(problem.testCases?.length ?? 0);
   });
 
   it('given a problem with no bundled cases, when planned, then it is refused no-cases', () => {

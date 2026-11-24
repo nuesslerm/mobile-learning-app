@@ -26,7 +26,7 @@ export function countHeaderControls(
     (sum, group) => sum + group.length,
     0
   );
-  return { left: spec.onBack ? 1 : 0, right: grouped + (spec.busy ? 1 : 0) };
+  return { left: Number(!!spec.onBack) + Number(!!spec.leadingStatus), right: grouped + (spec.busy ? 1 : 0) };
 }
 
 function flank(count: number): number {
@@ -101,7 +101,7 @@ export function buildScreenHeaderOptions({
     headerTintColor: theme.tint,
     headerUserInterfaceStyle: scheme,
     title: spec.title,
-    headerTitle: () =>
+    headerTitle: spec.nativeTitle === 'hidden' ? '' : () =>
       renderers.title({ title: spec.title, subtitle: spec.subtitle, maxWidth }),
     unstable_headerLeftItems: () => items.left,
     unstable_headerRightItems: () => items.right,
@@ -114,6 +114,13 @@ export function headerSignature(spec: ScreenHeaderSpec): string {
     id: spec.testID,
     title: spec.title,
     subtitle: spec.subtitle,
+    nativeTitle: spec.nativeTitle,
+    leadingStatus: spec.leadingStatus ? {
+      id: spec.leadingStatus.testID,
+      label: spec.leadingStatus.label,
+      icon: spec.leadingStatus.icon.displayName,
+      menu: spec.leadingStatus.menu ? menuSignature(spec.leadingStatus.menu.items) : undefined,
+    } : undefined,
     back: spec.onBack !== undefined,
     backLabel: spec.backAccessibilityLabel,
     busy: spec.busy === true,

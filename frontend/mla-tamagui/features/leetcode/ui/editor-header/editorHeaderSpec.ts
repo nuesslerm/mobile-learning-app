@@ -1,5 +1,5 @@
 import type { HeaderMenuSpec, MenuNode, ScreenHeaderSpec } from '@lib/tamagui-design-system';
-import { History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw } from '@lib/tamagui-design-system/icons';
+import { Cloud, History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw } from '@lib/tamagui-design-system/icons';
 
 export const EDITOR_HEADER_IDS = {
   header: 'ProblemEditorHeader',
@@ -8,6 +8,7 @@ export const EDITOR_HEADER_IDS = {
   history: 'ProblemEditorMenuHistory',
   login: 'ProblemEditorMenuLogin',
   resetCode: 'ProblemEditorMenuResetCode',
+  undo: 'ProblemEditorUndo',
 } as const;
 
 export type EditorHeaderInput = {
@@ -20,8 +21,10 @@ export type EditorHeaderInput = {
   busy: boolean;
   /** The editor settings menu, its own piece of glass. */
   settings: HeaderMenuSpec;
+  nativeWorkspace?: { language: HeaderMenuSpec; dirty: boolean };
   onBack: () => void;
   onInfo: () => void;
+  onUndo?: () => void;
   onHistory: () => void;
   onLogin: () => void;
   /** Given only when the console replaces the Reset button of the classic rows. */
@@ -69,5 +72,27 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
     testID: EDITOR_HEADER_IDS.info,
     onPress: input.onInfo,
   };
-  return { ...base, busy: input.busy, groups: [[input.settings], [info, moreMenu(input)]] };
+  const workspaceActions = input.onUndo ? [[{
+    icon: RotateCcw,
+    sfSymbol: 'arrow.uturn.backward' as const,
+    accessibilityLabel: 'Undo',
+    testID: EDITOR_HEADER_IDS.undo,
+    onPress: input.onUndo,
+  }]] : [];
+  const native = input.nativeWorkspace;
+  const more = moreMenu(input);
+  return {
+    ...base,
+    busy: input.busy,
+    ...(native ? {
+      nativeTitle: 'hidden' as const,
+      leadingStatus: {
+        label: native.dirty ? 'Unsaved' : 'Saved',
+        icon: Cloud,
+        testID: 'ProblemEditorSaveStatus',
+        menu: { accessibilityLabel: 'Problem actions', items: [{ ...info, label: 'Problem description' }, ...more.items] },
+      },
+    } : {}),
+    groups: [...workspaceActions, ...(native ? [[native.language, input.settings]] : [[input.settings], [info, more]])],
+  };
 }

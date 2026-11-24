@@ -7,6 +7,8 @@ import {
   Text as RNText,
   useWindowDimensions,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 
 import { Check, ChevronDown, ChevronRight } from '../icons';
@@ -34,6 +36,11 @@ export type MenuPanelProps = {
   /** Matches the control size of the sibling actions in the header pill. */
   size: number;
   testID: string;
+  trigger?: ReactNode;
+  triggerStyle?: StyleProp<ViewStyle>;
+  placement?: 'above' | 'below';
+  openPath?: MenuPath;
+  panelWidth?: number;
 };
 
 const PANEL_WIDTH = 288;
@@ -165,9 +172,7 @@ function ConfirmCard({
       <RNText style={[styles.confirmTitle, { color: colors.label }]}>
         {node.title}
       </RNText>
-      <RNText style={[styles.confirmMessage, { color: colors.muted }]}>
-        {node.message}
-      </RNText>
+      {node.message ? <RNText style={[styles.confirmMessage, { color: colors.muted }]}>{node.message}</RNText> : null}
       <Pressable
         testID={`${node.testID}Confirm`}
         accessibilityRole="button"
@@ -198,12 +203,17 @@ export function MenuPanel({
   items,
   size,
   testID,
+  trigger,
+  triggerStyle,
+  placement = 'below',
+  openPath = ROOT_PATH,
+  panelWidth = PANEL_WIDTH,
 }: MenuPanelProps) {
   const [open, setOpen] = useState(false);
   const [path, setPath] = useState<MenuPath>(ROOT_PATH);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const triggerRef = useRef<ComponentRef<typeof Pressable>>(null);
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const theme = useTheme();
 
   const colors: Colors = {
@@ -226,6 +236,7 @@ export function MenuPanel({
     triggerRef.current?.measureInWindow((x, y, width, height) => {
       setAnchor(width > 0 ? { x, y, width, height } : null);
     });
+    setPath(openPath);
     setOpen(true);
   }
 
@@ -338,11 +349,13 @@ export function MenuPanel({
     );
   }
 
-  const width = Math.min(PANEL_WIDTH, windowWidth - 2 * EDGE);
+  const width = Math.min(panelWidth, windowWidth - 2 * EDGE);
   const right = anchor
-    ? Math.max(EDGE, windowWidth - (anchor.x + anchor.width))
+    ? Math.min(windowWidth - width - EDGE, Math.max(EDGE, windowWidth - (anchor.x + anchor.width)))
     : EDGE + 4;
-  const top = anchor ? anchor.y + anchor.height + GAP : FALLBACK_TOP;
+  const vertical = placement === 'above'
+    ? { bottom: anchor ? Math.max(EDGE, windowHeight - anchor.y + GAP) : FALLBACK_TOP }
+    : { top: anchor ? anchor.y + anchor.height + GAP : FALLBACK_TOP };
 
   return (
     <>
@@ -355,11 +368,12 @@ export function MenuPanel({
         onPress={openPanel}
         style={({ pressed: isPressed }) => [
           styles.trigger,
-          { width: size, height: size },
+          trigger ? { minWidth: size, height: size, paddingHorizontal: 4 } : { width: size, height: size },
+          triggerStyle,
           isPressed && { backgroundColor: colors.pressed },
         ]}
       >
-        <Icon as={icon} size={19} />
+        {trigger ?? <Icon as={icon} size={19} />}
       </Pressable>
       {open ? (
         <Modal
@@ -381,7 +395,7 @@ export function MenuPanel({
               styles.card,
               {
                 width,
-                top,
+                ...vertical,
                 right,
                 backgroundColor: colors.surface,
                 borderColor: colors.border,

@@ -110,6 +110,7 @@ export { useHeaderHeightStore } from './lib/headerHeightStore';
 export { DEFAULT_NATIVE_HEADERS, useNativeHeaderStore } from './lib/nativeHeaderStore';
 export { useNativeHeaderPath } from './composites/native-header/use-header-env';
 export { useScrollUnder } from './composites/native-header/use-scroll-under';
+export { PageSheet, type PageSheetProps } from './ui/page-sheet';
 export { MenuPanel, type MenuPanelProps } from './composites/menu-panel';
 export {
   KEYBOARD_TOOLBAR_Z,
