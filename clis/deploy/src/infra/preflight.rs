@@ -143,6 +143,7 @@ fn ci_check() -> Value {
     let mut runs = Vec::new();
     for status in IN_FLIGHT {
         let path = format!("repos/{{owner}}/{{repo}}/actions/runs?status={status}&per_page=100");
+        let _span = wf_kit::performance::external("gh");
         let out = match Command::new("gh").args(["api", &path]).stdin(Stdio::null()).output() {
             Ok(o) => o,
             Err(e) => return check("ci", false, format!("gh could not run: {e}"), "install gh or set GH_TOKEN"),

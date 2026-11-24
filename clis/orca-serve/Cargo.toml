@@ -40,6 +40,7 @@ sets = ["orca-v1.4.259-recorded", "orca-v1.4.259-crawl"]
 testing = ["orca-core/testing", "orca-crypto/testing", "orca-map-mobile/testing"]
 
 [dependencies]
+tracing = "0.1"
 wf-kit = { path = "../wf-kit" }
 orca-core = { path = "core" }
 orca-crypto = { path = "crypto" }
@@ -65,7 +66,6 @@ tungstenite = { version = "0.30", default-features = false, features = ["handsha
 
 [dev-dependencies]
 telemetry = { version = "0.1", registry = "mla", features = ["service"] }
-tracing = "0.1"
 toml = { version = "0.8", default-features = false, features = ["parse"] }
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 orca-serve = { path = ".", features = ["testing"] }

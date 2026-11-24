@@ -80,13 +80,16 @@ impl Connection {
             Ok(r) => r,
             Err(unparsed) => return vec![Out::Text(wire::failure(&unparsed.0, runtime_id, &unparsed.1).to_string())],
         };
+        let entry = host.table.get(&request.method);
+        let method = if entry.is_some() { request.method.as_str() } else { "unknown" };
+        let _span = tracing::info_span!("orca.rpc", otel.name = %format!("orca.rpc.{method}")).entered();
         if request.device_token.as_deref().is_some_and(|t| t != self.device_token) {
             return vec![Out::Text(wire::failure(&request.id, runtime_id, &Failure::new(wire::UNAUTHORIZED, "Device token mismatch")).to_string())];
         }
         if !host.principals.still_paired(&self.device_id, &self.device_token) {
             return vec![Out::Text(wire::failure(&request.id, runtime_id, &Failure::new(wire::UNAUTHORIZED, "Invalid device token")).to_string())];
         }
-        let reply = match host.table.get(&request.method) {
+        let reply = match entry {
             None => Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {}", request.method))),
             Some(Entry::NotOffered { reason, decided_by }) => {
                 let mut f = Failure::new(wire::NOT_OFFERED, format!("{} is not offered by this host: {reason}", request.method));

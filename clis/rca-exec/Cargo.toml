@@ -23,6 +23,7 @@ path = "src/bin/rca-exec.rs"
 test = false
 
 [dependencies]
+tracing = "0.1"
 wf-kit = { path = "../wf-kit" }
 exec-proto = { path = "../../libraries/agent-api/exec-proto" }
 exec-fs = { path = "../../libraries/agent-api/exec-fs" }

@@ -6,6 +6,7 @@ description = "The one blocking HTTP client of the CLIs: ureq with the proxy, re
 publish = false
 
 [dependencies]
+tracing = "0.1"
 ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "socks-proxy", "gzip"] }
 base64 = "0.22"
 serde_json = "1"

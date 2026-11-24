@@ -81,6 +81,7 @@ fn serve_verb(p: &Parsed) -> Option<i32> {
 fn healthcheck(bind: &str, port: u16) -> i32 {
     use std::io::{Read, Write};
     let host = if bind == "0.0.0.0" { "127.0.0.1" } else { bind };
+    let _span = wf_kit::performance::external("t3.health");
     let answered = std::net::TcpStream::connect((host, port)).ok().and_then(|mut stream| {
         stream.set_read_timeout(Some(std::time::Duration::from_secs(5))).ok()?;
         stream.write_all(format!("GET /health HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n").as_bytes()).ok()?;

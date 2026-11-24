@@ -27,6 +27,7 @@ fn connect_error(message: impl std::fmt::Display) -> Error {
 
 /// The socket to `url`, authenticated by `bearer`. A 401 or 403 on the handshake is `UNAUTHORIZED`, anything else that stops it `CONNECT`.
 pub fn open(url: &str, bearer: &str, timeout: Duration) -> Result<WebSocket<TcpStream>, Error> {
+        let _span = tracing::info_span!("rca.client.connect").entered();
     let authority = authority(url)?;
     let addrs = authority.to_socket_addrs().map_err(|e| connect_error(format!("{authority} did not resolve: {e}")))?;
     let mut last = connect_error(format!("{authority} resolved to no address"));

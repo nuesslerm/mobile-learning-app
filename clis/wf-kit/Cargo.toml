@@ -9,6 +9,8 @@ description = "What every wf crate and binary shares: option parsing, the help e
 doctest = false
 
 [dependencies]
+telemetry = { version = "0.1", registry = "mla", features = ["service"] }
+tracing = "0.1"
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 clap = { version = "4", default-features = false, features = ["std", "error-context", "usage"] }

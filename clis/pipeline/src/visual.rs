@@ -448,6 +448,7 @@ enum Baselines {
 }
 
 fn oci(args: &[String]) -> Res<String> {
+    let _span = wf_kit::performance::external("oci");
     let out = Command::new("oci").args(args).stdin(Stdio::null()).output().map_err(|e| e.to_string())?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())

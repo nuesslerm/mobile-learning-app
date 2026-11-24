@@ -24,6 +24,7 @@ impl OciCli {
     }
 
     fn run(&self, args: &[&str]) -> Result<String, StoreError> {
+        let _span = tracing::info_span!("external.oci").entered();
         let verb = args.iter().take(3).copied().collect::<Vec<_>>().join(" ");
         let out = Command::new("oci")
             .args(args)
@@ -39,6 +40,7 @@ impl OciCli {
 
     /// `run` that kills the CLI when `deadline` passes.
     fn run_until(&self, args: &[&str], deadline: Instant) -> Result<String, StoreError> {
+        let _span = tracing::info_span!("external.oci").entered();
         let verb = args.iter().take(3).copied().collect::<Vec<_>>().join(" ");
         let mut child = Command::new("oci")
             .args(args)

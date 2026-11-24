@@ -90,14 +90,20 @@ fn handle(mut stream: TcpStream, shared: &Shared, stop: &AtomicBool) {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
     let Some(head) = http::read_head(&mut stream) else { return };
     let upgrading = head.header("upgrade").is_some_and(|v| v.eq_ignore_ascii_case("websocket"));
+    let route = match (head.method.as_str(), head.path.as_str(), upgrading) {
+        ("GET", _, true) => "upgrade",
+        ("GET", "/health", false) => "health",
+        _ => "unknown",
+    };
+    let span = tracing::info_span!("orca.http", otel.name = %format!("orca.http.{route}")).entered();
     match (head.method.as_str(), head.path.as_str(), upgrading) {
         ("GET", "/health", false) => http::respond(&mut stream, 200, &http::health()),
-        ("GET", _, true) => upgrade(stream, &head, shared, stop),
+        ("GET", _, true) => upgrade(stream, &head, shared, stop, span),
         _ => http::respond(&mut stream, 404, &json!({"code": "not_found", "message": "No such route."})),
     }
 }
 
-fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBool) {
+fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBool, span: tracing::span::EnteredSpan) {
     let Some(key) = head.header("sec-websocket-key") else {
         return http::respond(&mut stream, 400, &json!({"code": "bad_request", "message": "A WebSocket upgrade is required."}));
     };
@@ -106,6 +112,7 @@ fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBoo
     if stream.write_all(reply.as_bytes()).and_then(|()| stream.flush()).is_err() {
         return;
     }
+    drop(span);
     let _ = stream.set_nodelay(true);
     let _ = stream.set_read_timeout(Some(Duration::from_millis(20)));
     let mut ws = WebSocket::from_raw_socket(stream, Role::Server, Some(WebSocketConfig::default().max_message_size(Some(MAX_FRAME)).max_frame_size(Some(MAX_FRAME))));

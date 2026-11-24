@@ -11,6 +11,11 @@ pub struct Out {
 }
 
 pub fn capture(program: &str, args: &[String], cwd: Option<&Path>, timeout: Option<Duration>) -> Out {
+    let _span = match program {
+        "gh" => Some(crate::performance::external("gh")), "oci" => Some(crate::performance::external("oci")),
+        "bws" => Some(crate::performance::external("bws")), "curl" => Some(crate::performance::external("curl")),
+        _ => None,
+    };
     let mut cmd = Command::new(program);
     cmd.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     if let Some(c) = cwd {

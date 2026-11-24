@@ -104,6 +104,7 @@ pub fn real_from_env() -> Result<Option<Real>, String> {
 }
 
 pub struct Chain {
+    _exec: RcaExec,
     pub tap: Tap,
     pub cli: ScriptedCli,
     pub repo: TempRepo,
@@ -115,7 +116,6 @@ pub struct Chain {
     pub real: Option<Real>,
     server: Child,
     errlog: PathBuf,
-    _exec: RcaExec,
 }
 
 /// A paired phone's two sockets: one for requests, one for the streams it keeps open (an open stream's chunks would interleave with answers).
@@ -203,8 +203,7 @@ impl Chain {
 
 impl Drop for Chain {
     fn drop(&mut self) {
-        let _ = self.server.kill();
-        let _ = self.server.wait();
+        exec_testkit::stop_fixture(&mut self.server, "-USR1");
     }
 }
 

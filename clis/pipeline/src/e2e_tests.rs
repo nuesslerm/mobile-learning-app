@@ -160,6 +160,7 @@ fn workflow_file(reference: Option<&str>) -> String {
 fn last_green(sha: &str) -> Option<String> {
     let repo_name = std::env::var("GITHUB_REPOSITORY").ok()?;
     let workflow = workflow_file(std::env::var("GITHUB_WORKFLOW_REF").ok().as_deref());
+    let _span = wf_kit::performance::external("gh");
     let out = Command::new("gh")
         .args(["run", "list", "-R", &repo_name, "--workflow", &workflow, "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
         .stdin(Stdio::null())

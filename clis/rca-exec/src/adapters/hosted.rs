@@ -125,6 +125,7 @@ impl Hosted {
     }
 
     fn run_step(&self, op: &HostedOp, step: &Step, root: &Path, cancelled: &AtomicBool) -> ExecResult<Output> {
+        let _span = wf_kit::performance::external(step.program.name());
         let mut cmd = command(step, root, &self.extra_env(op));
         cmd.stdin(if step.stdin.is_some() { Stdio::piped() } else { Stdio::null() });
         let mut child = cmd.spawn().map_err(|e| spawn_error(step.program, e))?;

@@ -110,6 +110,7 @@ pub fn execute(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value, stream
 
 /// `execute` with a sink for the binary frames (`exec_pty::encode_frame`) of `pty_attach`.
 pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value, stream: &mut dyn FnMut(Stream, &str), events: &mut dyn FnMut(Value), binary: &mut dyn FnMut(Vec<u8>)) -> ExecResult<Value> {
+    let span = tracing::info_span!("rca.executor", otel.name = %format!("rca.executor.{tool}")).entered();
     match tool {
         exec_proc::RUN_COMMAND => Ok(to_value(&ex.run_command(id, &RunCommand::parse(args)?, stream)?)),
         exec_proc::SESSION_OPEN => Ok(to_value(&ex.session_open(id, &SessionOpen::parse(args)?, stream, events)?)),
@@ -178,7 +179,10 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
             (None, Some(op), _, _) => ex.hosted_op(id, &op?),
             (None, None, Some(op), _) => ex.preview_op(&op?),
             (None, None, None, Some(op)) => ex.browser_op(&op?),
-            (None, None, None, None) => Err(ExecError::new(Code::UnknownTool, format!("unknown tool {other}"))),
+            (None, None, None, None) => {
+                span.record("otel.name", "rca.executor.unknown");
+                Err(ExecError::new(Code::UnknownTool, format!("unknown tool {other}")))
+            }
         },
     }
 }

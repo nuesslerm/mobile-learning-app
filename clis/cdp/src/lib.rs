@@ -110,6 +110,7 @@ pub struct Fire {
 
 impl Fire {
     pub fn send(&self, method: &str, params: Value, session: Option<&str>) -> Result<(), String> {
+        let _span = tracing::info_span!("cdp.client", otel.name = %format!("cdp.client.{method}")).entered();
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let mut request = json!({ "id": id, "method": method, "params": params });
         if let Some(s) = session {
@@ -155,6 +156,7 @@ pub(crate) fn host_and_port(url: &str) -> Result<(String, u16), String> {
 
 impl Cdp {
     pub fn connect(ws_url: &str) -> Result<Cdp, String> {
+        let _span = tracing::info_span!("cdp.connect").entered();
         if !ws_url.starts_with("ws://") {
             return Err(format!("not a ws:// URL: {ws_url}"));
         }

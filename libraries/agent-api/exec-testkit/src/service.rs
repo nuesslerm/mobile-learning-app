@@ -153,6 +153,7 @@ impl RcaService {
         let log = std::fs::OpenOptions::new().create(true).write(true).append(append).truncate(!append).open(home.join("service.log")).expect("a log file");
         Command::new(binary())
             .env_clear()
+            .envs(std::env::vars_os().filter(|(name, _)| name == "WF_PERFORMANCE_ENDPOINT" || name == "WF_PERFORMANCE_FIXTURE"))
             .env("PATH", path)
             .env("HOME", home)
             // the directory a CLI of a turn starts in: the service's own, as no workspace of the service is a model's to work in
@@ -216,8 +217,7 @@ impl RcaService {
 
 impl Drop for RcaService {
     fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        crate::stop_fixture(&mut self.child, "-TERM");
     }
 }
 

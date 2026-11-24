@@ -153,6 +153,7 @@ fn test(rest: &[String]) -> Option<i32> {
         Some("drift" | "backends") => return pipeline::run_test(rest),
         Some("publish") => return pipeline::run_test(rest),
         Some("goldens" | "ios-visual") => return wf_harness::run_test(rest),
+        Some("run") if rest.get(1).is_some_and(|a| a == "--performance") => return wf_kit::performance::integration(&rest[1..]),
         Some("run") if rest.iter().any(|a| a == "--stage") => return pipeline::run_test(rest),
         Some("run") => return Some(e2e_run::run(&rest[1..])),
         Some("record") => {

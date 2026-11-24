@@ -240,6 +240,21 @@ fn respond_joined(stream: &mut TcpStream, share: &str, token: &str) {
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
 }
 
+fn route_name(path: &str) -> &str {
+    match path {
+        "/ws" | "/health" | "/.well-known/t3/environment" | "/oauth/token" | "/api/auth/session" | "/api/auth/pairing-token" |
+        "/api/auth/browser-session" | "/api/auth/clients/revoke" | "/api/auth/pairing-links/revoke" | "/api/auth/clients/revoke-others" |
+        "/api/projects" | "/api/orchestration/shell" | "/api/pull-requests/diff" | "/api/guest/redeem" | "/api/guest/messages" |
+        "/api/voice/status" | "/api/voice/models" | "/api/voice/models/select" | "/api/voice/models/download" | "/api/voice/models/cancel" | VOICE_TRANSCRIBE => path,
+        _ if path.starts_with("/api/auth/websocket-ticket") => "/api/auth/websocket-ticket/:use",
+        _ if path.starts_with(THREADS) => "/api/orchestration/threads/:thread/:resource",
+        _ if path.starts_with(HOOKS) => "/api/hooks/:a/:b",
+        _ if path.starts_with(UPLOAD_PREFIX) => "attachment.upload",
+        _ if path.starts_with(ASSET_PREFIX) => "asset",
+        _ => "unknown",
+    }
+}
+
 pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
     // Accepted sockets can inherit the listener's nonblocking mode on macOS.
     if stream.set_nonblocking(false).is_err() {
@@ -250,6 +265,8 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
         Ok(r) => r,
         Err(m) => return respond(&mut stream, 400, &wire::bad_request(m)),
     };
+    let method = match request.method.as_str() { m @ ("GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS") => m, _ => "OTHER" };
+    let span = tracing::info_span!("t3.http", otel.name = %format!("t3.http.{method} {}", route_name(&request.path))).entered();
     let auth = request.header("authorization");
     match (request.method.as_str(), request.path.as_str()) {
         ("OPTIONS", _) => respond(&mut stream, 204, &Value::Null),
@@ -309,7 +326,7 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             Err(r) => refused(&mut stream, r, ""),
         },
         ("GET", "/ws") => match svc.connect(&request.query) {
-            Ok(connection) => socket::upgrade(stream, &request, connection, stop),
+            Ok(connection) => socket::upgrade(stream, &request, connection, stop, span),
             Err(r) => refused(&mut stream, r, ""),
         },
         ("GET", "/api/orchestration/shell") => {

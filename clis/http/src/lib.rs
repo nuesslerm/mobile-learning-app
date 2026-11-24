@@ -138,7 +138,14 @@ impl Request {
         self
     }
 
+    fn client_span(&self, site: &std::panic::Location<'_>) -> tracing::Span {
+        let method = match self.method.as_str() { m @ ("GET" | "POST" | "PATCH" | "PUT" | "DELETE" | "HEAD" | "OPTIONS") => m, _ => "OTHER" };
+        tracing::info_span!("http.client", otel.name = %format!("http.client.{method}"), caller.file = site.file(), caller.line = site.line())
+    }
+
+    #[track_caller]
     pub fn send(self) -> Result<Response, String> {
+        let _span = self.client_span(std::panic::Location::caller()).entered();
         let mut response = self.exchange()?;
         let (status, headers) = (response.status().as_u16(), header_list(&response));
         let body = response.body_mut().with_config().limit(BODY_LIMIT).read_to_vec().map_err(|e| e.to_string())?;
@@ -147,7 +154,9 @@ impl Request {
 
     /// As `send`, but a 2xx body is streamed into `dest` (up to `FILE_LIMIT`) and the file appears only once all of it arrived.
     /// Any other status comes back as `send` gives it, with no file; a 2xx comes back with an empty body.
+    #[track_caller]
     pub fn send_to_file(self, dest: &Path) -> Result<Response, String> {
+        let _span = self.client_span(std::panic::Location::caller()).entered();
         let mut response = self.exchange()?;
         let (status, headers) = (response.status().as_u16(), header_list(&response));
         if !(200..300).contains(&status) {

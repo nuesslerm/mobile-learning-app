@@ -4,6 +4,7 @@ Dev workflow CLI
 
 Options:
   -V, --version               output the version number
+  --performance               save command and API timings to SQLite
   --json                      output machine-readable JSON lines
   --frontend <name>           frontend app to target (mla-tamagui) (default:
                               "mla-tamagui")

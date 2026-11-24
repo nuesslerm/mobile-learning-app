@@ -59,6 +59,7 @@ impl ExecChannel {
 
     /// Opens the channel of the executor `id` (or of the one a workspace names, with none), whose root workspace is `workspace`.
     pub fn open_as(url: &str, id: Option<&str>, workspace: &str, bearer: &str, executor: Arc<dyn ToolExecutor>) -> Result<ExecChannel, String> {
+        let _span = tracing::info_span!("rca.executor.connect").entered();
         let (authority, ws) = ws_url(url, id, workspace)?;
         let stream = TcpStream::connect(&authority).map_err(|e| format!("channel connect {authority}: {e}"))?;
         let mut request = ws.as_str().into_client_request().map_err(|e| e.to_string())?;

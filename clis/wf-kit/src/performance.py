@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS spans (
     PRIMARY KEY(run_id, trace_id, span_id)
 );
 CREATE INDEX IF NOT EXISTS spans_operation ON spans(run_id, name);
+CREATE TABLE IF NOT EXISTS span_sources (
+    run_id TEXT, trace_id TEXT, span_id TEXT, service TEXT, caller_file TEXT, caller_line INTEGER,
+    PRIMARY KEY(run_id, trace_id, span_id)
+);
 CREATE TABLE IF NOT EXISTS metrics (
     run_id TEXT, name TEXT, samples INTEGER, p95_ms REAL, budget_ms REAL,
     PRIMARY KEY(run_id, name)
@@ -42,6 +46,11 @@ def receiver(database, run):
             pass
 
         def do_POST(self):
+            if self.path == "/v1/logs":
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"{}")
+                return
             if self.path != "/v1/traces":
                 self.send_error(404)
                 return
@@ -51,7 +60,10 @@ def receiver(database, run):
                     raise ValueError("invalid batch size")
                 batch = json.loads(self.rfile.read(length))
                 rows = []
+                sources = []
                 for resource in batch["resourceSpans"]:
+                    resource_attrs = {a["key"]: a["value"] for a in resource.get("resource", {}).get("attributes", [])}
+                    service = resource_attrs.get("service.name", {}).get("stringValue")
                     for scope in resource["scopeSpans"]:
                         for span in scope["spans"]:
                             start = int(span["startTimeUnixNano"])
@@ -62,6 +74,10 @@ def receiver(database, run):
                                 or not re.fullmatch("[0-9a-fA-F]{16}", span["spanId"])
                             ):
                                 raise ValueError("invalid span")
+                            attrs = {a["key"]: a["value"] for a in span.get("attributes", [])}
+                            sources.append((run, span["traceId"], span["spanId"], service,
+                                            attrs.get("caller.file", {}).get("stringValue"),
+                                            attrs.get("caller.line", {}).get("intValue")))
                             rows.append(
                                 (
                                     run,
@@ -74,6 +90,7 @@ def receiver(database, run):
                                 )
                             )
                 with sqlite3.connect(database, timeout=30) as db:
+                    db.executemany("INSERT OR IGNORE INTO span_sources VALUES (?,?,?,?,?,?)", sources)
                     db.executemany("INSERT OR IGNORE INTO spans VALUES (?,?,?,?,?,?,?)", rows)
             except (ValueError, KeyError, TypeError, OverflowError):
                 self.send_error(400)
@@ -108,8 +125,8 @@ def publish(metrics, suite, profile):
     body = {
         "resourceMetrics": [
             {
-                "resource": {"attributes": attrs({"service.name": "wf-bench"})},
-                "scopeMetrics": [{"scope": {"name": "wf.bench"}, "metrics": [gauge]}],
+                "resource": {"attributes": attrs({"service.name": "wf"})},
+                "scopeMetrics": [{"scope": {"name": "wf.performance"}, "metrics": [gauge]}],
             }
         ]
     }
@@ -125,15 +142,15 @@ def publish(metrics, suite, profile):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="wf bench trace")
-    mode = parser.add_mutually_exclusive_group(required=True)
+    parser = argparse.ArgumentParser(prog="wf --performance")
+    mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--budgets", type=Path)
     mode.add_argument("--merge", type=Path, nargs="+", help="merge downloaded performance databases")
     parser.add_argument(
-        "--db", type=Path, default=Path(os.environ["WF_BENCH_ROOT"]) / "clis/app-bench/history.sqlite"
+        "--db", type=Path, default=Path(os.environ.get("WF_PERFORMANCE_DB", Path(os.environ["WF_PERFORMANCE_ROOT"]) / "clis/app-bench/history.sqlite"))
     )
     parser.add_argument(
-        "--profile", default=f"local-{platform.system()}-{platform.machine()}-{platform.node()}"
+        "--profile", default=os.environ.get("WF_PERFORMANCE_PROFILE", f"local-{platform.system()}-{platform.machine()}-{platform.node()}")
     )
     parser.add_argument("--send", action="store_true", help="export summary gauges to Better Stack")
     parser.add_argument("command", nargs=argparse.REMAINDER)
@@ -148,30 +165,36 @@ def main():
                     parser.error(f"expected another existing SQLite database: {source}")
                 db.execute("ATTACH DATABASE ? AS imported", (str(source),))
                 with db:
-                    for table in ("runs", "spans", "metrics"):
+                    tables = ["runs", "spans", "metrics"]
+                    if db.execute("SELECT 1 FROM imported.sqlite_master WHERE type='table' AND name='span_sources'").fetchone():
+                        tables.append("span_sources")
+                    for table in tables:
                         db.execute(f"INSERT OR IGNORE INTO main.{table} SELECT * FROM imported.{table}")
                 db.execute("DETACH DATABASE imported")
             print(json.dumps(dict(ok=True, runs=db.execute("SELECT count(*) FROM runs").fetchone()[0])))
         return 0
     if not command:
         parser.error("supply the workload command after --")
-    spec = json.loads(args.budgets.read_text())
+    spec = json.loads(args.budgets.read_text()) if args.budgets else dict(suite="cli", p95_ms={}, min_samples=1)
     suite = spec["suite"]
     budgets = spec["p95_ms"]
     minimum = spec["min_samples"]
+    changes = spec.get("min_change_ms", {})
     if (
-        not budgets
+        (args.budgets and not budgets)
         or not isinstance(minimum, int)
         or minimum < 1
+        or any(k not in budgets or not math.isfinite(v) or v < 0 for k, v in changes.items())
         or any(not math.isfinite(v) or v <= 0 for v in budgets.values())
     ):
         parser.error("expected positive budgets and min_samples")
     args.db.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(args.db, timeout=30)
     db.executescript(SCHEMA)
-    git = ["git", "-C", os.environ["WF_BENCH_ROOT"]]
-    revision = subprocess.check_output([*git, "rev-parse", "HEAD"], text=True).strip()
-    if subprocess.check_output(
+    git = ["git", "-C", os.environ["WF_PERFORMANCE_ROOT"]]
+    head = subprocess.run([*git, "rev-parse", "HEAD"], capture_output=True, text=True)
+    revision = head.stdout.strip() if head.returncode == 0 else "unknown"
+    if head.returncode == 0 and subprocess.check_output(
         [
             *git,
             "status",
@@ -193,15 +216,18 @@ def main():
         endpoint = f"http://127.0.0.1:{server.server_port}"
         env = dict(
             os.environ,
+            WF_PERFORMANCE_ENDPOINT=endpoint,
             OTEL_EXPORTER_OTLP_ENDPOINT=endpoint,
             OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=endpoint + "/v1/traces",
             OTEL_EXPORTER_OTLP_PROTOCOL="http/json",
             OTEL_EXPORTER_OTLP_TRACES_PROTOCOL="http/json",
         )
+        if args.budgets:
+            env["WF_PERFORMANCE_FIXTURE"] = "1"
         worker = threading.Thread(target=server.serve_forever, daemon=True)
         worker.start()
         try:
-            status = subprocess.run(command, env=env, stdout=sys.stderr).returncode
+            status = subprocess.run(command, env=env, stdout=sys.stderr if args.budgets else None).returncode
         except OSError as error:
             print(f"cannot start benchmark: {error}", file=sys.stderr)
             status = 1
@@ -210,13 +236,15 @@ def main():
             worker.join()
     baseline = db.execute(
         """SELECT id FROM runs WHERE suite=? AND profile=? AND passed=1
-                             ORDER BY started, id LIMIT 1""",
+                             ORDER BY started, rowid LIMIT 1""",
         (suite, args.profile),
     ).fetchone()
     passed = status == 0
     metrics = []
     with db:
-        for name, budget in budgets.items():
+        observed = [row[0] for row in db.execute("SELECT DISTINCT name FROM spans WHERE run_id=? ORDER BY name", (run,))]
+        for name in dict.fromkeys([*budgets, *observed]):
+            budget = budgets.get(name)
             times = db.execute(
                 "SELECT (end_ns-start_ns)/1000000.0 FROM spans WHERE run_id=? AND name=? ORDER BY 1",
                 (run, name),
@@ -229,9 +257,10 @@ def main():
                     "SELECT p95_ms FROM metrics WHERE run_id=? AND name=?", (baseline[0], name)
                 ).fetchone()
                 reference = row[0] if row else None
-            if reference is not None:
-                budget = min(budget, reference + max(reference * 0.5, 0.10))
-            passed &= count >= minimum and p95 <= budget
+            if reference is not None and budget is not None:
+                budget = min(budget, reference + max(reference * 0.5, changes.get(name, 0.10)))
+            if budget is not None:
+                passed &= count >= minimum and p95 <= budget
             db.execute("INSERT INTO metrics VALUES(?,?,?,?,?)", (run, name, count, p95, budget))
             metrics.append(
                 dict(name=name, samples=count, p95_ms=p95, baseline_ms=reference, budget_ms=budget)
@@ -239,14 +268,14 @@ def main():
         db.execute("UPDATE runs SET passed=? WHERE id=?", (passed, run))
     db.close()
     export = "disabled"
-    if args.send:
+    if args.send or os.environ.get("WF_PERFORMANCE_SEND") == "1":
         try:
             publish(metrics, suite, args.profile)
             export = "sent"
         except (OSError, KeyError, ValueError) as error:
             export = f"failed ({type(error).__name__})"
-    print(json.dumps(dict(ok=passed, run=run, database=str(args.db), metrics=metrics, export=export)))
-    return 0 if passed else 1
+    print(json.dumps(dict(ok=passed, run=run, database=str(args.db), metrics=metrics, export=export)), file=sys.stdout if args.budgets else sys.stderr)
+    return (0 if passed else 1) if args.budgets else (128 - status if status < 0 else status)
 
 
 if __name__ == "__main__":

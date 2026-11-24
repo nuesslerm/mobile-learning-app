@@ -14,20 +14,6 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("bench", run), ("browse
 /// Runs the selected benchmark with the words after `bench`.
 pub fn run(args: &[String]) -> Option<i32> {
     match args.split_first() {
-        Some((kind, more)) if kind == "trace" => {
-            let status = std::process::Command::new("python3")
-                .args(["-c", include_str!("trace.py")])
-                .args(more)
-                .env("WF_BENCH_ROOT", wf_kit::root::repo_root())
-                .status();
-            Some(match status {
-                Ok(status) => status.code().unwrap_or(1),
-                Err(error) => {
-                    eprintln!("cannot run trace receiver: {error}");
-                    1
-                }
-            })
-        }
         Some((kind, more)) if kind == "cli" => bench::run(more),
         Some((kind, more)) if kind == "agent-proof" => agent_proof::run(more),
         _ => app_bench::run(args),

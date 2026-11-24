@@ -158,6 +158,8 @@ impl Connection {
         } else {
             required_scopes(tag)
         };
+        let method = if scopes.is_some() { tag } else { "unknown" };
+        let _span = tracing::info_span!("t3.rpc", otel.name = %format!("t3.rpc.{method}")).entered();
         match scopes {
             None => {
                 self.svc.log("rpc.unsupported", &[("tag", tag.to_string()), ("known", "false".into())]);

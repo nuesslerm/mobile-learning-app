@@ -130,6 +130,7 @@ impl Client {
 
     /// The call itself, on the socket as it is.
     fn exchange(&mut self, method: &str, params: Value) -> Result<Value, Error> {
+        let _span = tracing::info_span!("rca.client", otel.name = %format!("rca.client.{method}")).entered();
         let id = self.next_id;
         self.next_id += 1;
         let request = Request { id: json!(id), method: method.to_string(), params };

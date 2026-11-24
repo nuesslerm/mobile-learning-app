@@ -12,6 +12,8 @@ Actions:
                          rectangles. Writes actual and, on a mismatch, expected and diff PNGs. Use --update-goldens to record an intentional baseline.
                          With --reference <png>, always writes a diff and scores unmasked pixels. Use --exact and --max-diff-ratio 0.05
                          for 95% exact agreement. --capture <png> replaces --device and --expect for a recorded frame.
+  run --performance [--db <file>] [--profile <name>] [--send] [--merge <file>]
+                         Measure Orca and T3 integration workloads, or import CI history.
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's

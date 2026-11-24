@@ -119,6 +119,7 @@ fn upstream(host: &str) -> String {
 
 /// Sends the request on to the host it names, as one request on a fresh connection, and copies the answer back.
 fn forward(out: &mut TcpStream, req: &Request) -> Result<(), String> {
+        let _span = wf_kit::performance::external("android.http.forward");
     let host = req.header("host").ok_or("no Host header to forward to")?;
     let addr = upstream(host);
     let mut up = TcpStream::connect(&addr).map_err(|e| format!("cannot reach {addr}: {e}"))?;

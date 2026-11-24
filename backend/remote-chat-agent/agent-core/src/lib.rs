@@ -143,8 +143,10 @@ impl AgentApi {
     async fn dispatch(&self, build: Build<'_>, request: Request, connection: &Connection) -> Response {
         let Request { id, method, params } = request;
         let found = self.groups.iter().find_map(|group| group.methods().iter().find(|served| served.method.name() == method).map(|served| (group, served.method)));
+        let name = found.as_ref().map_or("unknown", |(_, method)| method.name());
+        let span = tracing::info_span!("rca.server", otel.name = %format!("rca.server.{name}"));
         let Some((group, method)) = found else { return Response::error(id, code::UNKNOWN_METHOD, format!("{method} is not a method of this service")) };
-        group.handle(Call { id, method, params: &params, build, listed: &self.listed, connection }).await
+        tracing::Instrument::instrument(group.handle(Call { id, method, params: &params, build, listed: &self.listed, connection }), span).await
     }
 }
 

@@ -1,31 +1,40 @@
-# Local performance traces
+# CLI performance tracing
 
-Run from the repository root with Python 3, Cargo and a current build of `wf`.
+Use a current build of `wf` and Python 3. To record an ordinary command in the repository's SQLite history, put `--performance` before the command. The command keeps its stdout and exit status. The capture summary goes to stderr.
 
 ```sh
-wf bench trace --budgets clis/app-bench/scenarios/rca-hosts-trace.json -- \
-  cargo test --locked --manifest-path clis/Cargo.toml \
-    -p orca-serve -p t3-serve --test performance -- --ignored
+wf --performance rca bearers list
 ```
 
-Each protocol client connects to its serve process over loopback. The serve process calls RCA, and an attached RCA executor owns the temporary repository. On each of 30 iterations, Orca resolves and reads a 4 KiB terminal artifact and T3 lists a project directory and reads its 4 KiB file. The parent span times the interaction and child spans time the individual wire calls. The harness checks the contents and observes the calls through its recording proxy. Compilation, process startup and pairing happen outside these spans. Local and CI runs use Cargo's debug test profile. Timings include the test proxy and exclude device rendering and model inference.
+To run the performance cases in the Orca and T3 integration suites, use the same option on the test runner. This prints a JSON verdict and exits nonzero if a test fails, a required operation has too few samples, or its p95 exceeds its limit.
 
-The command starts a loopback receiver on a free port, sets the child process's OTLP endpoint and protocol, and accepts OTLP/HTTP JSON at `/v1/traces`. An instrumented workload can replace the Cargo command. Configure its tracer for HTTP/JSON and flush it before exit. Give the fixture a versioned suite name, minimum sample count and a p95 budget in milliseconds per operation. Change the suite name when changing the fixture. A lost batch that leaves too few samples fails the gate.
+```sh
+wf test run --performance
+```
 
-Local runs append to the versioned `clis/app-bench/history.sqlite`. CI uses a separate database per run so concurrent jobs can publish independently. The database records the Git revision, timestamp, machine profile, trace and parent IDs, operation names, timestamps and verdict. Keep span names static. The local profile includes the machine name. Use an explicit `--profile` for comparable runs on an identified runner and build profile.
+Each test pairs a protocol client with a real serve process on loopback. The file workloads resolve and read a 4 KiB Orca terminal artifact or list and read a T3 project file through an RCA service and executor. The chat workloads fetch an Orca session history page and a T3 thread projection from a seeded session. Each workload runs 30 times after setup. The client checks the returned data. Server dispatch and outgoing API calls emit their own spans on the same code paths used during normal operation. HTTP upgrade spans end when the handshake completes. Debug builds, the recording proxy and local sockets are part of this measurement. Device rendering and model inference are outside it.
+
+## History
+
+The loopback receiver accepts OTLP/HTTP JSON at `/v1/traces`. Its default database is `clis/app-bench/history.sqlite`. Each run records its Git revision, timestamp, machine profile, suite and verdict. Each span records its operation, IDs and timing. The `span_sources` table adds service and available HTTP or external-client call sites to new captures. Parent IDs connect nested spans within an instrumented process. Use the run ID to find the other processes in the same workload.
 
 ```sql
-SELECT started, substr(revision,1,8) AS commit_id, profile, name, samples,
-       round(p95_ms,3) AS p95_ms, round(budget_ms,3) AS limit_ms, passed
+SELECT started, revision, profile, name, samples,
+       round(p95_ms, 2) AS p95_ms, round(budget_ms, 2) AS limit_ms, passed
 FROM runs JOIN metrics ON metrics.run_id = runs.id
-ORDER BY started DESC, name;
+WHERE name = 'orca.session.history'
+ORDER BY started DESC;
 ```
 
-In the CLI build pipeline, the first passing run on the Ubuntu x64 runner seeds the comparison cache. Each later run must stay within both the committed budget and the first passing p95 plus the larger of 50% or 0.10 ms. Fixed references catch cumulative drift. If GitHub evicts the baseline cache, the committed budgets still apply and the next passing run reseeds it. The runner publishes a `performance-sqlite` artifact even on a budget failure. Download it within the 90-day retention window and merge it into your local history. Merging the same run twice is safe.
+Set `WF_PERFORMANCE_DB` to choose another file and `WF_PERFORMANCE_PROFILE` to name a comparable machine and build profile. For the suite, `--db` and `--profile` also work. Set `WF_PERFORMANCE_SEND=1` or pass `--send` to the performance suite to export p95 gauges using `BETTERSTACK_METRICS_HOST` and `BETTERSTACK_METRICS_TOKEN`. The verdict reports the delivery status. SQLite commits before export.
+
+## CI
+
+The CLI build pipeline runs these integration cases on Ubuntu x64 on pushes to dev. The first passing run pins a baseline for this fixture and runner. Each required operation must meet the ceiling in `clis/app-bench/scenarios/rca-hosts-trace.json` and stay within the baseline p95 plus the greater of 50% or the minimum change for that operation. The default minimum is 0.10 ms. Executor file reads and artifact stats use 3 ms because consecutive local runs showed 1–2 ms of p95 variation in those operations. The fixed reference catches cumulative drift. If GitHub evicts the baseline cache, the absolute limits still apply and the next passing run reseeds it.
+
+Each job publishes a `performance-sqlite` artifact, including on budget failures. Importing an artifact twice preserves one copy of each run. Change the suite name and cache key together when the fixture changes.
 
 ```sh
 gh run download "$RUN_ID" -n performance-sqlite -D ".performance/import/$RUN_ID"
-wf bench trace --merge ".performance/import/$RUN_ID/history.sqlite"
+wf test run --performance --merge ".performance/import/$RUN_ID/history.sqlite"
 ```
-
-To publish p95 gauges, add `--send` before the command separator and supply the existing `BETTERSTACK_METRICS_HOST` and `BETTERSTACK_METRICS_TOKEN` environment variables. The summary reports export status. SQLite commits before the network request and remains available offline.

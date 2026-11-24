@@ -114,6 +114,7 @@ fn install_real_agents(agents: &[RealAgent], work: &Path, cache: Option<&Path>) 
         match cache.map(|c| c.join(&asset)).filter(|p| p.is_file()) {
             Some(cached) => drop(std::fs::copy(&cached, &archive).map_err(|e| format!("{}: {e}", cached.display()))?),
             None => {
+                let _span = wf_kit::performance::external("curl");
                 let mut curl = Command::new("curl");
                 let from = package.map_or_else(|| format!("{}/{asset}", a.release), |p| p.url.clone());
                 curl.args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "--max-time", "900", "-o"]).arg(&archive).arg(from);

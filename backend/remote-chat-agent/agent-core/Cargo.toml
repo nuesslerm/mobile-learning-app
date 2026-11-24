@@ -15,6 +15,7 @@ doctest = false
 testing = []
 
 [dependencies]
+tracing = "0.1"
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -21,6 +21,7 @@ path = "src/bin/rca.rs"
 test = false
 
 [dependencies]
+tracing = "0.1"
 wf-kit = { path = "../wf-kit" }
 secrets = { path = "../secrets" }
 wf-vmops = { path = "../wf-vmops" }

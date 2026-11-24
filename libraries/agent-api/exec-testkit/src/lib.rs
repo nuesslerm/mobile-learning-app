@@ -65,3 +65,17 @@ pub fn hang_until_orphaned() -> ! {
     }
     std::process::exit(124)
 }
+
+/// Give a traced fixture time to flush completed spans before its process is reaped.
+pub fn stop_fixture(child: &mut std::process::Child, signal: &str) {
+    if std::env::var_os("WF_PERFORMANCE_FIXTURE").is_some() && child.try_wait().ok().flatten().is_none() {
+        let _ = std::process::Command::new("kill").args([signal, &child.id().to_string()]).status();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while std::time::Instant::now() < deadline {
+            if child.try_wait().ok().flatten().is_some() { return; }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}

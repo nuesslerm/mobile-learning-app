@@ -1,5 +1,5 @@
 {
-  "suite": "rca-hosts-file-4k-v1",
+  "suite": "rca-hosts-file-chat-v2",
   "min_samples": 30,
   "p95_ms": {
     "orca.artifact.open": 750,
@@ -7,6 +7,18 @@
     "orca.artifact.read": 400,
     "t3.project.open": 750,
     "t3.project.list": 400,
-    "t3.project.read": 400
+    "t3.project.read": 400,
+    "orca.session.history": 400,
+    "t3.thread.projection": 400,
+    "orca.rpc.files.resolveTerminalPath": 400,
+    "t3.rpc.projects.readFile": 400,
+    "rca.client.artifact.stat": 400,
+    "rca.server.artifact.stat": 400,
+    "rca.executor.artifact_stat": 400,
+    "rca.executor.read_file": 400
+  },
+  "min_change_ms": {
+    "rca.executor.artifact_stat": 3,
+    "rca.executor.read_file": 3
   }
 }
