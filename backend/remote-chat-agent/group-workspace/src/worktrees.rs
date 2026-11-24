@@ -102,7 +102,12 @@ impl WorktreesGroup {
         if p.force {
             args["force"] = json!(true);
         }
-        route.channel.call(exec_git::GIT_WORKTREE_REMOVE, args).await?;
+        match route.channel.call(exec_git::GIT_WORKTREE_REMOVE, args).await {
+            // The checkout can be gone even if the previous removal lost its acknowledgement.
+            Ok(_) => {}
+            Err(error) if error.code() == exec_proto::Code::NotFound.as_str() => {}
+            Err(error) => return Err(error.into()),
+        }
         if let Some(run) = self.runs().remove(&p.workspace) {
             run.cancel();
         }
