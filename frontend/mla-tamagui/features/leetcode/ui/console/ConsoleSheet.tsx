@@ -17,6 +17,7 @@ import { CaseFields } from './CaseFields';
 const SNAP_POINTS = [CONSOLE_SNAP_PERCENT];
 const FLOATING_SNAP_POINTS = [FLOATING_CONSOLE_SNAP_PERCENT];
 const FLOATING_CONTENT = { gap: 4, paddingHorizontal: 16, paddingTop: 0, paddingBottom: 38 };
+const FLOATING_EDIT_CONTENT = { ...FLOATING_CONTENT, gap: 0 };
 const CONSOLE_HANDLE = { width: 60, height: 4, backgroundColor: 'rgba(175,175,185,0.47)', transform: [{ translateY: -4 }] } as const;
 const CASE_CARD = '#1d1d20';
 const CONSOLE_TAB_TRACK = { backgroundColor: '#222227', transform: [{ translateY: -4 }] };
@@ -80,7 +81,7 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       glassTintColor={darkGlass ? 'rgba(10, 10, 10, 0.17)' : undefined}
       glassOverlayColor={darkGlass ? 'rgba(0,0,0,0.36)' : undefined}
       handleIndicatorStyle={floating ? CONSOLE_HANDLE : undefined}
-      contentStyle={floating ? FLOATING_CONTENT : undefined}
+      contentStyle={floating ? (editing ? FLOATING_EDIT_CONTENT : FLOATING_CONTENT) : undefined}
       handleLabel="Close console"
       testID="ConsoleSheet"
     >

@@ -20,6 +20,8 @@ type Props = {
   onRemove?: (id: string) => void;
 };
 
+const EDIT_TRAILING_GUTTER = 28;
+
 /** One chip per case in a plain horizontal scroller (the sheet's one registered scrollable is its body), with + and the pencil pinned at the right. */
 export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass = false, editing = false, onSelect, onAdd, onEdit, onRemove }: Props) {
   const scrollRef = React.useRef<ScrollViewInstance>(null);
@@ -30,14 +32,16 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
   const inactiveColor = darkGlass ? '#1d1e20' : '$color4';
 
   const reveal = React.useCallback((chip: { x: number; width: number }) => {
-    const target = chipScrollTarget(chip, viewport.current, scrollX.current);
+    const target = chipScrollTarget(chip, viewport.current, scrollX.current, editing ? EDIT_TRAILING_GUTTER : undefined);
     if (target !== scrollX.current) scrollRef.current?.scrollTo({ x: target, animated: true });
-  }, []);
+  }, [editing]);
 
-  React.useEffect(() => {
+  const revealSelected = React.useCallback(() => {
     const chip = selectedId ? positions.current.get(selectedId) : undefined;
     if (chip) reveal(chip);
-  }, [selectedId, cases.length, reveal]);
+  }, [selectedId, reveal]);
+
+  React.useEffect(revealSelected, [cases.length, revealSelected]);
 
   return (
     <XStack items="center" gap={neutral ? '$1' : '$2'} testID="ConsoleChips">
@@ -46,10 +50,12 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
-        contentContainerStyle={{ gap: neutral ? 12 : 8, paddingTop: editing ? 6 : 2, paddingRight: editing ? 12 : 0, paddingBottom: 2 }}
+        contentContainerStyle={{ gap: neutral ? 12 : 8, paddingTop: editing ? 6 : 2, paddingRight: editing ? EDIT_TRAILING_GUTTER : 0, paddingBottom: 2 }}
         onLayout={(event: LayoutChangeEvent) => {
           viewport.current = event.nativeEvent.layout.width;
+          revealSelected();
         }}
+        onContentSizeChange={revealSelected}
         onScroll={(event) => {
           scrollX.current = event.nativeEvent.contentOffset.x;
         }}
@@ -110,13 +116,13 @@ const styles = StyleSheet.create({
   remove: {
     position: 'absolute',
     top: -5,
-    right: -12,
+    right: -9,
     width: 22,
     height: 20,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#303034',
+    backgroundColor: '#2b2b2f',
   },
-  minus: { width: 12, height: 2, borderRadius: 1, backgroundColor: '#f5f5f7' },
+  minus: { width: 13, height: 2, borderRadius: 1, backgroundColor: '#f5f5f7' },
 });
