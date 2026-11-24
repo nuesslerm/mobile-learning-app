@@ -12,6 +12,7 @@ pub struct Entities {
     pub runs: Vec<Value>,
     pub messages: Vec<Value>,
     pub turn_items: Vec<Value>,
+    pub provider_turns: Vec<Value>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -278,6 +279,11 @@ impl State {
                     entities.messages.retain(|m| m["id"] != e.payload["id"]);
                 }
             }
+            "provider-turn.updated" => {
+                if let Some(id) = &e.thread_id {
+                    upsert(&mut self.entities.entry(id.clone()).or_default().provider_turns, &e.payload);
+                }
+            }
             "message.updated" => {
                 if let Some(id) = &e.thread_id {
                     let entities = self.entities.entry(id.clone()).or_default();
@@ -357,11 +363,15 @@ impl State {
         self.projection_of(self.threads.get(id).or_else(|| self.deleted.get(id))?, id)
     }
 
+    pub fn run_rows(&self, shell: &Map<String, Value>, id: &str, runs: &[Value]) -> runs::Rows {
+        let workspace = shell["worktreePath"].as_str().or_else(|| shell["projectId"].as_str().and_then(|p| self.projects.get(p)).and_then(|p| p["workspaceRoot"].as_str()));
+        runs::derive(id, shell, runs, workspace)
+    }
+
     fn projection_of(&self, shell: &Map<String, Value>, id: &str) -> Option<Value> {
         let empty = Entities::default();
         let entities = self.entities.get(id).unwrap_or(&empty);
-        let workspace = shell["worktreePath"].as_str().or_else(|| shell["projectId"].as_str().and_then(|p| self.projects.get(p)).and_then(|p| p["workspaceRoot"].as_str()));
-        let rows = runs::derive(id, shell, &entities.runs, workspace);
+        let rows = self.run_rows(shell, id, &entities.runs);
         let mut out = Map::new();
         let mut thread = thread_projection_row(shell);
         if let Some(row) = thread.as_object_mut() {
@@ -380,7 +390,7 @@ impl State {
             ("subagents", none()),
             ("providerSessions", Value::Array(rows.provider_sessions)),
             ("providerThreads", Value::Array(rows.provider_threads)),
-            ("providerTurns", none()),
+            ("providerTurns", json!(entities.provider_turns)),
             ("runtimeRequests", none()),
             ("messages", Value::Array(entities.messages.iter().map(message_wire).collect())),
             ("plans", none()),

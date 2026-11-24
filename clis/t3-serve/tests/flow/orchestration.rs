@@ -121,6 +121,9 @@ fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_te
     }
     let streamed = events.iter().find(|(kind, row)| kind == "turn-item.updated" && row["type"] == "assistant_message").unwrap();
     assert_eq!((&streamed.1["status"], &streamed.1["streaming"]), (&json!("running"), &json!(true)));
+    let provider_turns: Vec<&Value> = events.iter().filter(|(kind, _)| kind == "provider-turn.updated").map(|(_, row)| row).collect();
+    assert_eq!(provider_turns.iter().map(|turn| turn["status"].as_str().unwrap()).collect::<Vec<_>>(), ["running", "completed"]);
+    assert_eq!(provider_turns[0]["id"], provider_turns[1]["id"]);
     // And the projection holds both messages, the three items and a completed run
     let p = projection(&mut rpc);
     let texts: Vec<(&str, &str)> = p["messages"].as_array().unwrap().iter().map(|m| (m["role"].as_str().unwrap(), m["text"].as_str().unwrap())).collect();
@@ -133,6 +136,8 @@ fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_te
     assert_eq!(tool["nodeId"], p["messages"][1]["nodeId"]);
     assert_eq!(p["messages"][1]["streaming"], false);
     assert_eq!(p["messages"][1]["attachments"], json!([]));
+    assert_eq!(p["providerTurns"][0], *provider_turns[1]);
+    assert_eq!(p["providerTurns"][0]["runAttemptId"], p["runs"][0]["activeAttemptId"]);
     assert_eq!(p["messages"][1]["createdBy"], "agent");
     assert_eq!(p["messages"][1]["creationSource"], "provider");
     let assistant = events.iter().find(|(kind, row)| kind == "message.updated" && row["role"] == "assistant").unwrap();

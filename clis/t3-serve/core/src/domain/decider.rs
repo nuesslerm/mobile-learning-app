@@ -926,7 +926,9 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
         Some(draft("turn-item.updated", t, None, ctx.now, item(key, "command_execution", status, json!({"name": old["name"], "input": old["input"], "output": output}))))
     };
     let printed = |id: &str| existing(&format!("{run_id}:tool:{id}")).and_then(|o| o["output"].as_str().map(str::to_string));
-    match step {
+    let attempt_id = runs::attempt_id(run_id);
+    let provider_turn = entities.and_then(|e| e.provider_turns.iter().find(|turn| turn["runAttemptId"] == attempt_id));
+    let mut events = match step {
         RunStep::Started => vec![],
         RunStep::Text(delta) => vec![draft("turn-item.updated", t, None, ctx.now, item(assistant_id.clone(), "assistant_message", "streaming", json!({"text": grown(&assistant_id, delta), "messageId": message_id})))],
         RunStep::Reasoning(delta) => {
@@ -970,10 +972,37 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
             for (k, v) in [("status", json!(status)), ("completedAt", json!(at)), ("updatedAt", json!(at)), ("error", error_text)] {
                 fields.insert(k.into(), v);
             }
+            if let Some(turn) = provider_turn {
+                let mut turn = turn.clone();
+                turn["status"] = json!(status);
+                turn["completedAt"] = json!(at);
+                out.push(draft("provider-turn.updated", t, None, ctx.now, turn));
+            }
             out.push(draft("run.updated", t, None, ctx.now, ended));
             out
         }
+    };
+    if provider_turn.is_none() && matches!(step, RunStep::Text(_) | RunStep::Reasoning(_) | RunStep::ToolStarted { .. }) {
+        if let Some((shell, entities)) = state.threads.get(thread).zip(entities).filter(|(_, entities)| entities.provider_turns.is_empty()) {
+            let rows = state.run_rows(shell, thread, &entities.runs);
+            events.extend(rows.provider_sessions.into_iter().map(|row| draft("provider-session.attached", t, None, ctx.now, row)));
+            events.extend(rows.provider_threads.into_iter().map(|row| draft("provider-thread.updated", t, None, ctx.now, row)));
+        }
+        let provider_thread = thread_provider_thread(state, thread, instance.as_str().unwrap_or(""), run_id);
+        let turn = json!({
+            "id": format!("provider-turn:run:{}", runs::enc(run_id)),
+            "providerThreadId": provider_thread,
+            "nodeId": runs::node_id(run_id),
+            "runAttemptId": attempt_id,
+            "nativeTurnRef": null,
+            "ordinal": run_ordinal,
+            "status": "running",
+            "startedAt": at,
+            "completedAt": null,
+        });
+        events.push(draft("provider-turn.updated", t, None, ctx.now, turn));
     }
+    events
 }
 
 #[cfg(test)]
