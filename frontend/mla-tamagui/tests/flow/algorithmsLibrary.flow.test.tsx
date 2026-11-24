@@ -14,7 +14,9 @@ describe('Algorithms library journey', () => {
   it('Given a NeetCode problem beyond Blind 75, When I open its lesson, Then its video and worked approaches are available', async () => {
     const detail = await app.render('/leetcode/car-fleet/problem');
     await detail.tap('ProblemOpenLesson');
-    expect(screen.getByText('Watch video explanation ↗')).toBeTruthy();
+    expect(screen.queryByTitle('Car Fleet video explanation')).toBeNull();
+    await detail.tap('LessonOpenVideo');
+    expect(screen.getByTitle('Car Fleet video explanation').getAttribute('src')).toBe('https://www.youtube.com/embed/Pr6T-3yB9RM?playsinline=1');
     expect(screen.getByTestId('NeetCodeLesson').textContent).toContain('class Solution');
   });
 

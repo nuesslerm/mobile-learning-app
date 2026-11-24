@@ -1,5 +1,8 @@
 import { useCompactColors } from '@lib/tamagui-design-system';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Constants from 'expo-constants';
+import { useState } from 'react';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 import type { LibraryLesson } from '../../domain/library/library';
 
@@ -10,12 +13,35 @@ function LessonLink({ label, url }: { label: string; url: string }) {
   </Pressable>;
 }
 
+function LessonVideo({ url, title }: { url: string; title: string }) {
+  const colors = useCompactColors();
+  const [opened, setOpened] = useState(false);
+  const videoId = /^https:\/\/www\.youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})$/.exec(url)?.[1];
+  if (!videoId) return <LessonLink label="Watch on YouTube" url={url} />;
+  if (!opened) return <Pressable accessibilityRole="button" testID="LessonOpenVideo" onPress={() => setOpened(true)}
+    style={{ paddingVertical: 10 }}><Text style={{ color: colors.green, fontSize: 16, fontWeight: '600' }}>Watch video explanation</Text></Pressable>;
+
+  const embed = `https://www.youtube.com/embed/${videoId}?playsinline=1`;
+  const appId = Platform.OS === 'ios' ? Constants.expoConfig?.ios?.bundleIdentifier : Constants.expoConfig?.android?.package;
+  return <>
+    <View style={{ width: '100%', aspectRatio: 16 / 9, minHeight: 200, backgroundColor: 'black' }}>
+      {Platform.OS === 'web'
+        ? <iframe title={`${title} video explanation`} src={embed} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"
+            style={{ border: 0, width: '100%', height: '100%' }} />
+        : <WebView testID="LessonVideoPlayer" accessibilityLabel={`${title} video explanation`} source={{
+            uri: embed, headers: appId ? { Referer: `https://${appId.toLowerCase()}/` } : undefined,
+          }} allowsInlineMediaPlayback allowsFullscreenVideo style={{ flex: 1 }} />}
+    </View>
+    <LessonLink label="Watch on YouTube" url={url} />
+  </>;
+}
+
 export function NeetCodeLesson({ title, lesson }: { title: string; lesson: LibraryLesson }) {
   const colors = useCompactColors();
   return <ScrollView testID="NeetCodeLesson" contentContainerStyle={styles.content}>
     <Text style={{ color: colors.muted, fontSize: 13 }}>NeetCode 150</Text>
     <Text accessibilityRole="header" style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-    {lesson.video && <LessonLink label="Watch video explanation" url={lesson.video} />}
+    {lesson.video && <LessonVideo key={lesson.video} title={title} url={lesson.video} />}
     {lesson.prerequisites.map(({ title: name, url }) => <LessonLink key={url} label={name} url={url} />)}
     {lesson.blocks.map(({ kind, text }, index) => {
       if (kind === 'pre') return <View key={index} style={[styles.code, { backgroundColor: colors.surface }]}>
