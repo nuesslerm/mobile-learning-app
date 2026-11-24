@@ -144,7 +144,12 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
         return Err(Failure::invalid("Images can only be sent while the chat is idle on this host"));
     }
     let value = if running && params["delivery"] == "queue-if-active" {
-        let added = ask(agent, queue::QUEUE_ADD.name(), json!({"thread": env.session, "prompt": prompt}))?;
+        let picked = crate::catalog::stored_model(agent, &env.session)?;
+        let mut queued = json!({"thread": env.session, "prompt": prompt});
+        if let Some(model) = model.or(picked.as_deref()) {
+            queued["model"] = model.into();
+        }
+        let added = ask(agent, queue::QUEUE_ADD.name(), queued)?;
         json!({"clientMessageId": env.op, "queued": {"messageId": added["item"]["item"], "position": added["position"], "state": "waiting"}})
     } else if running {
         ask(agent, queue::TURN_STEER.name(), json!({"thread": env.session, "prompt": prompt}))?;

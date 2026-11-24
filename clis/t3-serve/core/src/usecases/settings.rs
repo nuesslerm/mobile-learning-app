@@ -403,10 +403,52 @@ impl Service {
         let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
         let models = self.0.catalog.models();
         let models: Vec<_> = models.iter().map(|m| Model { slug: &m.slug, name: &m.name }).collect();
-        let mut providers = wire::providers(&models, &iso(self.now_ms()));
+        let checked_at = iso(self.now_ms());
+        let mut providers = wire::providers(&models, &checked_at);
         self.apply_provider_catalog(&mut providers);
         wire::apply_provider_logins(&mut providers, &logins);
+        if let (Some(cwd), Some(instance)) = (payload["cwd"].as_str(), instance) {
+            if let Some(provider) = providers.iter_mut().find(|row| row["instanceId"] == instance) {
+                self.set_workspace_catalog(provider, cwd, &checked_at);
+            }
+        }
         Ok(json!({"providers": providers}))
+    }
+
+    fn set_workspace_catalog(&self, provider: &mut Value, cwd: &str, checked_at: &str) {
+        let Some(driver) = provider["driver"].as_str() else { return };
+        let catalog = match self.0.agent.run(&Op::ProviderCommands { root: cwd.into(), driver: driver.into() }) {
+            Ok(catalog) => catalog,
+            Err(error) => {
+                self.log("catalog.workspace.failed", &[("error", error.message())]);
+                return;
+            }
+        };
+        let mut skills = Vec::new();
+        let mut slash_commands = Vec::new();
+        for command in catalog["commands"].as_array().into_iter().flatten() {
+            let Some(name) = command["name"].as_str().filter(|name| !name.trim().is_empty()) else { continue };
+            let mut item = json!({"name": name});
+            if let Some(description) = command["description"].as_str().filter(|description| !description.trim().is_empty()) {
+                item["description"] = description.into();
+            }
+            match command["kind"].as_str() {
+                Some("skill") => {
+                    let Some(path) = command["path"].as_str().filter(|path| !path.trim().is_empty()) else { continue };
+                    item["path"] = path.into();
+                    item["enabled"] = true.into();
+                    skills.push(item);
+                }
+                Some("command") => {
+                    if let Some(hint) = command["argument_hint"].as_str().filter(|hint| !hint.trim().is_empty()) {
+                        item["input"] = json!({"hint": hint});
+                    }
+                    slash_commands.push(item);
+                }
+                _ => {}
+            }
+        }
+        provider["workspaceSnapshots"] = json!([{"cwd": cwd, "checkedAt": checked_at, "slashCommands": slash_commands, "skills": skills}]);
     }
 
     /// `server.updateProvider`: a provider's CLI is part of the service's image, so a version is updated by shipping the image.

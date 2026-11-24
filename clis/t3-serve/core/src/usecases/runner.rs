@@ -99,7 +99,9 @@ impl Runner {
         let me = self.clone();
         std::thread::spawn(move || {
             let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone(), worktree: launch.worktree.clone() };
-            let added = me.agent.ensure_thread(&thread).and_then(|_| me.agent.run(&Op::QueueAdd { thread: launch.thread_id.clone(), item: launch.run_id.clone(), prompt: launch.prompt.clone() }));
+            let added = me.agent.ensure_thread(&thread).and_then(|_| me.agent.run(&Op::QueueAdd {
+                thread: launch.thread_id.clone(), item: launch.run_id.clone(), prompt: launch.prompt.clone(), model: launch.model.clone(),
+            }));
             if let Err(e) = added {
                 me.log.event("run.queue.failed", &[("run", launch.run_id.clone()), ("error", e.message())]);
                 if let Err(e) = me.engine.cancel_queued(&launch.thread_id, &launch.run_id) {

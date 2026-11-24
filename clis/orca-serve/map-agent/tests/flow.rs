@@ -440,6 +440,19 @@ fn mutation(session: &str, op: &str, extra: Value) -> Value {
     p
 }
 
+#[test]
+fn given_a_running_chat_when_a_message_is_queued_with_a_model_then_the_queue_keeps_that_model() {
+    let (mut rig, _) = queued_rig();
+    rig.ok("agentSession.send", mutation("claude_q", "with-model", json!({
+        "delivery": "queue-if-active",
+        "body": body("use haiku later"),
+        "options": {"model": "haiku"},
+    })));
+    let requests = rig.agent.requests();
+    let (_, queued) = requests.iter().rev().find(|(method, _)| method == "queue.add").unwrap();
+    assert_eq!(queued["model"], "haiku");
+}
+
 /// A running thread with three queued prompts `one`, `two`, `three` (ids in the order they were queued).
 fn queued_rig() -> (Rig, Vec<String>) {
     let mut rig = Rig::new();

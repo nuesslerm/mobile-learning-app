@@ -134,7 +134,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("sourceControl.publishRepository", "cwd:s provider:s repository:s visibility:l(private|public) remoteName:s? protocol:l(auto|ssh|https)?"),
     ("review.getBranchCommits", "cwd:s baseRef:s?"),
     ("projects.listEntries", "cwd:s directoryPath:s?"),
-    ("server.refreshProviders", "instanceId:s~"),
+    ("server.refreshProviders", "instanceId:s~ cwd:s?"),
     ("pullRequests.list", "state:l(all|open|closed|merged) involvement:l(all|reviewing|authored)? filters:o? projectId:s? projectIds:a? host:s? limit:r(1,500)? cursors:o? query:s?"),
     ("pullRequests.listStats", "refs:a(pullRequestRef)"),
     ("pullRequests.reportState", "reference:o(pullRequestRef) state:l(open|closed|merged) isDraft:b?"),

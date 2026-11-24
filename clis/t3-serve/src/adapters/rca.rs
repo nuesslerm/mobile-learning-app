@@ -36,7 +36,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 143] = [
+pub const USES: [Method; 144] = [
     STATUS,
     THREAD_CREATE,
     THREAD_SUBSCRIBE,
@@ -179,6 +179,7 @@ pub const USES: [Method; 143] = [
     catalog::SESSIONS_LIST,
     catalog::AGENTS_DETECT,
     catalog::MODELS_LIST,
+    catalog::COMMANDS_LIST,
     agent_api_service::LOGS,
 ];
 
@@ -330,6 +331,7 @@ impl RcaAgent {
         // A path to give the executor only when the directory is below the workspace's own
         let below = |path: String| Some(path).filter(|p| p != ".");
         Ok(Some(match op {
+            Op::ProviderCommands { root, driver } => (catalog::COMMANDS_LIST, json!({"driver": driver, "workspace": self.place(client, root, "")?.0})),
             Op::FileStat { root, path } => {
                 let (workspace, path) = at(client, root, path)?;
                 (edit::FILE_STAT, json!({"workspace": workspace, "path": path}))
@@ -477,7 +479,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         }
         Op::InputAnswer { thread, request, answer } => (requests::INPUT_ANSWER, requests::InputAnswerParams { thread: same(thread), request: same(request), answer: same(answer) }.to_value()),
         Op::InputDismiss { thread, request } => (requests::INPUT_DISMISS, requests::InputDismissParams { thread: same(thread), request: same(request) }.to_value()),
-        Op::QueueAdd { thread, item, prompt } => (queue::QUEUE_ADD, queue::AddParams { thread: same(thread), item: Some(same(item)), prompt: same(prompt), ..Default::default() }.to_value()),
+        Op::QueueAdd { thread, item, prompt, model } => (queue::QUEUE_ADD, queue::AddParams { thread: same(thread), item: Some(same(item)), prompt: same(prompt), model: model.clone(), ..Default::default() }.to_value()),
         Op::QueueEdit { thread, item, prompt } => (queue::QUEUE_EDIT, queue::EditParams { thread: same(thread), item: same(item), prompt: same(prompt) }.to_value()),
         Op::QueueMove { thread, item, before } => (queue::QUEUE_MOVE, queue::MoveParams { thread: same(thread), item: same(item), before: before.clone() }.to_value()),
         Op::QueueDelete { thread, item } => (queue::QUEUE_DELETE, queue::DeleteParams { thread: same(thread), item: same(item) }.to_value()),
@@ -544,7 +546,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })

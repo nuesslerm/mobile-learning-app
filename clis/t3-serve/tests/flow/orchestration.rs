@@ -259,11 +259,15 @@ fn a_message_sent_behind_a_running_turn_is_a_queued_run_in_the_agent_apis_queue_
     success(&dispatch(&mut rpc, message("c-1", "long")));
     drain(&mut rpc);
     // When one message is queued behind it, then another while the agent API refuses to queue
+    success(&dispatch(&mut rpc, json!({"type": "thread.model-selection.set", "commandId": "c-model", "threadId": "t1", "modelSelection": {"instanceId": "opencode", "model": "gpt-test"}})));
     success(&dispatch(&mut rpc, queued("c-2", "later")));
     let asked = |h: &Harness| h.agent.ops.lock().unwrap().iter().filter(|o| matches!(o, t3_core::ports::Op::QueueAdd { .. })).count();
     while asked(&h) < 1 {
         std::thread::sleep(Duration::from_millis(10));
     }
+    assert!(h.agent.ops.lock().unwrap().iter().any(|op| {
+        matches!(op, t3_core::ports::Op::QueueAdd { prompt, model: Some(model), .. } if prompt == "later" && model == "gpt-test")
+    }), "the queued turn must keep the selected model");
     h.agent.replies.lock().unwrap().insert("queue.add", Err(t3_core::ports::AgentError::Failed("the queue is full".into())));
     success(&dispatch(&mut rpc, queued("c-3", "never")));
     drain(&mut rpc);

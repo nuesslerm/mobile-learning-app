@@ -243,6 +243,25 @@ fn the_login_stream_says_where_the_login_stands_and_each_state_it_passes_through
 }
 
 #[test]
+fn a_workspace_provider_refresh_lists_its_skills_and_slash_commands() {
+    let (h, mut rpc) = started();
+    reply(&h, "provider.refresh", Ok(recorded("provider.refresh", "refreshes one provider")));
+    reply(&h, "provider.list", Ok(recorded("provider.list", "lists every provider")));
+    reply(&h, "commands.list", Ok(json!({"driver": "codex", "commands": [
+        {"name": "proof", "kind": "skill", "path": ".agents/skills/proof/SKILL.md", "description": "Print a test marker"},
+        {"name": "clear", "kind": "command", "description": "Clear the chat"}
+    ]})));
+
+    let answer = rpc.call("server.refreshProviders", json!({"instanceId": "codex", "cwd": "/work/proj", "workspaceSnapshotsOnDemand": true}));
+    let rows = success(&answer)["providers"].as_array().unwrap();
+    let codex = rows.iter().find(|row| row["instanceId"] == "codex").unwrap();
+    let snapshot = &codex["workspaceSnapshots"][0];
+    assert_eq!(snapshot["cwd"], "/work/proj");
+    assert_eq!(snapshot["skills"], json!([{"name": "proof", "enabled": true, "path": ".agents/skills/proof/SKILL.md", "description": "Print a test marker"}]));
+    assert_eq!(snapshot["slashCommands"], json!([{"name": "clear", "description": "Clear the chat"}]));
+}
+
+#[test]
 fn refreshing_the_providers_asks_the_accounts_group_to_look_again_and_shows_each_as_signed_in_or_out_with_the_login_offered() {
     // Given the recorded list with codex signed in
     let (h, mut rpc) = started();
