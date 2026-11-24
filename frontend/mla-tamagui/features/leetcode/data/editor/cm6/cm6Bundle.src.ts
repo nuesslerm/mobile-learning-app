@@ -245,11 +245,12 @@ const completionFor = (language: string) =>
     onOpenChange: (open) => core?.ingestCompletion(open),
   });
 const CANVAS_FONT_SCALE = 1.04;
+const CANVAS_LINE_HEIGHT_SCALE = 0.982;
 const EDITOR_FONT = "'Menlo', 'Courier New', monospace";
 const CANVAS_LINE_INSET = '10px';
 const CONTRAST_ACTIVE_LINE = '#0f0f15';
 const CONTRAST_FUNCTION = '#52C7B0';
-const CONTRAST_COMMENT = '#6A7584';
+const CONTRAST_COMMENT = '#57606D';
 const CONTRAST_TYPE = '#65DCC3';
 
 const contrastHighlight = HighlightStyle.define([
@@ -266,7 +267,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
   const contrast = cfg.isDark && cfg.syntaxPalette === 'contrast';
   const canvas = cfg.surface === 'canvas';
   const cursorColor = canvas && contrast ? '#fff' : cfg.cursorColor;
-  const whitespaceColor = cfg.isDark ? (canvas ? CONTRAST_COMMENT : '#8b93a1') : '#9aa0a6';
+  const whitespaceColor = cfg.isDark ? (canvas ? '#6A7584' : '#8b93a1') : '#9aa0a6';
   const whitespaceStops = canvas ? '0.75px, transparent 1.25px' : '20%, transparent 5%';
   const theme = EditorView.theme(
     {
@@ -288,6 +289,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
       ...(canvas ? { '.cm-lineWrapping': { whiteSpace: 'pre-wrap' } } : {}),
       '.cm-scroller': {
         fontFamily: EDITOR_FONT,
+        ...(canvas ? { lineHeight: `${cfg.lineHeight * CANVAS_LINE_HEIGHT_SCALE}px` } : {}),
       },
       '.cm-cursor': {
         borderLeftColor: cursorColor,

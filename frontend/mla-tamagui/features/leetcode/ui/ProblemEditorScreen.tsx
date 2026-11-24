@@ -585,7 +585,7 @@ function ProblemEditorContent({
 
   const { backgroundColor, palette } = useEditorAppearance(iosCanvas);
   // Keep the middle of the first editable line below the native bar's touch region.
-  const underlap = Math.min(MAX_EDITOR_HEADER_UNDERLAP, Math.floor(lineHeightFor(fontSize) / 2) - 1);
+  const underlap = Math.min(MAX_EDITOR_HEADER_UNDERLAP, Math.floor((lineHeightFor(fontSize) - 1) / 2));
   const editorHeightBelowHeader = Math.max(0, rootHeight - (nativeHeaderBottom ?? 0));
   const appThemeMode = usePresetThemeStore((state) => state.themeMode);
   const systemScheme = useColorScheme();
