@@ -5,7 +5,7 @@ import { useReducedMotion } from '../lib/reducedMotion/useReducedMotion';
 
 const gap = 24;
 
-export function MarqueeLabel({ label, textStyle }: { label: string; textStyle?: TextStyle }) {
+export function MarqueeLabel({ label, textStyle, pauseMs = 1800 }: { label: string; textStyle?: TextStyle; pauseMs?: number }) {
   const reducedMotion = useReducedMotion();
   const offset = useRef(new Animated.Value(0)).current;
   const [available, setAvailable] = useState(0);
@@ -18,12 +18,12 @@ export function MarqueeLabel({ label, textStyle }: { label: string; textStyle?: 
     if (!scroll) return;
     const distance = width + gap;
     const animation = Animated.loop(Animated.sequence([
-      Animated.delay(1800),
+      Animated.delay(pauseMs),
       Animated.timing(offset, { toValue: -distance, duration: Math.round(distance * 25), easing: Easing.linear, useNativeDriver: true, isInteraction: false }),
     ]));
     animation.start();
     return () => { animation.stop(); };
-  }, [offset, scroll, width]);
+  }, [offset, pauseMs, scroll, width]);
 
   return (
     <View style={styles.clip} onLayout={({ nativeEvent }) => setAvailable(nativeEvent.layout.width)}>

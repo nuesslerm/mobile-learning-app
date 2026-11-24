@@ -12,10 +12,10 @@ import { LibraryDock } from './LibraryDock';
 const brands = [
   { name: 'Google', count: '2,326', image: libraryArtwork.google },
   { name: 'Amazon', count: '2,018', image: libraryArtwork.amazon },
-  { name: 'Meta', count: '1,396', image: undefined, mark: '∞', tint: '#007cff' },
+  { name: 'Meta', count: '1,396', image: libraryArtwork.meta },
   { name: 'Microsoft', count: '1,370', image: libraryArtwork.microsoft },
   { name: 'Apple', count: '283', image: libraryArtwork.apple },
-  { name: 'Bloomberg', count: '1,235', image: undefined, mark: 'B', tint: '#8662ee' },
+  { name: 'Bloomberg', count: '1,235', image: libraryArtwork.bloomberg },
 ];
 const categories = [
   { name: 'All Topics', icon: BookOpen, color: '#c790eb' },
@@ -90,9 +90,9 @@ export function LibraryHomeScreen() {
       </Pressable>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
         {[brands.slice(0, 3), brands.slice(3)].map((column) => <View key={column[0].name} style={{ width: width * 0.605 }}>
-          {column.map(({ name, count, image, mark, tint }) => <Pressable key={name} accessibilityRole="link" onPress={() => { void Linking.openURL(`https://leetcode.com/company/${name.toLowerCase()}/`); }}
+          {column.map(({ name, count, image }) => <Pressable key={name} accessibilityRole="link" onPress={() => { void Linking.openURL(`https://leetcode.com/company/${name.toLowerCase()}/`); }}
             style={[styles.company, { borderColor: colors.line }]}>
-            {image ? <Image source={image} style={styles.logo} /> : <View style={[styles.logo, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }]}><Text style={{ color: tint, fontWeight: '800', fontSize: 34 }}>{mark}</Text></View>}<View><Text style={{ color: colors.foreground, fontSize: 17 }}>{name}</Text>
+            <Image source={image} style={styles.logo} /><View><Text style={{ color: colors.foreground, fontSize: 17 }}>{name}</Text>
               <Text style={{ color: colors.muted, fontSize: 15, marginTop: 3 }}>{count} Questions</Text></View>
           </Pressable>)}
         </View>)}

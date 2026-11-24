@@ -26,11 +26,12 @@ export function FloatingSurface({ children, style, testID, tone = 'regular' }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   testID?: string;
-  tone?: 'regular' | 'subtle';
+  tone?: 'regular' | 'subtle' | 'overlay';
 }) {
   const colors = useCompactColors();
   const glass = supportsGlassControl();
-  const fill = tone === 'subtle' && colors === darkColors ? 'rgba(16,16,18,0.82)' : colors.surface;
+  const subtleFill = colors === darkColors ? 'rgba(16,16,18,0.82)' : colors.surface;
+  const fill = tone === 'regular' ? colors.surface : tone === 'overlay' && glass ? 'transparent' : subtleFill;
   return (
     <View testID={testID} style={[styles.surface, { backgroundColor: fill, borderColor: colors.line }, style]}>
       {glass && <GlassControlBackground />}
