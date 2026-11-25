@@ -1,5 +1,6 @@
+import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Button, ComposerBase, ListItem, Markdown, ScreenHeader, Text, TextField, View } from '@lib/tamagui-design-system';
 import type { MobilePort } from '../domain/mobile';
@@ -24,11 +25,12 @@ function RequestCard({ request, respond }: { request: Pending; respond: (value: 
   </View>;
 }
 
-export function MobileThreadScreen({ api, id }: { api: MobilePort; id: string }) {
+export function MobileThreadScreen({ api, id, orca = false }: { api: MobilePort; id: string; orca?: boolean }) {
+  const { Composer, MessageBubble } = useAgentComponents();
   const state = useMobileThread(api, id);
   const { rows, pending, children } = useMemo(() => conversation(state.events), [state.events]);
   if (state.legacy) return <ThreadScreen threadId={id} />;
-  if (state.pair === null) return <MobileWorkspacesScreen api={api} destination={id} />;
+  if (state.pair === null) return <MobileWorkspacesScreen api={api} destination={id} orca={orca} />;
   return <View flex={1} bg="$background">
     <ScreenHeader glass testID="MobileThreadHeader" title={state.context?.thread.title ?? 'Thread'}
       subtitle={state.context?.thread.workspace} onBack={() => router.canGoBack() ? router.back() : router.replace('/coding-agent')} />
@@ -38,7 +40,11 @@ export function MobileThreadScreen({ api, id }: { api: MobilePort; id: string })
         {state.status ? <Text variant="muted">{state.status}</Text> : null}
         {state.error ? <Text color="$red10" accessibilityRole="alert">{state.error}</Text> : null}
         {state.context?.task ? <Text variant="strong">Task #{state.context.task.number}</Text> : null}
-        {rows.map(row => <View key={row.seq} gap="$1">
+        {rows.map(row => orca && (row.label === 'You' || row.label === 'Agent') ? (
+          <MessageBubble key={row.seq} role={row.label === 'You' ? 'user' : 'assistant'}>
+            <Markdown content={row.body} />
+          </MessageBubble>
+        ) : <View key={row.seq} gap="$1">
           <Text variant="strong">{row.label}</Text><Markdown content={row.body} />
         </View>)}
         {pending.map(request => <RequestCard key={request.id} request={request}
@@ -66,13 +72,17 @@ export function MobileThreadScreen({ api, id }: { api: MobilePort; id: string })
         ))}
       </View>
     </ScrollView>
+    {orca ? <Composer value={state.draft} onChangeText={state.setDraft}
+      placeholder="Ask anything, @ to mention files, / for commands" sendLabel="Send message"
+      canSend={!!state.context && !!state.draft.trim()} sending={state.sending}
+      onSend={() => { void state.send().then(sent => { if (sent) Keyboard.dismiss(); }); }} /> :
     <ComposerBase testID="MobileComposer" placeholder="Message…" value={state.draft}
-      onChangeText={state.setDraft} disabled={!state.context} onSend={() => void state.send()} />
+      onChangeText={state.setDraft} disabled={!state.context} onSend={() => void state.send()} />}
     </KeyboardAvoidingView>
   </View>;
 }
 
-export function CodingAgentThread({ id }: { id?: string }) {
+export function CodingAgentThread({ id, orca }: { id?: string; orca?: boolean }) {
   const { mobile } = useCodingAgentPorts();
-  return mobile && id ? <MobileThreadScreen api={mobile} id={id} /> : <ThreadScreen threadId={id} />;
+  return mobile && id ? <MobileThreadScreen api={mobile} id={id} orca={orca} /> : <ThreadScreen threadId={id} />;
 }

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
 export interface OnboardingChoiceProps {
   label: string;
@@ -36,6 +37,9 @@ export interface PairDesktopButtonProps {
 }
 
 export interface AgentComponents {
+  MessageBubble: ComponentType<MessageBubbleProps>;
+  Composer: ComponentType<ComposerProps>;
+  ComposerSendButton: ComponentType<ComposerSendButtonProps>;
   BrandMark: ComponentType<{ size?: number }>;
   PairDesktopButton: ComponentType<PairDesktopButtonProps>;
   UnpairedHome: ComponentType<UnpairedHomeProps>;

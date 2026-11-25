@@ -27,7 +27,8 @@ export function useMobileThread(api: MobilePort, thread: string) {
   }, [api, childId, pair]);
   const [draft, setDraft] = useState('');
   const attempt = useRef<{ id: string; prompt: string } | undefined>(undefined);
-  const sending = useRef(false);
+  const inFlight = useRef(false);
+  const [sending, setSending] = useState(false);
   useEffect(() => {
     let active = true;
     let cursor = 0;
@@ -83,20 +84,22 @@ export function useMobileThread(api: MobilePort, thread: string) {
   }, [api, thread]);
 
   async function send() {
-    if (!pair || sending.current || !draft.trim()) return;
-    sending.current = true;
+    if (!pair || inFlight.current || !draft.trim()) return false;
+    inFlight.current = true;
+    setSending(true);
     const prompt = draft.trim();
     if (attempt.current?.prompt !== prompt) attempt.current = { id: api.newId(), prompt };
     try {
       await api.send(pair, thread, attempt.current.id, prompt);
-      setDraft(''); attempt.current = undefined; setError('');
-    } catch (e) { setError(String(e)); }
-    finally { sending.current = false; }
+      setDraft(current => current === draft ? '' : current); attempt.current = undefined; setError('');
+      return true;
+    } catch (e) { setError(String(e)); return false; }
+    finally { inFlight.current = false; setSending(false); }
   }
   async function respond(id: string, kind: 'approvals' | 'questions', value: string) {
     if (!pair) return;
     try { await api.respond(pair, thread, id, kind, value); setError(''); }
     catch (e) { setError(String(e)); }
   }
-  return { childId, setChildId, transcript, legacy, pair, context, events, status, error, draft, setDraft, send, respond };
+  return { childId, setChildId, transcript, legacy, pair, context, events, status, error, draft, setDraft, sending, send, respond };
 }

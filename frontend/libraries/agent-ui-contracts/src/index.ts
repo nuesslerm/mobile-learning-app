@@ -9,3 +9,4 @@ export {
   AgentComponentsProvider,
   useAgentComponents,
 } from './core/AgentComponentsContext';
+export type { ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ports/ChatComponents';
