@@ -48,6 +48,23 @@ pub fn integration(args: &[String]) -> Option<i32> {
     Some(run(&mut cmd))
 }
 
+/// A harness operation in the same OTLP trace as its CLI command.
+pub struct HarnessSpan(tracing::span::EnteredSpan);
+
+impl HarnessSpan {
+    pub fn begin(kind: &str, operation: &str) -> Self {
+        Self(tracing::info_span!("harness.operation", otel.name = %format!("harness.{kind}.{operation}"),
+            api.outcome = tracing::field::Empty, otel.status_code = tracing::field::Empty).entered())
+    }
+
+    pub fn finish(&self, outcome: &str) {
+        self.0.record("api.outcome", outcome);
+        if matches!(outcome, "error" | "timeout") {
+            self.0.record("otel.status_code", "ERROR");
+        }
+    }
+}
+
 #[track_caller]
 pub fn external(client: &'static str) -> tracing::span::EnteredSpan {
     let caller = std::panic::Location::caller();

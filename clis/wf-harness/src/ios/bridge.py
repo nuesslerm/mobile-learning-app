@@ -340,12 +340,12 @@ async def drive(socket, udid, info=None):
                 elif op == "swipe":
                     await client.swipe(tuple(args[0]), tuple(args[1]), duration=args[2]/1000)
                 elif op == "text":
-                    if args[0].isascii() and all(c.islower() or c.isdigit() or c == " " for c in args[0]):
-                        await type_on_keyboard(client, args[0], info["screen_dimensions"], tree)
-                    elif folder:
+                    if folder:
                         rows = await tree()
                         await dismiss_keyboard_intro(client, rows, info["screen_dimensions"]["height_points"])
                         xcui.call(folder, "text", text=args[0])
+                    elif args[0].isascii() and all(c.islower() or c.isdigit() or c == " " for c in args[0]):
+                        await type_on_keyboard(client, args[0], info["screen_dimensions"], tree)
                     else:
                         rows = json.loads((await client.accessibility_info(None, False)).json)
                         await dismiss_keyboard_intro(client, rows, info["screen_dimensions"]["height_points"])

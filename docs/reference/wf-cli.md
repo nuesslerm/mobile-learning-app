@@ -3419,6 +3419,10 @@ Options:
 
 ## bench
 
+### `wf bench drivers`
+
+Run the Tamil library journey with both wf and Maestro in alternating order. Pass `--platform`, `--url` and a fresh `--out` directory. A native run also requires `--device` and `--app-id`. Each attempt keeps its exit status, process samples, timing and artifacts. Prefix the command with `wf --performance` in place of `wf` for OpenTelemetry capture.
+
 ### `wf bench reports`
 
 Run `wf bench reports build` to generate the offline benchmark library. Run `wf bench reports check` to validate the canonical JSON, evidence paths and generated views. Both return JSON and exit nonzero on failure.

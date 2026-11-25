@@ -16,6 +16,9 @@ on:
   # pipeline.yml calls this as its last jobs, so a push to dev runs dev's own copy (a workflow_run trigger would run main's).
   workflow_call:
     inputs:
+      benchmark_drivers:
+        type: boolean
+        default: false
       sample:
         type: number
         default: 1
@@ -366,7 +369,21 @@ jobs:
           SELECT: ${{ steps.pick.outputs.select }}
         run: |
           # shellcheck disable=SC2086
-          wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
+          WF_PERFORMANCE_DB="$RUNNER_TEMP/harness-spans.sqlite" wf --performance test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
+      - name: Compare Android drivers on the booted Tamil app
+        if: ${{ !cancelled() && inputs.benchmark_drivers && inputs.platform == 'android' && steps.pick.outputs.any == 'true' && env.WF_EAS_POINTER_DIR != '' }}
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          curl --fail --location --retry 2 --output "$RUNNER_TEMP/maestro.zip" https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.6.0/maestro.zip
+          echo "80185105a5d7e227e3b3fbcf225f45b312508ea676a9fc8e1b1aa1cac8b9ff6e  $RUNNER_TEMP/maestro.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/driver-tools"
+          export PATH="$RUNNER_TEMP/driver-tools/maestro/bin:$PATH"
+          export WF_PERFORMANCE_DB="$RUNNER_TEMP/driver-spans.sqlite"
+          library=$(jq -er '.served.url | sub("^https://"; "exp://") + "/--/tamil"' "$WF_EAS_POINTER_DIR/latest-$WF_EAS_UPDATE_BRANCH.json")
+          first=wf
+          if [[ "$WF_NATIVE_SAMPLE" == 2 ]]; then first=maestro; fi
+          wf --performance bench drivers --platform android --device "$WF_ANDROID_SERIAL" --app-id host.exp.exponent --url "$library" --pairs 1 --first "$first" --out "$RUNNER_TEMP/driver-pair"
       - uses: ./.github/actions/nx-cache
         timeout-minutes: 5
         continue-on-error: true
@@ -382,6 +399,9 @@ jobs:
           name: test-runs-${{ inputs.platform }}-e2e-${{ inputs.shard }}-sample-${{ inputs.sample }}
           path: |
             ${{ runner.temp }}/test-runs
+            ${{ runner.temp }}/harness-spans.sqlite
+            ${{ runner.temp }}/driver-spans.sqlite
+            ${{ runner.temp }}/driver-pair
             ${{ runner.temp }}/e2e-runs/**/summary.json
             ${{ runner.temp }}/e2e-runs/**/android-process.log
             ${{ runner.temp }}/*-wf-learner-*/preflight.log
