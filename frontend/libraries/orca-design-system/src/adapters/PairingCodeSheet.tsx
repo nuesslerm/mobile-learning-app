@@ -64,38 +64,38 @@ function CodeEntry({
               Copy the code shown under the QR on your computer.
             </Text>
           </View>
-          <TextInput
-            autoFocus
-            accessibilityLabel="Pairing code"
-            testID="MobilePairCode"
-            value={text}
-            onChangeText={setText}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="done"
-            onSubmitEditing={save}
-            onFocus={() => {
-              setFocused(true);
-              setHasKeyboard(true);
-            }}
-            onBlur={() => {
-              setFocused(false);
-              setHasKeyboard(false);
-            }}
-            placeholder="orca://pair?code=... or paste the code"
-            placeholderTextColor={colors.textMuted}
-            style={[
-              sheet.field,
-              {
-                color: colors.textPrimary,
-                backgroundColor: scheme === 'light' ? colors.bgBase : '#1f1f1f',
-                borderColor: focused ? colors.accentBlue : '#737373',
-                outlineColor: colors.accentBlue,
-                outlineWidth: focused ? 1 : 0,
-                outlineStyle: 'solid',
-              },
-            ]}
-          />
+          <View style={[
+            sheet.field,
+            {
+              backgroundColor: scheme === 'light' ? colors.bgBase : '#1f1f1f',
+              borderColor: focused ? colors.accentBlue : '#737373',
+            },
+            focused && { outlineColor: colors.accentBlue, outlineStyle: 'solid', outlineWidth: 1 },
+          ]}>
+            <TextInput
+              autoFocus
+              accessibilityLabel="Pairing code"
+              testID="MobilePairCode"
+              value={text}
+              onChangeText={setText}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={save}
+              onFocus={() => {
+                setFocused(true);
+                setHasKeyboard(true);
+              }}
+              onBlur={() => {
+                setFocused(false);
+                setHasKeyboard(false);
+              }}
+              placeholder="orca://pair?code=... or paste the code"
+              placeholderTextColor={colors.textMuted}
+              selectionColor={colors.accentBlue}
+              style={[sheet.fieldText, { color: colors.textPrimary }]}
+            />
+          </View>
           <View style={sheet.actions}>
             <Pressable
               accessibilityRole="button"
@@ -165,10 +165,23 @@ const sheet = StyleSheet.create({
   message: { fontSize: 13, marginTop: 2 },
   field: {
     minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderRadius: 12,
+  },
+  fieldText: {
+    outlineWidth: 0,
+    flex: 1,
+    minWidth: 0,
+    alignSelf: 'stretch',
+    padding: 0,
+    margin: 0,
     fontSize: 16,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   actions: {
     flexDirection: 'row',

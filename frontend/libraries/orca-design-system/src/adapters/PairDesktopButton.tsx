@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { QrCode } from 'lucide-react-native';
+import QrCodeIcon from 'lucide-react-native/dist/esm/icons/qr-code.mjs';
 import type { PairDesktopButtonProps } from '@lib/agent-ui-contracts';
 import { homePalettes, useOrcaScheme } from './appearance';
 import { useHomeStyles } from './homeStyles';
@@ -29,7 +29,7 @@ export function PairDesktopButton(props: PairDesktopButtonProps) {
           },
         ]}
       >
-        <QrCode size={18} color={colors.onAccent} strokeWidth={2.2} />
+        <QrCodeIcon size={18} color={colors.onAccent} strokeWidth={2.2} />
         <Text style={styles.ctaLabel}>{props.label}</Text>
       </Animated.View>
     </Pressable>

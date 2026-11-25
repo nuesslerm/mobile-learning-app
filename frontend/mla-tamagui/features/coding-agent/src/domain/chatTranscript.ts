@@ -5,14 +5,16 @@ import type {
   T3TurnItem,
 } from './t3Mobile';
 
+export type ToolGroup = {
+  type: 'activity';
+  key: string;
+  tools: T3TurnItem[];
+  images: T3Attachment[];
+};
+
 export type ChatRow =
-  | { type: 'message'; key: string; message: T3Message }
-  | {
-      type: 'activity';
-      key: string;
-      tools: T3TurnItem[];
-      images: T3Attachment[];
-    };
+  | { type: 'message'; key: string; message: T3Message; activity?: ToolGroup }
+  | ToolGroup;
 
 function readImage(tool: T3TurnItem, attachments: T3Attachment[]) {
   if (
@@ -115,7 +117,7 @@ export function chatTranscript(snapshot: T3Snapshot): ChatRow[] {
     if (message.runId) shown.add(message.runId);
     const text = message.role === 'assistant' ? message.text : '';
     let start = 0;
-    let group: Extract<ChatRow, { type: 'activity' }> | undefined;
+    let group: ToolGroup | undefined;
     for (const [index, tool] of tools.entries()) {
       const end = Math.max(
         start,
@@ -132,7 +134,12 @@ export function chatTranscript(snapshot: T3Snapshot): ChatRow[] {
       }
       if (!group) {
         group = { type: 'activity', key: tool.id, tools: [], images: [] };
-        rows.push(group);
+        const previous = rows.at(-1);
+        if (previous?.type === 'message' && previous.message.role === 'assistant' && previous.message.id === message.id) {
+          previous.activity = group;
+        } else {
+          rows.push(group);
+        }
       }
       group.tools.push(tool);
       const image = images[index];

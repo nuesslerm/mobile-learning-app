@@ -68,12 +68,12 @@ export function ChatToolActivity({
           ))}
         </ScrollView>
       )}
-      {children}
+      {children && <View style={{marginTop: 4}}>{children}</View>}
     </View>
   );
 }
 const styles = StyleSheet.create({
-  run: { paddingHorizontal: 16, marginTop: 4 },
+  run: { marginTop: 4 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

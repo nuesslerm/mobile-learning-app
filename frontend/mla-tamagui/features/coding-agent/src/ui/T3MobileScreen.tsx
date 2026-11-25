@@ -1,5 +1,3 @@
-import { T3PairingScreen } from './T3PairingScreen';
-import { UnpairedFeed } from './UnpairedFeed';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 import { router } from 'expo-router';
@@ -16,6 +14,9 @@ import { useCodingAgentPorts } from '../state/ports';
 import { ChatKeyboardArea } from './ChatKeyboardArea';
 import { T3Transcript } from './T3Transcript';
 import { ChatScroll } from './ChatScroll';
+import { OrcaHome } from './OrcaHome';
+import { UnpairedFeed } from './UnpairedFeed';
+import { T3PairingScreen } from './T3PairingScreen';
 import { useT3Mobile } from '../state/useT3Mobile';
 
 export function T3MobileScreen({ threadId }: { threadId?: string }) {
@@ -26,13 +27,72 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const state = useT3Mobile(api, threadId);
-  const { ChatSurface, Composer } = useAgentComponents();
+  const { ChatSurface, Composer, HomeTabHeader } = useAgentComponents();
   const [pairing, setPairing] = useState(false);
+  const goBack = () =>
+    router.canGoBack()
+      ? router.back()
+      : router.replace('/coding-agent?presentation=orca&transport=t3');
   if (pairing) return <T3PairingScreen onBack={() => setPairing(false)} onPair={async (endpoint, code, signal) => {
     await state.connect(endpoint, code, signal);
     if (!signal.aborted) setPairing(false);
   }} />;
-  if (state.pair === null) return <ChatSurface><UnpairedFeed onPairDesktop={() => setPairing(true)} /></ChatSurface>;
+  if (state.pair === null) {
+    return (
+      <ChatSurface>
+        <OrcaHome
+          feed={<UnpairedFeed onPairDesktop={() => setPairing(true)} />}
+        />
+      </ChatSurface>
+    );
+  }
+  if (!threadId && state.pair)
+    return (
+      <ChatSurface>
+        <OrcaHome
+          feed={
+            <>
+              <HomeTabHeader title="Workspaces" actions={[{id: 'pair', icon: 'add', accessibilityLabel: 'Pair desktop', onPress: () => setPairing(true)}]} />
+              {state.error ? (
+                <Text accessibilityRole="alert">{state.error}</Text>
+              ) : null}
+              <ScrollView>
+                <View p="$4" gap="$2">
+                  {!state.shell ? <Text>Loading workspaces…</Text> : null}
+                  {state.shell?.projects.length === 0 ? (
+                    <Text>No projects yet.</Text>
+                  ) : null}
+                  {state.shell?.projects.map((project) => (
+                    <View key={project.id}>
+                      <Text variant="strong">{project.title}</Text>
+                      {state.shell?.threads
+                        .filter((thread) => thread.projectId === project.id)
+                        .map((thread) => (
+                          <ListItem
+                            key={thread.id}
+                            testID={'MobileThread-' + thread.id}
+                            showChevron
+                            onPress={() =>
+                              router.push(
+                                '/coding-agent/' +
+                                  encodeURIComponent(thread.id) +
+                                  '?presentation=orca&transport=t3'
+                              )
+                            }
+                          >
+                            <Text>{thread.title}</Text>
+                          </ListItem>
+                        ))}
+                    </View>
+                  ))}
+                  <Button onPress={state.retry}>Refresh</Button>
+                </View>
+              </ScrollView>
+            </>
+          }
+        />
+      </ChatSurface>
+    );
   return (
     <ChatSurface>
       <ScreenHeader
@@ -40,16 +100,14 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
         title={
           state.snapshot?.thread.title ?? (threadId ? 'Thread' : 'Workspaces')
         }
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace('/coding-agent')
-        }
+        onBack={goBack}
       />
       {state.error ? (
         <Text accessibilityRole="alert">{state.error}</Text>
       ) : null}
       {state.pair === undefined ? (
         <Text>Opening connection…</Text>
-      ) : threadId ? (
+      ) : (
         <ChatKeyboardArea>
           <ChatScroll>
             {state.snapshot && (
@@ -69,40 +127,6 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
             placeholder="Ask anything, @ to mention files, / for commands"
           />
         </ChatKeyboardArea>
-      ) : (
-        <ScrollView>
-          <View p="$4" gap="$2">
-            {!state.shell ? <Text>Loading workspaces…</Text> : null}
-            {state.shell?.projects.length === 0 ? (
-              <Text>No projects yet.</Text>
-            ) : null}
-            {state.shell?.projects.map((project) => (
-              <View key={project.id}>
-                <Text variant="strong">{project.title}</Text>
-                {state.shell?.threads
-                  .filter((thread) => thread.projectId === project.id)
-                  .map((thread) => (
-                    <ListItem
-                      key={thread.id}
-                      testID={'MobileThread-' + thread.id}
-                      showChevron
-                      onPress={() =>
-                        router.push(
-                          '/coding-agent/' +
-                            encodeURIComponent(thread.id) +
-                            '?presentation=orca&transport=t3'
-                        )
-                      }
-                    >
-                      <Text>{thread.title}</Text>
-                    </ListItem>
-                  ))}
-              </View>
-            ))}
-            <Button onPress={state.retry}>Refresh</Button>
-            <Button onPress={() => setPairing(true)}>Pair desktop</Button>
-          </View>
-        </ScrollView>
       )}
     </ChatSurface>
   );

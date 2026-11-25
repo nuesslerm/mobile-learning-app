@@ -74,6 +74,36 @@ describe('Orca chat with the T3 transport', () => {
     expect(exchanges).toEqual([['https://fixture.invalid', 'fixture-code']]);
   });
 
+  it('Given a reply with a tool between passages, when the reader copies the progress update, then only that passage reaches the clipboard', async () => {
+    const port = backend();
+    const open = port.open;
+    const progress = 'Reading the file.';
+    port.open = (pairing, id, update, disconnected) =>
+      open(pairing, id, () => update({
+        thread,
+        messages: [{
+          id: 'answer', role: 'assistant', text: progress + 'Review complete.', runId: 'run',
+        }],
+        turnItems: [{id: 'read', type: 'command_execution', name: 'read', runId: 'run'}],
+        toolTextOffsets: {read: progress.length},
+      }), disconnected);
+    const copied: string[] = [];
+    await app.render('/coding-agent/thread-42', {
+      search: { presentation: 'orca', transport: 't3' },
+      overrides: { 'coding-agent': {
+        t3Mobile: port,
+        copyMessage: async (text: string) => { copied.push(text); return true; },
+      } },
+    });
+    const copies = await screen.findAllByRole('button', {name: 'Copy message'});
+    expect(copies).toHaveLength(2);
+    const tool = screen.getByRole('button', {name: 'Read 1 file'});
+    expect(tool.compareDocumentPosition(copies[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(copies[0]);
+    expect(await screen.findByRole('button', {name:'Copied'})).toBeTruthy();
+    expect(copied).toEqual([progress]);
+  });
+
   it('Given a paired project, when opening a thread from its shell and sending, then the reply and cleared composer are visible', async () => {
     const port = backend();
     const home = await app.render('/coding-agent', {

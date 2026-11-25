@@ -10,6 +10,7 @@ export const threadSchema = z.object({
 const messageSchema = z.object({
   id: z.string(),
   role: z.enum(['user', 'assistant', 'system']),
+  createdAt: z.string().optional(),
   runId: z.string().nullish(),
   text: z.string(),
   attachments: z

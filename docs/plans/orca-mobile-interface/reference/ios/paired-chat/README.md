@@ -27,3 +27,7 @@ On the same RCA simulator the installed Expo release reopened the original RCA p
 The new conversation comparison differs on **1,465,668 of 3,785,760 pixels (38.715%)**, with zero tolerance and no masks. The worktree navigation, text metrics, time and action rows, composer controls, and safe-area spacing remain open. The image viewer also needs its actions sheet. Reproduce the candidate journey with the [native runbook](comparison/reopen-t3-photo.lua), supplying the accessibility label of the first stored image as `firstImage` and an absolute capture directory as `out`.
 
 The [Expo recording](comparison/reopen-t3-photo.mp4) shows the tool disclosure, first image preview and return to the same thread on the RCA simulator.
+
+## Grouped messages in the native Expo release
+
+The [Expo capture](comparison/mla-t3-grouped-photo-thread.png) uses the Orca prose scale, moves the progress message's copy and timestamp below its tool results and accounts for the iPhone bottom inset. An unmasked comparison with the pinned [Orca capture](photo-thread.png) differs on 1,260,080 of 3,785,760 pixels (33.28%). The [RCA recording](comparison/mla-t3-grouped-photo-thread.mp4) exercises the expandable tools, attachment viewer and return to chat. Session chrome, composer actions and timestamps still differ.

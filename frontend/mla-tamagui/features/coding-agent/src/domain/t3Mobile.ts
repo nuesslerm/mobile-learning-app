@@ -9,6 +9,7 @@ export type T3Attachment = {
 export type T3ImageSource = { uri: string; expiresAt: number };
 
 export type T3Message = {
+  createdAt?: string;
   id: string;
   role: 'user' | 'assistant' | 'system';
   runId?: string | null;

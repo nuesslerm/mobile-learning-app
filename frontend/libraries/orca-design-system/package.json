@@ -12,18 +12,19 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "lucide-react-native": "^1.17.0",
     "react": "catalog:",
     "react-native": "catalog:",
-    "react-native-svg": "15.16.0",
-    "lucide-react-native": "^1.17.0",
-    "react-native-reanimated": "4.7.1"
+    "react-native-reanimated": "4.7.1",
+    "react-native-svg": "15.16.0"
   },
   "devDependencies": {
     "@types/react": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@lib/agent-ui-contracts": "workspace:*"
+    "@lib/agent-ui-contracts": "workspace:*",
+    "react-native-markdown-display": "7.0.2"
   },
   "arch": {
     "type": "component-library"

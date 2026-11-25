@@ -10,6 +10,7 @@ export function ChatScroll({ children }: { children: ReactNode }) {
   return (
     <ScrollView
       ref={scroll}
+      contentContainerStyle={{paddingVertical: 8, flexGrow: 1}}
       keyboardShouldPersistTaps="handled"
       onLayout={anchor}
       onContentSizeChange={anchor}

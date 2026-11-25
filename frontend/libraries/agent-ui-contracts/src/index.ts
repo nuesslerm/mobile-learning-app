@@ -4,10 +4,30 @@ export type {
   UnpairedHomeProps,
   NotificationChoicesProps,
   OnboardingChoiceProps,
+  HomeTabId,
+  HomeTabDescriptor,
+  HomeTabBarProps,
+  HomeIconKind,
+  HomeTabHeaderAction,
+  HomeTabHeaderProps,
+  HomeEmptyStateProps,
+  HomeSearchFieldProps,
+  HomeActionSheetAction,
+  HomeActionSheetProps,
+  HomeSettingsRowProps,
+  HomeSettingsGroupProps,
+  HomeSettingsScreenProps,
+  HomeSettingsNoteProps,
+} from './ports/AgentComponents';
+export {
+  HOME_SETTINGS_SEPARATOR_INSET,
+  HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
 } from './ports/AgentComponents';
 export {
   AgentComponentsProvider,
   useAgentComponents,
 } from './core/AgentComponentsContext';
+
 export type { ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ports/ChatComponents';
 export type { PairingScreenProps, PairingCodeSheetProps } from './ports/PairingComponents';
+export type { ChatMessageTextProps, ChatMessageMetaProps } from './ports/ChatComponents';

@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import { useColorScheme } from 'react-native';
 
 export const homePalettes = {
@@ -50,6 +51,31 @@ export const homeRadii = {
   mark: 4,
 } as const;
 
-export function useOrcaScheme() {
-  return useColorScheme() === 'light' ? 'light' : 'dark';
+/** The theme a device asks for; "system" follows the device's own setting. */
+export type AppearancePreference = 'system' | 'light' | 'dark';
+
+export interface AppearancePreferenceValue {
+  preference: AppearancePreference;
+  /** Picks a theme; whoever owns the preference persists it. */
+  select: (preference: AppearancePreference) => void;
+}
+
+const AppearancePreferenceContext = createContext<AppearancePreferenceValue>({
+  preference: 'system',
+  select: () => undefined,
+});
+
+export const AppearancePreferenceContextProvider = AppearancePreferenceContext.Provider;
+
+/** The device's theme choice, or the default when nobody owns one. */
+export function useAppearancePreference(): AppearancePreferenceValue {
+  return useContext(AppearancePreferenceContext);
+}
+
+export function useOrcaScheme(): 'light' | 'dark' {
+  const { preference } = useAppearancePreference();
+  const system = useColorScheme();
+  if (preference === 'light') return 'light';
+  if (preference === 'dark') return 'dark';
+  return system === 'light' ? 'light' : 'dark';
 }

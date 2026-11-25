@@ -1,7 +1,20 @@
+import { ChatMessageText } from './adapters/ChatMessageText';
+import { ChatMessageMeta } from './adapters/ChatMessageMeta';
+import { HomeSurface } from './adapters/HomeSurface';
+import { HomeSettingsGroup } from './adapters/HomeSettingsGroup';
+import { HomeSettingsNote } from './adapters/HomeSettingsNote';
+import { HomeSettingsScreen } from './adapters/HomeSettingsScreen';
+
 import { PairingScreen } from './adapters/PairingScreen';
 import { PairingCodeSheet } from './adapters/PairingCodeSheet';
 import { ChatToolActivity } from './adapters/ChatToolActivity';
 import { ChatSurface, ChatImage, ChatImageViewer } from './adapters/ChatImages';
+import { HomeTabBar } from './adapters/HomeTabBar';
+import { HomeTabHeader } from './adapters/HomeTabHeader';
+import { HomeEmptyState } from './adapters/HomeEmptyState';
+import { HomeSearchField } from './adapters/HomeSearchField';
+import { HomeActionSheet } from './adapters/HomeActionSheet';
+import { HomeSettingsRow } from './adapters/HomeSettingsRow';
 import { Composer, ComposerSendButton } from './adapters/Composer';
 import { MessageBubble } from './adapters/MessageBubble';
 import { UnpairedHome } from './adapters/UnpairedHome';
@@ -13,9 +26,16 @@ import { OnboardingChoice } from './adapters/OnboardingChoice';
 
 export const orcaComponents: AgentComponents = {
   PairingScreen, PairingCodeSheet,
+  HomeSurface,
+  HomeTabBar,
+  HomeTabHeader,
+  HomeEmptyState,
+  HomeSearchField,
+  HomeActionSheet,
+  HomeSettingsRow, HomeSettingsGroup, HomeSettingsNote, HomeSettingsScreen,
   Composer,
   ComposerSendButton,
-  ChatToolActivity,
+  ChatMessageText, ChatMessageMeta, ChatToolActivity,
   ChatSurface, ChatImage, ChatImageViewer,
   MessageBubble,
   BrandMark,
@@ -24,3 +44,10 @@ export const orcaComponents: AgentComponents = {
   NotificationChoices,
   OnboardingChoice,
 };
+
+export { homePalettes, useOrcaScheme } from './adapters/appearance';
+export type { AppearancePreference } from './adapters/appearance';
+export {
+  AppearancePreferenceContextProvider,
+  useAppearancePreference,
+} from './adapters/appearance';

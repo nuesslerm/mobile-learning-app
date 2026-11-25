@@ -38,9 +38,9 @@ describe('Orca transcript from T3', () => {
       rows.map((r) =>
         r.type === 'message' ? r.message.text : r.tools.map((t) => t.name)
       )
-    ).toEqual(['Inspect this', 'Checking 👋', ['read'], 'Done']);
+    ).toEqual(['Inspect this', 'Checking 👋', 'Done']);
     expect(rows[0]).toMatchObject({ message: { attachments: [] } });
-    expect(rows[2]).toMatchObject({ images: [photo] });
+    expect(rows[1]).toMatchObject({ activity: {tools: [{name: 'read'}], images: [photo]} });
   });
   it('Given a provider turn still streaming, when a turn item precedes the final conversation message then its text appears only once', () => {
     const snapshot: T3Snapshot = {

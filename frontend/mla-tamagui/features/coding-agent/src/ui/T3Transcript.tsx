@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { Text, Markdown } from '@lib/tamagui-design-system';
+import { getNativeChatMessageDay, getNativeChatMessageTimeFormatter } from '../domain/chatMessageTime';
+import { useCodingAgentPorts } from '../state/ports';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
-import { chatTranscript } from '../domain/chatTranscript';
+import { chatTranscript, type ToolGroup } from '../domain/chatTranscript';
 import type {
   T3Conversation,
   T3Snapshot,
@@ -44,53 +45,58 @@ const display = (value: unknown) =>
       ? ''
       : JSON.stringify(value, null, 2);
 
-export function T3Transcript({
-  snapshot,
-  session,
-}: {
-  snapshot: T3Snapshot;
-  session?: T3Conversation;
-}) {
-  const { MessageBubble, ChatToolActivity } = useAgentComponents();
-  const rows = useMemo(() => chatTranscript(snapshot), [snapshot]);
+function Activity({ group, session }: { group: ToolGroup; session?: T3Conversation }) {
+  const { ChatToolActivity } = useAgentComponents();
+  const working = group.tools.some((tool) => tool.status === 'running');
   return (
-    <>
-      {rows.map((row) => {
-        if (row.type === 'activity') {
-          const working = row.tools.some((t) => t.status === 'running');
-          return (
-            <ChatToolActivity
-              key={row.key}
-              working={working}
-              summary={toolSentence(row.tools, working)}
-              rows={row.tools.map((t) => ({
-                id: t.id,
-                name: t.name ?? 'Tool',
-                input: display(t.input),
-                output: display(t.output),
-                status: t.status ?? '',
-              }))}
-            >
-              {!!row.images.length && (
-                <T3ChatAttachments attachments={row.images} session={session} />
-              )}
-            </ChatToolActivity>
-          );
-        }
-        const m = row.message;
-        if (m.role === 'system') return <Text key={row.key}>{m.text}</Text>;
-        return (
-          <MessageBubble key={row.key} role={m.role}>
-            {!!m.text && <Markdown content={m.text} />}
-            {!!m.attachments?.length && (
-              <T3ChatAttachments
-                attachments={m.attachments}
-                session={session}
-              />
-            )}
-          </MessageBubble>
-        );
-      })}
-    </>
+    <ChatToolActivity
+      working={working}
+      summary={toolSentence(group.tools, working)}
+      rows={group.tools.map((tool) => ({
+        id: tool.id,
+        name: tool.name ?? 'Tool',
+        input: display(tool.input),
+        output: display(tool.output),
+        status: tool.status ?? '',
+      }))}
+    >
+      {group.images.length > 0 && <T3ChatAttachments attachments={group.images} session={session} />}
+    </ChatToolActivity>
   );
+}
+
+export function T3Transcript({ snapshot, session }: { snapshot: T3Snapshot; session?: T3Conversation }) {
+  const { copyMessage } = useCodingAgentPorts();
+  const { MessageBubble, ChatMessageText, ChatMessageMeta } = useAgentComponents();
+  const rows = useMemo(() => chatTranscript(snapshot), [snapshot]);
+  const today = getNativeChatMessageDay(Date.now());
+  const formatter = getNativeChatMessageTimeFormatter(undefined, today);
+
+  return rows.map((row) => {
+    if (row.type === 'activity') {
+      return (
+        <MessageBubble key={row.key} role="assistant">
+          <Activity group={row} session={session} />
+        </MessageBubble>
+      );
+    }
+    const message = row.message;
+    if (message.role === 'system') return <ChatMessageText key={row.key} text={message.text} />;
+    const date = message.createdAt ? new Date(message.createdAt) : undefined;
+    const hasTime = date !== undefined && Number.isFinite(date.getTime());
+    const footer = (
+      <ChatMessageMeta
+        time={hasTime ? formatter.format(date, today.date) : undefined}
+        accessibleTime={hasTime ? formatter.formatFull(date) : undefined}
+        onCopy={message.text.trim() ? () => copyMessage(message.text) : undefined}
+      />
+    );
+    return (
+      <MessageBubble key={row.key} role={message.role} footer={footer}>
+        {!!message.attachments?.length && <T3ChatAttachments attachments={message.attachments} session={session} />}
+        {!!message.text && <ChatMessageText text={message.text} />}
+        {row.activity && <Activity group={row.activity} session={session} />}
+      </MessageBubble>
+    );
+  });
 }

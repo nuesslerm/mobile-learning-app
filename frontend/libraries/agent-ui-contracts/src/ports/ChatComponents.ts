@@ -47,3 +47,10 @@ export interface ChatToolActivityProps {
   rows: readonly {id:string; name:string; input:string; output:string; status:string}[];
   children?: ReactNode;
 }
+
+export interface ChatMessageTextProps { text: string }
+export interface ChatMessageMetaProps {
+  time?: string;
+  accessibleTime?: string;
+  onCopy?: () => Promise<boolean>;
+}
