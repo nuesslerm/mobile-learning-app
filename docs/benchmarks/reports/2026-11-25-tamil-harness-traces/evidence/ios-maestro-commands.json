@@ -1,0 +1,562 @@
+[
+  {
+    "pair": "1",
+    "command": "defineVariablesCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602392636,
+    "durationMs": 2
+  },
+  {
+    "pair": "1",
+    "command": "applyConfigurationCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602392639,
+    "durationMs": 0
+  },
+  {
+    "pair": "1",
+    "command": "startRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602392639,
+    "durationMs": 2046
+  },
+  {
+    "pair": "1",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602394685,
+    "durationMs": 307
+  },
+  {
+    "pair": "1",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602394992,
+    "durationMs": 96
+  },
+  {
+    "pair": "1",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602395088,
+    "durationMs": 1565
+  },
+  {
+    "pair": "1",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602396653,
+    "durationMs": 284
+  },
+  {
+    "pair": "1",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602396937,
+    "durationMs": 1525
+  },
+  {
+    "pair": "1",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602398462,
+    "durationMs": 147
+  },
+  {
+    "pair": "1",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602398609,
+    "durationMs": 79
+  },
+  {
+    "pair": "1",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602398688,
+    "durationMs": 1382
+  },
+  {
+    "pair": "1",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602400070,
+    "durationMs": 254
+  },
+  {
+    "pair": "1",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602400325,
+    "durationMs": 1499
+  },
+  {
+    "pair": "1",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602401824,
+    "durationMs": 155
+  },
+  {
+    "pair": "1",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602401979,
+    "durationMs": 76
+  },
+  {
+    "pair": "1",
+    "command": "stopRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602402055,
+    "durationMs": 32
+  },
+  {
+    "pair": "2",
+    "command": "defineVariablesCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602503807,
+    "durationMs": 3
+  },
+  {
+    "pair": "2",
+    "command": "applyConfigurationCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602503811,
+    "durationMs": 0
+  },
+  {
+    "pair": "2",
+    "command": "startRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602503811,
+    "durationMs": 2037
+  },
+  {
+    "pair": "2",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602505848,
+    "durationMs": 335
+  },
+  {
+    "pair": "2",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602506183,
+    "durationMs": 92
+  },
+  {
+    "pair": "2",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602506276,
+    "durationMs": 1570
+  },
+  {
+    "pair": "2",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602507846,
+    "durationMs": 287
+  },
+  {
+    "pair": "2",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602508133,
+    "durationMs": 1574
+  },
+  {
+    "pair": "2",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602509707,
+    "durationMs": 150
+  },
+  {
+    "pair": "2",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602509857,
+    "durationMs": 79
+  },
+  {
+    "pair": "2",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602509937,
+    "durationMs": 1368
+  },
+  {
+    "pair": "2",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602511305,
+    "durationMs": 304
+  },
+  {
+    "pair": "2",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602511609,
+    "durationMs": 1565
+  },
+  {
+    "pair": "2",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602513174,
+    "durationMs": 175
+  },
+  {
+    "pair": "2",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602513349,
+    "durationMs": 76
+  },
+  {
+    "pair": "2",
+    "command": "stopRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602513425,
+    "durationMs": 56
+  },
+  {
+    "pair": "3",
+    "command": "defineVariablesCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602599808,
+    "durationMs": 3
+  },
+  {
+    "pair": "3",
+    "command": "applyConfigurationCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602599812,
+    "durationMs": 0
+  },
+  {
+    "pair": "3",
+    "command": "startRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602599812,
+    "durationMs": 2036
+  },
+  {
+    "pair": "3",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602601848,
+    "durationMs": 324
+  },
+  {
+    "pair": "3",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602602172,
+    "durationMs": 110
+  },
+  {
+    "pair": "3",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602602283,
+    "durationMs": 1527
+  },
+  {
+    "pair": "3",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602603810,
+    "durationMs": 336
+  },
+  {
+    "pair": "3",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602604146,
+    "durationMs": 1572
+  },
+  {
+    "pair": "3",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602605719,
+    "durationMs": 413
+  },
+  {
+    "pair": "3",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602606132,
+    "durationMs": 183
+  },
+  {
+    "pair": "3",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602606316,
+    "durationMs": 1421
+  },
+  {
+    "pair": "3",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602607737,
+    "durationMs": 250
+  },
+  {
+    "pair": "3",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602607987,
+    "durationMs": 1471
+  },
+  {
+    "pair": "3",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602609458,
+    "durationMs": 176
+  },
+  {
+    "pair": "3",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602609634,
+    "durationMs": 77
+  },
+  {
+    "pair": "3",
+    "command": "stopRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602609711,
+    "durationMs": 43
+  },
+  {
+    "pair": "4",
+    "command": "defineVariablesCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602704467,
+    "durationMs": 2
+  },
+  {
+    "pair": "4",
+    "command": "applyConfigurationCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602704470,
+    "durationMs": 0
+  },
+  {
+    "pair": "4",
+    "command": "startRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602704470,
+    "durationMs": 2040
+  },
+  {
+    "pair": "4",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602706510,
+    "durationMs": 238
+  },
+  {
+    "pair": "4",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602706748,
+    "durationMs": 84
+  },
+  {
+    "pair": "4",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602706833,
+    "durationMs": 1499
+  },
+  {
+    "pair": "4",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602708333,
+    "durationMs": 250
+  },
+  {
+    "pair": "4",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602708583,
+    "durationMs": 1413
+  },
+  {
+    "pair": "4",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602709996,
+    "durationMs": 121
+  },
+  {
+    "pair": "4",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602710117,
+    "durationMs": 74
+  },
+  {
+    "pair": "4",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602710191,
+    "durationMs": 1359
+  },
+  {
+    "pair": "4",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602711550,
+    "durationMs": 258
+  },
+  {
+    "pair": "4",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602711808,
+    "durationMs": 1415
+  },
+  {
+    "pair": "4",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602713223,
+    "durationMs": 147
+  },
+  {
+    "pair": "4",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602713370,
+    "durationMs": 73
+  },
+  {
+    "pair": "4",
+    "command": "stopRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602713443,
+    "durationMs": 42
+  },
+  {
+    "pair": "5",
+    "command": "defineVariablesCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602775427,
+    "durationMs": 2
+  },
+  {
+    "pair": "5",
+    "command": "applyConfigurationCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602775430,
+    "durationMs": 0
+  },
+  {
+    "pair": "5",
+    "command": "startRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602775430,
+    "durationMs": 2039
+  },
+  {
+    "pair": "5",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602777470,
+    "durationMs": 246
+  },
+  {
+    "pair": "5",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602777716,
+    "durationMs": 85
+  },
+  {
+    "pair": "5",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602777802,
+    "durationMs": 1389
+  },
+  {
+    "pair": "5",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602779191,
+    "durationMs": 249
+  },
+  {
+    "pair": "5",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602779440,
+    "durationMs": 1439
+  },
+  {
+    "pair": "5",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602780879,
+    "durationMs": 126
+  },
+  {
+    "pair": "5",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602781005,
+    "durationMs": 76
+  },
+  {
+    "pair": "5",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602781081,
+    "durationMs": 1313
+  },
+  {
+    "pair": "5",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602782394,
+    "durationMs": 229
+  },
+  {
+    "pair": "5",
+    "command": "tapOnElement",
+    "status": "COMPLETED",
+    "startMs": 1795602782623,
+    "durationMs": 1414
+  },
+  {
+    "pair": "5",
+    "command": "assertConditionCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602784037,
+    "durationMs": 142
+  },
+  {
+    "pair": "5",
+    "command": "takeScreenshotCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602784179,
+    "durationMs": 75
+  },
+  {
+    "pair": "5",
+    "command": "stopRecordingCommand",
+    "status": "COMPLETED",
+    "startMs": 1795602784254,
+    "durationMs": 55
+  }
+]

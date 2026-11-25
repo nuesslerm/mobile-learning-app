@@ -1,0 +1,54 @@
+{
+  "ios1": {
+    "checkoutHead": "20c6d2c303a6fb177168f9f7b27b932d6b5f6f4b",
+    "platform": "ios"
+  },
+  "browser1": {
+    "checkoutHead": "20c6d2c303a6fb177168f9f7b27b932d6b5f6f4b",
+    "platform": "browser"
+  },
+  "tamil-native": {
+    "frontend": "442ab9d8ba1252bdc26f92c45c0d1ca3be10d025",
+    "test": "e2e/tamil-native.lua",
+    "cases": 15
+  },
+  "leetcode-native": {
+    "frontend": "442ab9d8ba1252bdc26f92c45c0d1ca3be10d025",
+    "test": "e2e/leetcode-native.lua",
+    "cases": 15
+  },
+  "rebuilt-tamil-native": {
+    "frontend": "442ab9d8ba1252bdc26f92c45c0d1ca3be10d025",
+    "test": "e2e/tamil-native.lua",
+    "cases": 15
+  },
+  "qualified-tamil-native": {
+    "frontend": "442ab9d8ba1252bdc26f92c45c0d1ca3be10d025",
+    "test": "e2e/tamil-native.lua",
+    "cases": 15
+  },
+  "qualified-leetcode-native": {
+    "frontend": "442ab9d8ba1252bdc26f92c45c0d1ca3be10d025",
+    "test": "e2e/leetcode-native.lua",
+    "cases": 15
+  },
+  "originalIos": {
+    "source": "../2026-11-25-tamil-ios-drivers/report.json",
+    "revision": "2021b472502eb356a11dcc2f63978123c41ef319"
+  },
+  "instrumentation": {
+    "revision": "2f6a701d673f174f2e385c0afa70b55300b37fae",
+    "hostedRun": 45599538196
+  },
+  "driverQualification": {
+    "revision": "7d0793bc95514c79e4c27669d65967b49c25d615",
+    "hostedRun": 45603434630
+  },
+  "verification": {
+    "host": "macOS arm64",
+    "initialAndRebuilt": "Local harness and fixtures were modified during qualification. The installed app stayed pinned across the local learner runs.",
+    "package": "@buoy-gg/perf-monitor@7.0.103",
+    "desktop": "2.0.91",
+    "mcp": "7.0.107"
+  }
+}

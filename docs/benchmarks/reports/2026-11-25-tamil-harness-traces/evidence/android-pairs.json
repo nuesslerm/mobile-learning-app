@@ -1,0 +1,58 @@
+[
+  {
+    "pair": 1,
+    "driver": "wf",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 5.888224632999936,
+    "peakHostMiB": 14.62890625,
+    "startupS": 0.431244311,
+    "journeyS": 5.063042172,
+    "hostedSample": "1",
+    "revision": "2f6a701d"
+  },
+  {
+    "pair": 1,
+    "driver": "maestro",
+    "stage": "journey",
+    "exit": 1,
+    "timedOut": false,
+    "totalS": 13.404852774000005,
+    "peakHostMiB": 266.015625,
+    "hostedSample": "1",
+    "revision": "2f6a701d",
+    "diagnostic": [
+      "io.grpc.StatusRuntimeException: UNAVAILABLE",
+      "Caused by: java.io.IOException: Command failed (tcp:37473): closed"
+    ]
+  },
+  {
+    "pair": 1,
+    "driver": "maestro",
+    "stage": "journey",
+    "exit": 1,
+    "timedOut": false,
+    "totalS": 20.886692174000018,
+    "peakHostMiB": 264.12890625,
+    "hostedSample": "2",
+    "revision": "2f6a701d",
+    "diagnostic": [
+      "Maestro Android driver did not start up in time  ---  emulator [ emulator-5554 ] & port  [ dadb.open( tcp:43319 ) ]",
+      "maestro.MaestroDriverStartupException$AndroidDriverTimeoutException: Maestro Android driver did not start up in time  ---  emulator [ emulator-5554 ] & port  [ dadb.open( tcp:43319 ) ]"
+    ]
+  },
+  {
+    "pair": 1,
+    "driver": "wf",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 6.233262577999994,
+    "peakHostMiB": 14.60546875,
+    "startupS": 0.570258063,
+    "journeyS": 5.133020805,
+    "hostedSample": "2",
+    "revision": "2f6a701d"
+  }
+]

@@ -7,6 +7,7 @@ Add a directory under `reports/` whose name matches the record ID. Write `report
 ## Test harnesses
 
 - [Tamil iOS driver comparison](reports/2026-11-25-tamil-ios-drivers/report.json) · 2026-11-25 · Across 5 completed pairs, the median run took 5.49 s with wf ios and 27.22 s with Maestro. Median incremental peak driver RSS was 133.0 MiB and 951.8 MiB respectively.
+- [Tamil driver costs and harness traces](reports/2026-11-25-tamil-harness-traces/report.json) · 2026-11-25 · Median iOS wall time was 5.49 s for wf and 27.22 s for Maestro. Startup accounted for 15.23 s of the difference between medians. The browser journeys took 6.36 s and 19.13 s respectively. Across 3 completed hosted Android pairs, the medians were 5.93 s and 26.68 s.
 - [Agent proof with typed harness help](reports/agent-proof-harness-api/report.json) · 2026-10-21 · baseline / scripted / runS measured 4.1.
 - [Initial browser and Android unit timings](reports/e2e-unit-timing-initial/report.json) · 2026-10-20 · 42 platform and unit timings were recorded.
 - [Agent proof on the browser harness](reports/agent-proof/report.json) · 2026-10-14 · arms / 1 / runS measured 4.1.

@@ -1,0 +1,10 @@
+{
+  "summary": "40 passed, 5 failed, 6 ignored",
+  "failed": [
+    "chain::a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_longer_lists_it",
+    "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+    "replay_features::t3_core_core::the_answers_the_real_server_recorded_for_these_rows_replay_through_t3_serve_and_every_difference_is_a_listed_adapter_bug",
+    "terminal_pty::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
+    "terminal_pty::a_terminal_is_attached_typed_into_resized_observed_cleared_listed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell"
+  ]
+}

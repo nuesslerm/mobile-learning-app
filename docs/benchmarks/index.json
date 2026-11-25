@@ -22,6 +22,42 @@
       "page": "reports/2026-11-25-tamil-ios-drivers/index.html"
     },
     {
+      "id": "2026-11-25-tamil-harness-traces",
+      "title": "Tamil driver costs and harness traces",
+      "subject": "Test harnesses",
+      "date": "2026-11-25",
+      "question": "Where do the native, browser and flow harnesses spend time, and how does Maestro change driver cost?",
+      "finding": "Median iOS wall time was 5.49 s for wf and 27.22 s for Maestro. Startup accounted for 15.23 s of the difference between medians. The browser journeys took 6.36 s and 19.13 s respectively. Across 3 completed hosted Android pairs, the medians were 5.93 s and 26.68 s.",
+      "variants": [
+        {
+          "id": "wf-ios",
+          "label": "wf ios"
+        },
+        {
+          "id": "wf-browser",
+          "label": "wf browser"
+        },
+        {
+          "id": "wf-android",
+          "label": "wf android"
+        },
+        {
+          "id": "maestro",
+          "label": "Maestro"
+        },
+        {
+          "id": "wf-flow",
+          "label": "wf flow"
+        },
+        {
+          "id": "buoy-desktop",
+          "label": "Buoy Desktop"
+        }
+      ],
+      "record": "reports/2026-11-25-tamil-harness-traces/report.json",
+      "page": "reports/2026-11-25-tamil-harness-traces/index.html"
+    },
+    {
       "id": "2026-11-25-benchmark-library",
       "title": "Offline benchmark library verification",
       "subject": "Developer tools",

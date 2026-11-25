@@ -146,7 +146,16 @@ def table(headers, rows):
 
 def paired(r):
     variants = r["variants"]
-    if len(variants) != 2:
+    if len(variants) > 2:
+        sections = []
+        for scenario in r["scenarios"]:
+            rows = [o for o in r["observations"] if o["scenario"] == scenario["id"]]
+            participating = {o["variant"] for o in rows}
+            group = [v for v in variants if v["id"] in participating]
+            if len(group) == 2:
+                sections.append(paired(dict(r, variants=group, scenarios=[scenario], observations=rows)))
+        return "".join(sections)
+    if len(variants) < 2:
         return ""
     a, b = [v["id"] for v in variants]
     groups = defaultdict(lambda: defaultdict(dict))

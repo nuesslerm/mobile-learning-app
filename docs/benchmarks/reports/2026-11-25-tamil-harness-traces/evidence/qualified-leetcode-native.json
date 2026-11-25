@@ -1,0 +1,104 @@
+{
+  "appRevision": "442ab9d8ba1252bdc26f92c45c0d1ca3be10d025",
+  "measurements": [
+    {
+      "sample": 1,
+      "seconds": 236.076835417,
+      "budgetSeconds": 900,
+      "cases": 15,
+      "ok": true
+    }
+  ],
+  "cases": [
+    {
+      "case": "case=search",
+      "wallS": 11.144,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=neetcode",
+      "wallS": 13.204,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=one-editor",
+      "wallS": 8.118,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=python",
+      "wallS": 12.663,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=javascript",
+      "wallS": 14.686,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=custom-input",
+      "wallS": 15.221,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=repair-error",
+      "wallS": 15.197,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=draft",
+      "wallS": 22.829,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=symbol",
+      "wallS": 13.193,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=keyboard",
+      "wallS": 17.217,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=settings",
+      "wallS": 13.604,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=completion",
+      "wallS": 16.113,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=blocks",
+      "wallS": 22.637,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=two-drafts",
+      "wallS": 29.212,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=voice",
+      "wallS": 10.578,
+      "verdict": "pass",
+      "sample": 1
+    }
+  ]
+}
