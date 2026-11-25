@@ -9,3 +9,7 @@ Reference build from Orca commit `980c0024741812bd7ae934c0c22144d9926a784e`. The
 5. Select the first swatch and open the viewer’s actions menu. See the [viewer](image-preview.png), [opening transition](image-preview.mp4), and [actions sheet](image-actions.png).
 
 These captures establish the upstream checkpoints. Expo still needs a matching native capture and pixel comparison for each row, including keyboard-open and reconnect scenarios.
+
+## First integrated Expo comparison
+
+The native Expo release build at commit `1d169f4a` opened the same saved thread through the installed app link on the RCA simulator. The composer used the Orca implementation. The [candidate](comparison/mla-photo-thread.png) differed on **3,036,603 of 3,785,760 pixels (80.21%)** in an exact comparison without masks. The candidate opened at the beginning of the conversation, displayed ordinary text rows for tool activity, and omitted both image previews. The header, background, composer controls, scroll anchoring and transcript layout also differ. This checkpoint is open.

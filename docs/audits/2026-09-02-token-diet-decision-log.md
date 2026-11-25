@@ -3816,3 +3816,7 @@ An up-to-date build took 0.339 s and check took 0.268 s across 311 records. One 
 2026-11-25 — Basic Memory encrypted Git round trip, one Markdown note and one local run per command. Saving took 0.454 s, first agent-config sync in a fresh clone took 0.172 s, and repeat sync took 0.141 s. Keep decryption on session sync and seal edited notes explicitly before commit.
 
 2026-11-25 — Clean PR from dev to main. In one merge of main (d8e537fe) into dev (1d169f4a), the count from `git rev-list --count dev..origin/main` fell from 1 to 0. The resolved merge tree matched the pre-merge dev tree exactly. Use a normal merge and push for this request.
+
+### 2026-11-25 — Target native iOS text input for RCA pairing
+
+One native T3 pairing run on the simulator named `rca`. The previous input runner targeted Expo Go during address entry. With `WF_IOS_APP_ID=com.t3tools.t3code` and the persistent XCTest driver, two field entries and one submit produced one successful OAuth exchange, a WebSocket ticket and a 101 upgrade against the pinned T3 server. Keep the bundle ID override for native runbooks. Existing Expo Go runs retain the default.

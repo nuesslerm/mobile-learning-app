@@ -1,7 +1,7 @@
 import XCTest
 
 final class InputTests: XCTestCase {
-    let app = XCUIApplication(bundleIdentifier: "host.exp.Exponent")
+    let app = XCUIApplication(bundleIdentifier: ProcessInfo.processInfo.environment["WF_IOS_APP_ID"] ?? "host.exp.Exponent")
 
     private func typeText(_ text: String) {
         // Synchronize each key with the app. A controlled search field can otherwise drop
