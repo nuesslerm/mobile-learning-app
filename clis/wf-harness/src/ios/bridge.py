@@ -80,23 +80,17 @@ def companion(udid, default_socket):
             proc.wait(timeout=10)
 
 
-async def tap_menu(client, labels, optional=False):
-    deadline = time.monotonic() + (1.5 if optional else 4)
-    previous = None
-    while time.monotonic() < deadline:
-        rows = json.loads((await client.accessibility_info(None, False)).json)
-        item = next((row for row in rows if row.get("AXLabel") in labels), None)
-        if item:
-            box = item["frame"]
-            point = (box["x"] + box["width"]/2, box["y"] + box["height"]/2)
-            if previous == point:
-                await client.tap(*point, duration=.1)
-                return True
-            previous = point
-        await asyncio.sleep(.12)
-    if not optional:
-        raise ValueError(f"iOS input menu did not offer {labels}")
-    return False
+def type_with_xctest(udid, value):
+    project = Path(__file__).resolve().parent / "input/Input.xcodeproj"
+    cache = Path(os.getenv("RUNNER_TEMP") or tempfile.gettempdir()) / "wf-ios-input"
+    subprocess.run(["xcodebuild", "build-for-testing", "-project", str(project), "-scheme", "InputTests",
+                    "-destination", "generic/platform=iOS Simulator", "-derivedDataPath", str(cache), "-quiet"],
+                   check=True, stdout=sys.stderr)
+    runner, = (cache / "Build/Products").glob("*.xctestrun")
+    subprocess.run(["xcodebuild", "test-without-building", "-xctestrun", str(runner), "-destination",
+                    "id=" + udid, "-parallel-testing-enabled", "NO", "-quiet"],
+                   env={**os.environ, "TEST_RUNNER_WF_TEXT": value}, check=True, stdout=sys.stderr)
+    subprocess.run(["xcrun", "simctl", "launch", udid, "host.exp.Exponent"], check=True, stdout=sys.stderr)
 
 
 async def keyboard_hit(client, width, height, key, x, ys):
@@ -160,7 +154,6 @@ async def serve(udid):
 async def drive(socket, udid, info):
     async with Client.build(DomainSocketAddress(socket), logging.getLogger(__name__)) as client:
         await client.set_hardware_keyboard(False)
-        last_tap = None
         for line in sys.stdin:
             op, *args = json.loads(line)
             try:
@@ -186,7 +179,6 @@ async def drive(socket, udid, info):
                 elif op == "open":
                     await client.open_url(args[0])
                 elif op == "tap":
-                    last_tap = args
                     await client.tap(*args)
                 elif op == "swipe":
                     await client.swipe(tuple(args[0]), tuple(args[1]), duration=args[2]/1000)
@@ -194,12 +186,7 @@ async def drive(socket, udid, info):
                     if args[0].isascii() and all(c.islower() or c.isdigit() or c == " " for c in args[0]):
                         await type_on_keyboard(client, args[0], info["screen_dimensions"])
                     else:
-                        subprocess.run(["xcrun", "simctl", "pbcopy", udid], input=args[0].encode(), check=True)
-                        if last_tap is None:
-                            raise ValueError("Tap the destination before pasting")
-                        await client.tap(*last_tap, duration=.65)
-                        await tap_menu(client, {"Paste"})
-                        await tap_menu(client, {"Allow Paste"}, optional=True)
+                        type_with_xctest(udid, args[0])
                 elif op == "select-all":
                     await chord(client, 227, 4)
                 elif op == "end":

@@ -1393,7 +1393,7 @@ jobs:
   eas-update-e2e:
     name: eas-update-e2e
     needs: [plan, clis]
-    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && (needs.plan.outputs.eas_update == 'true' || (needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true'))) && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && (needs.plan.outputs.is_head == 'true' || needs.plan.outputs.native_samples == '[1,2,3]') && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && (needs.plan.outputs.eas_update == 'true' || (needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true'))) && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     permissions:
@@ -1423,6 +1423,7 @@ jobs:
         if: ${{ inputs.ship && inputs.e2e }}
         timeout-minutes: 20
         env:
+          WF_NATIVE_UPDATE_BRANCH: ${{ needs.plan.outputs.native_samples == '[1,2,3]' && format('e2e-{0}', github.sha) || 'e2e' }}
           EXPO_PUBLIC_DEVICE_LAB: "1"
           EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL: http://10.0.2.2:8789
           EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN: e2e-loopback-bearer
@@ -1432,12 +1433,12 @@ jobs:
           WF_EAS_MAPS_DIR: ${{ runner.temp }}/eas-maps
         run: |
           set -o pipefail
-          wf ship eas --platform android --branch e2e --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas-e2e.log"
+          wf ship eas --platform android --branch "$WF_NATIVE_UPDATE_BRANCH" --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas-e2e.log"
           summary=$(tail -1 "$RUNNER_TEMP/eas-e2e.log")
           echo "group=$(jq -er .group <<<"$summary")" >> "$GITHUB_OUTPUT"
           {
             echo "### EAS Update for the Android e2e tests"
-            echo "Branch e2e, group \`$(jq -r '.group' <<<"$summary")\`, commit \`${GITHUB_SHA::9}\`: dials the runner's backends at 10.0.2.2, not the deployed ones. Not for a phone."
+            echo "Branch $WF_NATIVE_UPDATE_BRANCH, group \`$(jq -r '.group' <<<"$summary")\`, commit \`${GITHUB_SHA::9}\`: dials the runner's backends at 10.0.2.2, not the deployed ones. Not for a phone."
           } >> "$GITHUB_STEP_SUMMARY"
       # the e2e jobs read the branch pointers and the group summaries from this run's artifact (WF_EAS_POINTER_DIR in e2e-tests.yml)
       - name: Hand the EAS pointers to the e2e jobs
@@ -1459,7 +1460,7 @@ jobs:
           if-no-files-found: error
       # the pointer outlives the run, as the production one does
       - name: Push the EAS pointer to the state ref
-        if: ${{ inputs.ship && success() }}
+        if: ${{ inputs.ship && success() && needs.plan.outputs.native_samples == '[1]' }}
         run: |
           for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
             out=$(wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA") || { printf '%s\n' "$out"; exit 1; }
@@ -1498,8 +1499,7 @@ jobs:
   # The focused Android e2e tests, last: the device boots once, cold, and every test runs on it warm, one after another.
   android-e2e-tests:
     needs: [plan, core-tests, clis, cli-e2e-tests]
-    # head only, as eas-update-e2e whose update it loads
-    if: ${{ (!cancelled() && inputs.e2e && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && inputs.e2e && (needs.plan.outputs.is_head == 'true' || needs.plan.outputs.native_samples == '[1,2,3]') && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     # two devices, each with its part of the tests (dealt over the stage's weights in shard-weights.json): the tests are 13 of the job's 24 minutes
     strategy:
       fail-fast: false
@@ -1512,10 +1512,11 @@ jobs:
     with:
       runner: ${{ inputs.runner }}
       platform: android
+      update_branch: ${{ needs.plan.outputs.native_samples == '[1,2,3]' && format('e2e-{0}', github.sha) || 'e2e' }}
       shard: ${{ matrix.shard }}
       sample: ${{ matrix.sample }}
       shards: ${{ needs.plan.outputs.native_samples == '[1,2,3]' && 1 || 2 }}
-      fresh: ${{ needs.plan.outputs.fresh == 'true' }}
+      fresh: ${{ needs.plan.outputs.fresh == 'true' || needs.plan.outputs.native_samples == '[1,2,3]' }}
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}
       base: ${{ github.event.before }}
@@ -1525,7 +1526,7 @@ jobs:
 
   eas-update-ios:
     needs: [plan, wf-build]
-    if: ${{ !cancelled() && inputs.ship && inputs.e2e && (inputs.stages == 'all' || inputs.stages == 'e2e') && needs.plan.result == 'success' && needs.wf-build.result == 'success' && needs.plan.outputs.is_head == 'true' && needs.plan.outputs.run_android == 'true' && needs.plan.outputs.ios_e2e_tests != '0' }}
+    if: ${{ !cancelled() && inputs.ship && inputs.e2e && (inputs.stages == 'all' || inputs.stages == 'e2e') && needs.plan.result == 'success' && needs.wf-build.result == 'success' && (needs.plan.outputs.is_head == 'true' || needs.plan.outputs.native_samples == '[1,2,3]') && needs.plan.outputs.run_android == 'true' && needs.plan.outputs.ios_e2e_tests != '0' }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     steps:
@@ -1542,12 +1543,13 @@ jobs:
         env:
           EXPO_PUBLIC_DEVICE_LAB: '1'
           EXPO_PUBLIC_NATIVE_SUITE: '1'
+          WF_NATIVE_UPDATE_BRANCH: ${{ needs.plan.outputs.native_samples == '[1,2,3]' && format('e2e-ios-{0}', github.sha) || 'e2e-ios' }}
           EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL: http://127.0.0.1:8789
           EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN: e2e-loopback-bearer
           EXPO_PUBLIC_AGENT_BASE_URL: http://127.0.0.1:8787
           EXPO_PUBLIC_VM_OPS_API_BASE_URL: http://127.0.0.1:1
           WF_EAS_POINTER_DIR: ${{ runner.temp }}/ios-pointer
-        run: wf ship eas --platform ios --branch e2e-ios --pointer --message "$GITHUB_SHA"
+        run: wf ship eas --platform ios --branch "$WF_NATIVE_UPDATE_BRANCH" --pointer --message "$GITHUB_SHA"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ios-pointer
@@ -1565,9 +1567,10 @@ jobs:
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
     with:
+      update_branch: ${{ needs.plan.outputs.native_samples == '[1,2,3]' && format('e2e-ios-{0}', github.sha) || 'e2e-ios' }}
       plan: ${{ needs.plan.outputs.plan }}
       sample: ${{ matrix.sample }}
-      fresh: ${{ needs.plan.outputs.fresh == 'true' }}
+      fresh: ${{ needs.plan.outputs.fresh == 'true' || needs.plan.outputs.native_samples == '[1,2,3]' }}
 
   # Every run reports where it is read (`wf ci comment`): a table of the jobs with their cache hits and latency, Nx replays, docker layers, EAS
   # seconds and the e2e units, in the job summary and as a comment on the open PR; a red run also gets the cause of each failure as a comment on

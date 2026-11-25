@@ -6,6 +6,7 @@ units: case=resume; case=tiles; case=typed; case=listen; case=fill; case=review;
 focus: true
 features: tamil-writing
 ---]]
+local open_library = dofile("e2e/support/native-learner.lua")
 local file = assert(io.open("frontend/mla-tamagui/features/tamil-writing/data/lessons/course.json"))
 local curriculum = json.decode(file:read("*a"))
 file:close()
@@ -82,7 +83,11 @@ cases.typed = function()
   tap("TamilSwitchAnswer")
   tap("TamilTypedAnswer")
   device:extended_wait_until{condition=function() return device:get_device_state("keyboard").visible end}
-  device:input_text(short.exercises[1].tamil)
+  local answer = short.exercises[1].tamil
+  device:input_text(answer)
+  device:assert_visible({id="TamilTypedAnswer", text=answer})
+  if device.platform == "ios" then device:tap_on({text=headings.translate}) else device:back() end
+  device:extended_wait_until{condition=function() return not device:get_device_state("keyboard").visible end}
   tap("TamilCheck")
   text("Correct")
 end
@@ -160,8 +165,7 @@ cases["flash-tamil"] = function()
   local next_review = {text="Next review · .*"}
   device:assert_visible(next_review)
   local due = assert(device:get_element(next_review)).text
-  device:open_link((env.base:gsub("/%-%-$", "")), {relaunch=true})
-  show("LibraryHomeMenuButton", 90000)
+  open_library(device, env.base, true)
   local entry = "TamilFlashCards-" .. deck.id
   open("/tamil/lessons/" .. topic, entry)
   tap(entry)
@@ -172,7 +176,6 @@ cases["flash-tamil"] = function()
 end
 
 run_flow("Given a Tamil learner, when practicing " .. env.case .. ", then progress and feedback match their actions", function()
-  device:open_link((env.base:gsub("/%-%-$", "")))
-  show("LibraryHomeMenuButton", 90000)
+  open_library(device, env.base)
   assert(cases[env.case], "unknown Tamil case")()
 end)

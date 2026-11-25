@@ -83,6 +83,7 @@ function project(root, file, fields) {
       ...(platform === 'ios' || platform === 'android' ? [
         { fileset: '{workspaceRoot}/clis/pipeline/src/e2e_run.rs' },
         { fileset: '{workspaceRoot}/clis/pipeline/src/device_run.rs' },
+        { fileset: '{workspaceRoot}/e2e/support/native-learner.lua' },
         { env: 'WF_NATIVE_RUNTIME' },
         { env: 'WF_E2E_SHA' },
       ] : []),

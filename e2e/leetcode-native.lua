@@ -6,6 +6,7 @@ units: case=search; case=neetcode; case=one-editor; case=python; case=javascript
 focus: true
 features: leetcode
 ---]]
+local open_library = dofile("e2e/support/native-learner.lua")
 local function visible(id, timeout)
   return device:assert_visible({id=id}, {timeout=timeout or 12000})
 end
@@ -27,15 +28,17 @@ local function base64url(s)
   return table.concat(bytes)
 end
 local py = "class Solution:\n    def twoSum(self, nums, target): return "
-local js = "var twoSum = (nums, target) => "
 local function editor(code, lang)
   open("/leetcode/two-sum?lang=" .. (lang or "python") .. "&seed64=" .. base64url(code), "ConsoleBarRun")
+end
+local function value_editor(expression)
+  editor("v=" .. expression .. "\n" .. py .. "v")
 end
 local function keyboard(want)
   device:extended_wait_until{condition=function() return device:get_device_state("keyboard").visible == want end,
     timeout=10000, label=want and "system keyboard opened" or "system keyboard dismissed"}
 end
-local function focus_end()
+local function focus_end(first_line)
   local box = device:get_element({id="ProblemEditorInput"})
   if box then
     device:tap_on({point=("%d,%d"):format(box.bounds.cx, math.floor(box.bounds.top + 25))})
@@ -44,7 +47,17 @@ local function focus_end()
     device:tap_on({point=("%d,%d"):format(bar.cx, bar.bottom + 12)})
   end
   keyboard(true)
-  device:press_key("Ctrl+End")
+  if device.platform == "ios" then
+    local bar = assert(device:get_element({id="RNSScreen"})).bounds
+    local screen = device:get_device_state("screen")
+    local startup = device:get_element({id="ProblemEditorStartupInput"})
+    local y = first_line and (bar.bottom + (startup and 12 or 2)) or math.floor(screen.height*.29)
+    device:tap_on({point=("%d,%d"):format(math.floor(screen.width*.83), y)})
+  elseif not first_line then
+    device:press_key("Ctrl+End")
+  elseif box then
+    device:tap_on({point=("%d,%d"):format(box.bounds.right-16, box.bounds.top+15)})
+  end
 end
 local function hide_keyboard()
   local hide = {text="Hide keyboard"}
@@ -57,18 +70,26 @@ end
 local function output(expected)
   local control = device:get_element({id="ConsoleFooterRun"}) and "ConsoleFooterRun" or "ConsoleBarRun"
   tap(control)
-  device:assert_visible({text="Output"}, {timeout=60000})
+  device:extended_wait_until{condition=function()
+    return device:get_element({text="(Output|Compile Error|Runtime Error)"}) ~= nil
+  end, timeout=60000}
   device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text=expected})
 end
 local function append(text)
-  focus_end()
+  focus_end(true)
   device:input_text(text)
   hide_keyboard()
 end
-local function replace_program(code)
-  focus_end()
-  device:press_key("Select all")
-  device:input_text(code)
+local function type_in_starter(text, row)
+  focus_end(false)
+  if device.platform == "ios" then
+    local header = assert(device:get_element({id="RNSScreen"})).bounds
+    device:tap_on({point=("%d,%d"):format(header.cx, header.bottom+12+(row-1)*21)})
+  elseif row == 8 then
+    device:press_key("Remote Dpad Up")
+    device:press_key("Remote Dpad Up")
+  end
+  device:input_text(text)
   hide_keyboard()
 end
 local function search(term, problem)
@@ -85,6 +106,7 @@ cases.search = function()
   search("two sum", "two-sum")
   device:assert_visible({text=".*Two Sum.*"})
   visible("ProblemInfoOpen-topics")
+  device:assert_visible({text=".*Given an array of integers.*"})
 end
 cases.neetcode = function()
   local category = assert(device:get_element({id="LibraryCategory-All Topics"}), "category row missing").bounds
@@ -94,7 +116,8 @@ cases.neetcode = function()
   visible("AlgorithmsSearch")
   search("car fleet", "car-fleet")
   tap("ProblemOpenLesson")
-  visible("NeetCodeLesson")
+  device:assert_visible({text="Car Fleet"})
+  device:assert_visible({text="1. Stack"})
 end
 cases["one-editor"] = function()
   open("/leetcode/two-sum/problem", "ProblemOpenEditor")
@@ -112,7 +135,7 @@ cases["one-editor"] = function()
   visible("ProblemOpenEditor")
 end
 cases.python = function()
-  editor(py .. "4")
+  value_editor("4")
   append("2")
   output("42")
 end
@@ -126,7 +149,7 @@ cases.javascript = function()
     tap("ProblemEditorLanguagePicker-Trigger")
     tap("ProblemEditorLanguagePicker-JavaScript")
   end
-  replace_program(js .. "37")
+  type_in_starter("return 37", 8)
   output("37")
 end
 cases["custom-input"] = function()
@@ -136,43 +159,46 @@ cases["custom-input"] = function()
   tap("ConsoleChipAdd")
   tap("ConsoleField-target")
   keyboard(true)
-  device:press_key("Select all")
-  device:input_text("47")
+  device:press_key("Ctrl+End")
+  device:input_text("7")
   tap("ConsoleFooterRun")
   device:assert_visible({text="Output"}, {timeout=60000})
-  device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text="47"})
+  device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text="97"})
 end
 cases["repair-error"] = function()
-  editor(py .. "missing")
+  editor("v=Tru\n" .. py .. "53 if v else 0")
   tap("ConsoleBarRun")
-  device:assert_visible({id="ConsoleResultLine", text="(Show line 2 in the editor|Line 2.*)"}, {timeout=60000})
-  tap("ConsoleResultLine")
-  focus_end()
-  for _ = 1, #"missing" do device:press_key("Backspace") end
-  device:input_text("53")
+  device:assert_visible({text="(Show line 1 in the editor|Line 1.*)"}, {timeout=60000})
+  tap("ConsoleSheetHandle")
+  focus_end(true)
+  device:input_text("e")
   hide_keyboard()
   output("53")
   device:assert_not_visible({id="ConsoleResultLine"})
 end
 cases.draft = function()
   open("/leetcode/two-sum", "ConsoleBarRun")
-  replace_program(py .. "64")
+  type_in_starter("return 64", 4)
   output("64")
-  open("/leetcode/library/collection", "AlgorithmsSearch")
+  open_library(device, env.base, true)
   open("/leetcode/two-sum", "ConsoleBarRun")
   output("64")
 end
 cases.symbol = function()
-  editor(py .. "8")
-  focus_end()
+  value_editor("8")
+  if device.platform == "ios" then
+    device:extended_wait_until{condition=function() return device:get_element({id="ProblemEditorStartupInput"}) == nil end, timeout=12000}
+  end
+  focus_end(true)
   if device:get_element({id="SymbolBarGroup-g4"}) then tap("SymbolBarGroup-g4") end
-  tap("SymbolBarKey-g4-0")
+  local key = {id="SymbolBarKey-g4-0"}
+  if device:get_element(key) then device:tap_on(key) else device:tap_on({text="(Type )?\\+"}) end
   device:input_text("5")
   hide_keyboard()
   output("13")
 end
 cases.keyboard = function()
-  editor(py .. "1")
+  value_editor("1")
   append("2")
   output("12")
   tap("ConsoleSheetHandle")
@@ -180,7 +206,6 @@ cases.keyboard = function()
   output("123")
 end
 run_flow("Given isolated learner data, when the learner completes " .. env.case .. ", then its outcome is visible", function()
-  device:open_link((env.base:gsub("/%-%-$", "")))
-  visible("LibraryHomeMenuButton", 90000)
+  open_library(device, env.base)
   assert(cases[env.case], "unknown LeetCode case")()
 end)

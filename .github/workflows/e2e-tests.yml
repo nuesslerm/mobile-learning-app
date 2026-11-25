@@ -47,6 +47,9 @@ on:
         required: false
       # how the same run's eas-update job ended (success, failure, cancelled, skipped; empty on a dispatch), or `wait`: the job started beside the eas-update-e2e job and
       # reads how it ended just before its tests: which update the android update units may load
+      update_branch:
+        type: string
+        required: false
       eas_update:
         type: string
         required: false
@@ -124,7 +127,7 @@ jobs:
       # the leetcode token the EAS Update of branch e2e baked in (pipeline.yml eas-update); the backend started here takes it
       E2E_LEETCODE_BEARER: e2e-loopback-bearer
       # the Android tests load that variant, which dials the runner's backends as 10.0.2.2:8787 and :8789
-      WF_EAS_UPDATE_BRANCH: ${{ inputs.platform == 'android' && 'e2e' || 'dev' }}
+      WF_EAS_UPDATE_BRANCH: ${{ inputs.update_branch || (inputs.platform == 'android' && 'e2e' || 'dev') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

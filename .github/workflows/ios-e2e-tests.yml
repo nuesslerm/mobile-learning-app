@@ -2,6 +2,9 @@ name: iOS simulator learner suites
 on:
   workflow_call:
     inputs:
+      update_branch:
+        type: string
+        default: e2e-ios
       sample:
         type: number
         default: 1
@@ -28,7 +31,7 @@ jobs:
       WF_NATIVE_RUNTIME: xcode-27-iphone17-ios27.0-expo58.0.7
       WF_NATIVE_SAMPLE: ${{ inputs.sample }}
       WF_E2E_SHA: ${{ github.sha }}
-      WF_EAS_UPDATE_BRANCH: e2e-ios
+      WF_EAS_UPDATE_BRANCH: ${{ inputs.update_branch }}
       WF_EAS_UPDATE_RESULT: success
       WF_TEST_PUBLISH: '1'
       E2E_LEETCODE_BEARER: e2e-loopback-bearer
@@ -76,7 +79,8 @@ jobs:
         if: steps.pick.outputs.run != '0'
         run: |
           brew tap facebook/fb
-          brew install idb-companion ffmpeg python@3.11
+          brew trust --formula facebook/fb/idb-companion
+          brew install facebook/fb/idb-companion ffmpeg python@3.11
           "$(brew --prefix python@3.11)/bin/python3.11" -m venv "$RUNNER_TEMP/idb"
           "$RUNNER_TEMP/idb/bin/pip" install fb-idb==1.1.7
           echo "$RUNNER_TEMP/idb/bin" >> "$GITHUB_PATH"

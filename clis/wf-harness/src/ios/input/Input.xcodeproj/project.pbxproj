@@ -1,0 +1,179 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0BFC2803B8B0619427D8944C /* InputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BC4B4959481E5D6CB5D478B /* InputTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		25BBB86903584E9036CD4E60 /* InputTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InputTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2BC4B4959481E5D6CB5D478B /* InputTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InputTests.swift; sourceTree = "<group>"; };
+		7AC58FF6E26C74C6AB5EBD32 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FA92832B0B7802D9D33C34F8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1B45EC48F916B9AC433D6F34 = {
+			isa = PBXGroup;
+			children = (
+				5C298A66F110E075E484C8DE /* Products */,
+				2BC4B4959481E5D6CB5D478B /* InputTests.swift */,
+			);
+			sourceTree = "<group>";
+		};
+		5C298A66F110E075E484C8DE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				25BBB86903584E9036CD4E60 /* InputTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		92057737702D21B82B0DDAF0 /* InputTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 025543079FCF6B741A0DD5A5 /* Build configuration list for PBXNativeTarget "InputTests" */;
+			buildPhases = (
+				0A5E177EC483EF8E292F9790 /* Sources */,
+				FA92832B0B7802D9D33C34F8 /* Frameworks */,
+				5FB3A6960E7DF381D11C3DFA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = InputTests;
+			productName = InputTests;
+			productReference = 25BBB86903584E9036CD4E60 /* InputTests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		82A23CD26195A44E486DD4AD /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 7EDA63B60DC39EDA4E3D28BF /* Build configuration list for PBXProject "Input" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1B45EC48F916B9AC433D6F34;
+			minimizedProjectReferenceProxies = 0;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5C298A66F110E075E484C8DE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				92057737702D21B82B0DDAF0 /* InputTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5FB3A6960E7DF381D11C3DFA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0A5E177EC483EF8E292F9790 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0BFC2803B8B0619427D8944C /* InputTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		197B6714704163A4A7189F59 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+		A891A1601C673CDA2C137284 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		AFC5ED309408025A6554C01F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = org.mobilelearning.NativeJourneyInputTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		CB04304CEF1FFF351B985A28 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = org.mobilelearning.NativeJourneyInputTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		025543079FCF6B741A0DD5A5 /* Build configuration list for PBXNativeTarget "InputTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB04304CEF1FFF351B985A28 /* Release */,
+				AFC5ED309408025A6554C01F /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7EDA63B60DC39EDA4E3D28BF /* Build configuration list for PBXProject "Input" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A891A1601C673CDA2C137284 /* Debug */,
+				197B6714704163A4A7189F59 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 82A23CD26195A44E486DD4AD /* Project object */;
+}
