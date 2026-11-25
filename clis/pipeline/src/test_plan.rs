@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 /// The CI stages that run tests, in pipeline order.
-pub const STAGES: [&str; 7] = ["flow-tests", "typecheck-lint-unit-tests", "integration-tests", "cli-e2e-tests", "deployment-verification-tests", "browser-e2e-tests", "android-e2e-tests"];
+pub const STAGES: [&str; 8] = ["flow-tests", "typecheck-lint-unit-tests", "integration-tests", "cli-e2e-tests", "deployment-verification-tests", "browser-e2e-tests", "android-e2e-tests", "ios-e2e-tests"];
 
 /// Package scripts by stage and kind, in the order a stage runs them.
 const SCRIPTS: [(&str, &str, &str); 9] = [
@@ -603,6 +603,19 @@ fn e2e_reasons(t: &E2eTest, scope: &Scope) -> Option<Vec<String>> {
             }
             why.push("named".into());
         }
+        Scope::Changed(paths) if matches!(t.name.as_str(), "tamil-native" | "leetcode-native") => {
+            let feature = if t.name == "tamil-native" { "tamil-writing" } else { "leetcode" };
+            let touched = paths.iter().any(|p| {
+                if let Some(relative) = p.strip_prefix("frontend/mla-tamagui/features/") {
+                    return relative.split('/').next() == Some(feature);
+                }
+                p == &format!("e2e/{}.lua", t.name) || p.starts_with("frontend/mla-tamagui/") || p.starts_with("frontend/libraries/") || p.starts_with("libraries/")
+                    || p.starts_with("clis/harness-") || p.starts_with("clis/wf-harness/") || p.starts_with("clis/pipeline/")
+                    || p.starts_with("clis/wf/") || p.starts_with(".github/workflows/") || p.starts_with(".github/actions/")
+                    || p.starts_with("tooling/nx/") || p.starts_with("patches/") || matches!(p.as_str(), "nx.json" | "pnpm-lock.yaml" | "clis/Cargo.lock")
+            });
+            if !touched { return None; }
+        }
         Scope::Changed(_) => {}
     }
     Some(why)
@@ -701,7 +714,7 @@ pub fn run_stage(stage: &str, plan: &Value, rest: &[String]) -> i32 {
             return 1;
         }
     };
-    if matches!(stage, "browser-e2e-tests" | "android-e2e-tests") {
+    if matches!(stage, "browser-e2e-tests" | "android-e2e-tests" | "ios-e2e-tests") {
         let mut names: Vec<String> = tests.iter().filter_map(|t| t["name"].as_str().map(str::to_string)).collect();
         if let Some(i) = rest.iter().position(|a| a == "--shard") {
             let Some((index, count)) = rest.get(i + 1).and_then(|v| parse_shard(v)) else {
@@ -1041,7 +1054,8 @@ fn run_e2e_stage(nx: &Path, root: &Path, stage: &str, names: &[String], rest: &[
     }
     let sha = value("--sha").unwrap_or_else(tq::head_sha);
     let trailer = tq::git(&["log", "-1", "--format=%(trailers:key=E2E-Fresh,valueonly)", &sha]).unwrap_or_default();
-    let fresh = !flags.is_empty() || own.iter().any(|a| a == "--fresh") || trailer.lines().map(str::trim).any(|v| v == platform || v == "all");
+    let benchmark = matches!(platform, "ios" | "android") && tq::git(&["log", "-1", "--format=%(trailers:key=Native-Samples,valueonly)", &sha]).is_some_and(|v| v.trim() == "3");
+    let fresh = benchmark || !flags.is_empty() || own.iter().any(|a| a == "--fresh") || trailer.lines().map(str::trim).any(|v| v == platform || v == "all");
     let shim = if fresh { None } else { wf_bucket::cache::Shim::start(root, stage_scope()) };
     let shim_env = wf_bucket::cache::env_of(&shim);
     let misses = if !fresh {

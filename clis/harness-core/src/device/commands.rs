@@ -195,6 +195,9 @@ impl Run<'_> {
         match self.cmd.name {
             "open_link" => {
                 let link = self.str("link").unwrap_or_default();
+                if self.args.get("relaunch") == Some(&Value::Bool(true)) {
+                    dev.stop_app()?;
+                }
                 dev.open_link(link)?;
                 Ok(json!({ "link": link }))
             }

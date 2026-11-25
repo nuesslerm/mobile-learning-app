@@ -157,7 +157,7 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "open_link",
         maestro: Some("openLink"),
-        params: &[pos("link", Kind::Str, "a URL or deep link"), OPTIONAL, LABEL],
+        params: &[pos("link", Kind::Str, "a URL or deep link"), opt("relaunch", Kind::Bool, Some("false"), "stop the native app first, preserving learner data"), OPTIONAL, LABEL],
         platforms: Platforms::Both,
         guarded: true,
         action: true,
@@ -220,7 +220,7 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "press_key",
         maestro: Some("pressKey"),
-        params: &[pos("key", Kind::Enum(&["Enter", "Backspace", "Tab", "Remote Dpad Left", "Remote Dpad Right", "Remote Dpad Up", "Remote Dpad Down", "Ctrl+End"]), "case-insensitive"), OPTIONAL, LABEL],
+        params: &[pos("key", Kind::Enum(&["Enter", "Backspace", "Tab", "Remote Dpad Left", "Remote Dpad Right", "Remote Dpad Up", "Remote Dpad Down", "Ctrl+End", "Select all"]), "case-insensitive"), OPTIONAL, LABEL],
         platforms: Platforms::Both,
         guarded: true,
         action: true,

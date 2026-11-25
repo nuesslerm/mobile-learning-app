@@ -349,7 +349,7 @@ pub fn build(dir: &Path, f: &Facts) -> Value {
         "schema": SCHEMA,
         "verdict": f.verdict, "ok": f.verdict == "pass", "exitCode": f.exit_code,
         "message": f.message, "traceback": f.traceback, "notes": f.notes,
-        "script": f.script, "platform": f.platform, "device": f.device, "screen": screen, "sha": f.sha, "speed": f.speed, "args": f.args,
+        "script": f.script, "platform": f.platform, "device": f.device, "nativeDevice": std::env::var("WF_NATIVE_DEVICE_INFO").ok().and_then(|v| serde_json::from_str::<Value>(&v).ok()), "screen": screen, "sha": f.sha, "speed": f.speed, "args": f.args,
         "startedMs": f.started_ms, "finishedMs": f.finished_ms,
         "started": rca_core::time::iso(f.started_ms), "finished": rca_core::time::iso(f.finished_ms),
         "durationS": (wall_ms as f64 / 100.0).round() / 10.0,

@@ -585,6 +585,9 @@ fn key_script(keys: &[String]) -> String {
 /// costs seconds a line); newline, tab and quote go as keys. The dispatcher's input_text refuses it while the keyboard is
 /// down, so a run cannot pass with the keys going nowhere visible.
 pub(crate) fn type_text(serial: &str, text: &str, log: Option<&str>) -> Result<(), String> {
+    if !text.is_ascii() {
+        return crate::android_u2::type_unicode(serial, text);
+    }
     let mut keys: Vec<String> = Vec::new();
     let mut run = String::new();
     let flush = |run: &mut String, keys: &mut Vec<String>| {

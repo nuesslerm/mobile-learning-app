@@ -218,6 +218,19 @@ pub(crate) fn revived(serial: &str) -> Result<bool, String> {
     Ok(true)
 }
 
+/// adb input text has no Unicode key map. UIAutomator can fill an empty focused native field.
+pub(crate) fn type_unicode(serial: &str, text: &str) -> Result<(), String> {
+    const FOCUSED: u64 = 0x1000;
+    let field = json!({"mask": CLASS_NAME | FOCUSED, "className": "android.widget.EditText", "focused": true, "childOrSibling": [], "childOrSiblingSelector": []});
+    let info = rpc_once(serial, "objInfo", json!([field]), Duration::from_secs(5))?;
+    if info["text"].as_str().is_some_and(|contents| !contents.is_empty() && contents != info["hintText"].as_str().unwrap_or("")) {
+        return Err("Unicode entry requires an empty focused field".into());
+    }
+    let result = rpc_once(serial, "setText", json!([field, text]), Duration::from_secs(5))?;
+    if result == false { return Err("Android did not accept Unicode input".into()); }
+    Ok(())
+}
+
 /// The element a selector names, a miss checked against a dead server: see `look`.
 pub(crate) fn locate(serial: &str, sel: &Sel) -> Result<Option<Node>, String> {
     let first = look(serial, sel)?;

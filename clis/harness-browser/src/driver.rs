@@ -146,6 +146,7 @@ fn dom_key(key: Key) -> &'static str {
         Key::Up => "ArrowUp",
         Key::Down => "ArrowDown",
         Key::CtrlEnd => "Control+End",
+        Key::SelectAll => "Control+a",
     }
 }
 

@@ -196,6 +196,8 @@ jobs:
       cli_e2e_tests: ${{ steps.plan.outputs.cli_e2e_tests }}
       browser_e2e_tests: ${{ steps.plan.outputs.browser_e2e_tests }}
       android_e2e_tests: ${{ steps.plan.outputs.android_e2e_tests }}
+      ios_e2e_tests: ${{ steps.plan.outputs.ios_e2e_tests }}
+      native_samples: ${{ steps.plan.outputs.native_samples }}
       shards: ${{ steps.shards.outputs.list }}
       shard_count: ${{ steps.shards.outputs.count }}
       integration_shard_keys: ${{ steps.shardkeys.outputs.integration }}
@@ -293,6 +295,9 @@ jobs:
           [ -z "$FORCE_TESTS" ] || args+=(--force "$FORCE_TESTS")
           [ "$INPUT_AREA" = all ] || args+=(--area "$INPUT_AREA")
           wf ci plan tests "${args[@]}" > "$RUNNER_TEMP/plan.json"
+          samples='[1]'
+          if [[ "$(git log -1 --format='%(trailers:key=Native-Samples,valueonly)' "$GITHUB_SHA")" == 3 ]]; then samples='[1,2,3]'; fi
+          echo "native_samples=$samples" >> "$GITHUB_OUTPUT"
           jq -r '.stages | to_entries[] | "\(.key): \(.value | length) test(s)"' "$RUNNER_TEMP/plan.json"
       # Each test stage runs as this many machines side by side (1 to 6): a package and all its kinds on one of them
       - name: How many machines per test stage
@@ -1388,7 +1393,7 @@ jobs:
   eas-update-e2e:
     name: eas-update-e2e
     needs: [plan, clis]
-    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && (needs.plan.outputs.eas_update == 'true' || (needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true'))) && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     permissions:
@@ -1499,7 +1504,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: ${{ fromJSON(needs.plan.outputs.native_samples == '[1,2,3]' && '[1]' || '[1,2]') }}
+        sample: ${{ fromJSON(needs.plan.outputs.native_samples) }}
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -1507,21 +1513,68 @@ jobs:
       runner: ${{ inputs.runner }}
       platform: android
       shard: ${{ matrix.shard }}
-      shards: 2
+      sample: ${{ matrix.sample }}
+      shards: ${{ needs.plan.outputs.native_samples == '[1,2,3]' && 1 || 2 }}
       fresh: ${{ needs.plan.outputs.fresh == 'true' }}
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}
       base: ${{ github.event.before }}
       # update units load this push's update, error when its publish failed, and after a skipped one load the pointer's only if it is this commit's app; `wait`: this job starts beside
       # eas-update-e2e and waits for it just before its tests (the publish and the device's setup overlap)
-      eas_update: ${{ (inputs.ship && inputs.e2e && needs.plan.outputs.eas_update == 'true') && 'wait' || '' }}
+      eas_update: ${{ (inputs.ship && inputs.e2e) && 'wait' || '' }}
+
+  eas-update-ios:
+    needs: [plan, wf-build]
+    if: ${{ !cancelled() && inputs.ship && inputs.e2e && (inputs.stages == 'all' || inputs.stages == 'e2e') && needs.plan.result == 'success' && needs.wf-build.result == 'success' && needs.plan.outputs.is_head == 'true' && needs.plan.outputs.run_android == 'true' && needs.plan.outputs.ios_e2e_tests != '0' }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          wf-source: artifact
+          job: eas-update-ios
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - name: Publish this revision for the iOS simulator
+        env:
+          EXPO_PUBLIC_DEVICE_LAB: '1'
+          EXPO_PUBLIC_NATIVE_SUITE: '1'
+          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL: http://127.0.0.1:8789
+          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN: e2e-loopback-bearer
+          EXPO_PUBLIC_AGENT_BASE_URL: http://127.0.0.1:8787
+          EXPO_PUBLIC_VM_OPS_API_BASE_URL: http://127.0.0.1:1
+          WF_EAS_POINTER_DIR: ${{ runner.temp }}/ios-pointer
+        run: wf ship eas --platform ios --branch e2e-ios --pointer --message "$GITHUB_SHA"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-pointer
+          path: ${{ runner.temp }}/ios-pointer
+          retention-days: 2
+          if-no-files-found: error
+
+  ios-e2e-tests:
+    needs: [plan, eas-update-ios]
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: ${{ fromJSON(needs.plan.outputs.native_samples) }}
+    uses: ./.github/workflows/ios-e2e-tests.yml
+    secrets:
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+    with:
+      plan: ${{ needs.plan.outputs.plan }}
+      sample: ${{ matrix.sample }}
+      fresh: ${{ needs.plan.outputs.fresh == 'true' }}
 
   # Every run reports where it is read (`wf ci comment`): a table of the jobs with their cache hits and latency, Nx replays, docker layers, EAS
   # seconds and the e2e units, in the job summary and as a comment on the open PR; a red run also gets the cause of each failure as a comment on
   # the pushed commit. A failure to report never turns the run's result into the report's; a cache that degraded, lost or refused a write does.
   report:
     name: report
-    needs: [wf-build, plan, core-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, codex-session-proof, eas-update, eas-promote, eas-update-e2e, browser-e2e-tests, android-e2e-tests]
+    needs: [wf-build, plan, core-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, codex-session-proof, eas-update, eas-promote, eas-update-e2e, browser-e2e-tests, android-e2e-tests, eas-update-ios, ios-e2e-tests]
     if: ${{ always() }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 15

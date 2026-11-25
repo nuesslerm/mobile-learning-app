@@ -77,10 +77,11 @@ pub enum Key {
     Up,
     Down,
     CtrlEnd,
+    SelectAll,
 }
 
 impl Key {
-    pub const ALL: [Key; 8] = [Key::Enter, Key::Backspace, Key::Tab, Key::Left, Key::Right, Key::Up, Key::Down, Key::CtrlEnd];
+    pub const ALL: [Key; 9] = [Key::Enter, Key::Backspace, Key::Tab, Key::Left, Key::Right, Key::Up, Key::Down, Key::CtrlEnd, Key::SelectAll];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -92,6 +93,7 @@ impl Key {
             Key::Up => "Remote Dpad Up",
             Key::Down => "Remote Dpad Down",
             Key::CtrlEnd => "Ctrl+End",
+            Key::SelectAll => "Select all",
         }
     }
 
@@ -110,6 +112,7 @@ impl Key {
             Key::Up => "up",
             Key::Down => "down",
             Key::CtrlEnd => "ctrl-end",
+            Key::SelectAll => "select-all",
         }
     }
 }
@@ -160,6 +163,9 @@ pub trait Device {
         Ok(())
     }
     fn open_link(&self, link: &str) -> Result<(), String>;
+    fn stop_app(&self) -> Result<(), String> {
+        Err("stopping the app requires a native device".into())
+    }
     /// A tap at a point in tap units.
     fn tap_at(&self, x: f64, y: f64) -> Result<(), String>;
     /// A tap inside the element's on-screen part; returns the point tapped.

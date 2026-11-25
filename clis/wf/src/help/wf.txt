@@ -24,6 +24,7 @@ Commands:
                               a change reaches), publish a run's bundle
   ci                          What a CI run says about itself: `ci comment`
                               posts what failed on the pushed commit
+  ios                         Drive an explicitly selected iOS simulator and run Lua tests
   android                     The Android harness, the redroid on the VM:
                               Maestro's device verbs, start-device, lease,
                               hierarchy, adb
@@ -44,6 +45,7 @@ Commands:
                               sandbox and CI: status, gc, purge, restore, save
   lib                         Versioned shared libraries and their registries:
                               release, status, prune, retarget
+  rca-serve                   Pair devices and serve the RCA mobile API
   t3                          The T3-compatible server and its pairing codes:
                               serve, pair (the separate binary t3-serve)
   exec                        The executor of an rca workspace: serve (the

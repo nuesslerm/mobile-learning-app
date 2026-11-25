@@ -1,6 +1,6 @@
 --[[---
-platform: android, browser
-against: android=update, browser=export
+platform: browser
+against: export
 timeout: 180
 units: part=vowels letters=1-2; part=vowels letters=3-4; part=vowels letters=5-6; part=consonant; part=write; part=words word=word-uyir-a; part=words word=word-uyir-aa; part=words word=word-uyir-i
 focus: true

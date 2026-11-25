@@ -371,6 +371,10 @@ pub fn run(device: Rc<dyn Device>, s: Script) -> Result<(), ScriptError> {
             Ok(())
         })?)?;
         let json = lua.create_table()?;
+        json.set("decode", lua.create_function(|lua, s: String| {
+            let parsed = serde_json::from_str(&s).map_err(LErr::external)?;
+            to_lua(lua, &parsed)
+        })?)?;
         json.set("encode", lua.create_function(|lua, v: Value| {
             let j: serde_json::Value = lua.from_value(v)?;
             Ok(j.to_string())

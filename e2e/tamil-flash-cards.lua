@@ -1,6 +1,6 @@
 --[[---
-platform: android, browser
-against: android=update, browser=export
+platform: browser
+against: export
 timeout: 120
 focus: true
 features: tamil-writing

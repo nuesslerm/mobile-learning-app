@@ -70,7 +70,7 @@ fn same_commit(a: &str, b: &str) -> bool {
 
 /// The update units of commit `sha` load, given how this push's eas-update job ended (`result`, empty on a dispatch): its own publish,
 /// else the pointer's, which must carry this commit's app by `crate::legs::app_changed_since`, the rule that decides to publish.
-fn resolve_update(branch: &str, sha: &str, result: &str, pointer: Result<Value, String>, app: &Path, changed: impl Fn(&str) -> Result<Vec<String>, String>) -> Result<UpdateTarget, UpdateProblem> {
+fn resolve_update(platform: &str, branch: &str, sha: &str, result: &str, pointer: Result<Value, String>, app: &Path, changed: impl Fn(&str) -> Result<Vec<String>, String>) -> Result<UpdateTarget, UpdateProblem> {
     let problem = |error: String, next: &str| UpdateProblem { error, next: next.to_string() };
     let ran = if result.is_empty() { "no eas-update job ran".to_string() } else { format!("eas-update: {result}") };
     let word = |p: &Value, key: &str| p[key].as_str().unwrap_or_default().to_string();
@@ -84,7 +84,7 @@ fn resolve_update(branch: &str, sha: &str, result: &str, pointer: Result<Value, 
     if group.is_empty() || commit.is_empty() || !group.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err(problem(format!("latest-{branch}.json names no usable update ({ran}): {}", pointer.to_string().chars().take(200).collect::<String>()), PUBLISH_NEXT));
     }
-    if result == "success" {
+    if result == "success" || branch == "e2e-ios" {
         if !same_commit(&commit, sha) {
             return Err(problem(format!("latest-{branch}.json names commit {commit}, but this push published {sha}: the pointer write failed or another publish moved it"), PUBLISH_NEXT));
         }
@@ -99,8 +99,8 @@ fn resolve_update(branch: &str, sha: &str, result: &str, pointer: Result<Value, 
         }
     }
     let platforms: Vec<&str> = pointer["platforms"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
-    if !platforms.contains(&"android") {
-        return Err(problem(format!("latest-{branch}.json names an update without Android: {named}, platforms [{}]", platforms.join(", ")), PUBLISH_NEXT));
+    if !platforms.contains(&platform) {
+        return Err(problem(format!("latest-{branch}.json names an update without {platform}: {named}, platforms [{}]", platforms.join(", ")), PUBLISH_NEXT));
     }
     let route = pointer["initialRoute"].as_str().unwrap_or_default();
     if route != "/" {
@@ -108,7 +108,7 @@ fn resolve_update(branch: &str, sha: &str, result: &str, pointer: Result<Value, 
     }
     let baked: Vec<&str> = pointer["env"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
     if let Some(missing) = UPDATE_ENV.iter().find(|n| !baked.contains(n)) {
-        return Err(problem(format!("the update did not bake in {missing}, which the Android tests need ({UPDATE_ENV:?}): {named}"), PUBLISH_NEXT));
+        return Err(problem(format!("the update did not bake in {missing}, which the {platform} tests need ({UPDATE_ENV:?}): {named}"), PUBLISH_NEXT));
     }
     if let Some(moved) = crate::eas::moved_hosts(&pointer).first() {
         return Err(problem(format!("{moved}: the update dials a backend name that no longer answers ({named})"), PUBLISH_NEXT));
@@ -116,8 +116,8 @@ fn resolve_update(branch: &str, sha: &str, result: &str, pointer: Result<Value, 
     let app_dir = app.join("frontend/mla-tamagui");
     // the publish gave up waiting for EAS to serve the group (the pointer is stored anyway): it may serve it by now, the manifest decides
     if pointer["served"]["status"] != 200 {
-        if let Some(error) = crate::eas::served(&app_dir, &group, "android")["error"].as_str() {
-            return Err(problem(format!("EAS does not serve {named} to an Android device: {error}"), PUBLISH_NEXT));
+        if let Some(error) = crate::eas::served(&app_dir, &group, platform)["error"].as_str() {
+            return Err(problem(format!("EAS does not serve {named} to a {platform} device: {error}"), PUBLISH_NEXT));
         }
     }
     let Some(project) = crate::eas::config_field(&app_dir, "projectId") else {
@@ -130,18 +130,18 @@ fn resolve_update(branch: &str, sha: &str, result: &str, pointer: Result<Value, 
 /// One resolution per process and job: the first update unit reads the pointer, checks the tree against it and caches the answer.
 static UPDATE: std::sync::Mutex<Option<(String, Result<UpdateTarget, UpdateProblem>)>> = std::sync::Mutex::new(None);
 
-pub fn update_target(sha: &str) -> Result<UpdateTarget, UpdateProblem> {
+pub fn update_target(sha: &str, platform: &str) -> Result<UpdateTarget, UpdateProblem> {
     let result = std::env::var("WF_EAS_UPDATE_RESULT").unwrap_or_default().trim().to_string();
     // the e2e job loads the variant its eas-update job baked for the runner's own backends (branch `e2e`), not the one users get
-    let branch = std::env::var("WF_EAS_UPDATE_BRANCH").ok().map(|b| b.trim().to_string()).filter(|b| !b.is_empty()).unwrap_or_else(|| "dev".to_string());
-    let key = format!("{sha} {result} {branch} {}", crate::eas::pointer_dir().unwrap_or_default());
+    let branch = std::env::var("WF_EAS_UPDATE_BRANCH").ok().map(|b| b.trim().to_string()).filter(|b| !b.is_empty()).unwrap_or_else(|| if platform == "ios" { "e2e-ios" } else { "dev" }.to_string());
+    let key = format!("{platform} {sha} {result} {branch} {}", crate::eas::pointer_dir().unwrap_or_default());
     if let Some((k, answer)) = UPDATE.lock().ok().and_then(|g| g.clone()) {
         if k == key {
             return answer;
         }
     }
     let root = crate::e2e_tests::repo();
-    let answer = resolve_update(&branch, sha, &result, crate::eas::latest_pointer(&branch), &root, |commit| crate::legs::app_changed_since(commit, Some(&root)));
+    let answer = resolve_update(platform, &branch, sha, &result, crate::eas::latest_pointer(&branch), &root, |commit| crate::legs::app_changed_since(commit, Some(&root)));
     if let Ok(mut g) = UPDATE.lock() {
         *g = Some((key, answer.clone()));
     }

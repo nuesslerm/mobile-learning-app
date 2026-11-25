@@ -136,6 +136,11 @@ impl Device for AndroidDevice {
         crate::android_lease::check()
     }
 
+    fn stop_app(&self) -> Result<(), String> {
+        let (out, code) = self.run_shell("am force-stop host.exp.exponent")?;
+        if code == 0 { Ok(()) } else { Err(format!("force-stop failed ({code}): {out}")) }
+    }
+
     fn open_link(&self, link: &str) -> Result<(), String> {
         input::open_link(&self.serial()?, &harness_core::android_logs::link_with_run_id(link))
     }
@@ -162,6 +167,9 @@ impl Device for AndroidDevice {
 
     fn press_key(&self, key: Key) -> Result<(), String> {
         let serial = self.serial()?;
+        if key == Key::SelectAll {
+            return input::press_combination(&serial, &[113, 29], "select-all", self.log().as_deref());
+        }
         if key == Key::CtrlEnd {
             return input::press_combination(&serial, &[113, 123], "ctrl-end", self.log().as_deref());
         }
