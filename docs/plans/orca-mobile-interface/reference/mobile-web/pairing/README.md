@@ -1,0 +1,3 @@
+# Expo pairing in the exported mobile web app
+
+On a fresh iPhone 15 Pro browser profile in light mode, the RCA browser harness opened the [Feed](feed.png), visited Agents, Usage, Automations and Settings, returned to Feed and opened the [pairing introduction](pairing-intro.png). The [code drawer](pairing-drawer.png) kept Save above the emulated keyboard. A bad invite produced the [retry screen](invalid.png). A fresh RCA T3 link then paired the device and reopened the real photo conversation from the workspace list. These are candidate captures. The pinned mobile-web reference and exact pixel comparison are still open.

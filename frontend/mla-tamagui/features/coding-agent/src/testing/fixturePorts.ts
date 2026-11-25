@@ -8,6 +8,10 @@ const FIXTURE_DASHBOARD_BASE_URL = 'http://vm-ops-api-main:8080';
 export function createFixturePorts(): CodingAgentPorts {
   let token: string | null = null;
   return {
+    pairingCamera: {
+      get: async () => ({ granted: false, canAskAgain: true }),
+      request: async () => ({ granted: true, canAskAgain: true }),
+    },
     orchestration: { transport: 'fixture', open: async () => createFixtureGateway() },
     dispatchRuns: {
       gateway: createFixtureDispatchRunsGateway(),

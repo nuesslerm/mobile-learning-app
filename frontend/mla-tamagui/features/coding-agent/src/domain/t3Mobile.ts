@@ -46,7 +46,7 @@ export interface T3Conversation {
 
 export interface T3MobilePort {
   restore(): Promise<Pairing | null>;
-  pair(endpoint: string, code: string): Promise<Pairing>;
+  pair(endpoint: string, code: string, signal?: AbortSignal): Promise<Pairing>;
   shell(pairing: Pairing): Promise<T3Shell>;
   open(
     pairing: Pairing,

@@ -25,3 +25,5 @@ On the same RCA simulator the installed Expo release reopened the original RCA p
 | First image | [Reference](image-preview.png) | [Candidate](comparison/mla-t3-image-viewer.png) |
 
 The new conversation comparison differs on **1,465,668 of 3,785,760 pixels (38.715%)**, with zero tolerance and no masks. The worktree navigation, text metrics, time and action rows, composer controls, and safe-area spacing remain open. The image viewer also needs its actions sheet. Reproduce the candidate journey with the [native runbook](comparison/reopen-t3-photo.lua), supplying the accessibility label of the first stored image as `firstImage` and an absolute capture directory as `out`.
+
+The [Expo recording](comparison/reopen-t3-photo.mp4) shows the tool disclosure, first image preview and return to the same thread on the RCA simulator.

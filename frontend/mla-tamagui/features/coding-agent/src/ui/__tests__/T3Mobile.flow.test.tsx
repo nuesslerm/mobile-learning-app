@@ -47,6 +47,33 @@ function backend() {
 }
 
 describe('Orca chat with the T3 transport', () => {
+  it('Given an unpaired desktop, when retrying a bad invite and pasting the T3 link, then only the valid grant is exchanged and its project appears', async () => {
+    const port = backend();
+    port.restore = async () => null;
+    const exchanges: string[][] = [];
+    port.pair = async (endpoint, code) => {
+      exchanges.push([endpoint, code]);
+      return pair;
+    };
+    const camera = { get: async () => ({granted: false, canAskAgain: true}), request: async () => ({granted: true, canAskAgain: true}) };
+    await app.render('/coding-agent', {
+      search: { presentation: 'orca', transport: 't3' },
+      overrides: { 'coding-agent': { t3Mobile: port, pairingCamera: camera } },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Pair desktop' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Paste code instead' }));
+    await userEvent.type(screen.getByTestId('MobilePairCode'), 'bad-invite');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText(/Not a valid pairing code/)).toBeTruthy();
+    expect(exchanges).toEqual([]);
+    await userEvent.click(screen.getByRole('button', { name: 'Try Again' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Paste code instead' }));
+    await userEvent.type(screen.getByTestId('MobilePairCode'), 'https://fixture.invalid/pair#token=fixture-code');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText(thread.title)).toBeTruthy();
+    expect(exchanges).toEqual([['https://fixture.invalid', 'fixture-code']]);
+  });
+
   it('Given a paired project, when opening a thread from its shell and sending, then the reply and cleared composer are visible', async () => {
     const port = backend();
     const home = await app.render('/coding-agent', {

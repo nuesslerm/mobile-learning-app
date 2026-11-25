@@ -1,3 +1,5 @@
+import { PairingScreen } from './adapters/PairingScreen';
+import { PairingCodeSheet } from './adapters/PairingCodeSheet';
 import { ChatToolActivity } from './adapters/ChatToolActivity';
 import { ChatSurface, ChatImage, ChatImageViewer } from './adapters/ChatImages';
 import { Composer, ComposerSendButton } from './adapters/Composer';
@@ -10,6 +12,7 @@ import { NotificationChoices } from './core/NotificationChoices';
 import { OnboardingChoice } from './adapters/OnboardingChoice';
 
 export const orcaComponents: AgentComponents = {
+  PairingScreen, PairingCodeSheet,
   Composer,
   ComposerSendButton,
   ChatToolActivity,

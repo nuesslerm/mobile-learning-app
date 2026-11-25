@@ -29,10 +29,10 @@ export function createT3MobileApi(): T3MobilePort {
   return {
     newId: randomUUID,
     restore: () => readPairing(key),
-    async pair(host, code) {
+    async pair(host, code, signal) {
       const base = endpoint(host);
       z.object({ environmentId: z.string() }).parse(
-        await json(base, '/.well-known/t3/environment')
+        await json(base, '/.well-known/t3/environment', { signal })
       );
       const form = new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
@@ -43,6 +43,7 @@ export function createT3MobileApi(): T3MobilePort {
       });
       const result = await json(base, '/oauth/token', {
         method: 'POST',
+        signal,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: form.toString(),
       });
@@ -51,6 +52,7 @@ export function createT3MobileApi(): T3MobilePort {
         .parse(result);
       const pairing = { endpoint: base, token };
       await json(base, '/api/auth/session', {
+        signal,
         headers: authorization(pairing),
       });
       await savePairing(pairing, key);

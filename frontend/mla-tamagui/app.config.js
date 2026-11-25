@@ -52,6 +52,7 @@ function expoConfig(_config) {
       plugins: [
         'expo-router',
         'expo-font',
+        ['expo-camera', { cameraPermission: 'Allow Orca to use the camera for QR code scanning.', recordAudioAndroid: false }],
         // Without it a dev or EAS build has no NSMicrophoneUsageDescription: iOS closes the app the first time the
         // voice editor records. Expo Go supplies its own string, which is why nothing failed there.
         [

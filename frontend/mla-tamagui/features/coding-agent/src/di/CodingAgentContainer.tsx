@@ -1,3 +1,4 @@
+import { pairingCamera } from '../data/pairingCamera';
 import {
   AgentComponentsProvider,
   type AgentComponents,
@@ -27,6 +28,7 @@ export function createDefaultPorts(
   const tokenStore = overrides.tokenStore ?? createAsyncStorageTokenStore();
   return {
     tokenStore,
+    pairingCamera: overrides.pairingCamera ?? pairingCamera,
     t3Mobile: overrides.t3Mobile ?? createT3MobileApi(),
     mobile:
       overrides.mobile ??

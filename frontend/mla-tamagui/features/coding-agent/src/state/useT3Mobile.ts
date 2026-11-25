@@ -103,17 +103,11 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     };
   }, [pair, api, threadId, generation]);
 
-  async function connect(host: string, code: string) {
-    if (busy) return;
-    setBusy(true);
-    try {
-      setPair(await api.pair(host, code));
-      setError('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Pairing failed.');
-    } finally {
-      setBusy(false);
-    }
+  async function connect(host: string, code: string, signal: AbortSignal) {
+    const saved = await api.pair(host, code, signal);
+    if (signal.aborted) return;
+    setPair(saved);
+    setError('');
   }
   async function send() {
     const text = draft.trim();

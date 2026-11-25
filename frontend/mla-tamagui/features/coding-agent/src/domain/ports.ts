@@ -84,7 +84,15 @@ export type TokenStorePort = {
   clear(): Promise<void>;
 };
 
+export type PairingCameraPermission = { granted: boolean; canAskAgain: boolean };
+export interface PairingCameraPort {
+  get(): Promise<PairingCameraPermission>;
+  request(): Promise<PairingCameraPermission>;
+}
+
 export type CodingAgentPorts = {
+  pairingCamera: PairingCameraPort;
+
   mobile?: MobilePort;
   t3Mobile?: T3MobilePort;
   orchestration: OrchestrationPort;

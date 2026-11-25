@@ -1,3 +1,4 @@
+import type { PairingCodeSheetProps, PairingScreenProps } from './PairingComponents';
 import type { ComponentType, ReactNode } from 'react';
 import type { ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
@@ -37,6 +38,8 @@ export interface PairDesktopButtonProps {
 }
 
 export interface AgentComponents {
+  PairingScreen: ComponentType<PairingScreenProps>;
+  PairingCodeSheet: ComponentType<PairingCodeSheetProps>;
   ChatToolActivity: ComponentType<ChatToolActivityProps>;
   ChatSurface: ComponentType<{ children: ReactNode }>;
   ChatImage: ComponentType<ChatImageProps>;

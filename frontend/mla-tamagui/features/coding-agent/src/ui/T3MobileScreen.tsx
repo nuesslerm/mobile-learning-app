@@ -1,5 +1,7 @@
+import { T3PairingScreen } from './T3PairingScreen';
+import { UnpairedFeed } from './UnpairedFeed';
 import { useState } from 'react';
-import { ScrollView, TextInput } from 'react-native';
+import { ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import {
@@ -7,7 +9,6 @@ import {
   ListItem,
   ScreenHeader,
   Text,
-  TextField,
   View,
 } from '@lib/tamagui-design-system';
 import type { T3MobilePort } from '../domain/t3Mobile';
@@ -26,8 +27,12 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const state = useT3Mobile(api, threadId);
   const { ChatSurface, Composer } = useAgentComponents();
-  const [host, setHost] = useState('');
-  const [code, setCode] = useState('');
+  const [pairing, setPairing] = useState(false);
+  if (pairing) return <T3PairingScreen onBack={() => setPairing(false)} onPair={async (endpoint, code, signal) => {
+    await state.connect(endpoint, code, signal);
+    if (!signal.aborted) setPairing(false);
+  }} />;
+  if (state.pair === null) return <ChatSurface><UnpairedFeed onPairDesktop={() => setPairing(true)} /></ChatSurface>;
   return (
     <ChatSurface>
       <ScreenHeader
@@ -44,35 +49,6 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
       ) : null}
       {state.pair === undefined ? (
         <Text>Opening connection…</Text>
-      ) : state.pair === null ? (
-        <View p="$4" gap="$3">
-          <Text variant="h3">Pair with RCA</Text>
-          <TextField
-            label="Server address"
-            testID="MobilePairEndpoint"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={host}
-            onChangeText={setHost}
-          />
-          <Text>Pairing code</Text>
-          <TextInput
-            accessibilityLabel="Pairing code"
-            testID="MobilePairCode"
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={code}
-            onChangeText={setCode}
-          />
-          <Button
-            testID="MobilePair"
-            disabled={state.busy || !host.trim() || !code.trim()}
-            onPress={() => void state.connect(host, code)}
-          >
-            Pair device
-          </Button>
-        </View>
       ) : threadId ? (
         <ChatKeyboardArea>
           <ChatScroll>
@@ -124,6 +100,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
               </View>
             ))}
             <Button onPress={state.retry}>Refresh</Button>
+            <Button onPress={() => setPairing(true)}>Pair desktop</Button>
           </View>
         </ScrollView>
       )}
