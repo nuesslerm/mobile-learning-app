@@ -3,11 +3,19 @@ import XCTest
 final class InputTests: XCTestCase {
     let app = XCUIApplication(bundleIdentifier: "host.exp.Exponent")
 
+    private func typeText(_ text: String) {
+        // Synchronize each key with the app. A controlled search field can otherwise drop
+        // keystrokes while React Native re-renders its results.
+        for character in text {
+            app.typeText(String(character))
+        }
+    }
+
     func testTypeText() throws {
         app.activate()
         let environment = ProcessInfo.processInfo.environment
         guard let session = environment["WF_UI_SESSION"] else {
-            app.typeText(try XCTUnwrap(environment["WF_TEXT"]))
+            typeText(try XCTUnwrap(environment["WF_TEXT"]))
             return
         }
 
@@ -44,7 +52,7 @@ final class InputTests: XCTestCase {
                     if found { button.tap() }
                     result = ["value": found]
                 case "text":
-                    app.typeText(try XCTUnwrap(message["text"]))
+                    typeText(try XCTUnwrap(message["text"]))
                     result = ["value": true]
                 default:
                     result = ["error": "Unknown UI operation"]
