@@ -1,4 +1,4 @@
-import { useRouteNavigation } from '../useRouteAction';
+import { backOrReplace, useRouteNavigation } from '../useRouteAction';
 import { CompactHeader, CompactIconButton, CompactTabs, FloatingBar, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { ChevronDown, Lightbulb, Play, Share, Star, Tag } from '@lib/tamagui-design-system/icons';
 import { Link, router, useFocusEffect } from 'expo-router';
@@ -45,7 +45,7 @@ export function ProblemDetailScreen({ id }: { id: string }) {
 
   return <View testID="AlgorithmsProblemDetail" style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
     <CompactHeader title={scrolled ? title : undefined} closeIcon={ChevronDown} closeLabel="Close problem"
-      onClose={() => leave(() => router.canGoBack() ? router.back() : router.replace('/'))} trailing={problem && <View style={styles.headerActions}>
+      onClose={() => leave(() => backOrReplace('/'))} trailing={problem && <View style={styles.headerActions}>
         <CompactIconButton icon={Star} label={favorited ? 'Remove favorite' : 'Add favorite'} testID="ProblemFavorite"
           color={favorited ? colors.gold : undefined} filled={favorited} onPress={() => { void actions.favorite(id); }} />
         <CompactIconButton icon={Share} label="Share problem" testID="ProblemShare" onPress={() => { void shareProblem(id, title); }} />

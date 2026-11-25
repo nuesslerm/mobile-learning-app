@@ -1,4 +1,4 @@
-import { useRouteNavigation } from './useRouteAction';
+import { backOrReplace, useRouteNavigation } from './useRouteAction';
 // The problem editor screen: the code editor, its keyboard rails and the console (action bar, dock, Testcase and Run Result sheet).
 import { Logger } from '@lib/logging';
 import { toast } from 'sonner-native';
@@ -509,16 +509,19 @@ function ProblemEditorContent({
       problemId: problem?.id,
       dirty: isDirty,
     });
+    const fallback = id ? `/leetcode/${id}/problem` as const : '/';
     if (!isDirty || draftStatus === 'saved') {
-      leave(() => router.back());
+      leave(() => backOrReplace(fallback));
       return;
     }
     leave(() => {
+      const hasPreviousScreen = router.canGoBack();
       requestUnsavedChanges({
         problemId: problem?.id ?? '',
         onDiscard: () => {
           snapshot('navigate-away');
-          router.back();
+          if (hasPreviousScreen) router.back();
+          else router.replace(fallback);
         },
         onCancel: () => {},
       });

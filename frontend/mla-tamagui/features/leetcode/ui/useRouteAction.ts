@@ -20,3 +20,8 @@ export function useRouteNavigation() {
   const pushRoute = useCallback((href: Href) => leave(() => router.push(href)), [leave]);
   return { leave, pushRoute };
 }
+
+export function backOrReplace(fallback: Href) {
+  if (router.canGoBack()) router.back();
+  else router.replace(fallback);
+}

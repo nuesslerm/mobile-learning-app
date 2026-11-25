@@ -1,4 +1,4 @@
-import { useRouteNavigation } from '../ui/useRouteAction';
+import { backOrReplace, useRouteNavigation } from '../ui/useRouteAction';
 import { CompactIconButton, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { ChevronLeft, Hand, Share as ShareIcon } from '@lib/tamagui-design-system/icons';
 import { router, type Href } from 'expo-router';
@@ -43,7 +43,7 @@ export default function WeeklyContestRoute() {
       <View style={{ backgroundColor: '#000', paddingTop: width * 0.445 }}>
         <Image source={libraryArtwork.contestDetail} style={{ position: 'absolute', top: 0, width, height: width * 0.65 }} />
         <View style={[styles.actions, { top: Math.min(top, width * 0.108) }]}>
-          <CompactIconButton label="Back to Library" icon={ChevronLeft} onPress={() => leave(() => router.canGoBack() ? router.back() : router.replace('/'))} />
+          <CompactIconButton label="Back to Library" icon={ChevronLeft} onPress={() => leave(() => backOrReplace('/'))} />
           <CompactIconButton label="Share contest" icon={ShareIcon} onPress={() => { void Share.share({ url: contestUrl, message: contestUrl }); }} />
         </View>
         <Text accessibilityRole="header" style={styles.title}>{'Weekly\nContest 530'}</Text>

@@ -29,8 +29,8 @@ export function UnsavedChangesDialog({ onDismiss }: Props) {
   const handleDiscard = () => {
     const { payload } = useUnsavedChangesRequestStore.getState();
     clearRequest();
-    payload?.onDiscard();
     onDismiss();
+    payload?.onDiscard();
   };
 
   return (
