@@ -1,0 +1,56 @@
+local function keyboard(want)
+  device:extended_wait_until{condition=function() return device:get_device_state("keyboard").visible == want end,
+    timeout=10000, label=want and "system keyboard opened" or "system keyboard dismissed"}
+end
+local function focus_end(first_line)
+  if device.platform == "android" then device:assert_visible({id="CodeEditorText"}) end
+  local box = device:get_element({id="ProblemEditorInput"})
+  if box then
+    device:tap_on({point=("%d,%d"):format(box.bounds.cx, math.floor(box.bounds.top + 25))})
+  else
+    local bar = assert(device:get_element({id="RNSScreen"}), "native editor header missing").bounds
+    device:tap_on({point=("%d,%d"):format(bar.cx, bar.bottom + 12)})
+  end
+  keyboard(true)
+  if device.platform == "ios" then
+    local bar = assert(device:get_element({id="RNSScreen"})).bounds
+    local screen = device:get_device_state("screen")
+    local startup = device:get_element({id="ProblemEditorStartupInput"})
+    local y = first_line and (bar.bottom + (startup and 12 or 2)) or math.floor(screen.height*.29)
+    device:tap_on({point=("%d,%d"):format(math.floor(screen.width*.83), y)})
+  elseif not first_line then
+    device:press_key("Ctrl+End")
+  elseif box then
+    device:tap_on({point=("%d,%d"):format(box.bounds.right-16, box.bounds.top+15)})
+  end
+end
+local function hide_keyboard()
+  if not device:get_device_state("keyboard").visible then return end
+  local hide = {text="Hide [Kk]eyboard"}
+  if device:get_element(hide) then device:tap_on(hide)
+  elseif device.platform == "android" then device:tap_on({id="com.android.systemui:id/back"})
+  else
+    device:scroll_until_visible{element={id="EditorAction-Done"}, direction="RIGHT", from={id="EditorActionToolbar"}}
+    device:tap_on({id="EditorAction-Done"})
+  end
+  keyboard(false)
+end
+local function append(text)
+  focus_end(true)
+  device:input_text(text)
+  hide_keyboard()
+end
+local function type_in_starter(text, row)
+  focus_end(false)
+  if device.platform == "ios" then
+    local header = assert(device:get_element({id="RNSScreen"})).bounds
+    device:tap_on({point=("%d,%d"):format(header.cx, header.bottom+12+(row-1)*21)})
+  elseif row == 8 then
+    device:press_key("Remote Dpad Up")
+    device:press_key("Remote Dpad Up")
+  end
+  device:input_text(text)
+  if device.platform == "android" then device:assert_visible({id="CodeEditorText", text=".*" .. text .. ".*"}) end
+  hide_keyboard()
+end
+return {keyboard=keyboard, focus_end=focus_end, hide_keyboard=hide_keyboard, append=append, type_in_starter=type_in_starter}

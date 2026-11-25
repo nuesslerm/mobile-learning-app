@@ -9,8 +9,8 @@ Each named case in `e2e/leetcode-native.lua` and `e2e/tamil-native.lua` uses the
 | tamil-writing, vowels 3–4 | The same guide and scoring path as trace. Specific letters remain in the browser suite. |
 | tamil-writing, vowels 5–6 | The same guide and scoring path as trace. Specific letters remain in the browser suite. |
 | tamil-writing, consonant | The consonant template remains in the browser suite. redraw adds a failed attempt, clear and recovery on native. |
-| tamil-writing, write | The free-writing pad and self-check remain in browser coverage. The native self-check is a candidate for case 11. |
-| tamil-writing, word-uyir-a | Browser word template and self-check. Candidate 11 covers one representative word on native. |
+| tamil-writing, write | The free-writing pad and self-check remain in browser coverage. Native case 11 completes a representative word and its self-check. |
+| tamil-writing, word-uyir-a | Browser word template and self-check. Native case 11 covers one representative word on native. |
 | tamil-writing, word-uyir-aa | Browser word template and self-check. |
 | tamil-writing, word-uyir-i | Browser word template and self-check. |
 | stop-probe | Android harness cancellation diagnostic, excluded from the learner counts. |
@@ -68,6 +68,12 @@ The [Android run on 36c163c9](https://github.com/nuesslerm/mobile-learning-app/a
 
 In the [three-sample core run](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45544327590), Android passed all ten Tamil journeys in 169.8, 165.8 and 169.3 seconds. LeetCode took 213.4, 281.9 and 211.3 seconds. The first Android sample passed all twenty journeys. The other two exposed races opening the language wheel, editing immediately after loading a draft, inserting a symbol, and dismissing the Android keyboard.
 
-The next benchmark proposes fifteen journeys in each section. Cases 11–15 exercise editor settings, completion, blocks, two independent drafts and a deterministic voice edit on LeetCode. On Tamil they exercise word writing, weak-letter review, skipped audio, handwriting search and double-tap rating persistence. The voice case replays audio and the voice transport only for its device-lab deep link. Its code runs against the same runner as the other editor journeys.
+The next benchmark proposes fifteen journeys in each section. Cases 11–15 exercise editor settings, completion, blocks, two independent drafts and a deterministic voice edit on LeetCode. On Tamil they exercise word writing, weak-letter review, skipped audio, lesson exercise search and double-tap rating persistence. The voice case replays audio and the voice transport only for its device-lab deep link. Its code runs against the same runner as the other editor journeys.
 
 The iOS [fresh-host recording and accessibility tree](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45540167190) showed the system confirmation “Open in ‘Expo Go’?” before Expo's own developer menu. The hosted job now opens the exact update and records the startup diagnostic before starting the section timers. This diagnostic is outside the learner-case count.
+
+### Expanded suite verification
+
+On the local iPhone 17 running iOS 27.0, Tamil passed all fifteen journeys in 214.9 seconds. The exercise search now enters All Topics, searches for “your number”, opens the matching task and verifies its first exercise. That replacement passed independently in 17.2 seconds. Weak-letter review and reverse flash cards, including playback from the Tamil front, passed independently in 14.7 and 19.2 seconds.
+
+On [the expanded Android run](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45546504135), sample 3 completed LeetCode in 358.2 seconds (5/15) and Tamil in 268.5 seconds (14/15). A [follow-up recording](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45547314155) identified the visible system IME dismiss button when the app toolbar was hidden. The driver now uses that control. The failed samples do not qualify the fifteen-case cutoff.

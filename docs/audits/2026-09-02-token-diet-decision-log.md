@@ -3470,3 +3470,5 @@ Run live over SSH into `agent-shell-sessions` (the machine-only e2e identity fro
 2026-11-25 — Native simulator harness. On the booted Tamil iPhone 17 simulator, single uncached runs including fixture isolation and recording took 12.088 s for LeetCode search and 23.798 s for Tamil word tiles. Keep a single simulator boot per job and time each journey. These local samples do not establish a hosted suite cutoff.
 
 2026-11-25 — The Android core benchmark passed ten Tamil journeys in 165.8–169.8 s across three fresh runners. One runner passed ten LeetCode journeys in 213.4 s. Testing the five ordered candidates per section fits the observed warm budget. The [native coverage audit](2026-11-25-native-learner-suites.md) records results and remaining races.
+
+2026-11-25 — Fifteen Tamil journeys on the local iPhone 17 took 214.9 s with recordings and storage isolation. The native All Topics exercise search took 17.2 s independently. Keep all fifteen in the hosted qualification run.

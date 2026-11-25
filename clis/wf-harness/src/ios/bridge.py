@@ -110,6 +110,17 @@ def key_position(key):
     return {"space": (.50,.90), "numbers": (.25,.90), "letters": (.12,.90)}.get(key)
 
 
+async def dismiss_keyboard_intro(client, rows, height):
+    labels = " ".join(str(row.get("AXLabel") or "").lower() for row in rows)
+    if "sliding your finger" not in labels and "slide to type" not in labels and "quickpath" not in labels:
+        return False
+    button = next((r["frame"] for r in rows if r.get("AXLabel") == "Continue"
+                   and r.get("type") == "Button" and r["frame"]["y"] > height*.58), None)
+    if button:
+        await client.tap(button["x"] + button["width"]/2, button["y"] + button["height"]/2)
+    return bool(button)
+
+
 async def type_on_keyboard(client, value, dimensions):
     height = dimensions["height_points"]
     for char in value:
@@ -118,6 +129,9 @@ async def type_on_keyboard(client, value, dimensions):
             rows = json.loads((await client.accessibility_info(None, False)).json)
             keys = {str(row.get("AXLabel") or "").lower(): row["frame"] for row in rows
                     if row.get("type") in ("Key", "Button") and row["frame"]["y"] > height*.58}
+            if "continue" in keys and time.monotonic() < deadline and await dismiss_keyboard_intro(client, rows, height):
+                await asyncio.sleep(.15)
+                continue
             wanted = "space" if char == " " else char.lower()
             box = keys.get(wanted)
             width = dimensions["width_points"]
@@ -191,6 +205,8 @@ async def drive(socket, udid, info):
                     if args[0].isascii() and all(c.islower() or c.isdigit() or c == " " for c in args[0]):
                         await type_on_keyboard(client, args[0], info["screen_dimensions"])
                     else:
+                        rows = json.loads((await client.accessibility_info(None, False)).json)
+                        await dismiss_keyboard_intro(client, rows, info["screen_dimensions"]["height_points"])
                         type_with_xctest(udid, args[0])
                 elif op == "select-all":
                     await chord(client, 227, 4)
