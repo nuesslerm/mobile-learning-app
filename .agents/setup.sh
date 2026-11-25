@@ -159,13 +159,9 @@ step_lefthook() {
 }
 
 step_agent_config() {
-  if [ -x clis/target/release/wf ]; then
-    # A release binary built before the verb and noun surface only knows `agents sync`.
-    clis/target/release/wf agent-config sync --check >/dev/null 2>&1 && return
-    clis/target/release/wf agent-config sync >/dev/null 2>&1 || clis/target/release/wf agent-config sync >/dev/null || warn "agent-config-sync failed"
-    return
-  fi
-  warn "clis/target/release/wf missing; build it (cargo build --release in clis/) to sync agent config"
+  local wf=clis/target/release/wf
+  if [ ! -x "$wf" ]; then wf=$(command -v wf) || { warn "cannot sync agent config without the wf executable"; return; }; fi
+  "$wf" agent-config sync >/dev/null || warn "agent-config-sync failed"
 }
 
 if [ "${DOCKER_BUILD:-}" != true ]; then

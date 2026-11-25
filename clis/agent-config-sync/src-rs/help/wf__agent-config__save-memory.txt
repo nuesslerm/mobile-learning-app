@@ -1,0 +1,6 @@
+Usage: wf agent-config save-memory
+
+Encrypt local Basic Memory Markdown notes into .agents/basic-memory.enc for Git.
+
+Options:
+  -h, --help  display help for command

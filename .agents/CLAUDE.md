@@ -14,6 +14,14 @@ Loaded on demand when working under `.agents/`. The always-on rules live in `.ag
 - Bootstrap: `.agents/setup.sh` (tool-agnostic). Claude runs it via the SessionStart hook (`.agents/hooks/session-setup.sh`); Codex cloud: set the environment's setup script to `bash .agents/setup.sh`.
 - Skills from `skills-lock.json` restore with `pnpm run skills:install` (overwrites local edits; workflow in `.agents/commands/install-skills.md`).
 
+## Basic Memory
+
+Basic Memory reads and writes Markdown in `.agents/tmp/basic-memory/`. Session setup runs `wf agent-config sync` to restore notes from `.agents/basic-memory.enc`. It resolves `BASIC_MEMORY_ENCRYPTION_KEY` through Bitwarden. Checkouts without key access can still sync agent configuration. `sync --check` only checks generated configuration.
+
+After adding, editing, renaming or deleting notes, run `wf agent-config save-memory` and commit the changed `.agents/basic-memory.enc`. An unchanged collection produces identical archive bytes. The encrypted archive includes note paths and Markdown content. Attachments, the search database and MCP settings stay local.
+
+Sync preserves independent local edits. If the same note changed differently on both sides, sync reports the path before applying either version. To reconcile, move your local notes and `.agents/tmp/basic-memory.base` to a private directory, sync the Git version, then reapply the local edits and save. Keep the vault key available to read historical commits.
+
 ## Adding hooks
 
 Add hooks to `.agents/config/hooks.json`, permissions to `.agents/config/permissions.json`, plugins to `.agents/config/plugins.json`, then `pnpm run sync:agent-config`.

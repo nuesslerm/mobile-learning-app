@@ -72,7 +72,7 @@ Name them `<What> clock (<cadence>)` and fire a one-sentence tick into the persi
 
 ## Generated agent config
 
-`.agents/` is the only source (`instructions/`, `config/*.json`, `commands/`, `skills/`, `setup.sh`). Never edit a generated file (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.codex/`, `.opencode/commands`, `opencode.json`, `.mcp.json`); edit the source, then `pnpm run sync:agent-config` (`sync:check` fails on drift). Details: `.agents/AGENTS.md`.
+`.agents/` is the only source (`instructions/`, `config/*.json`, `commands/`, `skills/`, `setup.sh`). Edit only the source, then run `pnpm run sync:agent-config` (`sync:check` fails on drift). After Basic Memory edits, run `wf agent-config save-memory` and commit the ciphertext. Details: `.agents/AGENTS.md`.
 
 ## Tooling rules that bite
 

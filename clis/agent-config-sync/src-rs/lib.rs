@@ -3,6 +3,7 @@ pub mod contract;
 pub mod fsx;
 pub mod guard;
 mod help_table;
+mod memory;
 pub mod paths;
 pub mod render;
 pub mod sync;

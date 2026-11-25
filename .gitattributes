@@ -3,3 +3,5 @@
 # noise. `linguist-generated=true` makes GitHub collapse them by default
 # in PR diffs and exclude them from language stats.
 clis/*/bootstrap/**/*.js linguist-generated=true
+
+.agents/basic-memory.enc binary
