@@ -1,16 +1,19 @@
 """Serve a single selected simulator over one idb companion connection."""
 import asyncio
 import json
+import fcntl
 import logging
 import math
 import os
 from pathlib import Path
 import shutil
+import socket as sockets
 import subprocess
 import sys
 import tempfile
 import time
 from contextlib import contextmanager
+from dataclasses import asdict
 
 # pipx installs the idb command and its Python libraries in the same virtualenv.
 try:
@@ -40,30 +43,43 @@ async def chord(client, modifier, key):
     ]))
 
 
-@contextmanager
-def companion(udid, default_socket):
-    developer = Path(os.getenv("DEVELOPER_DIR") or subprocess.check_output(["xcode-select", "-p"], text=True).strip())
+def developer_dir():
+    return Path(os.getenv("DEVELOPER_DIR") or subprocess.check_output(["xcode-select", "-p"], text=True).strip())
+
+
+def compatible_developer(directory):
+    developer = developer_dir()
     framework = developer.parent / "SharedFrameworks/SimulatorKit.framework"
     relative = Path("Library/PrivateFrameworks/SimulatorKit.framework")
     if (developer / relative).exists() or not framework.exists():
-        yield default_socket
-        return
-    # Xcode 27 moved SimulatorKit. Give this companion the layout idb expects.
+        return developer
+    contents = Path(directory) / "Xcode.app/Contents"
+    prefix = contents / "Developer"
+    if (prefix / relative).exists():
+        return prefix
+    # Xcode 27 moved SimulatorKit. Give idb the layout it expects.
+    for source, target, skip in (
+        (developer.parent, contents, "Developer"),
+        (developer, prefix, "Library"),
+        (developer / "Library", prefix / "Library", "PrivateFrameworks"),
+        (developer / "Library/PrivateFrameworks", prefix / "Library/PrivateFrameworks", "SimulatorKit.framework"),
+    ):
+        target.mkdir(parents=True, exist_ok=True)
+        if source.exists():
+            for entry in source.iterdir():
+                if entry.name != skip:
+                    (target / entry.name).symlink_to(entry)
+    (prefix / relative).symlink_to(framework)
+    return prefix
+
+
+@contextmanager
+def companion(udid, default_socket):
     with tempfile.TemporaryDirectory(dir="/tmp", prefix="wf-idb-") as temp:
-        contents = Path(temp) / "Xcode.app/Contents"
-        prefix = contents / "Developer"
-        for source, target, skip in (
-            (developer.parent, contents, "Developer"),
-            (developer, prefix, "Library"),
-            (developer / "Library", prefix / "Library", "PrivateFrameworks"),
-            (developer / "Library/PrivateFrameworks", prefix / "Library/PrivateFrameworks", "SimulatorKit.framework"),
-        ):
-            target.mkdir(parents=True, exist_ok=True)
-            if source.exists():
-                for entry in source.iterdir():
-                    if entry.name != skip:
-                        (target / entry.name).symlink_to(entry)
-        (prefix / relative).symlink_to(framework)
+        prefix = compatible_developer(temp)
+        if prefix == developer_dir():
+            yield default_socket
+            return
         socket = str(Path(temp) / "idb.sock")
         proc = subprocess.Popen(["idb_companion", "--udid", udid, "--grpc-domain-sock", socket],
                                 env={**os.environ, "DEVELOPER_DIR": str(prefix)}, stdout=subprocess.DEVNULL,
@@ -174,17 +190,59 @@ def has_keyboard(rows):
                row.get("AXUniqueId") in ("SymbolBarGroup-g3", "EditorAction-Done") for row in rows)
 
 
-async def serve(udid):
+def describe(udid):
     info = json.loads(subprocess.check_output(["idb", "describe", "--udid", udid, "--json"]))
     if info["state"] != "Booted" or info["target_type"] != "simulator" or info["udid"] != udid:
         raise ValueError(f"{udid} must identify a booted simulator")
-    socket = info["companion_info"]["address"]["path"]
-    with companion(udid, socket) as selected:
-        await drive(selected, udid, info)
+    return info
 
 
-async def drive(socket, udid, info):
+def job_companion(runner, udid):
+    directory = Path(runner) / "wf-ios-companion" / udid
+    directory.mkdir(parents=True, exist_ok=True)
+    state = directory / "connection.json"
+    with (directory / "lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if state.is_file():
+            address = json.loads(state.read_text())["socket"]
+            with sockets.socket(sockets.AF_UNIX) as probe:
+                if probe.connect_ex(address) == 0:
+                    return address
+        address = str(Path(tempfile.mkdtemp(dir="/tmp", prefix="wf-ios-")) / "idb.sock")
+        with (directory / "companion.log").open("a") as log:
+            proc = subprocess.Popen(["idb_companion", "--udid", udid, "--grpc-domain-sock", address,
+                                     "--log-level", "info"],
+                                    env={**os.environ, "DEVELOPER_DIR": str(compatible_developer(directory))},
+                                    stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
+        deadline = time.monotonic() + 30
+        while not Path(address).is_socket():
+            if proc.poll() is not None or time.monotonic() > deadline:
+                if proc.poll() is None:
+                    proc.terminate()
+                    proc.wait(timeout=10)
+                raise RuntimeError(f"Cannot start the job's iOS companion. See {directory / 'companion.log'}")
+            time.sleep(.05)
+        state.write_text(json.dumps({"pid": proc.pid, "socket": address}))
+        return address
+
+
+async def serve(udid):
+    runner = os.getenv("RUNNER_TEMP")
+    if os.getenv("GITHUB_ACTIONS") == "true" and runner:
+        await drive(job_companion(runner, udid), udid)
+    else:
+        info = describe(udid)
+        with companion(udid, info["companion_info"]["address"]["path"]) as selected:
+            await drive(selected, udid, info)
+
+
+async def drive(socket, udid, info=None):
     async with Client.build(DomainSocketAddress(socket), logging.getLogger(__name__)) as client:
+        if info is None:
+            target = await client.describe()
+            if target.udid != udid or target.state != "Booted" or target.target_type.value != "simulator":
+                raise ValueError(f"The companion is not connected to the selected booted simulator {udid}")
+            info = {"screen_dimensions": asdict(target.screen_dimensions)}
         await client.set_hardware_keyboard(False)
         tree_at, last_tree = 0.0, []
         for line in sys.stdin:

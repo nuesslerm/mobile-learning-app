@@ -78,7 +78,7 @@ cases["one-editor"] = function()
   device:tap_on(point)
   visible("ConsoleBarRun")
   if device.platform == "ios" then
-    local bar = assert(device:get_element({id="RNSScreen"})).bounds
+    local bar = device:assert_visible({id="RNSScreen"}).bounds
     device:tap_on({point=("%d,%d"):format(bar.left+30,bar.cy)})
   else
     tap("ProblemEditorHeaderBack")
@@ -93,7 +93,7 @@ end
 cases.javascript = function()
   editor(py .. "4")
   if device.platform == "ios" then
-    local header = assert(device:get_element({id="RNSScreen"})).bounds
+    local header = device:assert_visible({id="RNSScreen"}).bounds
     device:tap_on({point=("%d,%d"):format(math.floor(header.right*.72), header.cy)})
     device:tap_on({text="JavaScript"})
   else
@@ -107,16 +107,16 @@ cases.javascript = function()
   output("37")
 end
 cases["custom-input"] = function()
-  editor(py .. "target")
-  output("9")
+  local code = "class Solution:\n    def climbStairs(self, n): return n"
+  open("/leetcode/climbing-stairs?lang=python&seed64=" .. base64url(code), "ConsoleBarRun")
+  output("2")
   device:tap_on({text="Testcase"})
   tap("ConsoleChipAdd")
-  if device.platform == "android" then input.keyboard(true) end
-  tap("ConsoleField-target")
+  tap("ConsoleField-n")
   input.keyboard(true)
   if device.platform == "android" then
-    device:input_text("97", {replace=true})
-    device:assert_visible({id="ConsoleField-target", text="97"})
+    device:input_text("27", {replace=true})
+    device:assert_visible({id="ConsoleField-n", text="27"})
     device:tap_on({text="Testcase"})
   else
     device:press_key("Ctrl+End")
@@ -124,7 +124,7 @@ cases["custom-input"] = function()
   end
   tap("ConsoleFooterRun")
   device:assert_visible({text="Output"}, {timeout=60000})
-  device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text="97"})
+  device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text="27"})
 end
 cases["repair-error"] = function()
   editor("v=Tru\n" .. py .. "53 if v else 0")
@@ -176,7 +176,7 @@ end
 cases.settings = function()
   local function open_settings()
     if device.platform == "ios" then
-      local bar = assert(device:get_element({id="RNSScreen"})).bounds
+      local bar = device:assert_visible({id="RNSScreen"}).bounds
       device:tap_on({point=("%d,%d"):format(bar.right-28,bar.cy)})
     else
       tap("EditorSettingsButton")
@@ -213,7 +213,9 @@ cases.completion = function()
   end
   input.focus_end(true)
   device:input_text("s")
+  if device.platform == "android" then device:assert_visible({text="False"}) end
   device:tap_on({text="Tab"})
+  device:assert_visible({text="v=False.*"})
   input.hide_keyboard()
   output("79")
 end

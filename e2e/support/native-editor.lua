@@ -8,12 +8,12 @@ local function focus_end(first_line)
   if box then
     device:tap_on({point=("%d,%d"):format(box.bounds.cx, math.floor(box.bounds.top + 25))})
   else
-    local bar = assert(device:get_element({id="RNSScreen"}), "native editor header missing").bounds
+    local bar = device:assert_visible({id="RNSScreen"}).bounds
     device:tap_on({point=("%d,%d"):format(bar.cx, bar.bottom + 12)})
   end
   keyboard(true)
   if device.platform == "ios" then
-    local bar = assert(device:get_element({id="RNSScreen"})).bounds
+    local bar = device:assert_visible({id="RNSScreen"}).bounds
     local screen = device:get_device_state("screen")
     local startup = device:get_element({id="ProblemEditorStartupInput"})
     local y = first_line and (bar.bottom + (startup and 12 or 2)) or math.floor(screen.height*.29)
@@ -43,7 +43,7 @@ end
 local function type_in_starter(text, row)
   focus_end(false)
   if device.platform == "ios" then
-    local header = assert(device:get_element({id="RNSScreen"})).bounds
+    local header = device:assert_visible({id="RNSScreen"}).bounds
     device:tap_on({point=("%d,%d"):format(header.cx, header.bottom+12+(row-1)*21)})
   elseif row == 8 then
     device:press_key("Remote Dpad Up")

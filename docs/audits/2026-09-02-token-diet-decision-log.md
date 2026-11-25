@@ -3474,3 +3474,5 @@ Run live over SSH into `agent-shell-sessions` (the machine-only e2e identity fro
 2026-11-25 — Fifteen Tamil journeys on the local iPhone 17 took 214.9 s with recordings and storage isolation. The native All Topics exercise search took 17.2 s independently. Keep all fifteen in the hosted qualification run.
 
 2026-11-25 — All fifteen Tamil cases took 272.7–276.0 s across three hosted Android emulators. A focused flow exercised the Android UI server and verified one physical tap in the system IME button. On the local iPhone the editor keyboard journey passed in 15.2 s and reverse flash cards in 18.3 s after reducing redundant accessibility reads.
+
+2026-11-25 — A job-scoped iOS accessibility companion served the JavaScript and custom-input journeys in 13.7 and 15.2 seconds on the local iPhone with separate learner data and recordings. The hosted Android window-driver sample passed 13/15 LeetCode journeys and 15/15 Tamil journeys in 411.7 and 288.0 seconds. Keep the shared companion and qualify the single-field and completion revisions.
