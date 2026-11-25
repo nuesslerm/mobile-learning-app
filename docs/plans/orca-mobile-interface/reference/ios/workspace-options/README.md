@@ -13,3 +13,7 @@ In the pinned Orca mobile app, open the connected host and tap the lower-left sl
 Run `wf ios test options.lua --device <rca-udid> --env out=<absolute-capture-directory> --test-output-dir <recording-directory>` from this directory with the connected host's workspace list open. The [journey](options.lua) uses the same iPhone 17 Pro Max viewport and light theme as the [chat reference](../paired-chat/README.md). Source implementations live in [workspace-options](../../../../../../references/orca/mobile/src/host-screen/workspace-options) and [view-settings](../../../../../../references/orca/mobile/src/host-screen/view-settings).
 
 These are reference captures. Matching candidate frames, setting changes on a second client and persistence after reconnect remain open.
+
+## RCA persistence through T3
+
+Two independently paired clients exercised the workspace preference extension against the same RCA host. The first changed the card layout from Detailed to Compact. After restarting the isolated gateway at the same address, the second read Compact and restored Detailed. The calls used authenticated T3 RPC requests to `mobile.viewPreferences.get` and `mobile.viewPreferences.set`. These methods extend the upstream T3 contract. Matched native UI captures remain open.

@@ -3,6 +3,7 @@ use super::engine::{Dispatched, Engine, Failure};
 use super::forward::{is_forwarded, Forwarded};
 use super::pairing::{mint, PairingRequest};
 use super::projects::FORWARDED as FORWARDED_PROJECTS;
+use super::queries::QueryFailure;
 use super::runner::Runner;
 use crate::domain::command::Command;
 use crate::domain::command::Family;
@@ -242,6 +243,16 @@ impl Service {
             installed.push(provider.driver);
         }
         installed
+    }
+
+    /// `mobile.viewPreferences.get`: the phone's workspace view preferences, the server's defaults under what is stored.
+    pub fn view_preferences(&self) -> Result<Value, QueryFailure> {
+        self.read_view_preferences()
+    }
+
+    /// `mobile.viewPreferences.set`: a patch over what is stored; the whole preferences are answered back.
+    pub fn set_view_preferences(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        self.write_view_preferences(payload)
     }
 
     /// `POST /oauth/token`: RFC 8693 token exchange of a pairing code for a 30-day bearer token.

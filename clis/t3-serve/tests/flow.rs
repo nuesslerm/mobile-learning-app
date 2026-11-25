@@ -61,6 +61,8 @@ mod settings;
 mod terminal;
 #[path = "flow/vcs.rs"]
 mod vcs;
+#[path = "flow/view_preferences.rs"]
+mod view_preferences;
 #[path = "flow/voice.rs"]
 mod voice;
 #[path = "flow/workspace.rs"]

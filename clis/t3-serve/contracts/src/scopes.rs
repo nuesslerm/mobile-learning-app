@@ -271,6 +271,10 @@ const TABLE: &[(&[&str], &[&str])] = &[
         SOURCE_WRITE,
     ),
     (&["pullRequests.generateReviewGuide"], OPERATE),
+    // The phone's own view preferences, not the host's settings: the phone's default pairing grants exactly the six scopes it needs and no
+    // `settings:write`, so these ride on the orchestration scopes instead of a new one.
+    (&["mobile.viewPreferences.get"], READ),
+    (&["mobile.viewPreferences.set"], OPERATE),
 ];
 
 /// Every RPC tag of the scope table.

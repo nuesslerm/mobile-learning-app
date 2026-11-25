@@ -260,6 +260,11 @@ pub fn not_found_error(what: &str, id: &str) -> Value {
     json!({"_tag": "NotFoundError", "message": format!("{what} {id} was not found."), "id": id})
 }
 
+/// The refusal of a read or a write of the phone's view preferences: the message says what is refused, the path names where in the request it is.
+pub fn mobile_view_preferences_error(message: &str, path: &str) -> Value {
+    json!({"_tag": "MobileViewPreferencesError", "message": message, "path": path})
+}
+
 /// The version of the relay client the pin installs, which `cloud.getRelayClientStatus` names while none is installed.
 pub const RELAY_CLIENT_VERSION: &str = "2026.10.4";
 

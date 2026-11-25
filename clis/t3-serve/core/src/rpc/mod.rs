@@ -465,6 +465,13 @@ impl Connection {
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
             "provider.chatgpt.handoff.subscribe" => vec![self.answered(&id, tag, Err(self.svc.chatgpt_refused(payload, "handoff")))],
+            "mobile.viewPreferences.get" | "mobile.viewPreferences.set" => {
+                let answer = match tag {
+                    "mobile.viewPreferences.get" => self.svc.view_preferences(),
+                    _ => self.svc.set_view_preferences(payload),
+                };
+                vec![self.answered(&id, tag, answer.map(Some))]
+            }
             "provider.auth.subscribe" => match self.svc.open_auth_stream(payload) {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));

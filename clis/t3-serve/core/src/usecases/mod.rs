@@ -25,6 +25,7 @@ pub mod sourcecontrol;
 pub mod terminal;
 pub mod triage;
 pub mod vcs;
+pub mod view_preferences;
 pub mod voice;
 pub mod workspace;
 pub mod attachments;
