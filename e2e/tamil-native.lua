@@ -120,7 +120,7 @@ cases.review = function()
 end
 local function trace(redraw)
   local pad = {id="TamilPracticeCanvasSurface"}
-  open("/tamil/uyir-1", "TamilPracticePosition")
+  open("/tamil/uyir-1", device.platform == "android" and "TamilPracticePosition" or "TamilPracticeUndo")
   if device.platform == "android" then
     local screen = device:get_device_state("screen")
     device:swipe(("9,%d"):format(math.floor(screen.height*.86)), ("9,%d"):format(math.floor(screen.height*.31)), {duration=600})

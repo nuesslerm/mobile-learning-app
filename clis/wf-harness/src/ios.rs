@@ -127,8 +127,9 @@ impl Device for Simulator {
     fn platform(&self) -> &'static str {
         "ios"
     }
-    fn stop_app(&self) -> Result<(), String> {
-        self.call(json!(["stop"])).map(drop)
+    fn relaunch_link(&self, link: &str) -> Result<(), String> {
+        self.call(json!(["stop"]))?;
+        self.open_link(link)
     }
     fn open_link(&self, link: &str) -> Result<(), String> {
         self.call(json!(["open", link])).map(drop)

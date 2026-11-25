@@ -197,7 +197,8 @@ cases.symbol = function()
     device:extended_wait_until{condition=function() return device:get_element({id="ProblemEditorStartupInput"}) == nil end, timeout=12000}
   end
   focus_end(true)
-  if device:get_element({id="SymbolBarGroup-g4"}) then tap("SymbolBarGroup-g4") end
+  local collapsed = {id="SymbolBarGroup-g4", text="Show symbols .*"}
+  if device:get_element(collapsed) then device:tap_on(collapsed) end
   local key = {id="SymbolBarKey-g4-0"}
   if device:get_element(key) then device:tap_on(key) else device:tap_on({text="(Type )?\\+"}) end
   device:input_text("5")

@@ -163,7 +163,7 @@ pub trait Device {
         Ok(())
     }
     fn open_link(&self, link: &str) -> Result<(), String>;
-    fn stop_app(&self) -> Result<(), String> {
+    fn relaunch_link(&self, _link: &str) -> Result<(), String> {
         Err("stopping the app requires a native device".into())
     }
     /// A tap at a point in tap units.

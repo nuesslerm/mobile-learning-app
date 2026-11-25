@@ -136,9 +136,14 @@ impl Device for AndroidDevice {
         crate::android_lease::check()
     }
 
-    fn stop_app(&self) -> Result<(), String> {
-        let (out, code) = self.run_shell("am force-stop host.exp.exponent")?;
-        if code == 0 { Ok(()) } else { Err(format!("force-stop failed ({code}): {out}")) }
+    fn relaunch_link(&self, link: &str) -> Result<(), String> {
+        let url = input::sh_word(&harness_core::android_logs::link_with_run_id(link));
+        let started = input::adb_text(&self.serial()?, &["shell", "am", "start", "-S", "-W", "--include-stopped-packages",
+            "-p", "host.exp.exponent", "-a", "android.intent.action.VIEW", "-d", &url])?;
+        if !started.lines().any(|line| line.trim() == "Status: ok") {
+            return Err(format!("Android could not relaunch Expo Go: {started}"));
+        }
+        Ok(())
     }
 
     fn open_link(&self, link: &str) -> Result<(), String> {

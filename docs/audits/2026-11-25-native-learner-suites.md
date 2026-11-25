@@ -46,3 +46,20 @@ On the booted local `tamil` simulator, the ten LeetCode cases passed in 142.3 se
 | draft | 21.8 | redraw | 16.2 |
 | symbol | 13.7 | flash-english | 10.2 |
 | keyboard | 15.2 | flash-tamil | 17.7 |
+
+### First hosted benchmark
+
+The [three-sample run](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45538369231) exercised both hosts on `7b895b05`. All six samples stopped at Expo Go startup before the learner assertions passed. Their section times describe failed attempts. The Android introduction required a tap outside the wait condition. The iOS host showed the developer-menu tutorial on a fresh installation.
+
+| Platform | Sample | Queue | Darwin build | Backend setup | Boot and app install | LeetCode | Tamil | Bundle upload | Job total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ios | 1 | 2 s | 152 s | 41 s | 429 s | 320 s | 387 s | 2 s | 1544 s |
+| ios | 2 | 3 s | 198 s | 65 s | 411 s | 372 s | 385 s | 3 s | 1684 s |
+| ios | 3 | 2 s | 188 s | 54 s | 403 s | 343 s | 381 s | 3 s | 1621 s |
+| android | 1 | 4 s | — | 39 s | 75 s | 42 s | 42 s | 3 s | 396 s |
+| android | 2 | 3 s | — | 36 s | 76 s | 44 s | 44 s | 2 s | 402 s |
+| android | 3 | 2 s | — | 40 s | 81 s | 56 s | 57 s | 3 s | 403 s |
+
+Android used the shared Linux `wf-build` job, which took 215 seconds. Both test update publishes and job dependencies precede the device jobs.
+
+The [Android run on 36c163c9](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45542540641) passed nine journeys in each section. LeetCode took 311.6 seconds with an extra slash inserted by tapping an expanded symbol group. Tamil took 306.6 seconds with the last relaunch landing on the Android home screen. The next run selects the symbol in the active group and launches Expo Go with an explicit package.

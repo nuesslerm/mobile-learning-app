@@ -196,9 +196,10 @@ impl Run<'_> {
             "open_link" => {
                 let link = self.str("link").unwrap_or_default();
                 if self.args.get("relaunch") == Some(&Value::Bool(true)) {
-                    dev.stop_app()?;
+                    dev.relaunch_link(link)?;
+                } else {
+                    dev.open_link(link)?;
                 }
-                dev.open_link(link)?;
                 Ok(json!({ "link": link }))
             }
             "tap_on" => {

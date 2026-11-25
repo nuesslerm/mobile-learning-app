@@ -62,13 +62,6 @@ def prepare(udid):
             subprocess.run(["xcrun", "simctl", "bootstatus", udid, "-b"], check=True, stdout=sys.stderr)
             print(f"Installing Expo Go {VERSION} on {udid}", file=sys.stderr, flush=True)
             sim("install", udid, str(app))
-            # A freshly installed Expo Go shows two host-app tutorials before the project can receive touches.
-            root = Path(sim("get_app_container", udid, EXPO, "data"))
-            prefs = root / f"Library/Preferences/{EXPO}.plist"
-            prefs.parent.mkdir(parents=True, exist_ok=True)
-            settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
-            settings.update(ExpoGoOnboardingFinished=True, EXDevMenuIsOnboardingFinished=True)
-            prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
     print(json.dumps(simulator_manifest(udid)))
 
 
