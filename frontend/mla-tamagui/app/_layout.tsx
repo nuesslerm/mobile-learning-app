@@ -6,6 +6,7 @@ import '../lib/logger';
 // Second, so a throw while the imports below evaluate is still logged as app.crash.
 import '../app-shell/crashHandlerBoot';
 
+import { appConfig } from '@lib/app-config';
 import {
   resolveActiveThemeName,
   useHeaderHeightStore,
@@ -13,7 +14,8 @@ import {
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
-import { Stack, ThemeProvider, useGlobalSearchParams } from 'expo-router';
+import { Stack, ThemeProvider, useGlobalSearchParams, usePathname, useRootNavigationState, useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -67,6 +69,20 @@ function BuoyDevTools() {
   return FloatingDevTools
     ? <FloatingDevTools hidden={visualCapture === '1'} zustandStores={buoyStores} />
     : null;
+}
+
+// On a bare Expo Go update link SDK 58 resolves an empty path and skips +native-intent.
+function NativePreviewLaunch({ route }: { route: NonNullable<typeof appConfig.initialRoute> }) {
+  const pathname = usePathname();
+  const navigation = useRootNavigationState();
+  const router = useRouter();
+  const handled = useRef(false);
+  useEffect(() => {
+    if (!navigation?.key || handled.current) return;
+    handled.current = true;
+    if (pathname === '/') router.replace(route);
+  }, [navigation?.key, pathname, route, router]);
+  return null;
 }
 
 function HeaderClearToaster() {
@@ -138,6 +154,8 @@ export default function RootLayout() {
             </DeviceRunnerRoot>
             <NativeChromeBridge />
             <RouteLogger />
+            {Platform.OS !== 'web' && appConfig.initialRoute && appConfig.initialRoute !== '/' &&
+              <NativePreviewLaunch route={appConfig.initialRoute} />}
             {/* Defaults, deliberately -- including `fullWindowOverlay`, which
                 sonner sets true and which renders the toasts into a separate
                 iOS UIWindow above every presented view controller. That is the
