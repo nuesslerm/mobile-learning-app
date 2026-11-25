@@ -4,7 +4,7 @@ use axum::{
         ws::{Message, WebSocket},
         DefaultBodyLimit, Path, Query, Request, State, WebSocketUpgrade,
     },
-    http::{HeaderMap, StatusCode},
+    http::{header, HeaderMap, Method, StatusCode},
     middleware::{from_fn_with_state, Next},
     response::{IntoResponse, Response},
     routing::{delete, get, post},
@@ -15,6 +15,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::mpsc;
+use tower_http::cors::{Any, CorsLayer};
 
 #[derive(Clone)]
 struct App {
@@ -47,6 +48,12 @@ pub fn router(devices: Arc<dyn Devices>, agent: Arc<Rca>) -> Router {
                 .route("/v1/threads/{thread}/events", get(events)),
         )
         .layer(DefaultBodyLimit::max(256 * 1024))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods([Method::GET, Method::POST, Method::DELETE])
+                .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]),
+        )
         .with_state(app)
 }
 

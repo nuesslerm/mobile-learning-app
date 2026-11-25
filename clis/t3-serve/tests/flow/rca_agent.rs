@@ -255,13 +255,15 @@ fn a_threads_past_is_read_page_by_page_from_the_number_asked_for_in_the_contract
         vec![answer(request, serde_json::to_value(page).unwrap())]
     }));
     // When t3 reads the thread after number 15 with a page of three, then after the page's last number
-    let first = rca.agent().history("t1", 15, 3).unwrap();
-    let second = rca.agent().history("t1", first.events.last().unwrap().seq, 3).unwrap();
+    let agent = rca.agent();
+    let first = agent.history("t1", 15, 3).unwrap();
+    let second = agent.history("t1", first.events.last().unwrap().seq, 3).unwrap();
     // Then the first page is the three events after 15 with more to come, and the second the last two, each as t3 reads it
     let seqs = |h: &t3_core::ports::History| h.events.iter().map(|e| e.seq).collect::<Vec<_>>();
     assert_eq!((seqs(&first), first.more, first.last_seq), ([16, 17, 18].to_vec(), true, recorded.len() as u64));
     assert_eq!((seqs(&second), second.more), ([19, 20].to_vec(), false));
     assert_eq!(first.events[0], agent_event(&recorded[15]).unwrap());
+    assert_eq!(rca.bearers.lock().unwrap().len(), 1, "both pages reuse one authenticated connection");
     // And rca was asked for each page by thread, number and size, and nothing else
     assert_eq!(rca.asked("thread.history"), [json!({"thread": "t1", "after_seq": 15, "limit": 3}), json!({"thread": "t1", "after_seq": 18, "limit": 3})]);
 }

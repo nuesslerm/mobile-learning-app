@@ -1,7 +1,7 @@
 //! `AgentApi` over rca's agent API (`GET /agent/v1/socket`, a device bearer), through `agent-api-client`. A turn is `thread.create`,
 //! `turn.start` and `thread.subscribe` on `agent.threads`, followed as the thread's events until its `turn.finished`; a thread's past is
-//! `thread.history`; project files are `file.list` and `file.read` in one rca workspace, whose executor works where the files are. Each call
-//! opens a socket of its own, so an interrupt never waits behind the turn it stops.
+//! `thread.history`; project files are `file.list` and `file.read` in one rca workspace, whose executor works where the files are. History pages can share an idle socket.
+//! Turn control and subscriptions use independent connections.
 use agent_api_agent::lifecycle::{self, Cursor, Shelf, SettleState};
 use agent_api_agent::queue::{self, TURN_STEER};
 use agent_api_agent::requests::{self, Decision};
@@ -21,7 +21,7 @@ use agent_api_terminal as terminal;
 use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FILE_READ, REPO_LIST, WORKSPACE, WORKSPACE_CREATE, WORKSPACE_REMOVE};
 use exec_fs::{EntryKind, ListResult, ReadResult};
 use serde_json::{json, Value};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, RuntimeRequestEvent, RuntimeResponse, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
@@ -33,6 +33,7 @@ pub struct RcaAgent {
     /// The rca workspace whose executor works where the projects' files are: every turn and file call acts there.
     workspace: String,
     providers: OnceLock<Vec<CatalogProvider>>,
+    idle_history: Mutex<Option<Client>>,
 }
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
@@ -277,7 +278,7 @@ impl RcaAgent {
     /// `url` is `http://host:port`; anything else is refused at startup.
     pub fn new(url: &str, bearer: &str, workspace: &str) -> Result<RcaAgent, String> {
         let authority = url.strip_prefix("http://").map(|r| r.trim_end_matches('/').to_string()).filter(|a| !a.is_empty() && !a.contains('/'));
-        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string(), providers: OnceLock::new() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
+        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string(), providers: OnceLock::new(), idle_history: Mutex::default() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
     }
 
     fn open(&self) -> Result<Client, Error> {
@@ -687,9 +688,22 @@ impl AgentApi for RcaAgent {
     }
 
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError> {
-        let mut client = self.connect()?;
-        let params = HistoryParams { thread: thread_id.to_string(), after_seq, limit: Some(limit) };
-        let page: HistoryResult = serde_json::from_value(Self::call(&mut client, THREAD_HISTORY, params.to_value())?).map_err(unreadable("thread.history"))?;
+        let params = HistoryParams { thread: thread_id.to_string(), after_seq, limit: Some(limit) }.to_value();
+        // Take the idle connection before doing I/O so simultaneous readers never wait on each other.
+        let cached = self.idle_history.lock().unwrap_or_else(|e| e.into_inner()).take();
+        let mut client = match cached {
+            Some(client) => client,
+            None => self.connect()?,
+        };
+        let response = match client.call(THREAD_HISTORY, params.clone()) {
+            Err(error) if error.code == agent_api_client::code::DISCONNECTED => {
+                client = self.connect()?;
+                Self::call(&mut client, THREAD_HISTORY, params)?
+            }
+            answer => answer.map_err(failed)?,
+        };
+        *self.idle_history.lock().unwrap_or_else(|e| e.into_inner()) = Some(client);
+        let page: HistoryResult = serde_json::from_value(response).map_err(unreadable("thread.history"))?;
         let events = page.events().map_err(|e| AgentError::Failed(format!("rca answered thread.history with {}", e.0)))?;
         Ok(History { events: events.iter().map(agent_event).collect::<Result<_, _>>()?, last_seq: page.last_seq, more: page.more })
     }
