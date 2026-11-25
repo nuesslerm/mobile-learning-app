@@ -136,7 +136,7 @@ fn the_recorded_turns_of_the_contract_become_the_threads_rows_a_failing_tool_a_l
     // And an agent API that replays the first turn: the double starts a turn and records the user's message itself, so those are left out of the script
     let (h, mut rpc) = seeded();
     let (first, second) = (turn_of("u1"), turn_of("u2"));
-    let AgentEventKind::UserText(question) = first[1].clone() else { panic!("the first turn opens with the user's message") };
+    let AgentEventKind::UserMessage { text: question, .. } = first[1].clone() else { panic!("the first turn opens with the user's message") };
     *h.agent.script.lock().unwrap() = first[2..].to_vec();
     // When the user's message is dispatched and the turn has ended
     dispatch_message(&mut rpc, "c-1", &question);

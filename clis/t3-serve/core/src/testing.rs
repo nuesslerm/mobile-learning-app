@@ -369,7 +369,7 @@ impl AgentApi for ScriptedAgent {
         let thread = turn.thread_id.as_str();
         let script = self.script.lock().unwrap().clone();
         let ends = matches!(script.last(), Some(AgentEventKind::TurnFinished(_)));
-        for kind in [AgentEventKind::TurnStarted, AgentEventKind::UserText(turn.prompt.clone())].into_iter().chain(script) {
+        for kind in [AgentEventKind::TurnStarted, AgentEventKind::UserMessage { text: turn.prompt.clone(), attachments: vec![] }].into_iter().chain(script) {
             self.append(thread, Some(&id), kind);
         }
         if !ends && !self.hold.load(Ordering::SeqCst) {

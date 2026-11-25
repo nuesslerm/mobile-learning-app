@@ -201,7 +201,7 @@ pub enum Finish {
 pub enum AgentEventKind {
     TurnStarted,
     /// The user's own message, which t3 recorded itself when it was sent.
-    UserText(String),
+    UserMessage { text: String, attachments: Vec<(String, String)> },
     Text(String),
     Reasoning(String),
     ToolStarted { id: String, name: String, input: Value },

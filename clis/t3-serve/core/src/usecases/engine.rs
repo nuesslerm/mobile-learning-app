@@ -184,10 +184,10 @@ impl Engine {
         self.record_as(thread_id, run_id, step, &format!("agent:{thread_id}:{seq}"), true)
     }
 
-    pub fn observe_agent_run(&self, thread: &str, run: &str, text: &str) -> Result<bool, StoreError> {
+    pub fn observe_agent_run(&self, thread: &str, run: &str, text: &str, attachments: &[Value]) -> Result<bool, StoreError> {
         let mut inner = self.lock();
         let new_id = || uuid(self.ids.as_ref());
-        let drafts = observe_run(&inner.state, thread, run, text, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
+        let drafts = observe_run(&inner.state, thread, run, text, attachments, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
         if drafts.is_empty() {
             return Ok(false);
         }

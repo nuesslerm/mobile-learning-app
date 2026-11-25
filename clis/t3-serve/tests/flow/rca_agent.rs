@@ -170,7 +170,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
         seen[1..],
         [
             on_turn(2, AgentEventKind::TurnStarted),
-            on_turn(3, AgentEventKind::UserText("say hi".into())),
+            on_turn(3, AgentEventKind::UserMessage { text: "say hi".into(), attachments: vec![] }),
             on_turn(4, AgentEventKind::Reasoning("look first".into())),
             on_turn(5, AgentEventKind::ToolStarted { id: "c1".into(), name: "run_command".into(), input: args }),
             on_turn(6, AgentEventKind::ToolOutput { id: "c1".into(), data: "a.txt\n".into() }),
@@ -204,7 +204,7 @@ fn the_events_of_the_contracts_two_recorded_turns_each_read_as_what_t3_shows_and
         assert_eq!(got.kind == AgentEventKind::Other, unshown.contains(&wire.kind.as_str()), "{}", wire.kind);
     }
     // And the user's message and the assistant's are told apart, and each turn's last event says how it ended
-    let texts: BTreeSet<&str> = read.iter().filter_map(|e| if let AgentEventKind::UserText(t) = &e.kind { Some(t.as_str()) } else { None }).collect();
+    let texts: BTreeSet<&str> = read.iter().filter_map(|e| if let AgentEventKind::UserMessage { text, .. } = &e.kind { Some(text.as_str()) } else { None }).collect();
     let user_wire: BTreeSet<&str> = recorded.iter().filter(|e| e.kind == "message.delta" && e.data["role"] == "user").filter_map(|e| e.data["text"].as_str()).collect();
     assert_eq!(texts, user_wire);
     let ends: Vec<(Option<String>, AgentEventKind)> = read.iter().filter(|e| matches!(e.kind, AgentEventKind::TurnFinished(_))).map(|e| (e.turn.clone(), e.kind.clone())).collect();

@@ -985,7 +985,7 @@ impl RunStep {
             AgentEventKind::TurnFinished(Finish::Interrupted) => RunStep::Finished(Outcome::Interrupted),
             AgentEventKind::TurnFinished(Finish::Failed) => RunStep::Finished(Outcome::Failed(TURN_FAILED.into())),
             AgentEventKind::TurnStarted => RunStep::Started,
-            AgentEventKind::UserText(_) | AgentEventKind::Other => return None,
+            AgentEventKind::UserMessage { .. } | AgentEventKind::Other => return None,
         })
     }
 }
@@ -1004,11 +1004,24 @@ fn approval_kind(tool: &str) -> &'static str {
 
 pub(super) const DETACHED_TASK_CALL_PREFIX: &str = "claude-task:";
 
-pub fn observe_run(state: &State, thread: &str, run_id: &str, text: &str, ctx: &Ctx) -> Vec<EventDraft> {
+pub fn observe_run(state: &State, thread: &str, run_id: &str, text: &str, attachments: &[Value], ctx: &Ctx) -> Vec<EventDraft> {
     let Some(shell) = state.threads.get(thread) else { return vec![] };
-    if active_run(state, thread).is_some() || run_named(state, thread, run_id).is_some() {
-        return vec![];
+    if let Some(run) = run_named(state, thread, run_id) {
+        let entities = &state.entities[thread];
+        let Some(message) = entities.messages.iter().find(|m| m["id"] == run["userMessageId"]) else { return vec![] };
+        if attachments.is_empty() || message["attachments"].as_array().is_some_and(|a| !a.is_empty()) {
+            return vec![];
+        }
+        let mut drafts = Vec::new();
+        for (kind, row) in std::iter::once(("message.updated", message)).chain(entities.turn_items.iter()
+            .filter(|i| i["messageId"] == message["id"] && i["type"] == "user_message").map(|i| ("turn-item.updated", i))) {
+            let mut updated = row.clone();
+            updated["attachments"] = json!(attachments);
+            drafts.push(draft(kind, Some(thread), None, ctx.now, updated));
+        }
+        return drafts;
     }
+    if active_run(state, thread).is_some() { return vec![] }
     let existing = state.entities.get(thread).map(|entities| entities.runs.as_slice()).unwrap_or(&[]);
     let ordinal = existing.len() as u64 + 1;
     let at = iso(ctx.now);
@@ -1027,7 +1040,7 @@ pub fn observe_run(state: &State, thread: &str, run_id: &str, text: &str, ctx: &
     });
     let message = json!({
         "id": message_id, "threadId": thread, "runId": run_id, "nodeId": runs::node_id(run_id),
-        "role": "user", "streaming": false, "text": text, "attachments": [],
+        "role": "user", "streaming": false, "text": text, "attachments": attachments,
         "createdBy": "user", "creationSource": "server", "createdAt": at, "updatedAt": at,
     });
     let provider_thread = thread_provider_thread(state, thread, instance, run_id);
@@ -1412,7 +1425,7 @@ mod tests {
         assert_eq!(steps(K::TurnFinished(Finish::Interrupted)), Some(RunStep::Finished(Outcome::Interrupted)));
         assert_eq!(steps(K::TurnFinished(Finish::Failed)), Some(RunStep::Finished(Outcome::Failed(TURN_FAILED.into()))));
         assert_eq!(steps(K::TurnStarted), Some(RunStep::Started));
-        assert!([K::UserText("hi".into()), K::Other].into_iter().all(|k| steps(k).is_none()));
+        assert!([K::UserMessage { text: "hi".into(), attachments: vec![] }, K::Other].into_iter().all(|k| steps(k).is_none()));
     }
 
     fn thread_with(state: &mut State, value: Value) -> Result<Decision, String> {
