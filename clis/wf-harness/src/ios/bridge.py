@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import math
 import os
 from pathlib import Path
 import shutil
@@ -206,7 +207,13 @@ async def drive(socket, udid, info):
                 elif op == "key":
                     await client.key(args[0])
                 elif op == "stroke":
-                    points = [Point(x, y) for x, y in args[0]]
+                    coords = args[0]
+                    points = [Point(*coords[0])]
+                    # Straight guides contain just their endpoints. The scorer consumes touch samples along the stroke.
+                    for (x, y), (end_x, end_y) in zip(coords, coords[1:]):
+                        steps = max(1, math.ceil(math.hypot(end_x-x, end_y-y)/4))
+                        for i in range(1, steps+1):
+                            points.append(Point(x+(end_x-x)*i/steps, y+(end_y-y)*i/steps))
                     sequence = []
                     for point in points:
                         sequence.extend((HIDPress(HIDTouch(point), HIDDirection.DOWN), HIDDelay(.018)))

@@ -33,7 +33,6 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[
     ("cache", wf_bucket::cache::run),
     ("bucket", wf_bucket::bucket_run),
     ("lib", wf_lib::run),
-    ("rca-serve", external::mobile),
     ("t3", external::t3),
     ("exec", external::exec),
     ("mimic", external::mimic),
