@@ -119,6 +119,7 @@ export function AlternativePicker({
 
   return (
     <Sheet
+      accessible={false}
       open
       onOpenChange={(next) => {
         if (!next) handleClose();

@@ -94,7 +94,7 @@ local function type_in_starter(text, row)
     device:press_key("Remote Dpad Up")
   end
   device:input_text(text)
-  if device.platform == "android" then device:assert_visible({id="CodeEditorText", text="(?s).*" .. text .. ".*"}) end
+  if device.platform == "android" then device:assert_visible({id="CodeEditorText", text=".*" .. text .. ".*"}) end
   hide_keyboard()
 end
 local function search(term, problem)
@@ -208,7 +208,7 @@ cases.symbol = function()
   local key = {id="SymbolBarKey-g4-0"}
   if device:get_element(key) then device:tap_on(key) else device:tap_on({text="(Type )?\\+"}) end
   if device.platform == "android" then
-    device:assert_visible({id="CodeEditorText", text="(?s)v=8\\+.*"})
+    device:assert_visible({id="CodeEditorText", text="v=8\\+.*"})
     focus_end(true)
   end
   device:input_text("5")
@@ -263,42 +263,40 @@ cases.completion = function()
   output("79")
 end
 cases.blocks = function()
-  local function set_blocks(enabled)
-    device:open_link(env.base .. "/blind75")
-    local choice = "LeetcodeListBlockView" .. (enabled and "On" or "Off")
-    device:scroll_until_visible{element={id=choice}, direction="DOWN"}
-    tap(choice)
-  end
   open("/leetcode/two-sum", "ConsoleBarRun")
   type_in_starter("return 64", 4)
-  set_blocks(true)
+  device:open_link(env.base .. "/blind75")
+  device:scroll_until_visible{element={id="LeetcodeListBlockViewOn"}, direction="DOWN"}
+  tap("LeetcodeListBlockViewOn")
   device:open_link(env.base .. "/leetcode/two-sum")
-  visible("CodeEditorText")
+  device:assert_visible({text=".*return 64.*"})
   device:tap_on({text="Blocks"})
   device:assert_visible({text=".*return 64.*"})
   device:tap_on({text="Code"})
   device:assert_not_visible({id="BlockRow-0"})
-  set_blocks(false)
-  open("/leetcode/two-sum", "ConsoleBarRun")
+  visible("ConsoleBarRun")
   output("64")
 end
 cases["two-drafts"] = function()
-  local function open_problem(slug, title)
-    open("/leetcode/" .. slug .. "/problem", "ProblemOpenEditor")
-    device:assert_visible({text=".*" .. title .. ".*"})
-    tap("ProblemOpenEditor")
-    visible("ConsoleBarRun")
-    visible("CodeEditorText")
+  local function open_draft(slug, signature)
+    open_library(device, env.base)
+    open("/leetcode/" .. slug, "ConsoleBarRun")
+    device:assert_visible({text=".*def " .. signature .. ".*"})
   end
-  open_problem("two-sum", "Two Sum")
-  type_in_starter("return 32", 4)
-  open_problem("contains-duplicate", "Contains Duplicate")
-  type_in_starter("return False", 4)
-  output("(false|False)")
-  open_problem("two-sum", "Two Sum")
-  output("32")
-  open_problem("contains-duplicate", "Contains Duplicate")
-  output("(false|False)")
+  local function expect_note(note)
+    device:assert_visible({text=".*# " .. note .. ".*"})
+  end
+  open_draft("two-sum", "twoSum")
+  append(" # first draft")
+  expect_note("first draft")
+  open_draft("contains-duplicate", "containsDuplicate")
+  append(" # second draft")
+  expect_note("second draft")
+  open_draft("two-sum", "twoSum")
+  expect_note("first draft")
+  device:assert_not_visible({text=".*# second draft.*"})
+  open_draft("contains-duplicate", "containsDuplicate")
+  expect_note("second draft")
 end
 cases.voice = function()
   open("/leetcode/two-sum?lang=javascript&voiceReplay=1", "ConsoleBarRun")

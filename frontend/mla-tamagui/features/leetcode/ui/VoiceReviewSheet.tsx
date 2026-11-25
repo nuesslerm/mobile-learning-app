@@ -87,6 +87,7 @@ export function VoiceReviewSheet({
   const keyboard = useKeyboardFrame();
   return (
     <Sheet
+      accessible={false}
       open
       onOpenChange={(next) => {
         if (!next) onCancel();

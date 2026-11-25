@@ -99,6 +99,19 @@ jobs:
           wf test prepare-ios | tee "$RUNNER_TEMP/ios-device.json"
           echo "WF_IOS_UDID=$(jq -er .udid "$RUNNER_TEMP/ios-device.json")" >> "$GITHUB_ENV"
           jq . "$RUNNER_TEMP/ios-device.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open the update on the ready simulator
+        if: steps.pick.outputs.run != '0'
+        run: |
+          manifest="$WF_EAS_POINTER_DIR/latest-$WF_EAS_UPDATE_BRANCH.json"
+          url=$(jq -er '.served.url | sub("^https://"; "exp://")' "$manifest")
+          export WF_NATIVE_DEVICE_INFO="$(cat "$RUNNER_TEMP/ios-device.json")"
+          wf ios test e2e/support/native-ready.lua --device "$WF_IOS_UDID" --env "base=$url/--" --test-output-dir "$RUNNER_TEMP/ios-preflight"
+      - name: Bundle startup diagnostics
+        if: ${{ !cancelled() && steps.pick.outputs.run != '0' }}
+        run: |
+          if [[ -f "$RUNNER_TEMP/ios-preflight/report.json" ]]; then
+            wf test publish "$RUNNER_TEMP/ios-preflight"
+          fi
       - name: Run learner journeys
         env:
           FRESH: ${{ inputs.fresh }}
@@ -114,6 +127,7 @@ jobs:
           name: test-runs-ios-e2e-sample-${{ inputs.sample }}
           path: |
             ${{ runner.temp }}/ios-device.json
+            ${{ runner.temp }}/ios-preflight
             ${{ runner.temp }}/test-runs
             ${{ runner.temp }}/e2e-runs/**/summary.json
             ${{ runner.temp }}/e2e-runs/**/run.log
