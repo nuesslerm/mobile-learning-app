@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-19-port-wf-deploy-agent-deps-add-remove-list-replay-to-rust-2026-10",
+  "subject": "Engineering decisions",
+  "title": "Port: `wf deploy agent-deps add|remove|list|replay` to Rust (2026-10-06)",
+  "question": "What was measured for Port: `wf deploy agent-deps add|remove|list|replay` to Rust (2026-10-06)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Port: `wf deploy agent-deps add|remove|list|replay` to Rust (2026-10-06)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release build, n=5, `agent-deps list`, one x86_64 4-core container):",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "wall (median)",
+        "peak RSS (median)"
+      ],
+      "rows": [
+        [
+          "TypeScript bundle",
+          "276.2 ms",
+          "64.6 MB"
+        ],
+        [
+          "Rust",
+          "6.3 ms",
+          "11.0 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release build, n=5, `agent-deps list`, one x86_64 4-core container):"
+        ],
+        [
+          "Known deviation: the Rust replay has no 5 minute install timeout (std `Command`"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 683–706",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

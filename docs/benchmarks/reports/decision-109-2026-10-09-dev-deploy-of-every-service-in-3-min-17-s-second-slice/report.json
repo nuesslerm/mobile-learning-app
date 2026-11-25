@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-109-2026-10-09-dev-deploy-of-every-service-in-3-min-17-s-second-slice",
+  "subject": "Engineering decisions",
+  "title": "dev Deploy of every service in 3 min 17 s (second slice: the capture image)",
+  "question": "What was measured for dev Deploy of every service in 3 min 17 s (second slice: the capture image)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: dev Deploy of every service in 3 min 17 s (second slice: the capture image)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: The first slice (entry above) took a push that changes only Rust sources from 14 min 45 s to 4 min 11 s. The owner's target is every service in under five minutes, so the next measurement was a push that changes all four deploy targets (run 317, head `939789d`: the `service-kit` and `rca-core` crates, the capture package and the Metro app). It took 7 min 06 s: `plan` 57 s, `deploy (metro)` 34 s, `deploy (remote-chat-agent)` 2 min 04 s, `deploy (leetcode-back…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "The first slice (entry above) took a push that changes only Rust sources from 14 min 45 s to 4 min 11 s. The owner's target is every service in under five minutes, so the next measurement was a push that changes all four deploy targets (run 317, head `939789d`: the `service-kit` and `rca-core` crates, the capture package and the Metro app). It took 7 min 06 s: `plan` 57 s, `deploy (metro)` 34 s, `deploy (remote-chat-agent)` 2 min 04 s, `deploy (leetcode-backend)` 41 s and `deploy (leetcode-auth-cookie-capture)` about 2 min 40 s. The capture leg was the longest. Its build output (`wf vm exec --status`) showed `[proddeps 9/9] pnpm deploy` at 84 s and `[libs 1/5] COPY libraries` at 12.7 s, both cache misses. The cause of the first: the `libs` and `proddeps` stages of `backend/leetcode-auth-cookie-capture/Dockerfile` copied the whole `scripts/` directory (for the workspace root's postinstall, which under `DOCKER_BUILD=true` does nothing), so any change under `scripts/` (the approve guard in PR #342 was one) invalidated the dependency layer."
+        ],
+        [
+          "Change: both stages copy `scripts/postinstall.mjs` and `scripts/prepare.mjs` only, the two files pnpm's lifecycle hooks name. The `build` stage still has the whole tree (`COPY . .`). A push that changes only this Dockerfile (run 37965945128, head `893b3aa`) deployed the capture image in 67 s (`plan` 17 s, `deploy (leetcode-auth-cookie-capture)` 67 s, the Metro job skipped), 1 min 29 s end to end, green. The layer that changed was rebuilt in that run, so the saving shows on the next push that changes `scripts/` and nothing else in the image's inputs; I did not make a contrived `scripts/` change to prove it, since the layer key is the content of the two named files."
+        ],
+        [
+          "Then the all-services case again, by dropping the comment lines the timing pushes had added (run 37966325120, head `846130f`; `workflow_dispatch` with `force` is still unavailable from this session): `plan` 30 s, `deploy (metro)` 32 s, `deploy (remote-chat-agent)` 36 s, `deploy (leetcode-backend)` 33 s, `deploy (leetcode-auth-cookie-capture)` 54 s, 3 min 17 s end to end from the push, all green. Limits of that number: the Rust changes were comment-only, so the incremental caches (the persistent target directory for `wf`, the BuildKit cache mounts for the services) were hit as in the best case; a change that edits many crates, or `Cargo.lock`, costs more (the earlier measurement on this machine was 34 s against 116 s for a one-file change, and the cold run with the deploy profile took 15 min 2 s). The VM has two CPUs and one runner, so the legs run one after the other."
+        ],
+        [
+          "Tests, by tier. E2e: the three Deploy runs above, each green through `plan`, the legs and the redeploys. No unit or integration tier ran for this slice (a Dockerfile and a comment revert; the Rust and TypeScript sources did not change). Benchmarks: wall-clock of the pipeline, one run per case (n=1; the cost of a run is minutes of the single runner, and the question was whether the limit is met, not a ratio)."
+        ],
+        [
+          "Final checks on head `846130f` (the plan's Status lists the grep and gate results). Gates: `cargo clippy --workspace --all-targets -- -D warnings` exit 0 and `cargo test --workspace` exit 0 in both `backend/` (229 tests, 18 suites) and `clis/` (138 tests, 16 suites), none failed or ignored. VM, e2e tier: `wf deploy status` shows `remote-chat-agent` and `leetcode-backend` running `docker.io/nuesslerm/remote-chat-agent:sha-846130f8` and `docker.io/nuesslerm/leetcode-backend:sha-846130f8`, both healthy, built by the pipeline. `wf vm logs <app> --since 30m` returns lines from the new tracing path for both services: `server.listening` at 17:28:34 (`remote-chat-agent`, host and port as metadata) and 17:29:06 (`leetcode-backend`), which are the redeploy times of that run, and `health.heartbeat` lines (`rssMb` 13 and 8, `ok=true`) every ten minutes. Resident Node: each image's `CMD` is the Rust binary (`rca-service`, `leetcode-backend-rs`) and its entrypoint ends in `exec \"$@\"` (`runuser` for the agent user in `remote-chat-agent`), so the service process is the Rust binary; the heartbeat resident sets (13 MB and 8 MB) are not a Node process's. I did not list the container's processes: the deployer exposes container status, not a process table. The images keep a Node runtime for the code `leetcode-backend` executes, as an earlier entry says."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2006–2019",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

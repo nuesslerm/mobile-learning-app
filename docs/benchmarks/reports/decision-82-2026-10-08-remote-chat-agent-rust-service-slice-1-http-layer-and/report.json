@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-82-2026-10-08-remote-chat-agent-rust-service-slice-1-http-layer-and",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, slice 1 (HTTP layer and the shared pipeline)",
+  "question": "What was measured for remote-chat-agent Rust service, slice 1 (HTTP layer and the shared pipeline)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, slice 1 (HTTP layer and the shared pipeline)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - What it is: a thread-per-connection HTTP/1.1 server with keep-alive, chunked request bodies, a 30 MB body limit that answers 413 after draining (the client sees the status, not a reset), a streaming response body (chunked, for server-sent events) and an upgrade hook (for WebSocket); the CORS policy (listed origins with their trailing slash dropped, localhost on any port, the dev-bridge `metro-runner-*` hosts; an unlisted origin gets no allow headers; a pre…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- What it is: a thread-per-connection HTTP/1.1 server with keep-alive, chunked request bodies, a 30 MB body limit that answers 413 after draining (the client sees the status, not a reset), a streaming response body (chunked, for server-sent events) and an upgrade hook (for WebSocket); the CORS policy (listed origins with their trailing slash dropped, localhost on any port, the dev-bridge `metro-runner-*` hosts; an unlisted origin gets no allow headers; a preflight is answered 204 before the limiter); the 120 per minute fixed-window limiter keyed on the caller, where the caller is Express's `req.ip` with `trust proxy: loopback` (the front door passes `X-Forwarded-For`); the JSON body parsed for every path, so a malformed body is a 400 before routing; `/health`; and the worktree route's secret check and validation, which reproduces zod 4's issue text. Creating a worktree answers 501 until slice 2."
+        ],
+        [
+          "- Benchmark of this slice (`bench:service:rust` with `BENCH_ONLY=none`, n=5, the same harness as the pre-state record; `docs/audits/benchmarks/rca-rust-slice1.json`): cold start to the first `/health` 30.5 ms (Node bundle: 503.4 ms), idle RSS 2.4 MB (133.6 MB), RSS after 300 health checks 2.5 MB (139.5 MB), `/health` p50 0.41 ms (1.0 ms), artifact 462,080 bytes (14,869,215). Reading it: this is the floor of a service with one route, so the Node comparison is the floor against the floor; the loaded figures come with the media slices. The cold start is bounded by the harness's 25 ms polling."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1677–1684",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

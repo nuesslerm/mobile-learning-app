@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-62-2026-10-06-what-stops-further-typescript-deletion-and-one-reverte",
+  "subject": "Engineering decisions",
+  "title": "what stops further TypeScript deletion (and one reverted attempt)",
+  "question": "What was measured for what stops further TypeScript deletion (and one reverted attempt)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: what stops further TypeScript deletion (and one reverted attempt)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Cross-build for the VM works: `cargo build --release --target aarch64-unknown-linux-gnu -p wf` with `aarch64-linux-gnu-gcc` as linker (the bundled SQLite needs a C cross compiler) gives a 4.4 MB stripped ELF, against 4.7 MB for x86_64. Node plus the bundle is about 28 MB of bundle and a 100 MB resident runtime per command.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Cross-build for the VM works: `cargo build --release --target aarch64-unknown-linux-gnu -p wf` with `aarch64-linux-gnu-gcc` as linker (the bundled SQLite needs a C cross compiler) gives a 4.4 MB stripped ELF, against 4.7 MB for x86_64. Node plus the bundle is about 28 MB of bundle and a 100 MB resident runtime per command."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1455–1461",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

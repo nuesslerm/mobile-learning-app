@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-55",
+  "subject": "Engineering decisions",
+  "title": "The solutions loop adopted from compound-engineering",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "The solutions loop adopted from compound-engineering",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "The solutions loop adopted from compound-engineering (user): `cheap-flow learnings` runs CE's `learnings-researcher` prompt verbatim (vendored, `<root>` → `docs`) on the researcher agent before brainstorm and plan, and its output feeds review (known pitfalls are blockers) and compound (update instead of duplicate); `cheap-flow compound` follows the `ce-compound` contract: schema.json (tracks,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 38 | 2026-09-03 15:10 | The solutions loop adopted from compound-engineering (user): `cheap-flow learnings` runs CE's `learnings-researcher` prompt verbatim (vendored, `<root>` → `docs`) on the researcher agent before brainstorm and plan, and its output feeds review (known pitfalls are blockers) and compound (update instead of duplicate); `cheap-flow compound` follows the `ce-compound` contract: schema.json (tracks, required fields, closed enums, corpus-first open vocabulary), the CE resolution template, parser-safety checks ported to TypeScript, one re-ask with the exact problems, category from the doc's own `category` when it is a real directory, `--update` with `last_updated`, ≤3 `CONCEPTS.md` proposals for Claude to apply, `Documentation complete` / `Documentation skipped` terminals. Not adopted: CE's Python validators (ported instead: the bundle must stay zero-dependency), the parallel research subagents and session-history probe of CE's Full mode (one researcher call is the point of this tree), instruction-file edits. The vendored markdown ships as JSON twins because the esbuild bundle has no text loader; a unit test keeps the pairs equal. Live on the cf-check plan: `learnings` returned 5 findings (MiniMax-M3, $0.0397, 114 s, commit `8a9d3ac9`); `compound --update docs/archive/solutions/workflow/cf-check.md`: the first draft failed validation (unquoted `: ` in the title, five missing schema fields), the re-ask produced a valid knowledge-track doc, filed as an update with `last_updated`, CONCEPTS.md scanned with no qualifying term ($0.0229, 89 s, commit `db456441`) | plan file, Phase S; `clis/cheap-flow/src/data/solutions/`, `src/domain/solutions.ts`, `tests/unit/{solutions,solutions-data}.test.ts`; runs `4b0f519f`, `440a6c04` | `54a115fd` |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 55",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

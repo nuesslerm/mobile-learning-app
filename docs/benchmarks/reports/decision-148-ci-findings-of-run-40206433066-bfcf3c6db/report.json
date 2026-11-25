@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-148-ci-findings-of-run-40206433066-bfcf3c6db",
+  "subject": "Engineering decisions",
+  "title": "CI findings of run 40206433066 (bfcf3c6db)",
+  "question": "What was measured for CI findings of run 40206433066 (bfcf3c6db)?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "CI findings of run 40206433066 (bfcf3c6db)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Red: `wf-harness` flow `an_attached_session_reads_pages_and_manages_its_lifecycle`, `page.goto` 30 s timeout. Cause: the runner has 2 cores and `--parallel 2` plus in-process test threads launched several real Chromiums at once.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Red: `wf-harness` flow `an_attached_session_reads_pages_and_manages_its_lifecycle`, `page.goto` 30 s timeout. Cause: the runner has 2 cores and `--parallel 2` plus in-process test threads launched several real Chromiums at once."
+        ],
+        [
+          "- Fix: one process-wide `chromium_gate()` mutex held for the life of a `BrowserSession` or `Attached` (`clis/wf-harness/src/testing/browser_session.rs`); the test passes alone in 1.65 s. No test skipped, no timeout raised."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2738–2743",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

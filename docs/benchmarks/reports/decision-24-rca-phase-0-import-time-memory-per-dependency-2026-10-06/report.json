@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-24-rca-phase-0-import-time-memory-per-dependency-2026-10-06",
+  "subject": "Engineering decisions",
+  "title": "rca phase 0: import-time memory per dependency (2026-10-06)",
+  "question": "What was measured for rca phase 0: import-time memory per dependency (2026-10-06)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "rca phase 0: import-time memory per dependency (2026-10-06)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "via `RUSAGE_CHILDREN`, n=3 (n=5 for the empty process), one x86_64 4-core container, node 22.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "import",
+        "peak RSS (median)",
+        "over an empty node"
+      ],
+      "rows": [
+        [
+          "empty node process",
+          "41.9 MB",
+          "0"
+        ],
+        [
+          "playwright",
+          "137.8 MB",
+          "+95.9 MB"
+        ],
+        [
+          "effect",
+          "88.2 MB",
+          "+46.3 MB"
+        ],
+        [
+          "sharp",
+          "68.1 MB",
+          "+26.2 MB"
+        ],
+        [
+          "ws",
+          "63.0 MB",
+          "+21.1 MB"
+        ],
+        [
+          "express",
+          "61.1 MB",
+          "+19.2 MB"
+        ],
+        [
+          "@opencode-ai/sdk",
+          "61.0 MB",
+          "+19.1 MB"
+        ],
+        [
+          "mammoth",
+          "60.2 MB",
+          "+18.3 MB"
+        ],
+        [
+          "whisper-node",
+          "55.8 MB",
+          "+13.9 MB"
+        ],
+        [
+          "shiki",
+          "55.1 MB",
+          "+13.2 MB"
+        ],
+        [
+          "zod",
+          "54.4 MB",
+          "+12.5 MB"
+        ],
+        [
+          "tesseract.js",
+          "52.2 MB",
+          "+10.3 MB"
+        ],
+        [
+          "diff2html",
+          "51.3 MB",
+          "+9.4 MB"
+        ],
+        [
+          "busboy",
+          "50.5 MB",
+          "+8.6 MB"
+        ],
+        [
+          "ffmpeg-static",
+          "43.4 MB",
+          "+1.5 MB"
+        ],
+        [
+          "pdf-parse",
+          "43.0 MB",
+          "+1.1 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "via `RUSAGE_CHILDREN`, n=3 (n=5 for the empty process), one x86_64 4-core container, node 22."
+        ],
+        [
+          "(express, ws, zod) is about 20 MB each on top of the 42 MB runtime floor. That supports the"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 800–837",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

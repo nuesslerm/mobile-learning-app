@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-111-2026-10-09-wf-s-mode-probes-on-the-union-of-the-modes-specs-stand",
+  "subject": "Engineering decisions",
+  "title": "wf's mode probes on the union of the modes' specs (standard-crates plan, final checks)",
+  "question": "What was measured for wf's mode probes on the union of the modes' specs (standard-crates plan, final checks)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf's mode probes on the union of the modes' specs (standard-crates plan, final checks)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Benchmark (release builds, five rounds of 30 spawns, interleaved, medians; before = the build of `989993e`): binary 8,377,656 B to 8,379,800 B; `wf --help` 2.99 to 3.05 ms; a refused line 4.79 to 4.75 ms; a parsed line 7.53 to 7.66 ms; the program options 7.59 to 7.67 ms; a mode probe (`dispatch --stats --log /nonexistent`) 4.95 to 5.32 ms. The probe costs one more `clap` parse.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release builds, five rounds of 30 spawns, interleaved, medians; before = the build of `989993e`): binary 8,377,656 B to 8,379,800 B; `wf --help` 2.99 to 3.05 ms; a refused line 4.79 to 4.75 ms; a parsed line 7.53 to 7.66 ms; the program options 7.59 to 7.67 ms; a mode probe (`dispatch --stats --log /nonexistent`) 4.95 to 5.32 ms. The probe costs one more `clap` parse."
+        ],
+        [
+          "Deploy and verification of the `has_flag` removal (head `da1ce64`; run 37972618341 green in 2 min 50 s from the push: `plan` 50 s, `deploy (remote-chat-agent)` 1 min 54 s, Metro skipped). The live `/health` reports `da1ce6485760762d5e09de556a6a6e385a303137` for `remote-chat-agent` and `846130f8531d7c430f144e2e0adbf5c3a5ba2924` for `leetcode-backend` (its inputs did not change); `wf vm logs remote-chat-agent` shows `server.listening` at 18:23:28; on the VM host, the two images started in agent-shell (`remote-chat-agent:sha-da1ce648`, `leetcode-backend:sha-846130f8`) each list one process (`rca-service`, `leetcode-backend-rs` with their tokio worker and rate-limit cleaner threads) and no `node`; `/api/convert` is 200 for the PDF and the DOCX and `/api/voice-transcribe` 200 for five recordings; the authenticated probes pass against the live services (WebSocket 7 of 7, leetcode routes 8 of 8); the gate of that image's `wf` (aarch64) passes 10 of 10. The `wf` in that image is the new binary: `verify --budget=1` answers with the union usage (`Usage: wf verify --budget [ARG]...`) where the previous image's `wf` answered `Usage: wf verify --budget`, and the two files differ (`f4e28e6b…` against `6d245b64…`, both 9,787,376 bytes)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2038–2051",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3472",
+  "subject": "Engineering decisions",
+  "title": "The Android core benchmark passed ten Tamil journeys in 165",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "The Android core benchmark passed ten Tamil journeys in 165",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "The Android core benchmark passed ten Tamil journeys in 165.8–169.8 s across three fresh runners. One runner passed ten LeetCode journeys in 213.4 s. Testing the five ordered candidates per section fits the observed warm budget. The [native coverage audit](2026-11-25-native-learner-suites.md) records results and remaining races.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — The Android core benchmark passed ten Tamil journeys in 165.8–169.8 s across three fresh runners. One runner passed ten LeetCode journeys in 213.4 s. Testing the five ordered candidates per section fits the observed warm budget. The [native coverage audit](2026-11-25-native-learner-suites.md) records results and remaining races."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3472",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

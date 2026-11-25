@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "device-lab-progress",
+  "subject": "Engineering measurements",
+  "title": "device-lab — progress ledger",
+  "question": "What did the device-lab — progress ledger measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "device-lab — progress ledger",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "[x] `tests/e2e/deviceLab.e2e.test.ts` green (2026-10-05): 26 of 26 in 81 s",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- [x] `tests/e2e/deviceLab.e2e.test.ts` green (2026-10-05): 26 of 26 in 81 s"
+        ],
+        [
+          "- [x] G1 voice edit, recorded with tap dots ([`device-lab-voice-edit.md`](../../runbooks/device-lab-voice-edit.md)), `df9e1c983`: `valid-palindrome` 14 / 14, `two-sum` 12 / 12, `container-with-most-water` 11 / 11 by spoken edits; whole-solution asks refused 3 of 3; renames local 3 of 3; transcribe p50 1068 ms, plan p50 3040 ms; 35 + 30 + 35 touch taps, `video-check` all dotted; [recordings, turns and screenshots](https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/device-lab/claude_device-lab/g1-final-2026-10-05/index.html); final run after five defects were fixed; the agent ran from the checkout with the faster-whisper sidecar (see the blocker below)"
+        ],
+        [
+          "- [x] G2 Tamil letters and words drawn on the canvas, marked right ([`device-lab-tamil-writing.md`](../../runbooks/device-lab-tamil-writing.md)), `6c1f8f846` (export from `cb6266ba0`, re-run after the driver, voice and layout changes): seven letters 98–100 % ON THE LINE with no stroke refused; அ written large LOOKS RIGHT · 88; அம்மா 95, ஆடு 92, இலை 94, all at the first attempt; 53 touch strokes and 9 taps, `video-check` 9 of 9; the marker ran from the checkout (see the blocker); [recording, screenshots and input log](https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/device-lab/claude_device-lab/g2-final-2026-10-05/index.html). First run: `d251cef5b`, with the seven defects it found."
+        ],
+        [
+          "- [x] G3 code typed into CodeMirror like a person ([`device-lab-codemirror-typing.md`](../../runbooks/device-lab-codemirror-typing.md)), `edddcfadb` (export from `cb6266ba0`, re-run after the driver, voice, Tamil and layout changes): Run Local `valid-palindrome` 14 / 14 and `two-sum` 12 / 12; 289 keys, none multi-character, inter-key p50 224 ms; `video-check` 27 of 27 and 14 of 14 taps; [recordings, screenshots and input logs](https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/device-lab/claude_device-lab/g3-final-2026-10-05/index.html). First run: `dd73fab52`."
+        ],
+        [
+          "- **A tap right after load reached only the shell (2026-10-05).** I9 and S3 failed in about 2 of 5 full `deviceLab` runs. A capture listener in the shell recorded the lost tap as `[\"pointerdown\",\"IFRAME\",\"\",172,88,330]`, 330 ms after the shell loaded, and the app frame recorded no pointer event at all. Until a cross-site frame is composited, Chromium hit-tests its input to the parent's `<iframe>` element. Fix: `tap`, `drag` and `stroke` start with a move, and repeat it after the next paint while the shell still sees it on the iframe element (`clis/multi-browser/src/data/browser/pointer-route.ts`). The retry fired in 2 of 4 instrumented runs, and both passed."
+        ],
+        [
+          "- Every planner call failed with `Server error (500)`: models.dev dropped the `kimi-for-coding` provider, and `kimi-code-plan-global` refuses `top_p: 1` (`412ace5b9`, planner bench 5 / 5 valid, p50 2.9 s)."
+        ],
+        [
+          "- \"write a hash map solution for two sum\" returned the whole solution and passed 12 / 12, which the runbook forbids: a whole-solution ask is now held to 3 lines in the server and the client (`5df8a002a`, bench n = 6: 30 / 30 steps valid, whole-solution ask refused 6 / 6)."
+        ],
+        [
+          "- A marker answer at 31.7 s reached the app as \"Could not reach the marker\": `route.fetch`'s default 30 s timeout, which no phone has, is off (`00bd5c94d`; e2e S1)."
+        ],
+        [
+          "- All seven letters were accepted on the first attempt at 100 % ON THE LINE."
+        ],
+        [
+          "- A tap dot is visible in the recording at 178.9 s."
+        ],
+        [
+          "- Seven letters were accepted on the first attempt at 97–100 % ON THE LINE, with `pointerType: 'touch'` and no text selection."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "progress.md",
+      "path": "../../../plans/device-lab/progress.md"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "id": "plans-rust-services-standard-crates",
+  "subject": "Engineering measurements",
+  "title": "Standard crates instead of hand-rolled code, backends first, then CLIs",
+  "question": "What did the Standard crates instead of hand-rolled code, backends first, then CLIs measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "Standard crates instead of hand-rolled code, backends first, then CLIs",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Kept as is (already standard): `serde`, `serde_json`, `resvg`, `image`, `quick-xml`, `zip`, `tree-sitter-highlight` (syntect was measured and rejected: no TypeScript grammar by default, 92 MB with extended set, decision log line 1595).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Today",
+        "Replace with"
+      ],
+      "rows": [
+        [
+          "`http.rs`, `server.rs`, `app.rs` router, thread-per-connection",
+          "`axum` 0.8 on `tokio`, `tower`, `tower-http`"
+        ],
+        [
+          "`cors.rs`",
+          "`tower_http::cors::CorsLayer` with a predicate"
+        ],
+        [
+          "body limit, 413 handling",
+          "`tower_http::limit::RequestBodyLimitLayer`"
+        ],
+        [
+          "`limiter.rs` (fixed window)",
+          "`tower_governor` / `governor` (GCRA; 429 semantics change)"
+        ],
+        [
+          "`ws/{frame,sha1,mod}.rs`, heartbeat",
+          "axum `ws` (tungstenite); protocol envelopes and methods stay as app code"
+        ],
+        [
+          "SSE writer in `http.rs`",
+          "`axum::response::sse`"
+        ],
+        [
+          "`multipart.rs`",
+          "axum `multipart` (multer)"
+        ],
+        [
+          "`curl.rs`, `opencode.rs` TcpStream client",
+          "`reqwest` (rustls, no default features); SSE read with `eventsource-stream`"
+        ],
+        [
+          "`proc.rs`",
+          "`tokio::process`"
+        ],
+        [
+          "`telemetry.rs`, `log.rs`",
+          "`tracing`, `tracing-subscriber` (JSON), hand-written OTLP/HTTP JSON over `ureq` from one export thread (no opentelemetry crates); secret redaction as one small subscriber layer"
+        ],
+        [
+          "`zod.rs` issue JSON",
+          "`serde` + `serde_path_to_error`; library error text is the response"
+        ],
+        [
+          "`util.rs` random hex, base64, percent-encoding",
+          "`getrandom`/`uuid`, `base64`, `percent-encoding`"
+        ],
+        [
+          "`md.rs` regex chain, `fancy-regex`",
+          "`pulldown-cmark` (HTML differs: viewer expectations re-baselined)"
+        ],
+        [
+          "`Config::from_env`",
+          "`clap` derive with `env`"
+        ],
+        [
+          "error strings",
+          "`thiserror` per layer, `anyhow` only in `main`"
+        ],
+        [
+          "graceful stop",
+          "axum `with_graceful_shutdown`, `tokio::signal`"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Kept as is (already standard): `serde`, `serde_json`, `resvg`, `image`, `quick-xml`, `zip`, `tree-sitter-highlight` (syntect was measured and rejected: no TypeScript grammar by default, 92 MB with extended set, decision log line 1595)."
+        ],
+        [
+          "0b. Baseline: the existing `docs/benchmarks/reports/rca-post-rust/evidence/rca-post-rust.json` (n=5) and VM numbers are the \"before\"; both black-box suites (rca 304 tests, leetcode-backend blackbox) are the oracle, run unchanged except where a deliberate change is listed. Change the expectation first, see it red, then implement."
+        ],
+        [
+          "5. Reports: update each changed package's `docs/audits/reports/<package>.md` (before/after, n=5), log every slice's benchmark in `docs/audits/2026-09-02-token-diet-decision-log.md`."
+        ],
+        [
+          "- Tokio, reqwest and the OTLP stack raise binary size, idle RSS (6.5 MB today) and cold start (32 ms today). Use a small worker count, no default features, and report the numbers; the owner has chosen standard over smallest."
+        ],
+        [
+          "- Benchmark n=5 with the same method as `rca-post-rust.json`; image size; no resident Node process for the services."
+        ],
+        [
+          "Benchmarks: n=5, same method as `docs/benchmarks/reports/rca-post-rust/evidence/rca-post-rust.json`. Baselines: leetcode-backend 0.63 MB binary, 5.7 ms cold start, 2.5 MB idle RSS (measured 2026-10-09); dependency-cost spike for an axum + reqwest + OTLP service: 4.1 MB binary, 9.8 ms start, 6.6 MB RSS; rca-service as in `rca-post-rust.json`."
+        ],
+        [
+          "- Dev Deploy time (owner instruction 2026-10-09, every service in under five minutes): the pipeline builds the Rust services and the runner's `wf` with a `deploy` profile (no fat LTO) and the capture image copies only the two root postinstall scripts into its dependency stages. A push that changes all four deploy targets took 3 min 17 s end to end (run 37966325120, head `846130f`; 7 min 06 s before the capture change, 14 min 45 s before the profile); a Rust-only push took 4 min 11 s; a cold cache fill costs about 15 min once. After that deploy, `/health` of both services reports `846130f`, and the authenticated probes were run again on those images: the WebSocket handshake 7 of 7 and the leetcode routes 8 of 8, secrets never printed. On the final head (`42b1161`, a lockfile change that rebuilt both service images: 3 min 17 s for that Deploy, `remote-chat-agent` 1 min 43 s and `leetcode-backend` 1 min 7 s) the live `/health` of both services reports `42b1161`, BetterStack returns `server.listening` and heartbeat lines for both, the process table of each image shows one process and no `node`, convert and voice answer 200, the authenticated probes pass again (WebSocket 7 of 7, leetcode routes 8 of 8), and the VNC gate of the `wf` in the `da1ce64` image passes 10 of 10 on aarch64 (the `wf` crate did not change after it). The grep of done-when 1 on the head before that change is in the decision log. Detail there."
+        ],
+        [
+          "- Final checks on head `846130f` (2026-10-09): `cargo clippy --workspace --all-targets -- -D warnings` exits 0 in `backend/` and in `clis/`; `cargo test --workspace` passes 229 tests in 18 suites in `backend/` and 138 in 16 in `clis/`, none failed or ignored. The grep over `backend/` and `clis/` for HTTP framing strings, `Sec-WebSocket`, the SHA-1 GUID, `Command::new(\"curl\"|\"wget\"|\"openssl\")`, `httparse`, `extern \"C\"` and hand-set CORS headers finds only test fixtures (the `cdp` test's fake server writes one raw HTTP response). The one production hit of an earlier grep is gone: `wf`'s `app_bench` used to decode the `mappings` field of a source map by hand (the base64-VLQ digits of the source-map format, about 35 lines, `clis/wf/src/app_bench/domain.rs`) and now reads it with the `sourcemap` crate (decoding 25.44 ms to 11.91 ms on a generated 240,000-segment map, binary +65,984 B, twelve small crates added; decision log and `clis-wf.md`). `percent_decode` in `clis/http` is a wrapper over `percent-encoding`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "standard-crates.md",
+      "path": "../../../plans/rust-services/standard-crates.md"
+    }
+  ]
+}

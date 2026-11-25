@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-33-2026-10-06-remote-chat-agent-baseline-and-rca-edge",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent baseline and `rca-edge`",
+  "question": "What was measured for remote-chat-agent baseline and `rca-edge`?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: remote-chat-agent baseline and `rca-edge`",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Baseline, plan and first slice are in `docs/audits/2026-10-06-rca-baseline-and-rust-migration-plan.md`. Numbers: TS service 2.9 to 3.1 s to first `/health`, 237 MB idle; `rca-edge` answers `/health` in 0.48 ms p50 (Node 1.09) from 2.2 MB, and tunnels the rest. Decision: strangler front door in std-only Rust rather than a framework, so the binary stays 334 KB and carries no dependency to vet; routes move one group per PR.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Baseline, plan and first slice are in `docs/audits/2026-10-06-rca-baseline-and-rust-migration-plan.md`. Numbers: TS service 2.9 to 3.1 s to first `/health`, 237 MB idle; `rca-edge` answers `/health` in 0.48 ms p50 (Node 1.09) from 2.2 MB, and tunnels the rest. Decision: strangler front door in std-only Rust rather than a framework, so the binary stays 334 KB and carries no dependency to vet; routes move one group per PR."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1257–1260",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-161-run-40256407776-27817ea7d-vm-ops-api-served-an-older-commit-2026",
+  "subject": "Engineering decisions",
+  "title": "Run 40256407776 (27817ea7d): vm-ops-api served an older commit (2026-10-26)",
+  "question": "What was measured for Run 40256407776 (27817ea7d): vm-ops-api served an older commit (2026-10-26)?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 40256407776 (27817ea7d): vm-ops-api served an older commit (2026-10-26)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - The leg built in 13 s and printed `vm-ops-api-rs unchanged, re-tagged`: the image of input hash `nx-841560c7...` already existed (the earlier e9a868e91 run's build had finished on the VM after that leg hit its 200 s budget), so `sha-27817ea7` re-tags an image stamped `GIT_COMMIT=e9a868e91`. The swap worked (`startedAt` 02:35:53, `imageTag` sha-27817ea7) but `--wait-serving` wanted `27817ea7`, so the leg failed and the tiers after the deploy legs did not run.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- The leg built in 13 s and printed `vm-ops-api-rs unchanged, re-tagged`: the image of input hash `nx-841560c7...` already existed (the earlier e9a868e91 run's build had finished on the VM after that leg hit its 200 s budget), so `sha-27817ea7` re-tags an image stamped `GIT_COMMIT=e9a868e91`. The swap worked (`startedAt` 02:35:53, `imageTag` sha-27817ea7) but `--wait-serving` wanted `27817ea7`, so the leg failed and the tiers after the deploy legs did not run."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2826–2830",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

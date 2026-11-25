@@ -310,4 +310,4 @@ Reading: the plan step costs about $0.26 of Sonnet regardless of task size (thre
 
 ## Ledger
 
-The one-page reading of all of the above, generated from this report and the decision log: [Token Diet Ledger](https://claude.ai/code/artifact/ca5faf22-6c89-4dfb-af37-c23983636b56) (source `docs/audits/2026-09-03-token-diet-ledger.html`).
+The one-page reading of all of the above, generated from this report and the decision log: [Token Diet Ledger](https://claude.ai/code/artifact/ca5faf22-6c89-4dfb-af37-c23983636b56) (source `docs/benchmarks/reports/2026-09-03-token-diet-ledger/evidence/2026-09-03-token-diet-ledger.html`).

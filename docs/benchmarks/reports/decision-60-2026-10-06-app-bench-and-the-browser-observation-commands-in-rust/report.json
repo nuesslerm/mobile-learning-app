@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-60-2026-10-06-app-bench-and-the-browser-observation-commands-in-rust",
+  "subject": "Engineering decisions",
+  "title": "app-bench and the browser observation commands in Rust, `clis/app-bench` TypeScript deleted",
+  "question": "What was measured for app-bench and the browser observation commands in Rust, `clis/app-bench` TypeScript deleted?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: app-bench and the browser observation commands in Rust, `clis/app-bench` TypeScript deleted",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "`wf browser memory` and `wf browser coverage` (V8 heap and DOM counters after a forced GC, optional heap snapshot, precise coverage) now exist in the Rust daemon. The new `browser-observe` suite (5 tests) passes unchanged on the Node daemon and the Rust one: 39.8 s against 4.6 s for the five tests.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `wf browser memory` and `wf browser coverage` (V8 heap and DOM counters after a forced GC, optional heap snapshot, precise coverage) now exist in the Rust daemon. The new `browser-observe` suite (5 tests) passes unchanged on the Node daemon and the Rust one: 39.8 s against 4.6 s for the five tests."
+        ],
+        [
+          "- Wall time, n=1, same fixtures, TS then Rust: memory suite 95.0 s then 3.2 s; runtime 14.9 s then 3.0 s; startup 12.6 s then 1.0 s; planted-leak comparison (two memory runs) 135.9 s then 12.0 s; `ab` 1.7 s then 1.1 s; build (stub export) 0.9 s then 0.16 s."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1440–1448",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

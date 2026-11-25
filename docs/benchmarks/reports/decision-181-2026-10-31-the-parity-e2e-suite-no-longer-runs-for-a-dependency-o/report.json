@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-181-2026-10-31-the-parity-e2e-suite-no-longer-runs-for-a-dependency-o",
+  "subject": "Engineering decisions",
+  "title": "the parity e2e suite no longer runs for a dependency-only change",
+  "question": "What was measured for the parity e2e suite no longer runs for a dependency-only change?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: the parity e2e suite no longer runs for a dependency-only change",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Attribution: the report's container CPU averaged the minute before the run and each container's own sweeps, so \"not in any container\" read 38-44%; on the corrected average the first sample was 2.00 busy = 1.95 containers + 0.08 hypervisor. The \"I/O wait\" row is the kernel's I/O pressure (PSI, peaks 39-45%); the CPU's own I/O wait, the gate's measure, peaked at 4-9%.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Run 4e55c57 (measured): flow-tests 22m 17s, typecheck-lint-unit-tests 11m 09s, and cli-e2e-tests still running after 30 min. The same `pipeline` rebuild takes 11 s on the 4-core sandbox. cli-e2e-tests is the `offload` crate's e2e suite: about 60 tests, 40 of them parity tests that run a live model through rca beside opencode, one at a time (600 s timeouts, a `sleep 70` test). It is model wait, not VM CPU, and a change in `wf-vmops` reached it through the dependency graph."
+        ],
+        [
+          "- Measured in the 4-core sandbox, `--skip parity`: wf 23 s, harness-flow 14 s, wf-bench 23 s, wf-harness 64 s, wf-login 17 s (2.4 min for the five). The 19-31 min `cli-e2e-tests` of runs 4e55c57, da1d256 and 4fd61b8 is therefore the `offload` crate's `ask::` tests (live models through rca) that the smoke split still ran; with opencode's 3 GB cap, rca was also OOM-killed during them (reporting-service `oom` events at 04:17, 05:08, 05:26). Decision: a crate with `tests/e2e/parity.rs` runs no e2e for a dependency-only change; opencode's cap is 5 GB (applied by a hand `wf ship remote-chat-agent --ref dev`, since a compose-only change does not move the image input hash)."
+        ],
+        [
+          "- Attribution: the report's container CPU averaged the minute before the run and each container's own sweeps, so \"not in any container\" read 38-44%; on the corrected average the first sample was 2.00 busy = 1.95 containers + 0.08 hypervisor. The \"I/O wait\" row is the kernel's I/O pressure (PSI, peaks 39-45%); the CPU's own I/O wait, the gate's measure, peaked at 4-9%."
+        ],
+        [
+          "- `wf ci tidy` ran on every run's preflight and walked the runner's whole work volume to size its candidates and list the biggest directories: 19-26 s and about 800 MB of reads each time (CPU I/O wait 17%, PSI 39% on the preflight sample of run 39548ec). It now measures nothing while the disk is under its high-water mark."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3013–3024",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

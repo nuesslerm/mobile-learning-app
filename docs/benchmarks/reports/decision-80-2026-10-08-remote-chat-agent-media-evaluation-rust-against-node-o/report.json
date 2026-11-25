@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-80-2026-10-08-remote-chat-agent-media-evaluation-rust-against-node-o",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent media evaluation, Rust against Node on the same samples (rust-services plan, step 0 of the goal)",
+  "question": "What was measured for remote-chat-agent media evaluation, Rust against Node on the same samples (rust-services plan, step 0 of the goal)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent media evaluation, Rust against Node on the same samples (rust-services plan, step 0 of the goal)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "capability: Tamil check raster (`sharp` + librsvg, 98 MB, install 17.9 MB of libvips) · Node today (median ms / peak RSS): 428 ms / 98.0 MB · Rust or native choice (median ms / peak RSS): `resvg` + `tiny-skia` + `image`: 76.5 ms / 18.8 MB · fidelity: same 920x448 picture; 0.69% of pixels differ by more than 32/255, mean difference 0.8/255 (edge anti-aliasing); Tamil shaped correctly, both pictures sent to the owner · choice: Rust crates",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "capability",
+        "Node today (median ms / peak RSS)",
+        "Rust or native choice (median ms / peak RSS)",
+        "fidelity",
+        "choice"
+      ],
+      "rows": [
+        [
+          "Tamil check raster (`sharp` + librsvg, 98 MB, install 17.9 MB of libvips)",
+          "428 ms / 98.0 MB",
+          "`resvg` + `tiny-skia` + `image`: 76.5 ms / 18.8 MB",
+          "same 920x448 picture; 0.69% of pixels differ by more than 32/255, mean difference 0.8/255 (edge anti-aliasing); Tamil shaped correctly, both pictures sent to the owner",
+          "Rust crates"
+        ],
+        [
+          "PDF text (`pdfjs-dist`, install 35.3 MB)",
+          "282 ms / 119.8 MB (309 ms / 118.6 MB on the Chromium PDF)",
+          "`pdftotext` (poppler, 718 KB + libs): 10.8 ms / 15.6 MB; pure-Rust `pdf-extract`: 5.8 ms / 11.8 MB",
+          "plain PDF: the same words from all three. Chromium PDF: pdfjs splits ligatures and Tamil (\"con fi rming\", \"த ம  ழ்\"); `pdf-extract` keeps ligature code points and loses one Tamil vowel sign (\"தம ழ்\"); `pdftotext` is exact (\"தமிழ் எழுத்து\", \"office, affluent\")",
+          "`pdftotext` spawned from Rust (native binary, no Node), `pdf-extract` as the fallback when the binary is absent"
+        ],
+        [
+          "DOCX text (`mammoth`, 85 MB, install 2.5 MB)",
+          "253 ms / 84.7 MB",
+          "`zip` + `quick-xml`: 2.1 ms / 12.0 MB",
+          "byte-identical on the sample except a trailing paragraph break the Rust draft omits (one line to fix)",
+          "Rust crates"
+        ],
+        [
+          "OCR (`tesseract.js`, 136 MB, install 43.2 MB of wasm)",
+          "617 to 643 ms / 134 to 136 MB",
+          "`tesseract` binary: 223 ms / 37.3 MB; pure-Rust `ocrs` (12.8 MB binary + 12 MB models): 408 ms / 162 MB",
+          "tesseract binary: identical text; `ocrs` misread one character (`472:9` as `472;9`) and uses more memory than the Node it would replace",
+          "`tesseract` binary spawned from Rust (apt: about 7 MB of libraries and 15 MB of English data); `ocrs` rejected"
+        ],
+        [
+          "Syntax highlighting (`shiki`, 117 MB)",
+          "467 to 540 ms / 113 to 117 MB",
+          "`tree-sitter-highlight` with compiled-in grammars: 41 ms / 11.9 MB for TypeScript",
+          "741 spans in 15 classes against shiki's 545 in 6 colours; the viewer's CSS maps classes to colours",
+          "`tree-sitter-highlight`. Tried and rejected: `syntect` default syntaxes have no TypeScript (it fell back to plain text); `syntect` with `two-face`'s extended set highlights it but loads 92 MB and takes 530 to 1,020 ms; Sublime's own TypeScript syntax does not load in `syntect`"
+        ],
+        [
+          "Speech to text",
+          "whisper.cpp binary behind ffmpeg, an HTTP sidecar, or Groq",
+          "the same binaries and URLs, spawned or called with `curl` from Rust",
+          "unchanged by construction",
+          "no Node; ffmpeg startup is 54 ms / 44.8 MB per call as today"
+        ],
+        [
+          "Multipart upload (`busboy`)",
+          "in Node",
+          "a small Rust parser",
+          "covered by the convert and voice black-box tests",
+          "Rust"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier: measurement, no service code changed. Method as `wf cli-bench`: a fresh process per run, wall time and peak RSS from `wait4` rusage, n=5, medians, x86_64 4-core sandbox, Node 22, release builds with LTO. The Node side imports the very packages the service does (`sharp`, `shiki`, `pdfjs-dist`, `mammoth`, `tesseract.js`) through a script that copies the service's code paths; the Rust side is a scratch crate. Samples: an ink SVG and the glyph அ for the Tamil check, a 2-page reportlab PDF and a Chromium-printed PDF (two columns, a table, ligatures, Tamil), a python-docx file (heading, tab, line break, bullets, a table), a 900x260 OCR image, and `routes/vcs.ts` for highlighting."
+        ],
+        [
+          "- What the service really uses (the plan's \"no small Rust equivalent\" was wrong): the media surface is about 1.2k lines. `playwright`, `diff2html` and `pdf-parse` are not imported anywhere in `src` (dead dependencies, 5.0 + 13.0, 2.2 and 27.2 MB installed). Speech to text is already out of Node: `whisper-node` is only a vendored whisper.cpp build that the service runs as a binary behind an ffmpeg re-encode, or an HTTP sidecar, or Groq, so Rust spawns the same binaries and calls the same URLs. The markdown preview is a hand-written converter, not a library."
+        ],
+        [
+          "- Conclusion: no capability needs an on-demand Node worker. The decision the plan left to the owner resolves to Rust for every route, with three native binaries the image already carries or can add (`pdftotext`, `tesseract` and its English data, `ffmpeg`) and the existing whisper.cpp build; none of them is Node. The Node media packages total about 245 MB installed (`ffmpeg-static` 76.3, `tesseract.js-core` 43.2, `pdfjs-dist` 35.3, `pdf-parse` 27.2, `@img/sharp` 17.9, `whisper-node` 13.8, `playwright-core` 13.0, the rest small)."
+        ],
+        [
+          "- Caveats said plainly: samples are small, so the Node figures include its start-up (about 80 MB for the runtime alone) as the service pays it only once per process, not per request; the per-request difference is therefore smaller than these per-process numbers, and the number that matters is the resident set of the whole service, measured in the pre and post benchmark records. Tamil text in PDFs is the one place pure Rust (`pdf-extract`) is worse than a native binary, which is why `pdftotext` is the primary."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1637–1654",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

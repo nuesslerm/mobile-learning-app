@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-108-2026-10-09-dev-ci-builds-the-services-with-a-deploy-profile-not-f",
+  "subject": "Engineering decisions",
+  "title": "dev CI builds the services with a deploy profile, not fat LTO (Deploy under five minutes, first slice)",
+  "question": "What was measured for dev CI builds the services with a deploy profile, not fat LTO (Deploy under five minutes, first slice)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: dev CI builds the services with a deploy profile, not fat LTO (Deploy under five minutes, first slice)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: The owner asked for the dev Deploy workflow to pass and deploy every service in under five minutes. Measured first, on run 310 (head `5137cb0`, the whole stack changed, one self-hosted runner): the `plan` job took 3 min 36 s, of which `install-wf` was 3 min 16 s (the runner's own `wf`, built from source because `clis/` changed and the cache is keyed by the hash of its sources; `actions/checkout` runs `git clean -ffdx`, so `clis/target` never survives and eve…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "The owner asked for the dev Deploy workflow to pass and deploy every service in under five minutes. Measured first, on run 310 (head `5137cb0`, the whole stack changed, one self-hosted runner): the `plan` job took 3 min 36 s, of which `install-wf` was 3 min 16 s (the runner's own `wf`, built from source because `clis/` changed and the cache is keyed by the hash of its sources; `actions/checkout` runs `git clean -ffdx`, so `clis/target` never survives and every miss compiles every dependency); the `deploy (remote-chat-agent)` leg then waited 3 min 50 s for the runner and spent 6 min 57 s in \"Build, push and redeploy\", 6 min 19 s of it inside the image build, which compiles `wf` (stage `wfbuilder`) and `rca-service` (stage `rcabuilder`) in parallel on the VM's four cores. The run took 14 min 45 s end to end; later pushes queued behind it one after the other (runs 311 to 314)."
+        ],
+        [
+          "Measured here (a four-core x86 machine, so ratios, not the VM's seconds): changing `remote-chat-agent/rs/src/lib.rs` and rebuilding `rca-service` takes 116 s with the release profile and 34 s with the deploy profile; both services built from cold take 156 s with the deploy profile. Binaries grow: `rca-service` 21.85 MB to 25.81 MB, `leetcode-backend-rs` 4.31 MB to 7.12 MB. The service benchmark (`bench:service`, n=5 fresh-process medians, the same harness, files `docs/audits/benchmarks/rca-ci-release-lto.json` and `rca-ci-deploy-profile.json`) shows no change beyond noise: cold start to `/health` 34.0 ms and 35.8 ms, idle resident set 10.29 MB and 10.26 MB, `/health` p50 0.54 and 0.47 ms, a chat turn 105.8 and 105.6 ms, a one-shot run 109.5 and 109.1 ms, convert DOCX 1.30 and 1.26 ms, the Tamil check 163.3 and 164.1 ms, a hundred WebSocket connections 1.00 and 1.00 ms per connection, peak resident set 42.6 MB and 42.3 MB."
+        ],
+        [
+          "Tests, by tier. Integration, on the deploy-profile binaries (what the pipeline ships; the harnesses take `RCA_SERVICE_BIN` and `LEETCODE_BACKEND_CMD`): `remote-chat-agent` 314 of 314 and `leetcode-backend` 79 of 79, none skipped. The pipeline result is the e2e tier. First run with the profile (run 315, head `5f6d4d4`, cold: none of the deploy-profile caches existed): `plan` 3 min 25 s (the runner's `wf` compiled every dependency once, 3 min 5 s, into the new persistent target directory; the `wf` crate itself took 34 s of that), `deploy (remote-chat-agent)` 9 min 27 s, `deploy (leetcode-backend)` 1 min 35 s, 15 min 2 s end to end, all green and both services redeployed from the pushed head. That run pays for filling the caches (run 310 took 14 min 45 s with warm caches). Warm run (run 316, head `f866994`, a doc-comment change in `service-kit` and `rca-core`, which the plan reads as a change to `wf`, `remote-chat-agent` and `leetcode-backend`): `plan` 1 min 4 s (the runner's `wf` recompiled the `wf` crate alone, 40 s, in the persistent target directory), `deploy (remote-chat-agent)` 2 min 5 s (build, push and redeploy 1 min 47 s, against 9 min 27 s cold and 6 min 57 s before the change), `deploy (leetcode-backend)` about 59 s, 4 min 11 s end to end from the push, all green. `workflow_dispatch` with `force` could not be used from this session (the GitHub integration answers 403 \"Resource not accessible by integration\" to a dispatch), so the all-services case below is a push that touches every service's package."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1997–2005",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-47-2026-10-06-wf-auth-login-and-remote-login-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf auth login` and `remote-login` in Rust",
+  "question": "What was measured for `wf auth login` and `remote-login` in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf auth login` and `remote-login` in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Decision: port both for the five tools whose credential is a file or a command (claude, codex, opencode, gemini, gcloud), with their login commands and validity checks as data in `auth.rs` (claude and the file tools: the `validCheck` path, else all `credentialPaths`; gcloud: its `gcloud auth list | grep .` probe). `login` runs the tool's command through `sh -c` with inherited stdio, reports a non-zero exit as `login command exited N`, then checks the credent…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision: port both for the five tools whose credential is a file or a command (claude, codex, opencode, gemini, gcloud), with their login commands and validity checks as data in `auth.rs` (claude and the file tools: the `validCheck` path, else all `credentialPaths`; gcloud: its `gcloud auth list | grep .` probe). `login` runs the tool's command through `sh -c` with inherited stdio, reports a non-zero exit as `login command exited N`, then checks the credential. `remote-login` starts a session on the listener (`POST /auth/start {tool}`), prints the link, polls the same check every `VNC_AUTH_POLL_INTERVAL_MS` (2 s) up to `VNC_AUTH_CAPTURE_TIMEOUT_MS` (5 min), then makes the best-effort `/auth/done`; an unknown tool fails before any secret or network access. `leetcode` (its credential lives in the browser and is verified against a backend) falls through to the TS. With this the `wf auth` group is native except leetcode."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1331–1336",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

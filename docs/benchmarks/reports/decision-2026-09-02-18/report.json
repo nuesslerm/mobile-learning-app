@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-18",
+  "subject": "Engineering decisions",
+  "title": "Phase K",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Phase K",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Phase K (token diet for the active agent) goes first, before the skill tree",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 1 | 2026-09-02 18:45 | Phase K (token diet for the active agent) goes first, before the skill tree | user request; session cost map: cache reads 81%, cache writes 12%, output 7%, uncached input 0% over 4,231 API calls / 524 turns; median context per call 442 K; fixed prefix ≈50 K tokens per session | plan file |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 18",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

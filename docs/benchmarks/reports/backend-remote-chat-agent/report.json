@@ -1,0 +1,666 @@
+{
+  "schemaVersion": 1,
+  "id": "backend-remote-chat-agent",
+  "subject": "Engineering measurements",
+  "title": "backend/remote-chat-agent: the service ported from Node to Rust",
+  "question": "What did the backend/remote-chat-agent: the service ported from Node to Rust measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "backend/remote-chat-agent: the service ported from Node to Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmarks: n=5 for every row above; slice benchmarks and the decisions are in `docs/audits/2026-09-02-token-diet-decision-log.md`.",
+  "variants": [
+    {
+      "id": "node",
+      "label": "Node"
+    },
+    {
+      "id": "rust",
+      "label": "Rust"
+    },
+    {
+      "id": "before-std-only",
+      "label": "Before (std-only)"
+    },
+    {
+      "id": "after",
+      "label": "After"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    },
+    {
+      "id": "table-2",
+      "label": "Published comparison 2"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "Cold start to first `/health`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "Idle resident set",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "Resident set after 300 health checks",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-5",
+      "label": "`/health` p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-12",
+      "label": "Markdown preview p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-13",
+      "label": "TypeScript preview p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-15",
+      "label": "Voice transcribe through the sidecar p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-16",
+      "label": "One WebSocket request p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-17",
+      "label": "A hundred WebSocket connections, per connection",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-2-row-1",
+      "label": "Binary",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-2-row-2",
+      "label": "Cold start to `/health`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-2-row-3",
+      "label": "Idle RSS",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-2-row-4",
+      "label": "`GET /health` p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-2-row-5",
+      "label": "Chat turn p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-2-row-6",
+      "label": "Voice transcribe p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-2-row-7",
+      "label": "WebSocket request p50",
+      "unit": "ms",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 503.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 32.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 133.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 139.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.955,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.312,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-12",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 1.18,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-12",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.95,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-13",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 1.21,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-13",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.62,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-15",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-15",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 9.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-16",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.13,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-16",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.066,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-17",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.991,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-17",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.968,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-std-only",
+      "scenario": "table-2",
+      "metric": "table-2-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 17.67,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-2",
+      "metric": "table-2-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 21.85,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-std-only",
+      "scenario": "table-2",
+      "metric": "table-2-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 32.54,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-2",
+      "metric": "table-2-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 34.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-std-only",
+      "scenario": "table-2",
+      "metric": "table-2-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.53,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-2",
+      "metric": "table-2-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 10.37,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-std-only",
+      "scenario": "table-2",
+      "metric": "table-2-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-2",
+      "metric": "table-2-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.38,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-std-only",
+      "scenario": "table-2",
+      "metric": "table-2-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 105.52,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-2",
+      "metric": "table-2-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 104.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-std-only",
+      "scenario": "table-2",
+      "metric": "table-2-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.57,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-2",
+      "metric": "table-2-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 2.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-std-only",
+      "scenario": "table-2",
+      "metric": "table-2-row-7",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.06,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-2",
+      "metric": "table-2-row-7",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.087,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Node",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "Cold start to first `/health`",
+          "503.4 ms",
+          "32.4 ms"
+        ],
+        [
+          "Idle resident set",
+          "133.6 MB",
+          "6.5 MB"
+        ],
+        [
+          "Resident set after 300 health checks",
+          "139.5 MB",
+          "6.6 MB"
+        ],
+        [
+          "Peak resident set of the whole session (median, worst run)",
+          "491.6 MB, 497.1 MB",
+          "43.4 MB, 54.8 MB"
+        ],
+        [
+          "`/health` p50",
+          "0.955 ms",
+          "0.312 ms"
+        ],
+        [
+          "Chat turn p50 / resident after (fake opencode, 100 ms delay in both)",
+          "121.6 ms / 178.5 MB",
+          "105.8 ms / 8.6 MB"
+        ],
+        [
+          "One-shot run `/runs` p50 / resident after",
+          "121.6 ms / 168.9 MB",
+          "106.8 ms / 9.0 MB"
+        ],
+        [
+          "Convert PDF p50 / resident after",
+          "12.4 ms / 228.3 MB",
+          "12.8 ms / 9.0 MB"
+        ],
+        [
+          "Convert PDF from Chromium p50 / resident after",
+          "16.0 ms / 232.7 MB",
+          "12.8 ms / 9.1 MB"
+        ],
+        [
+          "Convert DOCX p50 / resident after",
+          "61.7 ms / 293.8 MB",
+          "1.1 ms / 9.3 MB"
+        ],
+        [
+          "Diff register and page p50 / resident after",
+          "39.5 ms / 326.8 MB",
+          "8.7 ms / 14.7 MB"
+        ],
+        [
+          "Markdown preview p50",
+          "1.18 ms",
+          "0.95 ms"
+        ],
+        [
+          "TypeScript preview p50",
+          "1.21 ms",
+          "0.62 ms"
+        ],
+        [
+          "Tamil check p50 / resident after",
+          "479.9 ms / 491.2 MB",
+          "156.8 ms / 38.3 MB"
+        ],
+        [
+          "Voice transcribe through the sidecar p50",
+          "6.6 ms",
+          "9.7 ms"
+        ],
+        [
+          "One WebSocket request p50",
+          "0.130 ms",
+          "0.066 ms"
+        ],
+        [
+          "A hundred WebSocket connections, per connection",
+          "0.991 ms",
+          "0.968 ms"
+        ],
+        [
+          "A hundred held WebSocket connections, resident",
+          "143.4 MB (isolated run)",
+          "11.4 MB (isolated run, slice 6)"
+        ],
+        [
+          "Artifact",
+          "14,869,215 byte bundle, plus the media packages it needed installed",
+          "17,671,312 byte binary"
+        ],
+        [
+          "Image, unpacked (VM, arm64)",
+          "904,610,891 bytes, 30 layers, 117 Debian packages",
+          "837,936,988 bytes, 28 layers, 172 Debian packages"
+        ],
+        [
+          "Install footprint in the image",
+          "`/app` 229,940 kB (service and `node_modules`)",
+          "`/usr/local/bin/rca-service` 16,608 kB"
+        ],
+        [
+          "Container start to first answered `/health` (VM, 3 trials)",
+          "1,496 / 1,183 / 1,155 ms",
+          "393 / 307 / 296 ms"
+        ],
+        [
+          "Container idle resident set, PID 1 (VM)",
+          "134,528 kB",
+          "5,180 kB"
+        ],
+        [
+          "Processes in the container five seconds after start",
+          "1 (`node dist/bundle/index.mjs`)",
+          "1 (`/usr/local/bin/rca-service`)"
+        ],
+        [
+          "Direct production dependencies of the package",
+          "22",
+          "6 (plus the claude SDK, optional, CLI only)"
+        ],
+        [
+          "Lockfile",
+          "",
+          "1,192 lines fewer"
+        ],
+        [
+          "Source in the package",
+          "22,110 lines in 116 files",
+          "8,089 lines in 46 files (the CLI) and 14,463 lines of Rust"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before (std-only)",
+        "After"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "17.67 MB",
+          "21.85 MB"
+        ],
+        [
+          "Cold start to `/health`",
+          "32.54 ms",
+          "34.5 ms"
+        ],
+        [
+          "Idle RSS",
+          "6.53 MB",
+          "10.37 MB"
+        ],
+        [
+          "`GET /health` p50",
+          "0.40 ms",
+          "0.38 ms"
+        ],
+        [
+          "Chat turn p50",
+          "105.52 ms",
+          "104.8 ms"
+        ],
+        [
+          "Voice transcribe p50",
+          "8.57 ms",
+          "2.2 ms"
+        ],
+        [
+          "WebSocket request p50",
+          "0.06 ms",
+          "0.087 ms"
+        ],
+        [
+          "WebSocket, 100 connections p50",
+          "0.90 ms",
+          "0.81 ms (after the `TCP_NODELAY` fix; 44.0 ms before it)"
+        ],
+        [
+          "Peak RSS over the session",
+          "54.69 MB",
+          "54.08 MB (slice C)"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Before is the Node production bundle (`node dist/bundle/index.mjs`) recorded before any port; after is the finished Rust binary. n=5 fresh processes, medians, one scripted session per process, the same harness (`tests/bench/service.benchmark.test.ts`). Records: `docs/audits/benchmarks/rca-pre-node.json`, `rca-pre-node-ws.json`, `rca-pre-node-runs.json` (before) and `rca-post-rust.json` (after). Local numbers are on an x86_64 developer sandbox; container numbers are on the VM (arm64)."
+        ],
+        [
+          "Said plainly: two routes are level or slower at the median because the Rust service spawns the tools Node ran in process (`pdftotext`, 12.8 against 12.4 ms; `curl` for the sidecar, 9.7 against 6.6 ms), each about 8 ms of process start. Idle memory rose from 5.8 to 6.5 MB when the heartbeat, exporter and vault registry came in. The first Rust image was 209 MB larger than Node's (1,114,084,028 bytes) because Debian's `ffmpeg` pulls 200 packages; the static build that the Node image's `ffmpeg-static` fetched replaced it. The whisper.cpp tree is 232 MB of the image, almost all of it the two models, which the VM does not use while `STT_URL` names the sidecar."
+        ],
+        [
+          "Fidelity against the Node image on the same samples, through the real routes, on the VM: speech to text identical on seven recordings (WAV, WebM, M4A); DOCX identical; a plain PDF has the same 563 words with one table's cells in a different reading order; a Chromium PDF has 114 words in Rust against Node's 126 because `pdfjs` splits ligatures and mangles Tamil that `pdftotext` returns exactly. No route fails a fidelity test in Rust's disfavour, so no Node worker exists. The Tamil raster differs from sharp's in 0.69% of pixels by more than 32/255 (mean 0.80/255), edge anti-aliasing."
+        ],
+        [
+          "Benchmarks: n=5 for every row above; slice benchmarks and the decisions are in `docs/audits/2026-09-02-token-diet-decision-log.md`."
+        ],
+        [
+          "- The vault lookup, the logger and the heartbeat follow the Node boot order; with registered variables unset the boot waits for the vault (about 3 s locally), as Node did."
+        ],
+        [
+          "- Node, pnpm and the 232 MB whisper.cpp tree stay in the image (worktree installs, `agent-deps replay`, the STT fallback); the models are the obvious next saving."
+        ],
+        [
+          "The standard stack costs about 4 MB of binary and 4 MB of idle memory, the price the owner accepted; routes are unchanged within noise, and voice transcribe is about four times faster because the STT call is a pooled `reqwest` request and no longer a spawned `curl`. Records: `docs/audits/benchmarks/rca-pre-std.json`, `rca-post-std.json`, `rca-post-serde.json`."
+        ],
+        [
+          "- E2E (the real VM, `wf vm exec` and `wf vm logs`): image `sha-66bf481c` built by the VM from the branch; `/health` reports that commit; the unauthenticated WebSocket upgrade is 401; convert returns the text of a `.docx` and refuses a text file; voice transcribes a synthesised recording (200, \"Make the title bigger.\") through the real STT sidecar; BetterStack returns the new `tracing` lines. The authenticated WebSocket handshake was run afterwards, once the approval guard allowed a vault fetch beside other commands (PR #342): from the sandbox through `wf browser tunnel remote-chat-agent`, with Node 22's built-in `WebSocket` client, the upgrade with the token is accepted (101), the first frame is `hello` (protocol 1, heartbeat 15000 ms), `ping` returns `pong` with the same `ts`, `server.probe` answers `ok` with `availableClis` `[\"opencode\"]` and `selectedCli` `opencode`, a request with an empty id is `bad_envelope`, an unknown method is `unknown_method`, and the socket stays open (7 of 7; only kinds, flags and codes were printed, never the token). Details in the decision log."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "backend-remote-chat-agent.md",
+      "path": "../../../audits/reports/backend-remote-chat-agent.md"
+    }
+  ]
+}

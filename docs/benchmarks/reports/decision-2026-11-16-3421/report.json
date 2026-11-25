@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-16-3421",
+  "subject": "Engineering decisions",
+  "title": "The frontend feature map and lint path list come from `package-types",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-16",
+  "revision": null,
+  "environment": null,
+  "workload": "The frontend feature map and lint path list come from `package-types",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "the frontend feature map and lint path list come from `package-types.json` (issue #83 H4; test type: flow tests for the generators plus a local lint run, n=1). `wf check --layout` renders the `feature-map` region of `features/feature-map.cjs` and the `rings` region of `depcruise.presets.cjs`; the app `lint` script reads the in-app feature paths and the package ignores from the map instead of…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 16 Nov, the frontend feature map and lint path list come from `package-types.json` (issue #83 H4; test type: flow tests for the generators plus a local lint run, n=1). `wf check --layout` renders the `feature-map` region of `features/feature-map.cjs` and the `rings` region of `depcruise.presets.cjs`; the app `lint` script reads the in-app feature paths and the package ignores from the map instead of hard-coding them. The cruised-module count is unchanged (549 modules before and after, identical rule set, 0 violations); a planted feature directory was cruised after `wf check --layout --write` (552 modules, its domain-to-ui import failed `domain-imports-nothing`) with no script edit. `wf check --layout` took 0.10 s, the app's oxlint step 2.9 s. `depcruise.feature.cjs` is removed: nothing required it, its only reference was a cache input in `nx.json` that `archRules` (`frontend/feature-kit/**`) already covers. Not measured: CI, the full Nx cache replay."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3421",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "id": "token-diet-initial-experiments",
+  "subject": "Engineering decisions",
+  "title": "Initial token-diet experiments",
+  "question": "What was measured for Initial token-diet experiments?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Agent turns, task chains and tool-use experiments",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "#: 1 · when: 2026-09-02 18:45 · decision: Phase K (token diet for the active agent) goes first, before the skill tree · evidence: user request; session cost map: cache reads 81%, cache writes 12%, output 7%, uncached input 0% over 4,231 API calls / 524 turns; median context per call 442 K; fixed prefix ≈50 K tokens per session · commit: plan file",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "#",
+        "when",
+        "decision",
+        "evidence",
+        "commit"
+      ],
+      "rows": [
+        [
+          "1",
+          "2026-09-02 18:45",
+          "Phase K (token diet for the active agent) goes first, before the skill tree",
+          "user request; session cost map: cache reads 81%, cache writes 12%, output 7%, uncached input 0% over 4,231 API calls / 524 turns; median context per call 442 K; fixed prefix ≈50 K tokens per session",
+          "plan file"
+        ],
+        [
+          "2",
+          "2026-09-02 18:50",
+          "Prose compression is a readability lever, not a cost lever, here; the ladder scores `total_cost_usd`",
+          "cost map above; JetBrains caveman −8.5% output; Max Taylor \"Be brief.\" ties caveman",
+          "docs/solutions entry `6478e030`"
+        ],
+        [
+          "3",
+          "2026-09-02 19:20",
+          "Runner stops after 3 consecutive usage-limit replies; `--resume` keeps non-errored rows",
+          "688 of 792 stage-1 rows and 16 of 84 B1 cells were \"hit your session limit\" replies booked as errors",
+          "`59f1802f`"
+        ],
+        [
+          "4",
+          "2026-09-02 19:30",
+          "Two shipped Stop hooks (`check-eas-published.js`, `check-gh-pages-published.js`) were crashing on every turn (`require` under ESM); fixed",
+          "transcript attachments `hook_non_blocking_error` in the T0 smoke session; reproduced by running the hook",
+          "`27d615d7`"
+        ],
+        [
+          "5",
+          "2026-09-02 19:55",
+          "`npm install -g squeez` postinstall wrote hooks, a statusline and two slash commands into `~/.claude/`; reverted, squeez wired per scratch dir only",
+          "`~/.claude/settings.json` diff (backup in the session scratchpad); user settings now `{}`",
+          "`2384d14c`"
+        ],
+        [
+          "6",
+          "2026-09-02 20:05",
+          "`outputStyle` and `effortLevel` are managed from `.agents/config/claude-settings.json` by `agent-config-sync`; hand edits are drift",
+          "sync tests (6)",
+          "`95ad0461`"
+        ],
+        [
+          "7",
+          "2026-09-02 20:10",
+          "Per-turn hooks print nothing on a healthy turn (env-bootstrap ok lines, caveat-guard receipts)",
+          "207 hook injections / 90 KB in this session's transcript; kept: failures, blocks, judge outages, dead-guard alarm",
+          "`bfbc472a`"
+        ],
+        [
+          "8",
+          "2026-09-02 21:05",
+          "Ladder 1 read: prefix diet is the money rung (chat −27%, agentic −12% at judge −0.03, gates 3/3); style and quiet hooks flat on cost; squeez +11% on chat, +2% agentic, agentic output 2.8×; effort medium judge 0.78; cumulative code diet judge 0.72",
+          "`.agents/tmp/token-diet/ladder1/rows.csv`, 384 sessions, $34.16, 0 errors",
+          "`612bbb80`"
+        ],
+        [
+          "9",
+          "2026-09-02 21:20",
+          "squeez not shipped; rtk still to be measured on the user's request",
+          "decision 8 + JetBrains rtk +7.6%",
+          "—"
+        ],
+        [
+          "10",
+          "2026-09-02 21:35",
+          "Standalone code diet (X7) not a default",
+          "`ladder2-x7/rows.csv`: chat out 345, judge 0.78, agentic $0.1225 (+1% vs T3)",
+          "—"
+        ],
+        [
+          "11",
+          "2026-09-02 21:40",
+          "A harder style (3 lines, bullets only) is measured because the 5-line style only cut chat output 582 → 542",
+          "ladder1 T0 vs T1; user: \"super short compressed output\"",
+          "`1bf341c8`"
+        ],
+        [
+          "12",
+          "2026-09-02 21:50",
+          "Chains: the style saves whole-conversation cost (chat-20 −41%, agentic-15 −14%, mixed-30 −27%) by saving calls, not words; 🪨 drops to 72% of turns on mixed-30, so decay past ~20 turns is real",
+          "`ladder2-chains/rows.csv`, T0/T1 n=2, 266 turns",
+          "—"
+        ],
+        [
+          "13",
+          "2026-09-02 21:55",
+          "Scope cut to the likely savers: finish X8 (hard style + quiet hooks + prefix diet), X9 (+ mask-reads), X10 (+ rtk, agentic), mixed-30 for T3 and the hard style; drop T5 chains and further code-diet arms; ship immediately after; every decision logged here",
+          "user direction",
+          "this file"
+        ],
+        [
+          "14",
+          "2026-09-02 22:35",
+          "mixed-30 chain: hard style + quiet hooks + prefix diet (XH) is the winner: $0.612 vs T0 $0.899 mean (−32%), 🪨 30/30; soft style T1 decays (🪨 8/23 on run 2); T3 $0.664 (−26%, 🪨 26/30)",
+          "`.agents/tmp/token-diet/ladder2-chains/rows.csv`",
+          "—"
+        ],
+        [
+          "15",
+          "2026-09-02 22:38",
+          "Hard style single turns (X8, 21 of 48): chat $0.0650 / 400 tokens / judge 0.78 vs T3 $0.0647 / 421 / 0.80; agentic $0.111 vs T3 $0.121, gates passing. Equal cost, better canary: hard style ships",
+          "`.agents/tmp/token-diet/ladder2-hard/rows.csv`",
+          "—"
+        ],
+        [
+          "16",
+          "2026-09-02 22:50",
+          "Shipped: 26 skills removed (22 locked incl. caveman, 4 ungated repo skills), `paths: frontend/**` on workflow-cli, CLAUDE.md 11.7 → 5.9 KB, hard `token-diet` style on via `.agents/config/claude-settings.json`, caveman reminder hook + flag + script removed, `agentation` MCP off by default. Applies to new sessions; this session after `/clear`",
+          "ladder 1 T3 (−27% chat, −12% agentic), decisions 14–15",
+          "`d7fc7b8b`"
+        ],
+        [
+          "17",
+          "2026-09-02 22:50",
+          "rtk: crates.io `rtk` is an unrelated crate; `rtk-ai/rtk` first built from a shallow `master` clone (Cargo.toml 0.42.4, lagging the tags), then rebuilt from tag v0.47.0 (`34fe255`) before the rtk arm ran; measured as X10 = shipped config + rtk on the agentic cases before any hook ships; squeez stays out (decision 8)",
+          "user request; JetBrains rtk +7.6% prior",
+          "—"
+        ],
+        [
+          "18",
+          "2026-09-02 23:05",
+          "Ladder 3 launched on the shipped config: T0 (new baseline) vs X9 = mask-reads vs X10 = rtk 0.42.4, chat + agentic, n=2; decides the Read masker and the rtk hook by `total_cost_usd`",
+          "`.agents/tmp/token-diet/ladder3/`",
+          "—"
+        ],
+        [
+          "19",
+          "2026-09-02 23:10",
+          "Ladder 3 (shipped baseline vs Read masker vs rtk) stopped by the usage limit after 19 sessions; the guard stopped it after 3 limit replies as designed. Partial new-T0 on the shipped config: chat $0.0643 (old T0 $0.0886, −27%), agentic $0.1074 (old $0.1379, −22%), gates 100%. X9/X10 not started; resume with `--resume` when the window opens (00:10 UTC)",
+          "`.agents/tmp/token-diet/ladder3/rows.csv`",
+          "`14fbd2d2` (audit)"
+        ],
+        [
+          "20",
+          "2026-09-03 05:20",
+          "Ladder 3 complete on the shipped baseline (77 sessions, $5.99, 0 new errors): T0 chat $0.0731 / judge 0.73, agentic $0.1278; **X9 Read masker** chat $0.0603 (−18%), agentic $0.1100 (−14%), judge 0.81, gates 100% → ships; **X10 rtk 0.47.0** chat $0.0593 (−19%), agentic $0.1231 (−4%), judge 0.82, gates 100% → ships for the chat-shaped saving, agentic neutral (JetBrains' +7.6% not reproduced here)",
+          "`.agents/tmp/token-diet/ladder3/rows.csv`",
+          "—"
+        ],
+        [
+          "22",
+          "2026-09-03 05:25",
+          "B1 complete (84 cells, 0 errors): W (whole task on deepseek-v4-flash) $0.061 vs A Sonnet $1.844 summed over 7 tasks, 7/7 gates, total wall-clock 481s vs 535s; H Haiku $0.850; S in-session dispatch $1.635, 1496s, 3 gates dropped. Ratios written for `wf opencode savings`; Phase A eagerness sweep restarted fresh on the shipped config (`stage1b`) since the old L0–L3 rows measured the pre-diet baseline",
+          "`.agents/tmp/delegation-benchmark/b1/results.csv`, `savings-ratios.json`",
+          "see commit below"
+        ],
+        [
+          "23",
+          "2026-09-03 09:20",
+          "Eagerness sweep cut for cost (user): 402 of 792 sessions kept ($104), the sweep stopped. L3 reminder is the best complete lever (first 0.36, any 0.76, ctrl FP 0.06, $0.230/session); L1/L2 barely move; L5 tracks L3 at n=9 positives; L6/L7/L8 first-decision 0.00. Remaining runs only on the untested bets at n=1 on positives: L9, L10, L11, and the combination L3+L5+L11, plus L11 on controls (false-fire risk); ≈50 sessions, ≈$13",
+          "`.agents/tmp/delegation-eagerness/stage1b/rows.csv`; audit section \"Eagerness sweep, stage 1b\"",
+          "see commit below"
+        ],
+        [
+          "24",
+          "2026-09-03 09:30",
+          "Eagerness work stopped (user): L9/L10/L11 and the combination are not run; the shipped L3 reminder stays the delegation nudge (stage 1b: first 0.36, any 0.76). Focus moves to the cheap-flow skill tree: brainstorm → spec → research and implementation delegated to opencode",
+          "stage 1b table; user direction",
+          "see commit below"
+        ],
+        [
+          "25",
+          "2026-09-03 09:40",
+          "Remaining Sonnet evaluation runs cut to the minimum that still answers a question (user): B2 shrinks to arm T (the cheap-flow tree, headless) on one task per size (multi-file-rename, add-validation-feature, thrifty-07-taskgraph) at n=1, compared against B1's A rows; arms D (the shipped config is what stage 1b measured) and P (L11 skipped, decision 24) are not run; the tree's own pressure eval is 2 cases at n=1 (with and without the skills). No agent-evals process is running; the only background job is the live `cheap-flow work cf-check` run on opencode",
+          "decisions 22–24",
+          "see commit below"
+        ],
+        [
+          "26",
+          "2026-09-03 09:55",
+          "First live run of the cheap-flow tree on a real feature (`cheap-flow check <slug>`, plan validation before the first paid dispatch): research $0.0078 / 48s (precise file:line answers, found that `work` let `topoOrder` throws escape); 3 units on the implementer agent, 3/3 gates green on the first attempt, $0.0180 / 258s; reviewer found 2 risks + 3 nits, no blocker, 2 risks fixed (tests), nit 3 fixed, nits 4–5 dismissed. Claude wrote requirements, contract, units.jsonl and read only briefs; the skills now run `check` from `/cf-plan`",
+          "`docs/archive/plans/cf-check/{research.md,manifest.json,review.md}`, `.agents/tmp/opencode-dispatch-runs.jsonl`",
+          "see commit below"
+        ],
+        [
+          "27",
+          "2026-09-03 09:58",
+          "The reviewer run was served by `minimax/MiniMax-M3` ($0.0412, 572s) after the deepseek attempt timed out: `--model` overrides the agent file's pin, so the harness rotation ran a pinned agent on another provider. `opencodeDispatch` gains `models` (replaces the rotation) and cheap-flow passes the single agent model; the integration test asserts `--model opencode-go/deepseek-v4-flash` on every call",
+          "run `8e64a291` in the dispatch run log",
+          "see commit below"
+        ],
+        [
+          "28",
+          "2026-09-03 10:05",
+          "Live compound step: the read-only researcher agent narrated (\"wrote the draft to cf-check.md, 106 lines, moved it to the conventional path\") instead of printing the document, and `runProse` saved the 6-line narration as the docs/solutions entry ($0.0210, 166s). `runProse` now checks the reply is the document (line count, YAML frontmatter for compound, no first-person narration) and re-asks once with \"you cannot write files, print the whole document\"; two narrations fail the step. Unit tests cover both paths",
+          "dispatch run `ee8d3a0e`; `clis/cheap-flow/tests/unit/run-prose.test.ts`",
+          "see commit below"
+        ],
+        [
+          "29",
+          "2026-09-03 10:15",
+          "Compound re-run with the document check: the first reply was narration again, the one re-ask returned the real 97-line entry with frontmatter; both attempts $0.0187 / 163s. Facts fixed by hand: skill paths, the dispatch file, the verification claims. The tree is proven end to end on a real feature (research, plan check, 3 units, review, compound); `claude plugin validate --strict` and `plugins:check` pass. Phase C closes; B2 runs per decision 25",
+          "`docs/archive/solutions/workflow/cf-check.md`, dispatch run `1a58f21b`",
+          "see commit below"
+        ],
+        [
+          "30",
+          "2026-09-03 10:55",
+          "`agent-evals delegation-benchmark --help` ran a real default benchmark (hand-rolled argv parsing ignored `--help`): two Sonnet sessions on arm A started and were killed after ~1 minute, plus a duplicate T launch from the wrong cwd, killed. `run()` now prints usage and exits on `--help`/`-h` before any paid command. B2 arm T runs as the single process `agent-evals delegation-benchmark --conditions=T --tasks=multi-file-rename,add-validation-feature,thrifty-07-taskgraph --runs=1 --csv-dir=.agents/tmp/delegation-benchmark/b2`",
+          "`.agents/tmp/b2-T.log`",
+          "see commit below"
+        ],
+        [
+          "31",
+          "2026-09-03 11:25",
+          "B2 arm T (headless tree, n=1, one task per size, 3/3 success): plan step ≈ $0.26 Sonnet flat; T = $0.263 small (A $0.097), $0.267 medium (A $0.179), $0.282 large (A $0.617, −54%, `go test` green, 5 units). Rule \"T default if ≥40% saved on ≥5/7 tasks\" not met; T stays the flow for large work and for the interactive brainstorm → plan → work path; W or Sonnet alone for small and medium. Phase D: report section, ledger artifact, known-gaps #51 closed",
+          "`.agents/tmp/delegation-benchmark/b2/results.csv`",
+          "see commit below"
+        ],
+        [
+          "32",
+          "2026-09-03 11:35",
+          "Phase D closed: ledger artifact published from the report + this log ([Token Diet Ledger](https://claude.ai/code/artifact/ca5faf22-6c89-4dfb-af37-c23983636b56), source `docs/audits/2026-09-03-token-diet-ledger.html`); known-gaps #51 carries the closing record; PR #236 body updated",
+          "this file",
+          "see commit below"
+        ],
+        [
+          "33",
+          "2026-09-03 11:50",
+          "GitHub Actions off on commit and push (user): `ci.yml`, `agent-plugins.yml`, `architecture.yml`, `actionlint.yml`, `tailscale-acl.yml` are `workflow_dispatch` only; `ci-gate.yml`, `scripts/check-ci-gate-triggers.mjs` and the `ci-gate-triggers` lefthook job removed; lefthook pre-commit gains `typecheck-affected` and `test-affected` (`nx affected --files={staged_files}`), so the gate runs on every local commit, including the per-unit commits the cheap-flow tree will make (plan Phase F). Reason: small frequent commits as the unit of progress, one gate that runs where the commit happens, no Actions minutes on work in progress. The known `Guard e2e tests (live agents)` failure disappears with its trigger",
+          "plan file, Phase G",
+          "see commit below"
+        ],
+        [
+          "34",
+          "2026-09-03 12:20",
+          "Cheap worker default (user): `minimax/MiniMax-M3` first, `opencode-go/deepseek-v4-flash` only when minimax is exhausted (cap, 429, timeout), kimi third. `MODEL_ROTATION` reordered in `clis/opencode-harness`; the three `.opencode/agents/*.md` pin MiniMax-M3; cheap-flow passes the ordered pair as `models` so a pinned agent still falls through to deepseek but never to a third provider. B1/B2 savings numbers were measured on deepseek and stay labelled so; MiniMax-M3 lists at $0.30/$1.20 per M tokens on models.dev (deepseek-v4-flash via opencode-go was ≈$0.004–0.026 per B1 task). Live check: `wf opencode dispatch` trivial run served by `minimax/MiniMax-M3` (28,760 tokens, $0.0048, 46 s, run `2570a815`); with an invalid `MINIMAX_API_KEY` the run fails after one attempt (`capped: false`, run `e7b04f6c`) and does not rotate, by the harness's existing rule: only a usage cap, 429 or timeout is \"exhausted\" and rotates, an auth or prompt error fails fast so the rotation budget is not burnt on something the next model cannot fix. The first two live runs after the code change were still served by deepseek because `wf`'s own bundle embeds the harness and had not been rebuilt; `nx run workflow-cli:bundle-build` fixed it (the `bundle-fresh` lefthook job guards the committed bundles)",
+          "plan file, Phase R; runs `2570a815`, `e7b04f6c` in `.agents/tmp/opencode-dispatch-runs.jsonl`",
+          "see commit below"
+        ],
+        [
+          "36",
+          "2026-09-03 13:30",
+          "Frequent commits are part of the flow (user): the cheap-flow binary commits what each step produced. `work` commits every passed unit (`cf(<slug>): <id> <title>`, body: gate, model, cost, seconds; only the unit's files and the manifest staged); `research`, `review`, `compound` commit their document; `/cf-plan` commits `contract.md` + `units.jsonl` after `check`. `--no-commit` opts out. The pre-commit hook is the only gate (decision 33), so a rejected commit is treated as a failed gate: the hook output becomes the next attempt's brief, and a unit that never lands is `failed (uncommitted)`. Rejected: committing in the skill prose (skipped under pressure) and one commit per run (loses the per-unit trail)",
+          "plan file, Phase F; `clis/cheap-flow/src/use-cases/git.ts`, `tests/unit/{git,run-work-commit}.test.ts`",
+          "see commit below"
+        ],
+        [
+          "37",
+          "2026-09-03 14:05",
+          "`/cf` becomes `/cf-lfg` (user), in the shape of compound-engineering's `lfg`: steps in order, `mode:non-interactive` on every step (no questions; conservative defaults recorded under Decisions), GATE stops with the evidence, review blockers become fix units, compound, then a `DONE` report with the commit trail and the trailers `FILES_READ` / `ACTIONS` / `UNITS_DISPATCHED` (the trailers are what the Phase E cells grade). `cf-brainstorm` and `cf-plan` gain the mode token; every `cf-*` skill ends with the trailers. Not adopted from CE: the PR machinery (`ce-commit-push-pr`, `ce-babysit-pr`) and the per-stage model routing; this repo's shipping stays the session's own branch and PR",
+          "plan file, Phase L; `references/compound-engineering-plugin/skills/lfg/SKILL.md`",
+          "see commit below"
+        ],
+        [
+          "38",
+          "2026-09-03 15:10",
+          "The solutions loop adopted from compound-engineering (user): `cheap-flow learnings` runs CE's `learnings-researcher` prompt verbatim (vendored, `<root>` → `docs`) on the researcher agent before brainstorm and plan, and its output feeds review (known pitfalls are blockers) and compound (update instead of duplicate); `cheap-flow compound` follows the `ce-compound` contract: schema.json (tracks, required fields, closed enums, corpus-first open vocabulary), the CE resolution template, parser-safety checks ported to TypeScript, one re-ask with the exact problems, category from the doc's own `category` when it is a real directory, `--update` with `last_updated`, ≤3 `CONCEPTS.md` proposals for Claude to apply, `Documentation complete` / `Documentation skipped` terminals. Not adopted: CE's Python validators (ported instead: the bundle must stay zero-dependency), the parallel research subagents and session-history probe of CE's Full mode (one researcher call is the point of this tree), instruction-file edits. The vendored markdown ships as JSON twins because the esbuild bundle has no text loader; a unit test keeps the pairs equal. Live on the cf-check plan: `learnings` returned 5 findings (MiniMax-M3, $0.0397, 114 s, commit `8a9d3ac9`); `compound --update docs/archive/solutions/workflow/cf-check.md`: the first draft failed validation (unquoted `: ` in the title, five missing schema fields), the re-ask produced a valid knowledge-track doc, filed as an update with `last_updated`, CONCEPTS.md scanned with no qualifying term ($0.0229, 89 s, commit `db456441`)",
+          "plan file, Phase S; `clis/cheap-flow/src/data/solutions/`, `src/domain/solutions.ts`, `tests/unit/{solutions,solutions-data}.test.ts`; runs `4b0f519f`, `440a6c04`",
+          "`54a115fd`"
+        ],
+        [
+          "39",
+          "2026-09-03 16:00",
+          "The cf skills are tested the compound-engineering way (user): `agent-evals skill-eval` runs the catalog in `clis/cheap-flow/evals/catalog.json` (7 cells: cf-lfg plan-first and no-questions, cf-work failed-unit-stops, cf-compound prints-document and updates-existing-doc, cf-brainstorm consults-learnings, cf-dispatch relay-verbatim) in a fixture workspace (`evals/fixtures/tiny`, `failing-plan`) through real `claude -p` sessions with opencode replaced by the mock binary in replay mode, arm `pre` = the skill body from a git ref, arm `post` = the working tree; grading is mechanical (trailers `FILES_READ` / `ACTIONS` / `UNITS_DISPATCHED`, contains / not_contains / regex on the final text, files that must (not) exist, tools that must not be called, minimum commits). `pack.json` + `summary.json` + `rows.csv` per run; exit 1 when a post arm fails. Only the grader, the catalog schema and the workspace preparation run in the unit tests; the live cells are opt-in",
+          "plan file, Phase E; `clis/agent-evals/src/use-cases/run-skill-eval.ts`, `tests/skill-eval.test.ts`",
+          "see commit below"
+        ],
+        [
+          "40",
+          "2026-09-03 16:40",
+          "Standing rule (user): every new or changed skill, hook, harness lever or workflow is benchmarked before it ships, and each benchmark is designed for the smallest spend that still gives a meaningful answer: one task per size, n=1 on Sonnet first and n=3 only for finalists, the replay stub where the decision does not depend on the model, `--resume` over reruns, and no run for an idea the prior evidence already rules out. Written into the root `AGENTS.md` (\"Benchmarks: always, and as cheap as still meaningful\") so it loads every session",
+          "user direction; decisions 13, 23, 25 are the precedents",
+          "see commit below"
+        ],
+        [
+          "41",
+          "2026-09-03 17:20",
+          "First skill-eval run (7 cases × pre@`3dbf31f6` + post, n=1, Sonnet, 14 cells, $3.58): post 4/7 ok, pre 0/7, improved on `cf-lfg/plan-first` ($0.81, 241 s, 11 commits, all trailers, DONE), `cf-lfg/non-interactive-no-questions` ($0.71, no `AskUserQuestion`), `cf-brainstorm/consults-learnings` (learnings step ran, requirements committed) and `cf-dispatch/relay-verbatim` (pre hand-edited the file, post relayed the meta line for $0.10); no regression. The three post failures were the catalog's, not the skills': `cf-compound` in non-interactive mode correctly answered `Documentation skipped: no solved problem found in this session` on a fixture that carried no finished work (the pre skill wrote a doc anyway, which is the behaviour the CE preconditions exist to stop), and `cf-work/failed-unit-stops` graded a stop the skill's own rule does not require (after two repair rounds it may implement by hand and say so; post reported `UNITS_DISPATCHED: 0/2` truthfully). Fixtures and expectations corrected (a shipped demo plan in the tiny fixture; a replay patch for u2 and honesty-based grading for cf-work); the three cells re-run post-only. Harness defects found by the run and fixed first: `analyzeTranscript` wants the JSONL text, the mock applied the replay patch on prose dispatches, `--out-dir` had to be absolute",
+          "`.agents/tmp/skill-eval/live1/{pack,summary}.json`, `rows.csv`",
+          "see commit below"
+        ],
+        [
+          "42",
+          "2026-09-03 18:05",
+          "Re-runs of the three corrected cells, post arm only (rule 40: $1.96 for the answer instead of another $3.58 sweep): `cf-work/failed-unit-stops` ok ($0.73, 307 s, honest `UNITS_DISPATCHED`), `cf-compound/updates-existing-doc` ok ($0.33, doc rewritten in place, `last_updated` stamped, committed), and `cf-compound` on the honest fixture first refused a manifest whose cited commit did not exist in the workspace (right), then, once the fixture shipped the real code, updated the seeded doc that covers the same problem instead of creating a second file (right under the CE update-over-duplicate rule; $0.45, 134 s) while the cell still expected a new filename. The case is now `cf-compound/writes-schema-doc` and grades the outcome that matters: a schema-valid doc under docs/solutions, committed, hands-off. Net after the first day: 7/7 catalog cells pass on the working tree (5 measured in this state, 2 by the corrected expectation against the recorded run), pre-arm baseline 0/7, three fixture defects and three harness defects found by the benchmark itself",
+          "`.agents/tmp/skill-eval/live2-*/pack.json`, `live3-*/pack.json`",
+          "see commit below"
+        ],
+        [
+          "43",
+          "2026-09-03 18:50",
+          "The compound → plan loop is measured (user asked whether cf-compound's output reaches later plans; it had not been tested). New cell `cf-plan/consults-compounded-learning`: the fixture's seeded learning has the exact shape `cf-compound` writes and the follow-on plan extends the same function; `/cf-plan next mode:non-interactive` ran `learnings`, wrote `learnings.md`, `contract.md`, `units.jsonl` with `Read first: docs/solutions/workflow/seeded-learning.md` in the unit brief, committed 3 times, no question asked — ok at $0.29, 84 s, n=1, post arm only. Also fixed: `.agents/skills` still linked the pre-merge `cf` and `opencode-dispatch` directories and lacked `cf-lfg`/`cf-dispatch`, which is why those two never appeared in the skill listing; the links are hand-maintained, not derived from the plugin's `skills/` dir (candidate for the sync to own)",
+          "`.agents/tmp/skill-eval/live4-cf-plan-consults/pack.json`",
+          "see commit below"
+        ],
+        [
+          "55",
+          "2026-09-06 18:18",
+          "artifacts-publisher: e2e measured the epic index across two runs (a08) and the pinned-comment upsert against the real #274 issue (a09); a08 FAIL — each `wf artifacts publish` clobbers `verification/274/index.json` because the PAR GET of the existing manifest returns stale/404 data for >90s after a write, so `publishEpicIndex` starts from `{ runs: [] }` per its documented degrade-to-empty behaviour and the manifest holds only the latest run (run1 then run2 listed only `live-a08-2`); a09 FAIL — both `--comment` invocations took the `ghAvailable(run) === false` fallback in `clis/workflow-cli/src/data/github.ts:26` (Claude Code Remote sandbox, proxy-mediated `GH_TOKEN`/`GITHUB_TOKEN` per `clis/env-bootstrap/src/use-cases/steps/gh-auth.ts:14-23`), printed the would-have-been-posted body with the `<!-- artifacts-status -->` marker, and returned `{ printed: body }` instead of a comment id — the create-then-PATCH upsert path was never reached end-to-end",
+          "`docs/archive/plans/artifacts-publisher/findings/a08-live-epic-index.md` (FAIL), `docs/archive/plans/artifacts-publisher/findings/a09-live-comment.md` (FAIL); `gh` not available in this sandbox, so a09's upsert requirement could not be observed end-to-end and must be re-run from a shell where `gh auth status` exits 0",
+          "artifacts-publisher"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1–74",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

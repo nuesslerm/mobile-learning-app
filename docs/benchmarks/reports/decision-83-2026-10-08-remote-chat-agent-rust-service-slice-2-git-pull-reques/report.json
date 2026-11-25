@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-83-2026-10-08-remote-chat-agent-rust-service-slice-2-git-pull-reques",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, slice 2 (git, pull requests, worktrees and the two viewers)",
+  "question": "What was measured for remote-chat-agent Rust service, slice 2 (git, pull requests, worktrees and the two viewers)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, slice 2 (git, pull requests, worktrees and the two viewers)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Benchmark of the slice (same harness, n=5, `rca-rust-slice2.json`): cold start 31.9 ms (Node 503.4), idle RSS 4.0 MB (133.6), diff register and page 9.5 ms p50 at 9.5 MB resident (39.5 ms; Node was at 326.8 MB by then, with every earlier scenario loaded), markdown preview 1.04 ms (1.2), TypeScript preview 0.70 ms (1.2); the whole process peaks at 9.9 MB. Artifact 14,269,840 bytes (462,080 before this slice): the grammars and `fancy-regex` are the growth, s…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Benchmark of the slice (same harness, n=5, `rca-rust-slice2.json`): cold start 31.9 ms (Node 503.4), idle RSS 4.0 MB (133.6), diff register and page 9.5 ms p50 at 9.5 MB resident (39.5 ms; Node was at 326.8 MB by then, with every earlier scenario loaded), markdown preview 1.04 ms (1.2), TypeScript preview 0.70 ms (1.2); the whole process peaks at 9.9 MB. Artifact 14,269,840 bytes (462,080 before this slice): the grammars and `fancy-regex` are the growth, so the binary is now about the size of the Node bundle (14,869,215 bytes) though it needs no `node_modules` (about 245 MB of media packages alone); trimming the rarely used grammars is a later size decision, not made here."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1685–1692",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

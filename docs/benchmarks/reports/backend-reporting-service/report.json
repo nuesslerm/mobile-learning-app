@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "id": "backend-reporting-service",
+  "subject": "Engineering measurements",
+  "title": "backend/reporting-service: ported to Rust",
+  "question": "What did the backend/reporting-service: ported to Rust measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "backend/reporting-service: ported to Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "`/health` is 0.2 ms slower: the row count runs on the blocking pool and the request passes the trace layer. Release binary 7.4 MB.",
+  "variants": [
+    {
+      "id": "node",
+      "label": "Node"
+    },
+    {
+      "id": "rust",
+      "label": "Rust"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "start to answering `/health`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "idle RSS",
+      "unit": "KB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "`/health` p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-4",
+      "label": "`/api/metrics/series?window=24h` p50 (20,000 stored rows)",
+      "unit": "ms",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 597.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 18.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 114924,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 10212,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.566,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.783,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 95.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 37.5,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Node",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "start to answering `/health`",
+          "597.7 ms",
+          "18.4 ms"
+        ],
+        [
+          "idle RSS",
+          "114,924 KB",
+          "10,212 KB"
+        ],
+        [
+          "`/health` p50",
+          "0.566 ms",
+          "0.783 ms"
+        ],
+        [
+          "`/api/metrics/series?window=24h` p50 (20,000 stored rows)",
+          "95.9 ms",
+          "37.5 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "`/health` is 0.2 ms slower: the row count runs on the blocking pool and the request passes the trace layer. Release binary 7.4 MB."
+        ],
+        [
+          "- The Docker calls have a 30 s timeout (none before)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "backend-reporting-service.md",
+      "path": "../../../audits/reports/backend-reporting-service.md"
+    }
+  ]
+}

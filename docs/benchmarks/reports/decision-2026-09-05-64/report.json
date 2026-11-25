@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-05-64",
+  "subject": "Engineering decisions",
+  "title": "Test-tiers",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-05",
+  "revision": null,
+  "environment": null,
+  "workload": "Test-tiers",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "test-tiers: `cf-work/manifest-prints-tiers-line` post arm n=1 Sonnet, replay mock (zero opencode tokens), measures whether cf-work's relay prints the `tiers:` histogram",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 47 | 2026-09-05 22:13 | test-tiers: `cf-work/manifest-prints-tiers-line` post arm n=1 Sonnet, replay mock (zero opencode tokens), measures whether cf-work's relay prints the `tiers:` histogram | 1/1 ok, $0.5059, 191 s, 20 tool calls, 1 commit; the relay included the `tiers:` line and `UNITS_DISPATCHED: 0/2` truthfully (the fixture's u1 gate exits 7, so the first unit cannot dispatch); the cell passes — the `tiers:` line is what surfaces which verification rung ran | `.agents/tmp/skill-eval-tiers/cf-work-tiers/pack.json` | test-tiers |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 64",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

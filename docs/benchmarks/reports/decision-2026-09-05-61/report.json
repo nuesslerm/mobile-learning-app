@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-05-61",
+  "subject": "Engineering decisions",
+  "title": "Test-tiers",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-05",
+  "revision": null,
+  "environment": null,
+  "workload": "Test-tiers",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "test-tiers: `cf-plan/assigns-tiers-by-category` post arm n=1 Sonnet, tier-cell grader measures whether cf-plan stamps `tier` + `flow` on a cli-tool plan",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 44 | 2026-09-05 22:13 | test-tiers: `cf-plan/assigns-tiers-by-category` post arm n=1 Sonnet, tier-cell grader measures whether cf-plan stamps `tier` + `flow` on a cli-tool plan | `wf agent-evals skill-eval --skill cf-plan --arm post --id cf-plan/assigns-tiers-by-category --runs 1 --model sonnet` ran `node clis/agent-evals/bin/agent-evals.js skill-eval ...` (the `wf` form is not mounted in workflow-cli, the bundle exposes no `agent-evals` subcommand). 0/1 ok, $0.7220, 260 s, 32 tool calls, 3 commits; the skill wrote a correct units.jsonl with `\"tier\":\"unit\"` and `\"tier\":\"flow\"` on the four units (visible at `/tmp/skill-eval-cf-plan-post-ba243n/docs/plans/report-json-flag/units.jsonl`), but `expect.file_contains` uses glob paths (`docs/plans/*/units.jsonl`) the grader's `readFile` does not resolve (`clis/agent-evals/src/use-cases/run-skill-eval.ts:263`, `globMatches` is wired only into `files_glob_exist`); the cell fails the catalog, not the skill — same shape of grader bug the live1 run found and fixed for other cells (decision 41); catalog fixture or grader needs a follow-up | `.agents/tmp/skill-eval-tiers/cf-plan-assigns-tiers/pack.json` | test-tiers |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 61",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

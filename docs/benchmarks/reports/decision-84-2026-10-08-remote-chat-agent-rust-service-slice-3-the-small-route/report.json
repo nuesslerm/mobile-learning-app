@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-84-2026-10-08-remote-chat-agent-rust-service-slice-3-the-small-route",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, slice 3 (the small routes and the inventory proxies)",
+  "question": "What was measured for remote-chat-agent Rust service, slice 3 (the small routes and the inventory proxies)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, slice 3 (the small routes and the inventory proxies)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Ported: `GET /api/agent-clis`, `/api/models/preferences`, `/api/models/recent` (sqlite3 with the same SQL, 3 s timeout, names from `/api/model`), `/api/mcp` and its connect and disconnect, `/api/skills`, `/api/commands`, `/api/models` (all proxy opencode with `directory`, 400 without it, 502 with the same message text as Node's `String(error)`), `/api/plan/:id` (302 to the file preview, 403, 404) and its annotate, `/api/code-assist` (the mock, streamed as …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Ported: `GET /api/agent-clis`, `/api/models/preferences`, `/api/models/recent` (sqlite3 with the same SQL, 3 s timeout, names from `/api/model`), `/api/mcp` and its connect and disconnect, `/api/skills`, `/api/commands`, `/api/models` (all proxy opencode with `directory`, 400 without it, 502 with the same message text as Node's `String(error)`), `/api/plan/:id` (302 to the file preview, 403, 404) and its annotate, `/api/code-assist` (the mock, streamed as server-sent events), `/api/edit-stats` (a client-turn schema check with zod 4's messages, a queued background writer that posts one row per call to ORDS, flushed every 5 s or at 20 rows), `POST /runs` (secret gate that fails closed, then the schema). New modules: `opencode.rs` (the gateway's HTTP client over a std socket, with the Basic credential and the `/event` stream reader) and `edit_stats.rs`."
+        ],
+        [
+          "- Benchmark of the slice (same harness, n=5, `rca-rust-slice3.json`): cold start 31.2 ms (Node 503.4), idle RSS 4.2 MB (133.6), RSS after 300 health checks 4.3 MB (139.5), `/health` p50 0.42 ms (1.0), artifact 14,383,664 bytes, scenarios served so far unchanged (diff 9.8 ms, markdown preview 1.07 ms, TypeScript preview 0.69 ms), peak 10.2 MB. The new routes add about 0.2 MB at idle (the writer thread and the client)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1693–1700",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

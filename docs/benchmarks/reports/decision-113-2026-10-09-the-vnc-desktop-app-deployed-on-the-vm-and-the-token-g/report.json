@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-113-2026-10-09-the-vnc-desktop-app-deployed-on-the-vm-and-the-token-g",
+  "subject": "Engineering decisions",
+  "title": "the VNC desktop app deployed on the VM and the token gate probed through the tailnet (owner instruction)",
+  "question": "What was measured for the VNC desktop app deployed on the VM and the token gate probed through the tailnet (owner instruction)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: the VNC desktop app deployed on the VM and the token gate probed through the tailnet (owner instruction)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Found on the way, none of it a gate fault: past the gate the desktop asks for its own login (nginx basic auth, `CUSTOM_USER` and `PASSWORD`): without it the page is 401. The user is `test` (`clis/vnc-auth-capture/.env.defaults`), not the compose default `auth`, which is the drift the open gap names. `VNC_AUTH_VNC_USER` is not in the vault, only the password. The websocket path is `/websocket`, and over HTTP/2 (what `tailscale serve` negotiates with curl) an …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Found on the way, none of it a gate fault: past the gate the desktop asks for its own login (nginx basic auth, `CUSTOM_USER` and `PASSWORD`): without it the page is 401. The user is `test` (`clis/vnc-auth-capture/.env.defaults`), not the compose default `auth`, which is the drift the open gap names. `VNC_AUTH_VNC_USER` is not in the vault, only the password. The websocket path is `/websocket`, and over HTTP/2 (what `tailscale serve` negotiates with curl) an upgrade needs `--http1.1`. Five starts answered 202 and none hung, which is evidence about the gap's \"hung past 60 s\" claim, not a fix: the gap stays open and unedited."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2062–2073",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

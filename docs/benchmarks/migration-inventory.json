@@ -1,0 +1,2597 @@
+[
+  {
+    "source": "docs/audits/benchmarks/capture-listener-node-vs-rust.json",
+    "report": "capture-listener-node-vs-rust",
+    "sourceBlob": "84ad154cda8f09cc79c0c076b8089a515f482902"
+  },
+  {
+    "source": "docs/audits/benchmarks/leetcode-backend-post-std.json",
+    "report": "leetcode-backend-post-std",
+    "sourceBlob": "304a97dc6791b112014c2d382ae0055f1a21c8a3"
+  },
+  {
+    "source": "docs/audits/benchmarks/leetcode-backend-pre-std.json",
+    "report": "leetcode-backend-pre-std",
+    "sourceBlob": "797a3d211ac0482100d21bba86ee006a0fd249eb"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-ci-deploy-profile.json",
+    "report": "rca-ci-deploy-profile",
+    "sourceBlob": "099f011b98ba66488846bea83225d2dcab2d1a99"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-ci-release-lto.json",
+    "report": "rca-ci-release-lto",
+    "sourceBlob": "8982123a249a502f3f91141659133f14df942873"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-post-rust.json",
+    "report": "rca-post-rust",
+    "sourceBlob": "20ea92a1ad3eff20a9d2b0349880aafa1adf1b18"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-post-serde.json",
+    "report": "rca-post-serde",
+    "sourceBlob": "6db9393c73a37e6d1bd146fab44d70004720ca62"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-post-std.json",
+    "report": "rca-post-std",
+    "sourceBlob": "e3b468be2965b8c20c672f28912da43c9eee475d"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-pre-node-runs.json",
+    "report": "rca-pre-node-runs",
+    "sourceBlob": "cc50b8a56fe6d00f25ba837408361574224232b5"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-pre-node-ws.json",
+    "report": "rca-pre-node-ws",
+    "sourceBlob": "b5b5b0e2e1b6ba22d499ba459267e4a27292d8d7"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-pre-node.json",
+    "report": "rca-pre-node",
+    "sourceBlob": "b49ad4062979dcfd76991c2e51f19b921f3a0110"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-pre-std.json",
+    "report": "rca-pre-std",
+    "sourceBlob": "3af3d7e7016b2288a444364806ee7b44f7a29f51"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-rust-slice1.json",
+    "report": "rca-rust-slice1",
+    "sourceBlob": "b58bec85e7ccd282b8e6dceed3767a8d8fe946d7"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-rust-slice2.json",
+    "report": "rca-rust-slice2",
+    "sourceBlob": "58f34007373f8eabc4e79bb8ec0d93e4e64f30c5"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-rust-slice3.json",
+    "report": "rca-rust-slice3",
+    "sourceBlob": "8aa2bc287b3239abfdfe9e6175390dfd26edd2d8"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-rust-slice4.json",
+    "report": "rca-rust-slice4",
+    "sourceBlob": "060d69b0e1087e2848e7c775cab7872f34c9e18c"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-rust-slice5.json",
+    "report": "rca-rust-slice5",
+    "sourceBlob": "6042a5af04e7a2e0067488bce067e947935a416c"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-rust-slice6.json",
+    "report": "rca-rust-slice6",
+    "sourceBlob": "1dce2782a48c2e375bf75bdac8ee914535c78029"
+  },
+  {
+    "source": "docs/audits/benchmarks/rca-rust-slice9.json",
+    "report": "rca-rust-slice9",
+    "sourceBlob": "0fa5e271ccc0da963942a8025bc5feb772e93722"
+  },
+  {
+    "source": "docs/audits/benchmarks/reporting-service-node-vs-rust.json",
+    "report": "reporting-service-node-vs-rust",
+    "sourceBlob": "54cf0fcc20e6fa365b59a1446913d88b985e5837"
+  },
+  {
+    "source": "docs/audits/benchmarks/watchdog-node-vs-rust.json",
+    "report": "watchdog-node-vs-rust",
+    "sourceBlob": "bbd4f5d84bc7a66b81a9c2bde21aa1b49136214d"
+  },
+  {
+    "source": "docs/audits/benchmarks/wf-otlp-sdk-after.json",
+    "report": "wf-otlp-sdk-after",
+    "sourceBlob": "050599260d584d813f9b9f4f2851cc13d08db565"
+  },
+  {
+    "source": "docs/audits/benchmarks/wf-otlp-sdk-before.json",
+    "report": "wf-otlp-sdk-before",
+    "sourceBlob": "04c2523e52f39c54481f12c1dacda126b5cf280d"
+  },
+  {
+    "source": "docs/audits/benchmarks/wf-otlp-sdk-official-client.json",
+    "report": "wf-otlp-sdk-official-client",
+    "sourceBlob": "facb81a848e5d5e25134a769d02e75b75142c68f"
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "token-diet-initial-experiments",
+    "relatedReports": [
+      "2026-09-03-token-diet-ledger"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1,
+    "lastLine": 74
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2-2026-10-06-wf-rust-migration-baseline-phase-1",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 107,
+    "lastLine": 140
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-3-2026-10-06-wf-rust-migration-dependency-memory-audit-phase-2",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 141,
+    "lastLine": 180
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-5-2026-10-06-wf-rust-migration-skeleton-phase-4",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 197,
+    "lastLine": 236
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-8-2026-10-06-agent-config-sync-in-rust-first-port-beside-the-typesc",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 285,
+    "lastLine": 334
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-9-2026-10-06-wf-secrets-read-path-in-rust-second-port-native-in-the",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 335,
+    "lastLine": 386
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-10-2026-10-06-wf-bench-in-rust-third-port-and-a-correction-to-the-ba",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 387,
+    "lastLine": 414
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-11-2026-10-06-wf-agents-and-wf-caveat-in-rust-fourth-port",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 415,
+    "lastLine": 448
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-13-2026-10-06-the-signed-vm-ops-api-client-in-rust-fifth-port",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 479,
+    "lastLine": 515
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-14-2026-10-06-wf-vm-exec-in-rust-sixth-port",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 516,
+    "lastLine": 542
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-16-2026-10-06-wf-deploy-status-plan-metro-retire-in-rust-eighth-port",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 573,
+    "lastLine": 610
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-17-2026-10-06-wf-deploy-run-in-rust-ninth-port-and-a-bug-it-exposed",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 611,
+    "lastLine": 649
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-18-2026-10-06-wf-vm-recover-in-rust-tenth-port",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 650,
+    "lastLine": 682
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-19-port-wf-deploy-agent-deps-add-remove-list-replay-to-rust-2026-10",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 683,
+    "lastLine": 706
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-20-port-wf-deploy-sync-creds-and-wf-deploy-tf-apply-exec-to-rust-202",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 707,
+    "lastLine": 736
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-21-port-wf-tailscale-devices-auth-key-status-auth-key-rotate-dry-run",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 737,
+    "lastLine": 764
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-22-port-wf-auth-list-capture-done-launch-url-to-rust-2026-10-06",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 765,
+    "lastLine": 790
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-24-rca-phase-0-import-time-memory-per-dependency-2026-10-06",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 800,
+    "lastLine": 837
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-26-rca-core-the-ladder-and-the-pool-ledger-in-rust-2026-10-06",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 852,
+    "lastLine": 1206
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-27-2026-10-06-wf-browser-thin-client-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1207,
+    "lastLine": 1216
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-28-2026-10-06-wf-metro-status-stop-cleanup-nuke-clear-cache-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1217,
+    "lastLine": 1224
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-29-2026-10-06-wf-knowledge-for-index-stale-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1225,
+    "lastLine": 1234
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-30-2026-10-06-wf-android-status-stop-cleanup-nuke-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1235,
+    "lastLine": 1242
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-31-2026-10-06-wf-ios-status-stop-cleanup-nuke-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1243,
+    "lastLine": 1250
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-33-2026-10-06-remote-chat-agent-baseline-and-rca-edge",
+    "relatedReports": [
+      "audits-2026-10-06-rca-baseline-and-rust-migration-plan"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1257,
+    "lastLine": 1260
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-36-2026-10-06-wf-work-slug-run-mode-the-git-state-worker-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1271,
+    "lastLine": 1280
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-37-2026-10-06-wf-metro-start-restart-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1281,
+    "lastLine": 1288
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-38-2026-10-06-wf-android-start-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1289,
+    "lastLine": 1292
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-42-2026-10-06-wf-ios-install-expo-and-open-expo-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1307,
+    "lastLine": 1310
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-47-2026-10-06-wf-auth-login-and-remote-login-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1331,
+    "lastLine": 1336
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-49-2026-10-06-wf-report-health-markdown-snapshot-in-rust",
+    "relatedReports": [
+      "2026-10-06-rust-cli-consolidated-benchmark"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1343,
+    "lastLine": 1350
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-51-2026-10-06-clis-cdp-the-foundation-for-replacing-the-playwright-d",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1355,
+    "lastLine": 1360
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-53-2026-10-06-rust-browser-daemon-for-attached-sessions-step-1-of-th",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1367,
+    "lastLine": 1378
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-55-2026-10-06-frames-and-execution-contexts-in-clis-cdp-the-long-pol",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1393,
+    "lastLine": 1400
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-56-2026-10-06-clis-cdp-gets-a-reader-thread-page-bindings-and-init-s",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1401,
+    "lastLine": 1406
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-57-2026-10-06-launched-device-frame-sessions-in-the-rust-browser-dae",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1407,
+    "lastLine": 1424
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-60-2026-10-06-app-bench-and-the-browser-observation-commands-in-rust",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1440,
+    "lastLine": 1448
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-61-2026-10-06-rust-browser-daemon-page-state-commands",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1449,
+    "lastLine": 1454
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-62-2026-10-06-what-stops-further-typescript-deletion-and-one-reverte",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1455,
+    "lastLine": 1461
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-66-2026-10-08-later-the-js-bundle-and-every-typescript-command-are-g",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1487,
+    "lastLine": 1495
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-67-2026-10-08-last-stretch-the-auth-listener-is-rust-no-typescript-i",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1496,
+    "lastLine": 1507
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-68-2026-10-08-final-the-deployed-service-tier-on-the-vm-and-the-fina",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1508,
+    "lastLine": 1538
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-69-2026-10-08-leetcode-backend-baseline-before-its-rust-port-rust-se",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1539,
+    "lastLine": 1544
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-70-2026-10-08-leetcode-backend-black-box-suite-rust-services-plan-ph",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1545,
+    "lastLine": 1553
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-71-2026-10-08-leetcode-backend-is-rust-deployed-rust-services-plan-p",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1554,
+    "lastLine": 1576
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-72-2026-10-08-remote-chat-agent-baseline-before-its-rust-port-rust-s",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1577,
+    "lastLine": 1583
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-73-2026-10-08-an-audit-of-what-the-rust-wf-still-refused-against-its",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1584,
+    "lastLine": 1590
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-75-2026-10-08-remote-chat-agent-black-box-harness-first-slice-rust-s",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1598,
+    "lastLine": 1603
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-76-2026-10-08-remote-chat-agent-black-box-harness-second-slice-the-s",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1604,
+    "lastLine": 1609
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-77-2026-10-08-remote-chat-agent-black-box-harness-third-slice-git-an",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1610,
+    "lastLine": 1617
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-78-2026-10-08-remote-chat-agent-black-box-harness-fourth-slice-viewe",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1618,
+    "lastLine": 1627
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-79-2026-10-08-remote-chat-agent-black-box-harness-fifth-slice-chat-c",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1628,
+    "lastLine": 1636
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-80-2026-10-08-remote-chat-agent-media-evaluation-rust-against-node-o",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1637,
+    "lastLine": 1654
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-81-2026-10-08-remote-chat-agent-pre-state-benchmark-the-node-service",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1655,
+    "lastLine": 1676
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-82-2026-10-08-remote-chat-agent-rust-service-slice-1-http-layer-and",
+    "relatedReports": [
+      "rca-rust-slice1"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1677,
+    "lastLine": 1684
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-83-2026-10-08-remote-chat-agent-rust-service-slice-2-git-pull-reques",
+    "relatedReports": [
+      "rca-rust-slice2"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1685,
+    "lastLine": 1692
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-84-2026-10-08-remote-chat-agent-rust-service-slice-3-the-small-route",
+    "relatedReports": [
+      "rca-rust-slice3"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1693,
+    "lastLine": 1700
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-86-2026-10-08-remote-chat-agent-rust-service-slice-4-the-orchestrati",
+    "relatedReports": [
+      "rca-rust-slice4"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1707,
+    "lastLine": 1716
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-87-2026-10-08-remote-chat-agent-rust-service-slice-5-voice-conversio",
+    "relatedReports": [
+      "rca-rust-slice5"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1717,
+    "lastLine": 1725
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-88-2026-10-08-remote-chat-agent-rust-service-slice-6-the-websocket-l",
+    "relatedReports": [
+      "rca-pre-node-ws",
+      "rca-rust-slice6"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1726,
+    "lastLine": 1734
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-89-2026-10-08-remote-chat-agent-rust-service-slice-7-the-claude-and",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1735,
+    "lastLine": 1741
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-90-2026-10-08-remote-chat-agent-rust-service-runs-one-shot-runs-on-t",
+    "relatedReports": [
+      "rca-pre-node-runs",
+      "rca-rust-slice9"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1742,
+    "lastLine": 1748
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-92-2026-10-08-remote-chat-agent-rust-service-post-state-benchmark-of",
+    "relatedReports": [
+      "rca-post-rust",
+      "rca-pre-node",
+      "rca-pre-node-runs",
+      "rca-pre-node-ws"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1756,
+    "lastLine": 1761
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-93-2026-10-08-remote-chat-agent-cutover-the-vm-runs-the-rust-service",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1762,
+    "lastLine": 1771
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-94-2026-10-08-remote-chat-agent-the-node-service-and-the-dependencie",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1772,
+    "lastLine": 1787
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-95-2026-10-09-leetcode-backend-on-standard-crates-standard-crates-pl",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1788,
+    "lastLine": 1815
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-96-2026-10-09-remote-chat-agent-on-standard-crates-standard-crates-p",
+    "relatedReports": [
+      "rca-post-rust",
+      "rca-post-std",
+      "rca-pre-std"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1816,
+    "lastLine": 1850
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-97-2026-10-09-wf-outbound-http-and-otlp-on-standard-crates-standard",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1851,
+    "lastLine": 1871
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-98-2026-10-09-cdp-the-browser-and-vnc-servers-and-the-encoders-on-st",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1872,
+    "lastLine": 1885
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-99-2026-10-09-wf-signals-dates-and-temp-files-on-standard-crates-sta",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1886,
+    "lastLine": 1897
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-100-2026-10-09-remote-chat-agent-s-request-validation-on-serde-standa",
+    "relatedReports": [
+      "rca-post-serde",
+      "rca-post-std"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1898,
+    "lastLine": 1909
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-101-2026-10-09-remote-chat-agent-on-the-vm-from-the-pipeline-built-im",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1910,
+    "lastLine": 1920
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-102-2026-10-09-wf-s-vnc-gate-and-control-listener-on-tokio-axum-reqwe",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1921,
+    "lastLine": 1944
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-103-2026-10-09-wf-s-tailnet-forwarder-on-tokio-socks-and-a-machine-in",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1945,
+    "lastLine": 1954
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-104-2026-10-09-wf-s-options-on-clap-standard-crates-plan-phase-4c",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1955,
+    "lastLine": 1970
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-105-2026-10-09-the-wf-black-box-suite-no-longer-flakes-test-infrastru",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1971,
+    "lastLine": 1974
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-107-2026-10-09-wf-s-program-options-and-mode-probes-on-clap-standard",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1985,
+    "lastLine": 1996
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-108-2026-10-09-dev-ci-builds-the-services-with-a-deploy-profile-not-f",
+    "relatedReports": [
+      "rca-ci-deploy-profile",
+      "rca-ci-release-lto"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 1997,
+    "lastLine": 2005
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-109-2026-10-09-dev-deploy-of-every-service-in-3-min-17-s-second-slice",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2006,
+    "lastLine": 2019
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-110-2026-10-09-wf-s-source-map-decoding-on-the-sourcemap-crate",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2020,
+    "lastLine": 2037
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-111-2026-10-09-wf-s-mode-probes-on-the-union-of-the-modes-specs-stand",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2038,
+    "lastLine": 2051
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-112-2026-10-09-done-when-1-grep-on-the-final-head-and-a-lockfile-chan",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2052,
+    "lastLine": 2061
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-113-2026-10-09-the-vnc-desktop-app-deployed-on-the-vm-and-the-token-g",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2062,
+    "lastLine": 2073
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-114-2026-10-09-the-typescript-is-gone-vnc-auth-session-ships-from-the",
+    "relatedReports": [
+      "backend-reporting-service",
+      "clis-cdp",
+      "device-lab-browser-cli-before-after"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2074,
+    "lastLine": 2085
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-115-2026-10-09-per-slice-before-and-after-in-one-table-standard-crate",
+    "relatedReports": [
+      "audits-reports-clis-http",
+      "clis-cdp",
+      "clis-wf",
+      "rca-ci-deploy-profile",
+      "rca-ci-release-lto",
+      "rca-post-rust",
+      "rca-post-serde",
+      "rca-post-std",
+      "rca-pre-std"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2086,
+    "lastLine": 2104
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-116-2026-10-09-the-final-head-3b4a307aa-standard-crates-plan-done-whe",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2105,
+    "lastLine": 2118
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-117-2026-10-09-wf-s-otlp-export-on-the-opentelemetry-sdk-and-the-rust",
+    "relatedReports": [
+      "wf-otlp-sdk-after",
+      "wf-otlp-sdk-before"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2119,
+    "lastLine": 2135
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-118-2026-10-09-wf-s-otlp-export-on-the-sdk-s-own-http-client-supersed",
+    "relatedReports": [
+      "wf-otlp-sdk-official-client"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2136,
+    "lastLine": 2140
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-119-2026-10-10-leetcode-auth-cookie-capture-ported-to-rust-phase-1-of",
+    "relatedReports": [
+      "capture-listener-node-vs-rust"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2141,
+    "lastLine": 2144
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-120-2026-10-10-reporting-service-ported-to-rust-phase-2-of-the-typesc",
+    "relatedReports": [
+      "reporting-service-node-vs-rust"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2145,
+    "lastLine": 2148
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-121-2026-10-10-service-kit-slice-record-and-the-done-when-1-grep-on-t",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2149,
+    "lastLine": 2154
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-122-2026-10-10-watchdog-ported-to-rust-phase-5-of-the-typescript-remo",
+    "relatedReports": [
+      "watchdog-node-vs-rust"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2155,
+    "lastLine": 2158
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-123-2026-10-10-wf-black-box-ported-to-rust-and-the-typescript-suite-r",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2159,
+    "lastLine": 2164
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-127-2026-10-10-the-wf-surface-four-verbs-and-four-nouns-plan-b-of-the",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2187,
+    "lastLine": 2190
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-128-2026-10-10-the-wf-surface-without-aliases-round-two-of-the-naming",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2191,
+    "lastLine": 2200
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-129-2026-10-10-android-on-the-vm-redroid",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2201,
+    "lastLine": 2204
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-130-2026-10-11-checks-left-open-by-the-surface-round-and-decisions",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2205,
+    "lastLine": 2214
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-131-2026-10-11-redroid-on-the-vm-measured-supersedes-the-no-numbers-p",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2215,
+    "lastLine": 2237
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-135-2026-10-11-native-voice-edit-on-redroid-three-app-and-setup-findi",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2258,
+    "lastLine": 2266
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-136-2026-10-12-redroid-footprint-benchmark-n-3-medians-tamil-letter-r",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2267,
+    "lastLine": 2280
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-137-2026-10-12-on-demand-redroid-and-the-540x960-tamil-check",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2281,
+    "lastLine": 2287
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-138-2026-10-12-clean-device-lab-runs-step-by-step",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2288,
+    "lastLine": 2296
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-139-2026-10-12-why-a-deploy-took-25-80-minutes-vm-contention-vault-st",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2297,
+    "lastLine": 2304
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-140-2026-10-13-viewer-viewport-stats-probe-secrets-cache-memory-caps",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2305,
+    "lastLine": 2312
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-141-2026-10-13-slim-android-device-lease-test-queue-and-what-went-wro",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2313,
+    "lastLine": 2320
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-142-2026-10-13-parallel-lanes-on-one-redroid-rejected",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2321,
+    "lastLine": 2324
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-143-2026-10-13-android-baseline-recorded-c1",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2325,
+    "lastLine": 2330
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-144-2026-10-13-gates-re-run-and-where-i-stopped",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2331,
+    "lastLine": 2336
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-145-2026-10-14-one-device-a-taller-screen-and-corrections",
+    "relatedReports": [
+      "agent-proof",
+      "e2e-unit-timing-initial",
+      "gaps-vm-memory-saturation"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2337,
+    "lastLine": 2541
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-147-2026-10-25-one-deploy-flow-build-smoke-test-swap-bounded-health-c",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2551,
+    "lastLine": 2737
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-148-ci-findings-of-run-40206433066-bfcf3c6db",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2738,
+    "lastLine": 2743
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-149-flow-tests-with-a-real-dependency-move-to-the-integration-tier-ow",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2744,
+    "lastLine": 2750
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-151-ci-findings-of-runs-40221821928-5c085220e-and-40222665848-12a4ceb",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2756,
+    "lastLine": 2761
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-152-run-40228591108-8cf4b079c-first-fully-green-ci-run-since-the-pref",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2762,
+    "lastLine": 2768
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-154-first-ci-runs-of-the-integration-tier-25-oct",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2776,
+    "lastLine": 2782
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-156-run-815-and-the-tiers-redefined-25-oct",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2788,
+    "lastLine": 2796
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-158-silent-nx-gap-before-the-clippy-tasks-26-oct",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2804,
+    "lastLine": 2809
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-159-round-5b-the-wf-test-and-check-verbs-move-into-pipeline-2026-10-2",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2810,
+    "lastLine": 2817
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-161-run-40256407776-27817ea7d-vm-ops-api-served-an-older-commit-2026",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2826,
+    "lastLine": 2830
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-166-run-40267446218-9e009d363-the-first-run-with-the-integration-tier",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2854,
+    "lastLine": 2858
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-167-run-40273009231-38b6fbc00-a-timing-margin-in-the-lease-flow-test",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2859,
+    "lastLine": 2863
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-168-run-40276939628-8b993f594-the-attached-session-journeys-root-caus",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2864,
+    "lastLine": 2867
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-169-run-40277985002-ef1547bd5-cli-e2e-tests-was-red-for-two-package-s",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2868,
+    "lastLine": 2872
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-170-timings-of-the-first-run-with-the-integration-tier-run-4026744621",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2873,
+    "lastLine": 2877
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-172-the-live-deploy-proof-and-the-green-run-2026-10-26",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2882,
+    "lastLine": 2919
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-173-2026-10-26-cache-plan-final-green-ci-run",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2920,
+    "lastLine": 2935
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-174-2026-10-26-gemini-gem-context-as-one-bundle-uploaded-through-libr",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2936,
+    "lastLine": 2943
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-175-2026-10-26-the-login-browser-is-headed-again",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2944,
+    "lastLine": 2950
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-176-2026-10-27-viewer-lag-and-the-credential-reaches-the-sandbox",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2951,
+    "lastLine": 2965
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-177-2026-10-27-every-ask-runs-on-the-rca-service-the-cooldowns-are-on",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2966,
+    "lastLine": 2973
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-178-2026-10-28-wf-rca-ask-takes-opencode-s-own-options-and-continues",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 2974,
+    "lastLine": 2999
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-179-2026-10-31-resource-options-after-the-flow-test-speed-up",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3000,
+    "lastLine": 3005
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-180-2026-10-31-the-vm-has-2-cores-where-a-run-s-time-goes-run-12acfbb",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3006,
+    "lastLine": 3012
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-181-2026-10-31-the-parity-e2e-suite-no-longer-runs-for-a-dependency-o",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3013,
+    "lastLine": 3024
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-182-2026-10-31-measured-runs-4e55c57-to-202a1fb",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3025,
+    "lastLine": 3044
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-183-2026-10-31-the-warm-run-and-the-budget-s-i-o-limit",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3045,
+    "lastLine": 3053
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-184-2026-10-31-why-no-job-log-was-stored-since-00-19-utc",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3054,
+    "lastLine": 3112
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-185-2026-10-31-final-numbers-of-the-goal-loop-runner-reliability-and",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3113,
+    "lastLine": 3125
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-186-2026-10-31-closing-the-last-gates-failure-path-on-runner-2-338-2",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3126,
+    "lastLine": 3135
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-187-2026-10-31-the-gem-sync-s-trigger-and-its-proof-no-run-yet",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3136,
+    "lastLine": 3144
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-188-2026-10-31-night-all-ci-crons-removed",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3145,
+    "lastLine": 3149
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-189-2026-10-31-night-the-crons-are-claude-scheduled-tasks",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3150,
+    "lastLine": 3157
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-190-gem-knowledge-as-several-google-docs-no-rclone-2026-10-31",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3158,
+    "lastLine": 3242
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-191-run-41358035572-e3df89ff5-35-min-not-under-20-2026-11-01",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3243,
+    "lastLine": 3249
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-192-run-41365175856-ade70b455-16-m-42-s-red-on-the-first-libs-proxy-d",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3250,
+    "lastLine": 3254
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-193-run-41366982272-11b23f779-green-in-10-min-36-s-2026-11-02",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3255,
+    "lastLine": 3260
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-194-registry-dependencies-in-ci-and-the-90-s-nx-stall-2026-11-02",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3261,
+    "lastLine": 3268
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-195-run-41405214719-a97dea1a6-the-offload-e2e-suite-is-the-20-min-pro",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3269,
+    "lastLine": 3275
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-197-run-41441721246-a10440d6e-the-seeded-e2e-replays-5-min-5-s-2026-1",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3287,
+    "lastLine": 3292
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-198-rca-refactor-pushes-ci-times-2026-11-02",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3293,
+    "lastLine": 3300
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-199-run-41474038765-a32514148-a-dead-runner-26-min-55-s-of-wait-2026",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3301,
+    "lastLine": 3306
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-200-run-41483361232-733bcf523-the-plan-job-killed-after-24-s-2026-11",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3307,
+    "lastLine": 3310
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-201-run-fb38357f6-the-watchdog-recreated-the-runner-mid-job-2026-11-0",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3311,
+    "lastLine": 3315
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-203-the-one-pat-push-and-the-service-kit-registry-2026-11-02",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3321,
+    "lastLine": 3324
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-204-run-af52e39f5-eleven-commits-in-one-push-36-min-51-s-2026-11-02",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3325,
+    "lastLine": 3330
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-205-3-nov-the-cpu-seconds-budget-scales-with-deploy-legs",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3331,
+    "lastLine": 3335
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-206-3-nov-the-nx-cache-shim-under-load-no-stall",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3336,
+    "lastLine": 3340
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-208-6-nov-mimic-x7-harness-goldens-stay-flow-goldens-baseline-deleted",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3348,
+    "lastLine": 3353
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-209-7-nov-the-orca-recorded-replay-cpu-harness-lever-replay-chunking",
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3354,
+    "lastLine": 3368
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se",
+    "relatedReports": [
+      "2026-11-14-ci-cache-bench",
+      "2026-11-24-cli-performance",
+      "2026-11-25-api-performance",
+      "2026-11-25-native-learner-suites"
+    ],
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "firstLine": 3369,
+    "lastLine": 3486
+  },
+  {
+    "source": "clis/app-bench/baselines/android.json",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "8fdbcfb663e1c3364011ff054cd37ce0a835a955"
+  },
+  {
+    "source": "clis/app-bench/baselines/build.json",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "f4f9d2551099c84270cf780ada62ea460facbd30"
+  },
+  {
+    "source": "clis/app-bench/baselines/memory.json",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "a729420edb97a916149759b424891b9492942e05"
+  },
+  {
+    "source": "clis/app-bench/baselines/runtime.json",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "0dab943820a7cc33be1f6e72b1468b1909a6da03"
+  },
+  {
+    "source": "clis/app-bench/baselines/startup.json",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "680b7bb24e17290a4c0c5b410926a7c0e36699c3"
+  },
+  {
+    "source": "docs/audits/2026-09-02-cheap-model-delegation-report.md",
+    "report": "2026-09-02-cheap-model-delegation-report",
+    "sourceBlob": "5b3944a032041ca88c1be2134126f2a23e339310"
+  },
+  {
+    "source": "docs/audits/2026-09-03-token-diet-ledger.html",
+    "report": "2026-09-03-token-diet-ledger",
+    "sourceBlob": "f00eb8d76c9ac42c9cde7e1583f6e2c61908952c"
+  },
+  {
+    "source": "docs/audits/2026-09-14-voice-edit-latency-data.md",
+    "report": "2026-09-14-voice-edit-latency-data",
+    "sourceBlob": "7966e2060e16d2c787ab27217c5a3aab09ba342e"
+  },
+  {
+    "source": "docs/audits/2026-10-06-app-bench-baseline.md",
+    "report": "2026-10-06-app-bench-baseline",
+    "relatedReports": [
+      "plans-wf-crate-split-baseline"
+    ],
+    "sourceBlob": "3c69609213e3a51879f0070a6325f20866285ae6"
+  },
+  {
+    "source": "docs/audits/2026-10-06-app-bench-report.md",
+    "report": "2026-10-06-app-bench-report",
+    "sourceBlob": "2c2203b72d95d92d68d2ce7898660959032e67b5"
+  },
+  {
+    "source": "docs/audits/2026-10-06-rust-cli-consolidated-benchmark.md",
+    "report": "2026-10-06-rust-cli-consolidated-benchmark",
+    "sourceBlob": "1043111a6f3101da264902a16bad3e8ebc6d3270"
+  },
+  {
+    "source": "docs/audits/2026-10-17-backend-flow-tests-leetcode.md",
+    "report": "2026-10-17-backend-flow-tests-leetcode",
+    "sourceBlob": "10079191d391b19ae88dc5842fad1c8805735869"
+  },
+  {
+    "source": "docs/audits/2026-10-17-cli-flow-tests-wf.md",
+    "report": "2026-10-17-cli-flow-tests-wf",
+    "sourceBlob": "3bd3c29b8541848e201077958ae2462f3cb71652"
+  },
+  {
+    "source": "docs/audits/2026-11-05-mimic-audit.md",
+    "report": "2026-11-05-mimic-audit",
+    "sourceBlob": "6a5247a1ba246202d0f2bd95d96e525e9d73be35"
+  },
+  {
+    "source": "docs/audits/2026-11-06-nx-cache-and-ci-time-audit.md",
+    "report": "2026-11-06-nx-cache-and-ci-time-audit",
+    "sourceBlob": "bd033fcd2b4d2c2be6919f267ad0c5486c458a13"
+  },
+  {
+    "source": "docs/audits/2026-11-14-ci-cache-bench.md",
+    "report": "2026-11-14-ci-cache-bench",
+    "sourceBlob": "150392de994050c64cee175147055b74d5fc6f3b"
+  },
+  {
+    "source": "docs/audits/2026-11-24-cli-performance.html",
+    "report": "2026-11-24-cli-performance",
+    "sourceBlob": "28147d2f8553c00c06c229adbf2012d00db9410b"
+  },
+  {
+    "source": "docs/audits/2026-11-25-api-performance.html",
+    "report": "2026-11-25-api-performance",
+    "sourceBlob": "b312bea5474fd461db46f32d374dd618a01ca0f2"
+  },
+  {
+    "source": "docs/audits/2026-11-25-native-learner-suites.md",
+    "report": "2026-11-25-native-learner-suites",
+    "sourceBlob": "f4a5e8262de70e4879d18e71ddd2c89a44142195"
+  },
+  {
+    "source": "docs/audits/benchmarks/capture-listener-bench.py",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "e1fc14f80c02acf3f92a8c6a148ea95686029854"
+  },
+  {
+    "source": "docs/audits/benchmarks/device-lab-browser-cli-before-after.md",
+    "report": "device-lab-browser-cli-before-after",
+    "sourceBlob": "da29b9e6ba44c03e747e34ee94824080b57b5292"
+  },
+  {
+    "source": "docs/audits/benchmarks/reporting-service-bench.py",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "c35fc2b8e4937b158f539faa264f2579e27e11de"
+  },
+  {
+    "source": "docs/audits/benchmarks/rustwright-vs-wf-browser.md",
+    "report": "rustwright-vs-wf-browser",
+    "sourceBlob": "c0e57dfbfeb11499ba56f53e80af1e41491a1242"
+  },
+  {
+    "source": "docs/audits/benchmarks/watchdog-bench.py",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "55ef973c37b3eac50244024509a457ff4aeb9429"
+  },
+  {
+    "source": "docs/audits/benchmarks/wf-otlp-sdk-bench.py",
+    "reason": "Active baseline or measurement program, kept with its consumer.",
+    "sourceBlob": "4421337b4e57cc186329e38eb5ca4b2550609bd5"
+  },
+  {
+    "source": "docs/audits/reports/backend-leetcode-auth-cookie-capture.md",
+    "report": "backend-leetcode-auth-cookie-capture",
+    "relatedReports": [
+      "capture-listener-node-vs-rust",
+      "workspace-root-and-infra"
+    ],
+    "sourceBlob": "d1e48c68c5ebec25a4d79328ce75111788ff8585"
+  },
+  {
+    "source": "docs/audits/reports/backend-remote-chat-agent-contracts.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "ceb0a6b8d0ded3b61fe69355f50800a3bd9132cf"
+  },
+  {
+    "source": "docs/audits/reports/backend-remote-chat-agent.md",
+    "report": "backend-remote-chat-agent",
+    "relatedReports": [
+      "plans-rust-services-remote-chat-agent",
+      "rca-post-rust",
+      "rca-post-serde",
+      "rca-post-std",
+      "rca-pre-node",
+      "rca-pre-node-runs",
+      "rca-pre-node-ws",
+      "rca-pre-std"
+    ],
+    "sourceBlob": "24420d1752dd0440f6963514f3cc7b326aaef4a7"
+  },
+  {
+    "source": "docs/audits/reports/backend-reporting-service.md",
+    "report": "backend-reporting-service",
+    "sourceBlob": "e243ea073878b5d9b3280a842c4d044a75cf1500"
+  },
+  {
+    "source": "docs/audits/reports/clis-cdp.md",
+    "report": "clis-cdp",
+    "sourceBlob": "c80c0d6563ba1dda6248f70fce17d1b1360d3a17"
+  },
+  {
+    "source": "docs/audits/reports/clis-wf.md",
+    "report": "clis-wf",
+    "sourceBlob": "d7b535dbf92a380730d8a7006d8f48c17d48c3e2"
+  },
+  {
+    "source": "docs/audits/reports/infra-oracle-cloud-watchdog.md",
+    "report": "infra-oracle-cloud-watchdog",
+    "sourceBlob": "c976e1039e874b1c49f269f51c8f3610a0b9c98f"
+  },
+  {
+    "source": "docs/audits/reports/workspace-root-and-infra.md",
+    "report": "workspace-root-and-infra",
+    "relatedReports": [
+      "rca-ci-deploy-profile",
+      "rca-ci-release-lto"
+    ],
+    "sourceBlob": "35123cca51af6c06dfca9b476d712c9ae3263134"
+  },
+  {
+    "source": "docs/gaps/browser-harness-screenshot-tiled-chrome.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "7f4e3e7394eb89a6f962b65a09bcf82690f68261"
+  },
+  {
+    "source": "docs/gaps/run-local-accepts-a-problem-with-no-cases.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "d66da36c889fdc053ffee3aa1f1dfa4751a91d8b"
+  },
+  {
+    "source": "docs/gaps/wf-browser-usage-omits-subcommand.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "e50b67da25efe75d0018959824026d0e50c4fb7a"
+  },
+  {
+    "source": "docs/goals/2026-10-06-app-bench.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "f33e841056122f7a2411e6b1bea4f072e134313f"
+  },
+  {
+    "source": "docs/goals/2026-10-14-device-lab-fast-green.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "bb0ff37136f4cb27861c7e821e18a602bfba5248"
+  },
+  {
+    "source": "docs/goals/2026-10-20-after-device-lab.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "02688e1575e7d357a035a7308806cbb075239a3c"
+  },
+  {
+    "source": "docs/plans/after-device-lab/progress.md",
+    "report": "after-device-lab-progress",
+    "relatedReports": [
+      "plans-app-bench-progress"
+    ],
+    "sourceBlob": "f05bf3b00d367c65034cb2ad6f4b272d28e970eb"
+  },
+  {
+    "source": "docs/plans/after-device-lab/spec.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "01eed17539760705c1245702b9278b8dd115429d"
+  },
+  {
+    "source": "docs/plans/app-bench/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "aa77a77a3ce173192ddaedc237b67b9c3dea413e"
+  },
+  {
+    "source": "docs/plans/blob-cache/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "57bf624f393717aaf20766158427ab8031dac646"
+  },
+  {
+    "source": "docs/plans/device-lab/progress.md",
+    "report": "device-lab-progress",
+    "relatedReports": [
+      "plans-app-bench-progress"
+    ],
+    "sourceBlob": "a14b34fef944728b767f5a33a2c2cb5711c2d8a8"
+  },
+  {
+    "source": "docs/plans/device-lab/spec.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "3bb50ba773586a1e488b0b60598195a7b60098c5"
+  },
+  {
+    "source": "docs/plans/device-test-process/plan-2026-10-14.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "d0c158ab601b38c86f7c152fb572cbe28ad43987"
+  },
+  {
+    "source": "docs/plans/device-test-process/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "047dd246da821f2e24a5829e2ed05bd28d96a719"
+  },
+  {
+    "source": "docs/plans/device-test-process/progress-2026-10-14.md",
+    "report": "progress-2026-10-14",
+    "sourceBlob": "a49b69cbb5d714446fce6b25cc35807c7d3b15eb"
+  },
+  {
+    "source": "docs/plans/device-test-process/progress.md",
+    "report": "device-test-process-progress",
+    "relatedReports": [
+      "plans-app-bench-progress"
+    ],
+    "sourceBlob": "4121f0af8039fbec5b910f17464f792352e6113c"
+  },
+  {
+    "source": "docs/plans/greenfield/requirements.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "d536a36182a4e6aeccc9ed794e7210bf4209cec9"
+  },
+  {
+    "source": "docs/plans/harness-api/spec.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "77f40c126218e2af3e2fee742e92068064ba9422"
+  },
+  {
+    "source": "docs/plans/leetcode-foundation/block-view/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "dc2f7806b3d50e2dd1ef28f984d965184d7b403e"
+  },
+  {
+    "source": "docs/plans/leetcode-foundation/js-runner/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "9b466605bff8cd702c50cca19e2fb3b221ff0220"
+  },
+  {
+    "source": "docs/plans/leetcode-foundation/liquid-glass/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "e821c2da6ac33f65709dfb790a40df3807cbfe9b"
+  },
+  {
+    "source": "docs/plans/leetcode-foundation/spec.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "addc354c48e7dfdd938d57174ec749bf12bce7ef"
+  },
+  {
+    "source": "docs/plans/mimic/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "a17180c7538fa48b29e210ae86cde5ea878f8ace"
+  },
+  {
+    "source": "docs/plans/nx-cache/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "b132bf71685fbdfc721ac446769888b4c14d9b4c"
+  },
+  {
+    "source": "docs/plans/public-mirror/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "58f4036c052b1057764ac27af073f0b3414c1b14"
+  },
+  {
+    "source": "docs/plans/rca-open-issues/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "421e4f1c92bb29ebe08332382e6c237116ff8c85"
+  },
+  {
+    "source": "docs/plans/sandbox-first-ci/spec.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "2fd2a79766e0a5cf222554a004f68a4f478e5b1c"
+  },
+  {
+    "source": "docs/plans/secrets-broker/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "105c027783918bf4de3adcbdea8d2d5c29a5f405"
+  },
+  {
+    "source": "docs/plans/ts-removal/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "658ed7c71bd0af2b4523acfccc4d780619cbbdf5"
+  },
+  {
+    "source": "docs/plans/vm-ops-api-rs/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "b7c39b676dfa2d00cca3b9ace4d4bc192f271ef7"
+  },
+  {
+    "source": "docs/plans/wf-crate-split/plan.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "666264a8cb5e36508463ef92f831baae493e12d1"
+  },
+  {
+    "source": "docs/reference/wf-cli.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "57d18a46920df5da94c07abe39d3c3e9aa2a6bbe"
+  },
+  {
+    "source": "docs/runbooks/app-bench-on-device.md",
+    "reason": "Measurement procedure and acceptance limits; the observed results live in the app and CLI performance reports.",
+    "sourceBlob": "b968fedb60983021dceb7334b5347138e0f80111"
+  },
+  {
+    "source": "docs/runbooks/nightly-audit.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "b0ccc067703d6ff4698de216edfc386c465c1b04"
+  },
+  {
+    "source": "docs/runbooks/performance-traces.md",
+    "reason": "Measurement procedure and acceptance limits; the observed results live in the app and CLI performance reports.",
+    "sourceBlob": "d016a3e724f6609d456baccc6f42f8cd1be785cb"
+  },
+  {
+    "source": "docs/solutions/ci/shard-weights-and-overlapping-runs.md",
+    "reason": "Reference, procedure or planned work; no benchmark series identified.",
+    "sourceBlob": "0279fe745326654e903f332bf5c8e584a48d0122"
+  },
+  {
+    "source": "docs/runbooks/.results/agent-proof.json",
+    "report": "agent-proof",
+    "sourceBlob": "1de0b12953fc683080e8e6972a7ac56eba6f7373"
+  },
+  {
+    "source": "docs/runbooks/.results/agent-proof-harness-api.json",
+    "report": "agent-proof-harness-api",
+    "sourceBlob": "f7d99f97c1378262b2a9d5a03397ee32f61ee150"
+  },
+  {
+    "source": "docs/runbooks/.results/e2e-unit-timing-initial.json",
+    "report": "e2e-unit-timing-initial",
+    "sourceBlob": "aee974d14b40a730e5a857e3476411f34c7a372c"
+  },
+  {
+    "source": "docs/audits/2026-10-06-rca-baseline-and-rust-migration-plan.md",
+    "report": "audits-2026-10-06-rca-baseline-and-rust-migration-plan",
+    "sourceBlob": "59ea43746f18b21c2142df7af75d03fcceb62fbb"
+  },
+  {
+    "source": "docs/audits/2026-11-07-mimic-r2c-replay.md",
+    "report": "audits-2026-11-07-mimic-r2c-replay",
+    "sourceBlob": "7f0f95a33559621946723f9967753a91e289cf15"
+  },
+  {
+    "source": "docs/audits/reports/backend-leetcode-backend.md",
+    "report": "audits-reports-backend-leetcode-backend",
+    "relatedReports": [
+      "plans-rust-services-leetcode-backend"
+    ],
+    "sourceBlob": "8b95c0ce14ecec682a47ecf51198f0aeca863030"
+  },
+  {
+    "source": "docs/audits/reports/clis-http.md",
+    "report": "audits-reports-clis-http",
+    "sourceBlob": "fc467b32dda3f7ad857751cbdc2792037ec381be"
+  },
+  {
+    "source": "docs/audits/reports/clis-rca-edge.md",
+    "report": "audits-reports-clis-rca-edge",
+    "sourceBlob": "94b4ebf04614ed2c59263d9f0923f391bead3eb4"
+  },
+  {
+    "source": "docs/audits/reports/clis-vnc-auth-capture.md",
+    "report": "audits-reports-clis-vnc-auth-capture",
+    "sourceBlob": "67888ef08ce02e954182282df9504fe0d0f15be0"
+  },
+  {
+    "source": "docs/audits/reports/clis-wf-blackbox.md",
+    "report": "audits-reports-clis-wf-blackbox",
+    "sourceBlob": "88de93b3e0b653c3009715f98489594291f820d0"
+  },
+  {
+    "source": "docs/plans/app-bench/progress.md",
+    "report": "plans-app-bench-progress",
+    "relatedReports": [
+      "2026-10-06-app-bench-baseline",
+      "plans-wf-crate-split-baseline"
+    ],
+    "sourceBlob": "6ed506f9bcc3fe8f0444c6c9a05dbed1e1c66f67"
+  },
+  {
+    "source": "docs/plans/rust-services/remote-chat-agent.md",
+    "report": "plans-rust-services-remote-chat-agent",
+    "sourceBlob": "1d6c43b63ae20c85e3c30bf75ef7abeebab9563a"
+  },
+  {
+    "source": "docs/plans/rust-services/leetcode-backend.md",
+    "report": "plans-rust-services-leetcode-backend",
+    "sourceBlob": "abb7739305aef85c23bccd2ff8dd79425d272f1e"
+  },
+  {
+    "source": "docs/plans/rust-services/standard-crates.md",
+    "report": "plans-rust-services-standard-crates",
+    "relatedReports": [
+      "clis-wf",
+      "rca-post-rust"
+    ],
+    "sourceBlob": "7d82fba5d8999213dc71cd2893d26a6705a1ba21"
+  },
+  {
+    "source": "docs/plans/wf-crate-split/baseline.md",
+    "report": "plans-wf-crate-split-baseline",
+    "sourceBlob": "b693021c40e51a663959907acb2987a5503c054c"
+  },
+  {
+    "source": "docs/plans/wf-crate-split/result.md",
+    "report": "plans-wf-crate-split-result",
+    "sourceBlob": "bbc982a40e7535d18d6f7873716a6aa47abaefda"
+  },
+  {
+    "source": "docs/runbooks/device-lab-voice-edit-android.md",
+    "report": "runbooks-device-lab-voice-edit-android",
+    "sourceBlob": "bc5c8a6fb4a438d0964498864752bb96c43eb012"
+  },
+  {
+    "source": "docs/runbooks/rca-mobile-parity-results.md",
+    "report": "runbooks-rca-mobile-parity-results",
+    "sourceBlob": "f3b488630486fac7ce4ccfba1f7bb42ff08c9655"
+  },
+  {
+    "source": "docs/solutions/ci/hosted-minutes.md",
+    "report": "solutions-ci-hosted-minutes",
+    "sourceBlob": "be442311fb36f0f76a64f1de613e9d8e521d56f7"
+  },
+  {
+    "source": "docs/solutions/ci/parallelism-telemetry.md",
+    "report": "solutions-ci-parallelism-telemetry",
+    "sourceBlob": "194eb203d2728633891f85f05f970ac62d722743"
+  },
+  {
+    "source": "docs/solutions/workflow/token-diet-context-not-prose.md",
+    "report": "solutions-workflow-token-diet-context-not-prose",
+    "sourceBlob": "b91d83d937e537d47758fc1922968829082607b5"
+  },
+  {
+    "source": "docs/gaps/web-export-cold-deep-link-hydration-418.md",
+    "report": "gaps-web-export-cold-deep-link-hydration-418",
+    "sourceBlob": "51b73e075848bd1cfdf5a0b65a7a34439e296f50"
+  },
+  {
+    "source": "docs/gaps/vm-memory-saturation.md",
+    "report": "gaps-vm-memory-saturation",
+    "sourceBlob": "0318d4ba16ac22d4c4ea802e425ba85eabd176e7"
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-18",
+    "firstLine": 18,
+    "lastLine": 18,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-19",
+    "firstLine": 19,
+    "lastLine": 19,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-24",
+    "firstLine": 24,
+    "lastLine": 24,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-25",
+    "firstLine": 25,
+    "lastLine": 25,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-26",
+    "firstLine": 26,
+    "lastLine": 26,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-27",
+    "firstLine": 27,
+    "lastLine": 27,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-29",
+    "firstLine": 29,
+    "lastLine": 29,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-31",
+    "firstLine": 31,
+    "lastLine": 31,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-32",
+    "firstLine": 32,
+    "lastLine": 32,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-33",
+    "firstLine": 33,
+    "lastLine": 33,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-34",
+    "firstLine": 34,
+    "lastLine": 34,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-02-36",
+    "firstLine": 36,
+    "lastLine": 36,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-37",
+    "firstLine": 37,
+    "lastLine": 37,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-39",
+    "firstLine": 39,
+    "lastLine": 39,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-40",
+    "firstLine": 40,
+    "lastLine": 40,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-43",
+    "firstLine": 43,
+    "lastLine": 43,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-44",
+    "firstLine": 44,
+    "lastLine": 44,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-45",
+    "firstLine": 45,
+    "lastLine": 45,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-46",
+    "firstLine": 46,
+    "lastLine": 46,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-48",
+    "firstLine": 48,
+    "lastLine": 48,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-51",
+    "firstLine": 51,
+    "lastLine": 51,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-55",
+    "firstLine": 55,
+    "lastLine": 55,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-58",
+    "firstLine": 58,
+    "lastLine": 58,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-59",
+    "firstLine": 59,
+    "lastLine": 59,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-03-60",
+    "firstLine": 60,
+    "lastLine": 60,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-05-61",
+    "firstLine": 61,
+    "lastLine": 61,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-05-62",
+    "firstLine": 62,
+    "lastLine": 62,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-05-63",
+    "firstLine": 63,
+    "lastLine": 63,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-05-64",
+    "firstLine": 64,
+    "lastLine": 64,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-05-65",
+    "firstLine": 65,
+    "lastLine": 65,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-06-66",
+    "firstLine": 66,
+    "lastLine": 66,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-06-67",
+    "firstLine": 67,
+    "lastLine": 67,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-06-68",
+    "firstLine": 68,
+    "lastLine": 68,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-06-69",
+    "firstLine": 69,
+    "lastLine": 69,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-06-70",
+    "firstLine": 70,
+    "lastLine": 70,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-06-71",
+    "firstLine": 71,
+    "lastLine": 71,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-09-06-72",
+    "firstLine": 72,
+    "lastLine": 72,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "token-diet-initial-experiments"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-13-3395",
+    "firstLine": 3395,
+    "lastLine": 3395,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-13-3401",
+    "firstLine": 3401,
+    "lastLine": 3401,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-13-3402",
+    "firstLine": 3402,
+    "lastLine": 3402,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-13-3406",
+    "firstLine": 3406,
+    "lastLine": 3406,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-13-3410",
+    "firstLine": 3410,
+    "lastLine": 3410,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-14-3412",
+    "firstLine": 3412,
+    "lastLine": 3412,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-14-3414",
+    "firstLine": 3414,
+    "lastLine": 3414,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-15-3416",
+    "firstLine": 3416,
+    "lastLine": 3416,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-15-3418",
+    "firstLine": 3418,
+    "lastLine": 3418,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-16-3421",
+    "firstLine": 3421,
+    "lastLine": 3421,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-16-3422",
+    "firstLine": 3422,
+    "lastLine": 3422,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-16-3423",
+    "firstLine": 3423,
+    "lastLine": 3423,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-17-3428",
+    "firstLine": 3428,
+    "lastLine": 3428,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-20-3434",
+    "firstLine": 3434,
+    "lastLine": 3434,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-21-3436",
+    "firstLine": 3436,
+    "lastLine": 3436,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-23-3440",
+    "firstLine": 3440,
+    "lastLine": 3440,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3442",
+    "firstLine": 3442,
+    "lastLine": 3442,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3444",
+    "firstLine": 3444,
+    "lastLine": 3444,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3446",
+    "firstLine": 3446,
+    "lastLine": 3446,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3448",
+    "firstLine": 3448,
+    "lastLine": 3448,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3450",
+    "firstLine": 3450,
+    "lastLine": 3450,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3452",
+    "firstLine": 3452,
+    "lastLine": 3452,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3454",
+    "firstLine": 3454,
+    "lastLine": 3454,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3456",
+    "firstLine": 3456,
+    "lastLine": 3456,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3458",
+    "firstLine": 3458,
+    "lastLine": 3458,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3460",
+    "firstLine": 3460,
+    "lastLine": 3460,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3462",
+    "firstLine": 3462,
+    "lastLine": 3462,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-24-3464",
+    "firstLine": 3464,
+    "lastLine": 3464,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3466",
+    "firstLine": 3466,
+    "lastLine": 3466,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3468",
+    "firstLine": 3468,
+    "lastLine": 3468,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3470",
+    "firstLine": 3470,
+    "lastLine": 3470,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3472",
+    "firstLine": 3472,
+    "lastLine": 3472,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3474",
+    "firstLine": 3474,
+    "lastLine": 3474,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3476",
+    "firstLine": 3476,
+    "lastLine": 3476,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3478",
+    "firstLine": 3478,
+    "lastLine": 3478,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3480",
+    "firstLine": 3480,
+    "lastLine": 3480,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3482",
+    "firstLine": 3482,
+    "lastLine": 3482,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3484",
+    "firstLine": 3484,
+    "lastLine": 3484,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  },
+  {
+    "source": "docs/audits/2026-09-02-token-diet-decision-log.md",
+    "report": "decision-2026-11-25-3486",
+    "firstLine": 3486,
+    "lastLine": 3486,
+    "sourceBlob": "dde1aa2b98525c351d919501642e8cdee8037c84",
+    "relatedReports": [
+      "decision-210-13-nov-the-self-hosted-runner-and-its-builder-sidecar-are-gone-se"
+    ]
+  }
+]

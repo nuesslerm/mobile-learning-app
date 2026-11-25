@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-78-2026-10-08-remote-chat-agent-black-box-harness-fourth-slice-viewe",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent black-box harness, fourth slice (viewers and worktrees), and what it found",
+  "question": "What was measured for remote-chat-agent black-box harness, fourth slice (viewers and worktrees), and what it found?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent black-box harness, fourth slice (viewers and worktrees), and what it found",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Tier run: black-box integration through a real socket against the production bundle: 5 files, 123 tests, all green (about 40 s); prettier, eslint and typecheck of the package clean. Worktree creation runs real git: a bare local repository stands in for GitHub through git's `GIT_CONFIG_COUNT` `insteadOf` rewrite of the `https://x-access-token:<token>@github.com/` URL the service builds, so the service's own clone command runs unchanged. The diff store is re…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier run: black-box integration through a real socket against the production bundle: 5 files, 123 tests, all green (about 40 s); prettier, eslint and typecheck of the package clean. Worktree creation runs real git: a bare local repository stands in for GitHub through git's `GIT_CONFIG_COUNT` `insteadOf` rewrite of the `https://x-access-token:<token>@github.com/` URL the service builds, so the service's own clone command runs unchanged. The diff store is read from, and seeded into, the throwaway HOME, so the on-disk format is pinned too."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1618–1627",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

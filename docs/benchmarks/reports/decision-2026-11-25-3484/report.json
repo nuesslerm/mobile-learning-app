@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3484",
+  "subject": "Engineering decisions",
+  "title": "One persistent XCTest session on the named iPhone read 120 elements and submitted typed",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "One persistent XCTest session on the named iPhone read 120 elements and submitted typed",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "One persistent XCTest session on the named iPhone read 120 elements and submitted typed Tamil in 9.7 s. Reverse flash cards passed in 15.8 s; Python editing and keyboard continuation passed in 10.7 and 15.8 s after selecting the editor’s native focus and dismissal controls. Across 333 curriculum strokes the compact accessibility geometry used at most 439 characters and the minimum score…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — One persistent XCTest session on the named iPhone read 120 elements and submitted typed Tamil in 9.7 s. Reverse flash cards passed in 15.8 s; Python editing and keyboard continuation passed in 10.7 and 15.8 s after selecting the editor’s native focus and dismissal controls. Across 333 curriculum strokes the compact accessibility geometry used at most 439 characters and the minimum score against its original guide was 99.4%."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3484",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

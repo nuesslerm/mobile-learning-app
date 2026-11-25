@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-120-2026-10-10-reporting-service-ported-to-rust-phase-2-of-the-typesc",
+  "subject": "Engineering decisions",
+  "title": "reporting-service ported to Rust (phase 2 of the TypeScript removal plan)",
+  "question": "What was measured for reporting-service ported to Rust (phase 2 of the TypeScript removal plan)?",
+  "date": "2026-10-10",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-10: reporting-service ported to Rust (phase 2 of the TypeScript removal plan)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Black box first: 39 of 39 on the Node service and on the Rust binary; 12 flow tests, 7 adapter tests. Interleaved n=5 (`docs/audits/benchmarks/reporting-service-node-vs-rust.json`): start 597.7 to 18.4 ms, idle RSS 114,924 to 10,212 KB, `/health` p50 0.566 to 0.783 ms (a regression of 0.2 ms, accepted), 24 h series over 20,000 rows 95.9 to 37.5 ms (a typed response instead of a `json!` tree took it from 93 ms). The service becomes a pipeline leg (`wf deploy …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Black box first: 39 of 39 on the Node service and on the Rust binary; 12 flow tests, 7 adapter tests. Interleaved n=5 (`docs/audits/benchmarks/reporting-service-node-vs-rust.json`): start 597.7 to 18.4 ms, idle RSS 114,924 to 10,212 KB, `/health` p50 0.566 to 0.783 ms (a regression of 0.2 ms, accepted), 24 h series over 20,000 rows 95.9 to 37.5 ms (a typed response instead of a `json!` tree took it from 93 ms). The service becomes a pipeline leg (`wf deploy plan`) and a VM-buildable image, which also unblocks `docs/gaps/reporting-service-image-never-built.md`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2145–2148",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

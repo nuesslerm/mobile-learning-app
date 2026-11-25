@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-128-2026-10-10-the-wf-surface-without-aliases-round-two-of-the-naming",
+  "subject": "Engineering decisions",
+  "title": "the `wf` surface without aliases (round two of the naming request; supersedes the entry above)",
+  "question": "What was measured for the `wf` surface without aliases (round two of the naming request; supersedes the entry above)?",
+  "date": "2026-10-10",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-10: the `wf` surface without aliases (round two of the naming request; supersedes the entry above)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Cold start, n=5 after 3 warm-ups, deploy-profile binary: `wf --help` median 3.64 ms (3.31 to 4.00), `wf ship eas --help` 3.59 ms, `wf vm net --help` 3.45 ms; baseline 3.6 ms, unchanged. Binary 10,958,056 bytes.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Runbook tier, deployed services, head `666924c3f`: Deploy runs 362 and 363 green (plan, `mla-tamagui`, `remote-chat-agent`; 363 was docs only). `wf ship --status`: leetcode-backend `sha-666924c3`, leetcode-capture `sha-666924c`, vnc-auth `sha-666924c`, reporting-service `sha-666924c`, remote-chat-agent `sha-d5265d81` (package unchanged by the later docs commits), all healthy; `mla-tamagui` alive at `666924c3f`. `wf ship mla-tamagui --clear-cache` took 1 m 58 s and ended with `mla-tamagui on dev: commit 666924c3f exp://metro-runner-main:20000`."
+        ],
+        [
+          "- Cold start, n=5 after 3 warm-ups, deploy-profile binary: `wf --help` median 3.64 ms (3.31 to 4.00), `wf ship eas --help` 3.59 ms, `wf vm net --help` 3.45 ms; baseline 3.6 ms, unchanged. Binary 10,958,056 bytes."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2191–2200",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

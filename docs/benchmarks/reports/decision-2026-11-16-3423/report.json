@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-16-3423",
+  "subject": "Engineering decisions",
+  "title": "Scripted model for the offload `ask` e2e group",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-16",
+  "revision": null,
+  "environment": null,
+  "workload": "Scripted model for the offload `ask` e2e group",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "scripted model for the offload `ask` e2e group (issue #83 E3 step 4; test type: e2e plus flow, local, n=1, no network and no `OPENCODE_GO_API_KEY`). New `exec_testkit::FakeModel` (`fake-model`, an OpenAI-compatible chat-completions server) behind `OpencodeServer::start_scripted` (the `opencode-go` provider's baseURL set through `OPENCODE_CONFIG_CONTENT`); the `ask` group runs on it, the parity…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 16 Nov, scripted model for the offload `ask` e2e group (issue #83 E3 step 4; test type: e2e plus flow, local, n=1, no network and no `OPENCODE_GO_API_KEY`). New `exec_testkit::FakeModel` (`fake-model`, an OpenAI-compatible chat-completions server) behind `OpencodeServer::start_scripted` (the `opencode-go` provider's baseURL set through `OPENCODE_CONFIG_CONTENT`); the `ask` group runs on it, the parity groups stay on the live model and the vault key. `cargo test -p offload --test e2e -- ask::` took 20 s with 5 of 6 passing (session continue with PELICAN, edit with and without the read-only agent, repository agent, loopback service); the sixth, `the_recorded_options_are_the_ones_opencode_run_lists_now`, fails here only because the local opencode is 1.19.5 and dropped `--share` against the 1.19.0 the job pins. Flow tests (4, 33 s) pin the SSE protocol and the request shape the real `opencode run` sends. Decision: keep; the live ask run (minutes, 3 attempts, flaky by design) is replaced by a 20 s run. Not measured: a hosted run."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3423",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

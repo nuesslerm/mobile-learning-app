@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-127-2026-10-10-the-wf-surface-four-verbs-and-four-nouns-plan-b-of-the",
+  "subject": "Engineering decisions",
+  "title": "the `wf` surface, four verbs and four nouns (plan B of the owner's naming request)",
+  "question": "What was measured for the `wf` surface, four verbs and four nouns (plan B of the owner's naming request)?",
+  "date": "2026-10-10",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-10: the `wf` surface, four verbs and four nouns (plan B of the owner's naming request)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: `wf` now takes `check`, `ship`, `ask`, `plan` (verbs) and `app`, `vm`, `secret`, `repo` (nouns). `surface::resolve` turns each into the argv of the command that does the work; the 24 old top-level names still run unchanged and print one stderr line naming their replacement (silenced with `WF_ALIAS_NOTICE=0`, which the black-box harness sets). The global `--app` option is also spelled `--frontend`. Deliberate behaviour changes: the new spellings, the notice, …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "`wf` now takes `check`, `ship`, `ask`, `plan` (verbs) and `app`, `vm`, `secret`, `repo` (nouns). `surface::resolve` turns each into the argv of the command that does the work; the 24 old top-level names still run unchanged and print one stderr line naming their replacement (silenced with `WF_ALIAS_NOTICE=0`, which the black-box harness sets). The global `--app` option is also spelled `--frontend`. Deliberate behaviour changes: the new spellings, the notice, `wf --help` listing eight commands. Cost: n=5 medians of 100 runs, `wf --version` 3.69 ms, `wf verify --help` (old name, through the resolver) 3.73 ms, `wf check --help` 3.59 ms; the binary is 11,153,064 bytes. Checks: `surface` unit tests 11 passed; `cli_surface` black box 9 passed; the full `wf-blackbox` run 958 passed with two load-sensitive tests (`cli_work_run` SIGTERM, `cli_browser_attach` scroll) that pass alone, three times, and on a rerun of their files; clippy `-D warnings` clean. One security finding fixed in the same change: the secret-exposure guard (`scripts/guards/block-secret-exposure.mjs`) and the approve deny list (`libraries/hook-runtime/src/deny.json`) matched only the plural noun, so the singular spelling of the value-revealing subcommands would have bypassed them; both now match an optional trailing `s`, with three new guard tests, and the coverage test checks both spellings. The aliases are removed in a later small PR once `rg \"wf (verify|deploy|work|dispatch|secrets|auth|agents)\\b\"` finds nothing outside the alias table."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2187–2190",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

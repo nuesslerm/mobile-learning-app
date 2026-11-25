@@ -1,0 +1,16 @@
+appId: com.nuesslerm.mla-tamagui
+---
+- startRecording: run
+- assertVisible: {id: TamilCollection-first-steps}
+- takeScreenshot: start
+- tapOn: {id: TamilCollection-first-steps}
+- assertVisible: {id: TamilPractice}
+- tapOn: {id: TamilPractice}
+- assertVisible: {id: TamilStartPractice}
+- takeScreenshot: lesson
+- tapOn: Back
+- assertVisible: {id: TamilPractice}
+- tapOn: Back
+- assertVisible: {id: TamilCollection-first-steps}
+- takeScreenshot: finish
+- stopRecording

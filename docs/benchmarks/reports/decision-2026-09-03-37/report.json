@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-37",
+  "subject": "Engineering decisions",
+  "title": "Ladder 3 complete on the shipped baseline",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "Ladder 3 complete on the shipped baseline",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Ladder 3 complete on the shipped baseline (77 sessions, $5.99, 0 new errors): T0 chat $0.0731 / judge 0.73, agentic $0.1278; **X9 Read masker** chat $0.0603 (−18%), agentic $0.1100 (−14%), judge 0.81, gates 100% → ships; **X10 rtk 0.47.0** chat $0.0593 (−19%), agentic $0.1231 (−4%), judge 0.82, gates 100% → ships for the chat-shaped saving, agentic neutral (JetBrains' +7.6% not reproduced here)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 20 | 2026-09-03 05:20 | Ladder 3 complete on the shipped baseline (77 sessions, $5.99, 0 new errors): T0 chat $0.0731 / judge 0.73, agentic $0.1278; **X9 Read masker** chat $0.0603 (−18%), agentic $0.1100 (−14%), judge 0.81, gates 100% → ships; **X10 rtk 0.47.0** chat $0.0593 (−19%), agentic $0.1231 (−4%), judge 0.82, gates 100% → ships for the chat-shaped saving, agentic neutral (JetBrains' +7.6% not reproduced here) | `.agents/tmp/token-diet/ladder3/rows.csv` | — |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 37",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

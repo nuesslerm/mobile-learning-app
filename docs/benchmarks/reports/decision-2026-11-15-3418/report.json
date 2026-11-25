@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-15-3418",
+  "subject": "Engineering decisions",
+  "title": "The reference recorder waits for the first answer",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-15",
+  "revision": null,
+  "environment": null,
+  "workload": "The reference recorder waits for the first answer",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "the reference recorder waits for the first answer (issue #83 decision 2, B4; test type: unit and flow, the interpreter's `first_answer_ms` policy, n=1). `wf mimic record` through the Rust step interpreter waits up to 3 s (`first_answer_ms`, default 3000, overridable in `[reference.script]`) for the first answer to a request and then settles, as replay does; a stream case listens for 1.5 s…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 15 Nov, the reference recorder waits for the first answer (issue #83 decision 2, B4; test type: unit and flow, the interpreter's `first_answer_ms` policy, n=1). `wf mimic record` through the Rust step interpreter waits up to 3 s (`first_answer_ms`, default 3000, overridable in `[reference.script]`) for the first answer to a request and then settles, as replay does; a stream case listens for 1.5 s (`listen_ms` of its subscribe step). Chosen so a host that answers late (an orcad that has just paired, a T3 server's first RPC) is recorded as its answer and not as an empty step, and so record and replay share one policy; the cost is at most 3 s per case that never answers. Decided by the issue, not measured against another value."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3418",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

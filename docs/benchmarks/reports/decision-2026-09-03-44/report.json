@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-44",
+  "subject": "Engineering decisions",
+  "title": "The reviewer run was served by `minimax/MiniMax-M3`",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "The reviewer run was served by `minimax/MiniMax-M3`",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "The reviewer run was served by `minimax/MiniMax-M3` ($0.0412, 572s) after the deepseek attempt timed out: `--model` overrides the agent file's pin, so the harness rotation ran a pinned agent on another provider. `opencodeDispatch` gains `models` (replaces the rotation) and cheap-flow passes the single agent model; the integration test asserts `--model opencode-go/deepseek-v4-flash` on every call",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 27 | 2026-09-03 09:58 | The reviewer run was served by `minimax/MiniMax-M3` ($0.0412, 572s) after the deepseek attempt timed out: `--model` overrides the agent file's pin, so the harness rotation ran a pinned agent on another provider. `opencodeDispatch` gains `models` (replaces the rotation) and cheap-flow passes the single agent model; the integration test asserts `--model opencode-go/deepseek-v4-flash` on every call | run `8e64a291` in the dispatch run log | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 44",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

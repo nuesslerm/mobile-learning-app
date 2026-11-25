@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-117-2026-10-09-wf-s-otlp-export-on-the-opentelemetry-sdk-and-the-rust",
+  "subject": "Engineering decisions",
+  "title": "wf's OTLP export on the OpenTelemetry SDK, and the Rust folder layout enforced (standard-crates plan, done-when 1)",
+  "question": "What was measured for wf's OTLP export on the OpenTelemetry SDK, and the Rust folder layout enforced (standard-crates plan, done-when 1)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf's OTLP export on the OpenTelemetry SDK, and the Rust folder layout enforced (standard-crates plan, done-when 1)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measure (`wf log emit`, local HTTPS ingest, n=5 rounds of 10 runs, interleaved): Release binary · before (`otlp.rs`, `opentelemetry-proto`): 8,381,240 B · after (SDK, `log_export.rs`): 8,457,848 B (+76,608 B)",
+  "variants": [
+    {
+      "id": "before-otlp-rs-opentelemetry-proto",
+      "label": "before (`otlp.rs`, `opentelemetry-proto`)"
+    },
+    {
+      "id": "after-sdk-log-export-rs",
+      "label": "after (SDK, `log_export.rs`)"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-5",
+      "label": "Peak RSS",
+      "unit": "KB",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "before-otlp-rs-opentelemetry-proto",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-sdk-log-export-rs",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 22560,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure (`wf log emit`, local HTTPS ingest, n=5 rounds of 10 runs, interleaved)",
+        "before (`otlp.rs`, `opentelemetry-proto`)",
+        "after (SDK, `log_export.rs`)"
+      ],
+      "rows": [
+        [
+          "Release binary",
+          "8,381,240 B",
+          "8,457,848 B (+76,608 B)"
+        ],
+        [
+          "Deploy-profile binary",
+          "10,957,440 B",
+          "11,111,448 B (+154,008 B)"
+        ],
+        [
+          "Wall time, release (median of round medians)",
+          "7.30 ms (6.99 to 7.84)",
+          "7.19 ms (6.96 to 8.73)"
+        ],
+        [
+          "Wall time, deploy profile",
+          "8.07 ms (7.85 to 9.27)",
+          "8.02 ms (7.65 to 8.64)"
+        ],
+        [
+          "Peak RSS",
+          "22,560 KB",
+          "22,560 KB"
+        ],
+        [
+          "Server saw malformed requests",
+          "0 of 204",
+          "(same run)"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "First baseline run, before any change: 7.85 ms release, 8.50 ms deploy profile, 22,296 KB. Records: `docs/audits/benchmarks/wf-otlp-sdk-before.json` (first baseline), `wf-otlp-sdk-after.json` (all four binaries interleaved), `wf-otlp-sdk-bench.py` (method). Verification on the change: `wf` unit tests (`log_export` 4, caveat guard golden on the wire body), the OTLP-related black-box files 34 of 34, then the whole `wf` suite 1,186 of 1,186 in 88 files, `cargo clippy --workspace --all-targets -- -D warnings` clean, `cargo test --workspace` 150 in 16 suites (148 before: four `log_export` tests replace two `otlp` ones)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2119–2135",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

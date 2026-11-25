@@ -8,3 +8,6 @@ mod lab;
 
 #[path = "flow/bench.rs"]
 mod bench;
+
+#[path = "flow/reports.rs"]
+mod reports;

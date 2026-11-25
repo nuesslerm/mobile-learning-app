@@ -1,0 +1,504 @@
+{
+  "schemaVersion": 1,
+  "id": "e2e-unit-timing-initial",
+  "title": "Initial browser and Android unit timings",
+  "subject": "Test harnesses",
+  "question": "What timings were recorded for Initial browser and Android unit timings?",
+  "date": "2026-10-20",
+  "revision": null,
+  "environment": null,
+  "workload": "Initial browser and Android unit timings",
+  "method": "Median of the newest three passing CI runs per unit as documented in the after-device-lab progress log.",
+  "finding": "42 platform and unit timings were recorded.",
+  "variants": [
+    {
+      "id": "android",
+      "label": "android"
+    },
+    {
+      "id": "browser",
+      "label": "browser"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "editor-typing-part-1-problem-two-sum",
+      "label": "editor-typing part=1 problem=two-sum"
+    },
+    {
+      "id": "editor-typing-part-1-problem-valid-palindrome",
+      "label": "editor-typing part=1 problem=valid-palindrome"
+    },
+    {
+      "id": "editor-typing-part-2-problem-two-sum",
+      "label": "editor-typing part=2 problem=two-sum"
+    },
+    {
+      "id": "editor-typing-part-2-problem-valid-palindrome",
+      "label": "editor-typing part=2 problem=valid-palindrome"
+    },
+    {
+      "id": "editor-typing-part-3-problem-valid-palindrome",
+      "label": "editor-typing part=3 problem=valid-palindrome"
+    },
+    {
+      "id": "tamil-writing-letters-1-2-part-vowels",
+      "label": "tamil-writing letters=1-2 part=vowels"
+    },
+    {
+      "id": "tamil-writing-letters-3-4-part-vowels",
+      "label": "tamil-writing letters=3-4 part=vowels"
+    },
+    {
+      "id": "tamil-writing-letters-5-6-part-vowels",
+      "label": "tamil-writing letters=5-6 part=vowels"
+    },
+    {
+      "id": "tamil-writing-part-consonant",
+      "label": "tamil-writing part=consonant"
+    },
+    {
+      "id": "tamil-writing-part-words-word-word-uyir-a",
+      "label": "tamil-writing part=words word=word-uyir-a"
+    },
+    {
+      "id": "tamil-writing-part-words-word-word-uyir-aa",
+      "label": "tamil-writing part=words word=word-uyir-aa"
+    },
+    {
+      "id": "tamil-writing-part-words-word-word-uyir-i",
+      "label": "tamil-writing part=words word=word-uyir-i"
+    },
+    {
+      "id": "tamil-writing-part-write",
+      "label": "tamil-writing part=write"
+    },
+    {
+      "id": "voice-edit-chunk-1",
+      "label": "voice-edit chunk=1"
+    },
+    {
+      "id": "voice-edit-chunk-2",
+      "label": "voice-edit chunk=2"
+    },
+    {
+      "id": "voice-edit-chunk-3",
+      "label": "voice-edit chunk=3"
+    },
+    {
+      "id": "voice-edit-chunk-4",
+      "label": "voice-edit chunk=4"
+    },
+    {
+      "id": "voice-edit-chunk-5",
+      "label": "voice-edit chunk=5"
+    },
+    {
+      "id": "voice-edit-chunk-6",
+      "label": "voice-edit chunk=6"
+    },
+    {
+      "id": "voice-edit-chunk-7",
+      "label": "voice-edit chunk=7"
+    },
+    {
+      "id": "voice-edit-chunk-8",
+      "label": "voice-edit chunk=8"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "duration",
+      "label": "Duration",
+      "unit": "s",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "android",
+      "scenario": "editor-typing-part-1-problem-two-sum",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 29.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "editor-typing-part-1-problem-valid-palindrome",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 36.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "editor-typing-part-2-problem-two-sum",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 27.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "editor-typing-part-2-problem-valid-palindrome",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 29.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "editor-typing-part-3-problem-valid-palindrome",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 32.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-letters-1-2-part-vowels",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 39.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-letters-3-4-part-vowels",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 37.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-letters-5-6-part-vowels",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 39.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-part-consonant",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 21.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-part-words-word-word-uyir-a",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 30.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-part-words-word-word-uyir-aa",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 27.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-part-words-word-word-uyir-i",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 26.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "tamil-writing-part-write",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 26.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-1",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 31.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-2",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 36.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-3",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 35.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-4",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 34.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-5",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 30.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-6",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 27.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-7",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 32.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "android",
+      "scenario": "voice-edit-chunk-8",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 31.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "editor-typing-part-1-problem-two-sum",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 39.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "editor-typing-part-1-problem-valid-palindrome",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 37.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "editor-typing-part-2-problem-two-sum",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 18.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "editor-typing-part-2-problem-valid-palindrome",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 37.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "editor-typing-part-3-problem-valid-palindrome",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 23.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-letters-1-2-part-vowels",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 28.3,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-letters-3-4-part-vowels",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 25.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-letters-5-6-part-vowels",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 20.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-part-consonant",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 13.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-part-words-word-word-uyir-a",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 47.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-part-words-word-word-uyir-aa",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 33.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-part-words-word-word-uyir-i",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 21.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "tamil-writing-part-write",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 24.3,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-1",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 22.3,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-2",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 20.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-3",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 20.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-4",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 21.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-5",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 18.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-6",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 17.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-7",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 18.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "browser",
+      "scenario": "voice-edit-chunk-8",
+      "metric": "duration",
+      "sample": "summary",
+      "statistic": "median",
+      "value": 21.6,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "e2e-unit-timing-initial.json",
+      "path": "../../../runbooks/.results/e2e-unit-timing-initial.json"
+    }
+  ]
+}

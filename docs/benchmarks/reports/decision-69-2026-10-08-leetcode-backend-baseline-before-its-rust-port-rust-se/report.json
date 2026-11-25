@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-69-2026-10-08-leetcode-backend-baseline-before-its-rust-port-rust-se",
+  "subject": "Engineering decisions",
+  "title": "leetcode-backend baseline before its Rust port (rust-services plan, phase 0 part one)",
+  "question": "What was measured for leetcode-backend baseline before its Rust port (rust-services plan, phase 0 part one)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: leetcode-backend baseline before its Rust port (rust-services plan, phase 0 part one)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "The dev entry (`babel-register` over the sources) is 1,413 ms and 150 MB idle; it is not what runs, so it is not the baseline. The plan had guessed about 60 MB for the Node runtime; the whole service is 78 MB.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier: measurement, no code changed. The service as production runs it (`node dist/bundle/index.mjs`, the 2.6 MB bundle from `pnpm --filter @app/leetcode-backend run bundle`), required env supplied, the secrets loader stubbed with a no-op `WF_BIN`, only `/health` exercised, x86_64 4-core sandbox, node 22, n=5, medians: cold start to the first `/health` 252 ms (225 to 300); idle RSS 78.2 MB (78.1 to 78.3); RSS after 300 sequential `/health` requests 79.9 MB; `/health` p50 1.07 ms, p99 5.8 ms."
+        ],
+        [
+          "- The dev entry (`babel-register` over the sources) is 1,413 ms and 150 MB idle; it is not what runs, so it is not the baseline. The plan had guessed about 60 MB for the Node runtime; the whole service is 78 MB."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1539–1544",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

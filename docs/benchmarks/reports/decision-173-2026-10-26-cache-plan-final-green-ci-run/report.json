@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-173-2026-10-26-cache-plan-final-green-ci-run",
+  "subject": "Engineering decisions",
+  "title": "Cache plan: final green CI run",
+  "question": "What was measured for Cache plan: final green CI run?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-26 Cache plan: final green CI run",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Run 40354479859 on `dev` at `363ee47` passed every stage the planner reached: plan, flow-tests (5 m 07 s), typecheck-lint-unit-tests (49 s), clis, deploy (reporting-service, 1 m 17 s), integration-tests, service-e2e-tests, eas-update (EAS export 231 s), browser-e2e-tests (13 m 26 s) and android-e2e-tests (12 m 10 s, every unit pass). cli-e2e-tests was skipped by the planner (no CLI e2e input changed). No test skipped, no timeout raised. The report is the `ci…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Run 40354479859 on `dev` at `363ee47` passed every stage the planner reached: plan, flow-tests (5 m 07 s), typecheck-lint-unit-tests (49 s), clis, deploy (reporting-service, 1 m 17 s), integration-tests, service-e2e-tests, eas-update (EAS export 231 s), browser-e2e-tests (13 m 26 s) and android-e2e-tests (12 m 10 s, every unit pass). cli-e2e-tests was skipped by the planner (no CLI e2e input changed). No test skipped, no timeout raised. The report is the `ci-comment` on #349 (comment 6421560796). Bucket cache latency from the VM: get 75 to 112 ms, put 83 to 127 ms."
+        ],
+        [
+          "Final: run 40362910004 at `5ab8aa8` executed every stage, none skipped or replayed: plan, flow-tests, typecheck-lint-unit-tests, clis, deploy (reporting-service), integration-tests, cli-e2e-tests, service-e2e-tests, eas-update, browser-e2e-tests, android-e2e-tests, report all success. One push touched the wf crate, the reporting-service and the app so each stage's inputs changed (a manual dispatch is 403 from the sandbox). No test skipped, no timeout raised. Docker step 5 result: chef cold 174-192 s, warm 14 s with 0 requests; sccache cold 223 s, warm 99 s with 231 requests; chef kept. Storage: three buckets total 7.73 GB, under 20 GB (measured, `oci os bucket get`); the build-cache bucket is capped by `storedBytes` 8 GB and 14/60-day lifecycle rules."
+        ],
+        [
+          "Criterion 4, EAS export (final): `export:eas` is a cached Nx target (outputs `dist`); `publish:eas` runs it, then uploads. Run 40373770937 at `6f86552` ran it for real (Nx miss, new target): flow, typecheck-lint-unit, clis, cli-e2e, eas-update (export 238 s, upload 35.7 s), browser e2e and Android e2e all success; deploy, integration and service e2e were skipped by the planner because no service changed (their all-stage pass is run 40362910004). #349 report: comment 6424316742, \"CI passed at `6f86552`\". A replay of `export:eas` shows on the next run whose app inputs are unchanged."
+        ],
+        [
+          "26 Oct, owner decision: the `nx` entry cap goes from 64 MB to 500 MB (`maxEntryBytes` 524288000) and the `nx` per-run transfer cap to 1.5 GB (`bytesPerRun` 1610612736), so the 372 MB web export `dist` crosses runners through the bucket instead of living only in a runner's local Nx cache. This reverses the \"do not raise the `nx` cap\" line above. Invalidation is by input hash and the 14-day lifetime, and the 8 GB `storedBytes` cap keeps the bucket under the 20 GB allowance (a write over it goes cold). The cache is build storage, not the shipped bundle, so it does not touch the app's first contentful paint. Watch: every app change writes a new export entry, so `wf cache status` stored bytes and request counts need a look after a week."
+        ],
+        [
+          "26 Oct, cache plan step 4, EAS export measurement (CI, run 40382372880, `[bench-eas]`, n=1, `nx run mla-tamagui:export:eas`, ios and android): cold Metro cache with no Nx cache 235 s; Nx miss 231 s (stores a 13.7 MB entry, 3 bucket requests); Nx replay 4 s with `dist/metadata.json` restored. The replay is the cost of an unchanged app before the upload; with the miss at 231 s against the 238 to 243 s the publish job reports, the export dominates the eas-update job and the replay removes it."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2920–2935",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

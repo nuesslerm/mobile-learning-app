@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-169-run-40277985002-ef1547bd5-cli-e2e-tests-was-red-for-two-package-s",
+  "subject": "Engineering decisions",
+  "title": "Run 40277985002 (ef1547bd5): `cli-e2e-tests` was red for two package scripts, not for a CLI (2026-10-26)",
+  "question": "What was measured for Run 40277985002 (ef1547bd5): `cli-e2e-tests` was red for two package scripts, not for a CLI (2026-10-26)?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 40277985002 (ef1547bd5): `cli-e2e-tests` was red for two package scripts, not for a CLI (2026-10-26)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Every other job was green: plan, flow-tests, typecheck-lint-unit-tests, `clis`, `integration-tests`, `service-e2e-tests`, `browser-e2e-tests`, `android-e2e-tests` and the report. In `cli-e2e-tests` all the crates' real-Chromium suites passed (wf-harness 13 of 13 in 85 s, wf-bench, wf, wf-login, harness-flow): the `--disable-dev-shm-usage` fix held.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Every other job was green: plan, flow-tests, typecheck-lint-unit-tests, `clis`, `integration-tests`, `service-e2e-tests`, `browser-e2e-tests`, `android-e2e-tests` and the report. In `cli-e2e-tests` all the crates' real-Chromium suites passed (wf-harness 13 of 13 in 85 s, wf-bench, wf, wf-login, harness-flow): the `--disable-dev-shm-usage` fix held."
+        ],
+        [
+          "- The two failures were `mla-tamagui`'s and `@app/remote-chat-agent`'s package script `test:e2e`, which the stage definition pulled in when it asked every package for `test:e2e`. Neither was ever planned before the tier change (the old stage list only knew `test:e2e:deployed`). `mla-tamagui`'s starts a local leetcode-backend binary that this job does not build (`did not answer on :8789 within 20s`); the remote-chat-agent one needs an opencode server on :4096 and says to run `test:e2e:deployed` against the deployed service, which `service-e2e-tests` does. The stage now names a script no package defines (`test:cli-e2e`), so it runs the crates' `cargo-e2e` only. The planner and the test jobs run the wf the previous push published, so this takes effect on the push after the one that carries it."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2868–2872",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

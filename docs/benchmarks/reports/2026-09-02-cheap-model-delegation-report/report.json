@@ -1,0 +1,793 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-09-02-cheap-model-delegation-report",
+  "subject": "Engineering measurements",
+  "title": "Cheap-model delegation: what it costs, what it saves, what to do",
+  "question": "What did the Cheap-model delegation: what it costs, what it saves, what to do measurements show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Cheap-model delegation: what it costs, what it saves, what to do",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "at n >= 3) is formally inconclusive at n = 1, but S lost on cost on all four",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Finding",
+        "Number"
+      ],
+      "rows": [
+        [
+          "Whole task to opencode (W) vs unrestricted Claude (A), 4 tasks, all gates passed",
+          "$0.014 vs $0.370, about 27x cheaper"
+        ],
+        [
+          "Step-by-step delegation over Bash with skill + rules + reminder (S) vs A",
+          "$0.846 vs $0.370, 2.3x more expensive, lost on 4 of 4 tasks"
+        ],
+        [
+          "Same setup with the MCP `delegate` tool available (M) vs A",
+          "$0.396 vs $0.370, about even, delegated on 3 of 4 tasks"
+        ],
+        [
+          "Bare haiku session, no delegation (H) vs A",
+          "$0.207 vs $0.370, about half"
+        ],
+        [
+          "First-turn cache write per fresh session after the context diet",
+          "30,201 to 8,836 tokens (-71%)"
+        ],
+        [
+          "Fixed tokens before the first tool call after the diet",
+          "55,610 to 35,614 (-36%)"
+        ],
+        [
+          "Everything opencode did today (153 runs: dispatches, judge calls, benchmarks)",
+          "1,017,809 tokens, $0.110"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Task",
+        "A",
+        "B",
+        "S",
+        "M",
+        "W",
+        "H"
+      ],
+      "rows": [
+        [
+          "Add validator + test",
+          "$0.123 / 25 s",
+          "$0.245 / 66 s",
+          "$0.253 / 147 s",
+          "$0.126 / 62 s",
+          "$0.0046 / 30 s",
+          "$0.064 / 36 s"
+        ],
+        [
+          "Rename across 4 files",
+          "$0.076 / 12 s",
+          "$0.152 / 28 s",
+          "$0.193 / 79 s",
+          "$0.104 / 21 s",
+          "$0.0034 / 14 s",
+          "$0.045 / 25 s"
+        ],
+        [
+          "Trace a request path",
+          "$0.078 / 14 s",
+          "$0.191 / 73 s",
+          "$0.129 / 29 s",
+          "$0.084 / 44 s",
+          "$0.0029 / 12 s",
+          "$0.047 / 24 s"
+        ],
+        [
+          "Index 25 notes (gated)",
+          "$0.093 / 16 s",
+          "$0.240 / 63 s",
+          "$0.271 / 126 s",
+          "$0.082 / 47 s",
+          "$0.0031 / 13 s",
+          "$0.051 / 32 s"
+        ],
+        [
+          "Sum",
+          "$0.370",
+          "$0.828",
+          "$0.846",
+          "$0.396",
+          "$0.014",
+          "$0.207"
+        ],
+        [
+          "Delegations observed",
+          "0",
+          "4",
+          "5",
+          "3",
+          "4",
+          "0"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Configuration",
+        "Cases that delegated",
+        "Delegations",
+        "Surface used",
+        "Mean cost per session"
+      ],
+      "rows": [
+        [
+          "Pilot 1, all 4 configs (4 cases each)",
+          "0 / 12 should-dispatch",
+          "0",
+          "none",
+          "$0.12"
+        ],
+        [
+          "Pilot 2, Bash surface",
+          "1 / 5",
+          "2",
+          "Bash dispatch",
+          "$0.25"
+        ],
+        [
+          "Pilot 2, Bash surface + reminder",
+          "2 / 5",
+          "5",
+          "Bash dispatch",
+          "$0.31"
+        ],
+        [
+          "Pilot 2, MCP tool available",
+          "1 / 5",
+          "2",
+          "Bash dispatch",
+          "$0.26"
+        ],
+        [
+          "Pilot 2, MCP tool + reminder",
+          "2 / 5",
+          "7",
+          "MCP `delegate`, after a ToolSearch",
+          "$0.30"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Run",
+        "Tokens",
+        "Cost",
+        "Time"
+      ],
+      "rows": [
+        [
+          "Reply PONG (smoke)",
+          "17,407",
+          "$0.0038",
+          "45 s"
+        ],
+        [
+          "Add a heading to a README (real edit)",
+          "-",
+          "$0.0089",
+          "374 s"
+        ],
+        [
+          "Run a guarded command (approve guard fired under opencode)",
+          "35,446",
+          "$0.0042",
+          "47 s"
+        ],
+        [
+          "Benchmark tasks, whole task (4 runs)",
+          "222,341",
+          "$0.014",
+          "12 to 30 s each"
+        ],
+        [
+          "Caveat-guard judge calls (8 runs)",
+          "264,140",
+          "$0.055",
+          "67 s median"
+        ],
+        [
+          "All 153 runs today",
+          "1,017,809",
+          "$0.110",
+          "-"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "arm",
+        "lever added",
+        "chat $/turn",
+        "Δ vs T0",
+        "chat out tok",
+        "judge",
+        "agentic $/task",
+        "Δ vs T0",
+        "agentic out tok",
+        "gate"
+      ],
+      "rows": [
+        [
+          "T0",
+          "shipped config",
+          "$0.0886",
+          "+0%",
+          "582",
+          "0.83",
+          "$0.1379",
+          "+0%",
+          "3966",
+          "3/3"
+        ],
+        [
+          "T1",
+          "+ output style",
+          "$0.0922",
+          "+4%",
+          "542",
+          "0.84",
+          "$0.1319",
+          "-4%",
+          "3740",
+          "3/3"
+        ],
+        [
+          "T2",
+          "+ quiet hooks",
+          "$0.0951",
+          "+7%",
+          "542",
+          "0.80",
+          "$0.1361",
+          "-1%",
+          "3481",
+          "3/3"
+        ],
+        [
+          "T3",
+          "+ prefix diet",
+          "$0.0647",
+          "-27%",
+          "421",
+          "0.80",
+          "$0.1210",
+          "-12%",
+          "2226",
+          "3/3"
+        ],
+        [
+          "T4",
+          "+ squeez",
+          "$0.0721",
+          "-19%",
+          "479",
+          "0.83",
+          "$0.1234",
+          "-10%",
+          "6153",
+          "3/3"
+        ],
+        [
+          "T5",
+          "+ autocompact 50%",
+          "$0.0698",
+          "-21%",
+          "501",
+          "0.80",
+          "$0.1259",
+          "-9%",
+          "5173",
+          "3/3"
+        ],
+        [
+          "T6",
+          "+ effort medium",
+          "$0.0644",
+          "-27%",
+          "271",
+          "0.78",
+          "$0.1241",
+          "-10%",
+          "2060",
+          "3/3"
+        ],
+        [
+          "T7",
+          "+ code diet",
+          "$0.0646",
+          "-27%",
+          "236",
+          "0.72",
+          "$0.1121",
+          "-19%",
+          "2292",
+          "3/3"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "chain",
+        "T0 shipped",
+        "T1 soft style",
+        "T3 + quiet hooks + prefix diet",
+        "XH hard style + quiet hooks + prefix diet"
+      ],
+      "rows": [
+        [
+          "chat-20 (n=2)",
+          "$0.707",
+          "$0.420 (−41%)",
+          "—",
+          "—"
+        ],
+        [
+          "agentic-15 (n=2)",
+          "$0.528",
+          "$0.453 (−14%)",
+          "—",
+          "—"
+        ],
+        [
+          "mixed-30",
+          "$0.899 (n=2), 🪨 60/60",
+          "$0.655 (−27%), 🪨 38/53",
+          "$0.664 (−26%, n=1), 🪨 26/30",
+          "**$0.612 (−32%, n=1), 🪨 30/30**"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "arm",
+        "lever",
+        "chat $/turn",
+        "Δ",
+        "chat out tok",
+        "judge",
+        "agentic $/task",
+        "Δ",
+        "gate"
+      ],
+      "rows": [
+        [
+          "T0",
+          "shipped config",
+          "$0.0731",
+          "0%",
+          "262",
+          "0.73",
+          "$0.1278",
+          "0%",
+          "100%"
+        ],
+        [
+          "X9",
+          "+ Bash/Read masker (`updatedToolOutput`, 800 B)",
+          "$0.0603",
+          "−18%",
+          "238",
+          "0.81",
+          "$0.1100",
+          "−14%",
+          "100%"
+        ],
+        [
+          "X10",
+          "+ rtk 0.47.0 rewrite hook",
+          "$0.0593",
+          "−19%",
+          "190",
+          "0.82",
+          "$0.1231",
+          "−4%",
+          "100%"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "task",
+        "size",
+        "lang",
+        "A Sonnet",
+        "H Haiku",
+        "S Sonnet + dispatch",
+        "W opencode only"
+      ],
+      "rows": [
+        [
+          "add-validation-feature",
+          "medium",
+          "ts",
+          "$0.179 / 51s / 100%",
+          "$0.083 / 44s / 100%",
+          "$0.099 / 103s / 67%",
+          "$0.004 / 49s / 100%"
+        ],
+        [
+          "multi-file-rename",
+          "small",
+          "ts",
+          "$0.097 / 21s / 100%",
+          "$0.047 / 27s / 100%",
+          "$0.211 / 146s / 100%",
+          "$0.004 / 37s / 100%"
+        ],
+        [
+          "research-report",
+          "small",
+          "ts",
+          "$0.141 / 43s / 100%",
+          "$0.032 / 18s / 100%",
+          "$0.120 / 69s / 100%",
+          "$0.003 / 15s / 100%"
+        ],
+        [
+          "index-generation",
+          "medium",
+          "ts",
+          "$0.097 / 20s / 100%",
+          "$0.038 / 22s / 100%",
+          "$0.165 / 214s / 100%",
+          "$0.004 / 29s / 100%"
+        ],
+        [
+          "thrifty-01-wordfreq",
+          "small",
+          "js",
+          "$0.241 / 62s / 100%",
+          "$0.133 / 80s / 100%",
+          "$0.307 / 412s / 100%",
+          "$0.006 / 47s / 100%"
+        ],
+        [
+          "thrifty-03-jqlite",
+          "medium",
+          "js",
+          "$0.472 / 144s / 100%",
+          "$0.289 / 186s / 100%",
+          "$0.275 / 102s / 67%",
+          "$0.026 / 181s / 100%"
+        ],
+        [
+          "thrifty-07-taskgraph",
+          "large",
+          "go",
+          "$0.617 / 193s / 100%",
+          "$0.228 / 143s / 100%",
+          "$0.457 / 450s / 67%",
+          "$0.015 / 122s / 100%"
+        ],
+        [
+          "**sum of task means**",
+          "",
+          "",
+          "**$1.844 / 535s**",
+          "**$0.850 / 520s**",
+          "**$1.635 / 1496s**",
+          "**$0.061 / 481s**"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "lever",
+        "n",
+        "positives",
+        "first",
+        "any",
+        "ctrl FP",
+        "mean $/session"
+      ],
+      "rows": [
+        [
+          "L0 baseline",
+          "72",
+          "33",
+          "0.00",
+          "0.12",
+          "0.09",
+          "$0.281"
+        ],
+        [
+          "L1 skill",
+          "72",
+          "33",
+          "0.06",
+          "0.24",
+          "0.12",
+          "$0.298"
+        ],
+        [
+          "L2 rules file",
+          "72",
+          "33",
+          "0.03",
+          "0.36",
+          "0.03",
+          "$0.320"
+        ],
+        [
+          "**L3 reminder hook**",
+          "72",
+          "33",
+          "**0.36**",
+          "**0.76**",
+          "0.06",
+          "**$0.230**"
+        ],
+        [
+          "L5 output style",
+          "34",
+          "9",
+          "0.33",
+          "0.67",
+          "0.08",
+          "$0.261"
+        ],
+        [
+          "L6 session agent",
+          "28",
+          "6",
+          "0.00",
+          "0.50",
+          "0.05",
+          "$0.205"
+        ],
+        [
+          "L7 soft gate",
+          "27",
+          "6",
+          "0.00",
+          "0.50",
+          "0.00",
+          "$0.189"
+        ],
+        [
+          "L8 prompt rewrite",
+          "25",
+          "4",
+          "0.00",
+          "0.25",
+          "0.05",
+          "$0.134"
+        ],
+        [
+          "L9 cost facts, L10 fork skill, L11 pre-dispatch",
+          "0",
+          "",
+          "",
+          "",
+          "",
+          "not reached"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "step",
+        "agent",
+        "result",
+        "opencode USD",
+        "seconds"
+      ],
+      "rows": [
+        [
+          "research (4 questions)",
+          "researcher",
+          "57-line brief with file:line evidence; found that `work` let `topoOrder` throws escape uncaught",
+          "0.0078",
+          "48"
+        ],
+        [
+          "work u1 domain + unit tests",
+          "implementer",
+          "gate green, attempt 1",
+          "0.0052",
+          "100"
+        ],
+        [
+          "work u2 CLI subcommand + barrel",
+          "implementer",
+          "gate green, attempt 1",
+          "0.0067",
+          "58"
+        ],
+        [
+          "work u3 integration test",
+          "implementer",
+          "gate green, attempt 1",
+          "0.0061",
+          "99"
+        ],
+        [
+          "review",
+          "reviewer",
+          "0 blockers, 2 risks (missing tests, both added), 3 nits (1 fixed, 2 dismissed)",
+          "0.0412 (served by minimax after a deepseek timeout, see decision 27)",
+          "572"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "task",
+        "size",
+        "A Sonnet alone",
+        "T tree: Claude plan + opencode",
+        "units",
+        "gate / success"
+      ],
+      "rows": [
+        [
+          "multi-file-rename",
+          "small",
+          "$0.097 / 21s",
+          "**$0.257 + $0.006 / 132s**",
+          "4",
+          "success"
+        ],
+        [
+          "add-validation-feature",
+          "medium",
+          "$0.179 / 51s",
+          "**$0.263 + $0.004 / 103s**",
+          "1",
+          "success"
+        ],
+        [
+          "thrifty-07-taskgraph",
+          "large",
+          "$0.617 / 193s",
+          "**$0.260 + $0.021 / 255s**",
+          "5",
+          "`go test ./...` PASS, success"
+        ],
+        [
+          "**sum**",
+          "",
+          "**$0.893 / 265s**",
+          "**$0.780 + $0.031 = $0.811 / 490s**",
+          "10",
+          "3/3"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "at n >= 3) is formally inconclusive at n = 1, but S lost on cost on all four"
+        ],
+        [
+          "- Delegating sessions cost more ($0.54 to $0.73 on the multi-file rewrite)"
+        ],
+        [
+          "its opencode backend. Measured: $0.370 to $0.014 across the four tasks."
+        ],
+        [
+          "Measured: S $0.846 vs M $0.396."
+        ],
+        [
+          "long mechanical batch. Measured: the reminder added $0.48 across four tasks"
+        ],
+        [
+          "that needs no provider key. Measured: $0.207 vs $0.370."
+        ],
+        [
+          "5. **Keep the fixed context small and gated.** The 71% cache-write cut is paid"
+        ],
+        [
+          "the Agent tool (about $0.40 of cache write per spawn at the old size)."
+        ],
+        [
+          "6. **Run the benchmark at n=3 before tuning further.**"
+        ],
+        [
+          "--runs=3 --conditions=A,S,M,W,H` (about $8 in Claude sessions, under $0.05"
+        ],
+        [
+          "- One run per cell; identical runs vary by about 20%."
+        ],
+        [
+          "Where the money went in the session that ran this work (4,231 API calls, 524 turns): cache reads 81%,"
+        ],
+        [
+          "cache writes 12%, output 7%, uncached input 0%. Median context per call 442 K tokens. A one-turn chat"
+        ],
+        [
+          "session in this repo starts at about 50 K tokens of fixed prefix, so a 70-token answer costs about $0.07"
+        ],
+        [
+          "Reading, against the rule \"keep a rung if total cost drops at least 5% with the judge within 0.05 of T0 and"
+        ],
+        [
+          "- **T1 output style**: cost flat (the +4% on chat is inside run-to-run noise on a $0.09 turn), output −7% on"
+        ],
+        [
+          "chat and −6% on agentic at equal judge, 🪨 on every reply. Fails the cost bar, kept for the reader: the"
+        ],
+        [
+          "- **T3 prefix diet**: the one rung with real money in it, −27% per chat turn and −12% per agentic task,"
+        ],
+        [
+          "judge −0.03, gates 3/3. Ships: skill listing pruned per decision 2, CLAUDE.md 11.7 → 5.9 KB."
+        ],
+        [
+          "- **T4 squeez**: +11% on chat and +2% on agentic against T3, and agentic output tokens 2.8× higher (the"
+        ],
+        [
+          "- **T5 autocompact at 50%**: cannot show on single turns; judged by the chain run below."
+        ],
+        [
+          "- **T6 effort medium**: cost flat against T3 on both families, output −36% on chat, judge 0.78 (at the"
+        ],
+        [
+          "- **T7 code diet**: agentic −7% against T3 (−19% against T0) at 3/3 gates, but chat judge 0.72 — the rules"
+        ],
+        [
+          "chat $0.0650 / 400 output tokens / judge 0.78 (T3: $0.0647 / 421 / 0.80); agentic $0.111 (T3 $0.121),"
+        ],
+        [
+          "including caveman, 4 ungated repo skills), `workflow-cli` gated to `frontend/**`; CLAUDE.md 11.7 → 5.9 KB;"
+        ],
+        [
+          "Against the ladder-1 T0 ($0.0886 chat, $0.1379 agentic) the shipped baseline alone is −17% / −7%, and with"
+        ],
+        [
+          "both hooks the chat turn is about −33%. Both hooks shipped (decision log 20–21): the masker as the new"
+        ],
+        [
+          "`env-bootstrap` step that installs the pinned release into `~/.local/bin`. JetBrains' +7.6% for rtk did not"
+        ],
+        [
+          "10% less wall-clock in total (slower only on the two js greenfield tasks); Haiku halves cost at equal gates;"
+        ],
+        [
+          "Reading so far: the per-turn reminder (L3) is the only complete lever that moves eagerness (76% of positives"
+        ],
+        [
+          "delegate at some point, 36% on the first call) and it is also the cheapest per session; the skill and the rules"
+        ],
+        [
+          "80% first-decision target yet; the untested levers L9–L11 and the L3+L5 combination are the remaining bets."
+        ],
+        [
+          "Total opencode spend for the feature: about $0.07 and 15 minutes of agent time; Claude's part was three short documents and one adjudication. The run exposed one harness bug (the model rotation overriding an agent's model pin; fixed with `opencodeDispatch({ models })`) and one skill gap (no free validation of a hand-written plan; that is the feature itself, now called from `/cf-plan`). Decision log entries 26 and 27."
+        ],
+        [
+          "implementer agent. Cut to one task per size at n=1 (decision 25); A is the B1 mean (n=3)."
+        ],
+        [
+          "Reading: the plan step costs about $0.26 of Sonnet regardless of task size (three planning sessions: $0.257, $0.263, $0.260), and the implementation costs $0.004–$0.021 of opencode. So the headless tree loses on the small (2.7× A) and medium (1.5× A) tasks and wins on the large one (−54%, $0.282 vs $0.617, gate green, 5 units). The crossover sits where Sonnet alone would spend more than about $0.30, i.e. the large bucket; below it, `W` (the whole task on opencode, $0.004–$0.026, 7/7 gates in B1) or Sonnet alone is cheaper. The decision rule (T adopted as the default flow if it saves ≥40% vs A on ≥5/7 tasks) is therefore not met for small and medium work; T is the right shape for large or multi-file work where the plan is worth a Sonnet turn, and for the interactive flow where the plan is written anyway. n=1; identical runs vary by about 20%."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-09-02-cheap-model-delegation-report.md",
+      "path": "../../../audits/2026-09-02-cheap-model-delegation-report.md"
+    }
+  ]
+}

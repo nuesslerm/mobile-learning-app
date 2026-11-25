@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "runbooks-device-lab-voice-edit-android",
+  "subject": "Engineering measurements",
+  "title": "device-lab G1 native: voice edit on redroid",
+  "question": "What did the device-lab G1 native: voice edit on redroid measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "device-lab G1 native: voice edit on redroid",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Latency (n=20 turns, one run): transcribe p50 about 15 s, plan p50 about 10 s; both on the shared VM.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Latency (n=20 turns, one run): transcribe p50 about 15 s, plan p50 about 10 s; both on the shared VM."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "device-lab-voice-edit-android.md",
+      "path": "../../../runbooks/device-lab-voice-edit-android.md"
+    }
+  ]
+}

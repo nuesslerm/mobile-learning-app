@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-11-25-api-performance",
+  "subject": "Performance profiles",
+  "title": "RCA API performance",
+  "question": "What did the RCA API performance measurements show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "RCA API performance",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "81,505 recorded spans across 12 runs.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Dataset",
+        "Records"
+      ],
+      "rows": [
+        [
+          "runs",
+          "12"
+        ],
+        [
+          "operations",
+          "6504"
+        ],
+        [
+          "calls",
+          "81505"
+        ],
+        [
+          "inventory",
+          "1664"
+        ],
+        [
+          "checks",
+          "3328"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Published findings"
+      ],
+      "rows": [
+        [
+          "81,505 recorded spans across 12 runs."
+        ],
+        [
+          "Each catalog workload runs five times. CI compares the median duration to\n      the first passing run on the same profile with identical outcomes. The\n      limit allows 50% or 5 ms of growth, whichever is larger. The first run\n      establishes the reference."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-11-25-api-performance.html",
+      "path": "evidence/2026-11-25-api-performance.html"
+    }
+  ]
+}

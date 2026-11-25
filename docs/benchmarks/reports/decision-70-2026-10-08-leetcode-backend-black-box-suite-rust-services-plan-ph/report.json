@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-70-2026-10-08-leetcode-backend-black-box-suite-rust-services-plan-ph",
+  "subject": "Engineering decisions",
+  "title": "leetcode-backend black-box suite (rust-services plan, phase 1)",
+  "question": "What was measured for leetcode-backend black-box suite (rust-services plan, phase 1)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: leetcode-backend black-box suite (rust-services plan, phase 1)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Tier run: black-box integration through a real socket, against the production bundle (`node dist/bundle/index.mjs`): 4 files, 69 tests in about 10 s with the bundle build, all green. The service runs as a child process with a mock leetcode.com and a mock capture tool beside it; `LEETCODE_BACKEND_CMD` names another implementation, so the same suite runs unchanged on the Rust binary later (`pnpm --filter @app/leetcode-backend run test:blackbox`).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier run: black-box integration through a real socket, against the production bundle (`node dist/bundle/index.mjs`): 4 files, 69 tests in about 10 s with the bundle build, all green. The service runs as a child process with a mock leetcode.com and a mock capture tool beside it; `LEETCODE_BACKEND_CMD` names another implementation, so the same suite runs unchanged on the Rust binary later (`pnpm --filter @app/leetcode-backend run test:blackbox`)."
+        ],
+        [
+          "- The suite pins the HTTP surface (health, CORS preflight, bearer and admin-secret checks with wrong-length and wrong-scheme cases, 404s including the 401 the admin router gives unknown paths under `/api/leetcode`, the 1 MB body limit, malformed JSON, the 120 per minute limit with `Retry-After`), sessions and the capture registry, the four LeetCode relays with the exact outbound requests (headers, cookies, bodies), the no-session path with the fire-and-forget capture trigger (and a negative probe that proves the request arrived), the hourly re-verification, and the local executor (Python and JavaScript, compare modes, per-case and compile errors, the 5 s timeout, unsupported languages, format)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1545–1553",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

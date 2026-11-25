@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3450",
+  "subject": "Engineering decisions",
+  "title": "Launcher-free iOS visual capture",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Launcher-free iOS visual capture",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "launcher-free iOS visual capture (n=1 per comparison, no model). With only the existing status-bar and Expo Go gear masks, the clean capture differed from the prior golden at 9,241 Pixelmatch pixels, 9,067 inside the old launcher rectangle. The capture passed with 174 differences when that rectangle was masked (3.14 s). Direct RGBA comparison confirmed all 1,812,360 pixels in the sheet region…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, launcher-free iOS visual capture (n=1 per comparison, no model). With only the existing status-bar and Expo Go gear masks, the clean capture differed from the prior golden at 9,241 Pixelmatch pixels, 9,067 inside the old launcher rectangle. The capture passed with 174 differences when that rectangle was masked (3.14 s). Direct RGBA comparison confirmed all 1,812,360 pixels in the sheet region were identical. The refreshed launcher-free golden matched with 0 differences in 3.03 s without a launcher mask. Keep the route-scoped capture query so the normal Buoy launcher and its broker stay available."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3450",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

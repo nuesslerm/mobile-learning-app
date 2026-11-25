@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-154-first-ci-runs-of-the-integration-tier-25-oct",
+  "subject": "Engineering decisions",
+  "title": "First CI runs of the integration tier (25 Oct)",
+  "question": "What was measured for First CI runs of the integration tier (25 Oct)?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "First CI runs of the integration tier (25 Oct)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Runs 40233005896 (5ff4263e7) and 40235904669 (6ad8a4923): `service-e2e-tests` failed both times in `crate-wf-harness:cargo-integration`, the same two journeys (`an_attached_session_proxies_stubs_and_forwards_network_and_feeds_fake_media`, `an_attached_session_reads_pages_and_manages_its_lifecycle`) with `page.goto ... did not finish loading within 30 s`; the other 11 wf-harness journeys, the wf-bench journey and the wf visual journey passed. The two failur…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Runs 40233005896 (5ff4263e7) and 40235904669 (6ad8a4923): `service-e2e-tests` failed both times in `crate-wf-harness:cargo-integration`, the same two journeys (`an_attached_session_proxies_stubs_and_forwards_network_and_feeds_fake_media`, `an_attached_session_reads_pages_and_manages_its_lifecycle`) with `page.goto ... did not finish loading within 30 s`; the other 11 wf-harness journeys, the wf-bench journey and the wf visual journey passed. The two failures sat in the window where the wf-bench and wf binaries also ran a Chromium: Nx ran the three integration crates in parallel (`--parallel=4`) and the Chromium gate is per process."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2776–2782",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

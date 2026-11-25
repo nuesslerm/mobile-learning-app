@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-182-2026-10-31-measured-runs-4e55c57-to-202a1fb",
+  "subject": "Engineering decisions",
+  "title": "measured runs, 4e55c57 to 202a1fb",
+  "question": "What was measured for measured runs, 4e55c57 to 202a1fb?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: measured runs, 4e55c57 to 202a1fb",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "202a1fb (a change to `pipeline`, so its dependents' flow ran, not a fully warm run): runner wrote 1.5 GB (4e55c57: 6.6 GB), kernel I/O pressure peak 4%, CPU I/O wait peak 0%. Busy 1.94 cores = containers 1.39 + hypervisor 0.11 + not in a container 0.44; the kernel's own share was 25% of 2 cores (0.5), which is that remainder.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Run",
+        "What it changed",
+        "Wall",
+        "flow-tests",
+        "typecheck",
+        "cli-e2e",
+        "CPU avg / peak",
+        "CPU iowait peak"
+      ],
+      "rows": [
+        [
+          "4e55c57",
+          "wf crates, 3 GB opencode cap",
+          "1h 21m (red)",
+          "22m 17s",
+          "11m 09s",
+          "36m 09s (OOM-killed)",
+          "93% / 100%",
+          "9%"
+        ],
+        [
+          "4fd61b8",
+          "report, 5 GB cap",
+          "1h 14m",
+          "23m 03s",
+          "10m 58s",
+          "32m 10s (live `ask` tests)",
+          "94% / 100%",
+          "4%"
+        ],
+        [
+          "39548ec",
+          "plan no live e2e on a dependency change",
+          "20m 48s",
+          "16m 17s",
+          "1m 08s",
+          "41 s",
+          "97% / 100%",
+          "17% (tidy walk)"
+        ],
+        [
+          "202a1fb",
+          "tidy measures nothing under high water",
+          "8m 46s",
+          "4m 40s",
+          "1m 05s",
+          "43 s",
+          "97% / 100%",
+          "0%"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- 202a1fb (a change to `pipeline`, so its dependents' flow ran, not a fully warm run): runner wrote 1.5 GB (4e55c57: 6.6 GB), kernel I/O pressure peak 4%, CPU I/O wait peak 0%. Busy 1.94 cores = containers 1.39 + hypervisor 0.11 + not in a container 0.44; the kernel's own share was 25% of 2 cores (0.5), which is that remainder."
+        ],
+        [
+          "- \"Peak VM CPU under 60%\" cannot hold while a run is CPU-bound and fast: both numbers above are 97% average, and the run is 4.7 min of flow tests. What a faster run changes is how long the CPU is busy. The budget gates the I/O wait and the duration, not the CPU peak."
+        ],
+        [
+          "- Ledger of run b4b490e (written by the job itself): crate-deploy:cargo-flow 248.7 s, crate-wf:cargo-flow 94.1 s, crate-pipeline:cargo-flow 38.7 s, crate-wf:cargo-e2e-smoke 19.8 s, wf cargo-unit 14.4 s, pipeline clippy 12.0 s, wf clippy 10.7 s, pipeline cargo-unit 7.6 s, deploy clippy 7.1 s, typecheck 1.4 s (all ran; 8 e2e tasks hit). The deploy flow tests are two scenario tests that run `wf ship --changed` about 50 times each on a copy of the repo (4-core sandbox: 82 s, 69 s, 25 s)."
+        ],
+        [
+          "- One `wf ship --changed` costs 1.6-1.9 s: 364 `git show` spawns (about 0.5 s) and one `pnpm --filter ...[sha] list` (0.68 s). `pnpm --version` alone is 0.665 s because pnpm checks the pinned version before running (`manage-package-manager-versions`); 0.22 s with it off. Set for the whole CI workflow and for wf's own pnpm call; the same call is 0.30 s. Deploy scenario tests 82 s -> 62 s, 69 s -> 65 s. Tried and reverted: one `git cat-file --batch` reader (the flow tests' git stub only understands `show`), and a per-process `show` cache (160 spawns instead of 364, no measurable time)."
+        ],
+        [
+          "- Run 56dd212 (20m 34s): `crate-pipeline:cargo-contract` ran 694 s because `legs.rs` was edited and the contract selection was a deny-list of files that cannot move it (`ci_*.rs`, help, report tests). Only `nx.rs`, `e2e_tests.rs`, `test_plan.rs`, `verify.rs`, the router and binaries, the contract's own tests and support, and manifests can move it, so it is now an allow-list (`outside_the_contract` in `test_plan.rs`); the weekly cold run plans every test and is the backstop."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3025–3044",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

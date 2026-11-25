@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-20-port-wf-deploy-sync-creds-and-wf-deploy-tf-apply-exec-to-rust-202",
+  "subject": "Engineering decisions",
+  "title": "Port: `wf deploy sync-creds` and `wf deploy tf apply|exec` to Rust (2026-10-06)",
+  "question": "What was measured for Port: `wf deploy sync-creds` and `wf deploy tf apply|exec` to Rust (2026-10-06)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Port: `wf deploy sync-creds` and `wf deploy tf apply|exec` to Rust (2026-10-06)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release build, n=5, `tf exec /tmp state list` with stub `bws` and",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "wall (median)",
+        "peak RSS (median)"
+      ],
+      "rows": [
+        [
+          "TypeScript bundle",
+          "284.5 ms",
+          "64.7 MB"
+        ],
+        [
+          "Rust",
+          "20.5 ms",
+          "10.9 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release build, n=5, `tf exec /tmp state list` with stub `bws` and"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 707–736",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

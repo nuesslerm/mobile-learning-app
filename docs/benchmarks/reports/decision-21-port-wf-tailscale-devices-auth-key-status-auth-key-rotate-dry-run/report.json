@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-21-port-wf-tailscale-devices-auth-key-status-auth-key-rotate-dry-run",
+  "subject": "Engineering decisions",
+  "title": "Port: `wf tailscale devices|auth-key-status|auth-key rotate (dry run)` to Rust (2026-10-06)",
+  "question": "What was measured for Port: `wf tailscale devices|auth-key-status|auth-key rotate (dry run)` to Rust (2026-10-06)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Port: `wf tailscale devices|auth-key-status|auth-key rotate (dry run)` to Rust (2026-10-06)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "crate, which keeps the binary at 2.4 MB.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "wall (median)",
+        "peak RSS (median)"
+      ],
+      "rows": [
+        [
+          "TypeScript bundle",
+          "251.3 ms",
+          "64.5 MB"
+        ],
+        [
+          "Rust",
+          "7.3 ms",
+          "11.0 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "crate, which keeps the binary at 2.4 MB."
+        ],
+        [
+          "Benchmark (release build, n=5, `auth-key rotate` dry run, credentials from env):"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 737–764",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

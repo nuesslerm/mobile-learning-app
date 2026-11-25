@@ -1,0 +1,497 @@
+{
+  "schemaVersion": 1,
+  "id": "reporting-service-node-vs-rust",
+  "subject": "Services and CLI",
+  "title": "reporting service node vs rust",
+  "question": "What did the reporting service node vs rust measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": "x86_64",
+  "workload": "reporting service node vs rust",
+  "method": "n=5 rounds of the reporting service's cold start, idle RSS and two hot routes, implementations interleaved per round. See the script header.",
+  "finding": "node recorded 597.739 ms for start_ms.",
+  "variants": [
+    {
+      "id": "node",
+      "label": "node"
+    },
+    {
+      "id": "rust",
+      "label": "rust"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "start-ms",
+      "label": "start_ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idle-rss-kb",
+      "label": "idle_rss_kb",
+      "unit": "KB",
+      "direction": "lower"
+    },
+    {
+      "id": "health-p50-ms",
+      "label": "health_p50_ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "series-24h-p50-ms",
+      "label": "series_24h_p50_ms",
+      "unit": "ms",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 597.739,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 114924,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.566,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 95.867,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 596.465,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 114924,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 0.534,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 94.928,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 592.42,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 115192,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 0.542,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 97.773,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 645.136,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 115292,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 0.566,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 97.054,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 597.739,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 114804,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 0.703,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 93.912,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 623.382,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 114584,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 0.566,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 95.867,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.408,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10212,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.783,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 37.54,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 17.341,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 10164,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 0.797,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 38.074,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 19.065,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 10296,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 0.783,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 38.016,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 18.919,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 10292,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 0.726,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 37.291,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 16.319,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 10184,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 0.797,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 37.54,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 18.408,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 10212,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "health-p50-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 0.735,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "series-24h-p50-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 36.774,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "reporting-service-node-vs-rust.json",
+      "path": "evidence/reporting-service-node-vs-rust.json"
+    }
+  ],
+  "sampleSize": "n=5 rounds of the reporting service's cold start, idle RSS and two hot routes, implementations interleaved per round. See the script header."
+}

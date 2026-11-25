@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-201-run-fb38357f6-the-watchdog-recreated-the-runner-mid-job-2026-11-0",
+  "subject": "Engineering decisions",
+  "title": "Run fb38357f6: the watchdog recreated the runner mid-job (2026-11-02)",
+  "question": "What was measured for Run fb38357f6: the watchdog recreated the runner mid-job (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Run fb38357f6: the watchdog recreated the runner mid-job (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - `typecheck-lint-unit-tests` ended \"The operation was canceled\" at 17:26:18; at 17:26:27 the watchdog logged `watchdog.recreated container=agent-shell-gh-runner reason=unhealthy`. The runner's health check (listener alive and an 8 s curl of api.github.com/zen, 3 retries of 15 s) fails while a build loads the VM, so a healthy runner is recreated and its job killed. The 24 s `plan` job of run 41483361232 (\"exit code 143\") is the same cause, not a one-off.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `typecheck-lint-unit-tests` ended \"The operation was canceled\" at 17:26:18; at 17:26:27 the watchdog logged `watchdog.recreated container=agent-shell-gh-runner reason=unhealthy`. The runner's health check (listener alive and an 8 s curl of api.github.com/zen, 3 retries of 15 s) fails while a build loads the VM, so a healthy runner is recreated and its job killed. The 24 s `plan` job of run 41483361232 (\"exit code 143\") is the same cause, not a one-off."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3311–3315",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

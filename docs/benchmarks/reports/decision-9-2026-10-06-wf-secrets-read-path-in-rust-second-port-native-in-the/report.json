@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-9-2026-10-06-wf-secrets-read-path-in-rust-second-port-native-in-the",
+  "subject": "Engineering decisions",
+  "title": "wf secrets read path in Rust (second port, native in the Rust wf)",
+  "question": "What was measured for wf secrets read path in Rust (second port, native in the Rust wf)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: wf secrets read path in Rust (second port, native in the Rust wf)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release, same container, n=5, every registry variable exported so no",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "command",
+        "TypeScript wf",
+        "Rust wf"
+      ],
+      "rows": [
+        [
+          "sync-env `--for reporting-service --reveal`",
+          "261.2 ms / 65.2 MB",
+          "8.0 ms / 11.0 MB"
+        ],
+        [
+          "list",
+          "256.1 ms / 64.8 MB",
+          "5.3 ms / 11.0 MB"
+        ],
+        [
+          "binary",
+          "1.94 MB bundle plus node",
+          "1.36 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release, same container, n=5, every registry variable exported so no"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 335–386",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

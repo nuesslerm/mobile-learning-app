@@ -1,0 +1,1073 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-11-25-tamil-ios-drivers",
+  "subject": "Test harnesses",
+  "title": "Tamil iOS driver comparison",
+  "question": "What time and memory does Maestro add to the same Tamil library journey on the same simulator?",
+  "date": "2026-11-25",
+  "revision": "2021b472502eb356a11dcc2f63978123c41ef319",
+  "environment": "macOS 27.0.1 arm64; booted simulator tamil, iOS 27.0; com.nuesslerm.mla-tamagui 1.0.0 (1); installed executable SHA-256 6b97d029c967880d0a2a924ac65c0d7b211b71506836420084101b45218e0c91. Maestro 2.6.0; local debug wf binary SHA-256 8ca06bedfb6605c3940b9c8ad06e60a33afce4958f6c5f4a7f76baa6db281070. Pair 1 used the earlier local wf build with SHA-256 4b896b2af566197a5c7a9f53720149862a65571dede5dd6faf547a23ebdcc2e8. The binary was relinked for the report CLI during the pause before pair 2. The iOS driver source and installed application were identical throughout.",
+  "workload": "On the Tamil library, open First steps, open practice, assert the lesson start control, then go back twice and assert First steps is visible. Both flows record video and write the same three screenshots.",
+  "method": "Five pairs in alternating order with a fresh CLI for every attempt. Before timing, terminate the app, reopen its Tamil deep link and assert the library control is visible, then settle for two seconds. Preserve app data and keep the same simulator booted. Allow 65 seconds between consecutive Maestro launches at pair boundaries after observing a port-binding failure. Setup and this cooldown are outside the stopwatch.\nStartup is wall time to the first completed screenshot file, including recording and assertion. Journey is the difference between the final and first screenshot modification times. Total includes driver launch, recording finalization, report creation and process exit, observed by polling.\nSample macOS ps RSS for the driver process tree, device-specific idb companions or Maestro simulator runner, and the app separately, sleeping 160 ms between scans. CSV timestamps record the actual cadence. Sum of RSS can double-count shared pages and miss short-lived peaks. Subtract each driver’s pre-launch idle helper baseline for incremental peak. Residual is sampled immediately after exit. Unrelated host load was uncontrolled. Compare medians and paired differences on successful matching pairs only. Failed attempts remain visible with their elapsed time and memory.\nPilot runs exposed an occupied Maestro XCTest port and inconsistent initial screens after reusing app navigation state. Pilot and setup-trial measurements are attached separately.",
+  "finding": "Across 5 completed pairs, the median run took 5.49 s with wf ios and 27.22 s with Maestro. Median incremental peak driver RSS was 133.0 MiB and 951.8 MiB respectively.",
+  "variants": [
+    {
+      "id": "wf",
+      "label": "wf ios"
+    },
+    {
+      "id": "maestro",
+      "label": "Maestro"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "library",
+      "label": "Library journey"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "startup",
+      "label": "Startup to library screenshot",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "journey",
+      "label": "Library to final screenshot",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "peak",
+      "label": "Peak driver RSS above idle",
+      "unit": "MiB",
+      "direction": "lower"
+    },
+    {
+      "id": "total",
+      "label": "Total elapsed",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "apppeak",
+      "label": "Peak app RSS",
+      "unit": "MiB",
+      "direction": "lower"
+    },
+    {
+      "id": "appbaseline",
+      "label": "Idle app RSS",
+      "unit": "MiB",
+      "direction": "contextual"
+    },
+    {
+      "id": "baseline",
+      "label": "Idle driver helper RSS",
+      "unit": "MiB",
+      "direction": "contextual"
+    },
+    {
+      "id": "residual",
+      "label": "Driver RSS change after exit",
+      "unit": "MiB",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 1.750175952911377,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 3.2134318351745605,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 132.953125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 5.404133666888811,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 451.265625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 423.078125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 91.078125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 0.09375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 16.976134061813354,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 6.967471361160278,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 951.84375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 27.219461792032234,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 438.140625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 422.890625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-1",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 20.714351654052734,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 7.150051116943359,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 880.875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 35.97469916695263,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 436.375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 422.59375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 7.659149169921875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 3.7778663635253906,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 143.515625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 11.677966165938415,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 427.59375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 421.125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": 78.640625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-2",
+      "statistic": "raw",
+      "value": -1.21875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 1.7942123413085938,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 3.5640735626220703,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 133.015625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 5.547613541013561,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 449.96875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 421.34375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 75.15625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 0.78125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 18.367720127105713,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 7.428555965423584,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 884.765625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 29.73625566693954,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 438.140625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 422.625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-3",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 15.390654802322388,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 6.610578536987305,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 1021.21875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 24.503455374971963,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 457.171875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 421.75,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 1.7354307174682617,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 3.219632387161255,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 130.5625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 5.169262833078392,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 452.625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 422.578125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 88.8125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-4",
+      "statistic": "raw",
+      "value": 0.015625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 1.710519552230835,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 3.3249170780181885,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 132.78125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 5.485240999958478,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 452.0625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 421.515625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 88.9375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 0.03125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "startup",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 14.940695762634277,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "journey",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 6.452324628829956,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "peak",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 1017.125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "total",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 24.01466241700109,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "apppeak",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 455.546875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "appbaseline",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 421.484375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "baseline",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "library",
+      "metric": "residual",
+      "sample": "pair-5",
+      "statistic": "raw",
+      "value": 0.0,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Pair",
+        "Driver",
+        "Outcome"
+      ],
+      "rows": [
+        [
+          "1",
+          "wf",
+          "Passed"
+        ],
+        [
+          "1",
+          "maestro",
+          "Passed"
+        ],
+        [
+          "2",
+          "maestro",
+          "Passed"
+        ],
+        [
+          "2",
+          "wf",
+          "Passed"
+        ],
+        [
+          "3",
+          "wf",
+          "Passed"
+        ],
+        [
+          "3",
+          "maestro",
+          "Passed"
+        ],
+        [
+          "4",
+          "maestro",
+          "Passed"
+        ],
+        [
+          "4",
+          "wf",
+          "Passed"
+        ],
+        [
+          "5",
+          "wf",
+          "Passed"
+        ],
+        [
+          "5",
+          "maestro",
+          "Passed"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Series",
+        "Pair",
+        "Driver",
+        "Exit",
+        "Elapsed (s)"
+      ],
+      "rows": [
+        [
+          "Pilot",
+          "1",
+          "wf",
+          "0",
+          "5.749"
+        ],
+        [
+          "Pilot",
+          "1",
+          "maestro",
+          "0",
+          "24.666"
+        ],
+        [
+          "Pilot",
+          "2",
+          "maestro",
+          "1",
+          "127.998"
+        ],
+        [
+          "Pilot",
+          "2",
+          "wf",
+          "1",
+          "20.684"
+        ],
+        [
+          "Pilot",
+          "3",
+          "wf",
+          "1",
+          "20.819"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Series",
+        "Pair",
+        "Driver",
+        "Exit",
+        "Elapsed (s)"
+      ],
+      "rows": [
+        [
+          "Setup trial",
+          "1",
+          "wf",
+          "1",
+          "21.132"
+        ],
+        [
+          "Setup trial",
+          "1",
+          "maestro",
+          "1",
+          "34.0"
+        ],
+        [
+          "Setup trial",
+          "2",
+          "maestro",
+          "1",
+          "51.139"
+        ],
+        [
+          "Setup trial",
+          "2",
+          "wf",
+          "0",
+          "6.552"
+        ],
+        [
+          "Setup trial",
+          "3",
+          "wf",
+          "0",
+          "5.697"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "1-maestro.csv",
+      "path": "evidence/1-maestro.csv"
+    },
+    {
+      "label": "1-wf.csv",
+      "path": "evidence/1-wf.csv"
+    },
+    {
+      "label": "2-maestro.csv",
+      "path": "evidence/2-maestro.csv"
+    },
+    {
+      "label": "2-wf.csv",
+      "path": "evidence/2-wf.csv"
+    },
+    {
+      "label": "3-maestro.csv",
+      "path": "evidence/3-maestro.csv"
+    },
+    {
+      "label": "3-wf.csv",
+      "path": "evidence/3-wf.csv"
+    },
+    {
+      "label": "4-maestro.csv",
+      "path": "evidence/4-maestro.csv"
+    },
+    {
+      "label": "4-wf.csv",
+      "path": "evidence/4-wf.csv"
+    },
+    {
+      "label": "5-maestro.csv",
+      "path": "evidence/5-maestro.csv"
+    },
+    {
+      "label": "5-wf.csv",
+      "path": "evidence/5-wf.csv"
+    },
+    {
+      "label": "artifact-manifest.json",
+      "path": "evidence/artifact-manifest.json"
+    },
+    {
+      "label": "pilot/1-maestro.csv",
+      "path": "evidence/pilot/1-maestro.csv"
+    },
+    {
+      "label": "pilot/1-wf.csv",
+      "path": "evidence/pilot/1-wf.csv"
+    },
+    {
+      "label": "pilot/2-maestro.csv",
+      "path": "evidence/pilot/2-maestro.csv"
+    },
+    {
+      "label": "pilot/2-wf.csv",
+      "path": "evidence/pilot/2-wf.csv"
+    },
+    {
+      "label": "pilot/3-wf.csv",
+      "path": "evidence/pilot/3-wf.csv"
+    },
+    {
+      "label": "pilot/runs.json",
+      "path": "evidence/pilot/runs.json"
+    },
+    {
+      "label": "preflight.lua",
+      "path": "evidence/preflight.lua"
+    },
+    {
+      "label": "runs.json",
+      "path": "evidence/runs.json"
+    },
+    {
+      "label": "sampler-source.txt",
+      "path": "evidence/sampler-source.txt"
+    },
+    {
+      "label": "setup-failures.json",
+      "path": "evidence/setup-failures.json"
+    },
+    {
+      "label": "setup-trials/1-maestro.csv",
+      "path": "evidence/setup-trials/1-maestro.csv"
+    },
+    {
+      "label": "setup-trials/1-wf.csv",
+      "path": "evidence/setup-trials/1-wf.csv"
+    },
+    {
+      "label": "setup-trials/2-maestro.csv",
+      "path": "evidence/setup-trials/2-maestro.csv"
+    },
+    {
+      "label": "setup-trials/2-wf.csv",
+      "path": "evidence/setup-trials/2-wf.csv"
+    },
+    {
+      "label": "setup-trials/3-wf.csv",
+      "path": "evidence/setup-trials/3-wf.csv"
+    },
+    {
+      "label": "setup-trials/runs.json",
+      "path": "evidence/setup-trials/runs.json"
+    },
+    {
+      "label": "test.lua",
+      "path": "evidence/test.lua"
+    },
+    {
+      "label": "test.yaml",
+      "path": "evidence/test.yaml"
+    }
+  ],
+  "sampleSize": "Five paired attempts, ten successful runs; setup and pilot attempts tabulated separately."
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "series": "pilot",
+    "pair": 2,
+    "driver": "maestro",
+    "exit": 1,
+    "error": "iOS driver not ready in time, consider increasing timeout by configuring MAESTRO_DRIVER_STARTUP_TIMEOUT env variable XCTest runner reported SocketError Bind(48): Address already in use."
+  },
+  {
+    "series": "pilot",
+    "pair": 2,
+    "driver": "wf",
+    "exit": 1,
+    "error": "assert_visible{id='TamilCollection-first-steps'} timed out after 12000 ms"
+  },
+  {
+    "series": "pilot",
+    "pair": 3,
+    "driver": "wf",
+    "exit": 1,
+    "error": "assert_visible{id='TamilCollection-first-steps'} timed out after 12000 ms"
+  },
+  {
+    "series": "setup-trials",
+    "pair": 1,
+    "driver": "wf",
+    "exit": 1,
+    "error": "assert_visible{id='TamilCollection-first-steps'} timed out after 12000 ms"
+  },
+  {
+    "series": "setup-trials",
+    "pair": 1,
+    "driver": "maestro",
+    "exit": 1,
+    "error": "[Failed] test (18s) (Assertion is false: id: TamilCollection-first-steps is visible)"
+  },
+  {
+    "series": "setup-trials",
+    "pair": 2,
+    "driver": "maestro",
+    "exit": 1,
+    "error": "[Failed] test (21s) (Assertion is false: id: TamilCollection-first-steps is visible)"
+  }
+]

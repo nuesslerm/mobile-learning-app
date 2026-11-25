@@ -1,0 +1,824 @@
+{
+  "schemaVersion": 1,
+  "id": "clis-wf",
+  "subject": "Engineering measurements",
+  "title": "clis/wf: deploy plan, tier-3 gate and report paths follow the service",
+  "question": "What did the clis/wf: deploy plan, tier-3 gate and report paths follow the service measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "clis/wf: deploy plan, tier-3 gate and report paths follow the service",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "The servers keep connections alive; a body over 1 MiB to the VNC control listener is answered 413.",
+  "variants": [
+    {
+      "id": "before",
+      "label": "Before"
+    },
+    {
+      "id": "after",
+      "label": "After"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-3",
+      "label": "Published comparison 3"
+    },
+    {
+      "id": "table-4",
+      "label": "Published comparison 4"
+    },
+    {
+      "id": "table-5",
+      "label": "Published comparison 5"
+    },
+    {
+      "id": "table-6",
+      "label": "Published comparison 6"
+    },
+    {
+      "id": "table-7",
+      "label": "Published comparison 7"
+    },
+    {
+      "id": "table-8",
+      "label": "Published comparison 8"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-3-row-1",
+      "label": "Binary",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-3-row-4",
+      "label": "One command that posts its telemetry event (wall p50, n=5)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-4-row-1",
+      "label": "Binary",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-4-row-2",
+      "label": "`wf --help` cold start (interleaved)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-4-row-3",
+      "label": "`wf auth listener` idle RSS",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-4-row-4",
+      "label": "Gated GET p50 (new connection each)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-4-row-5",
+      "label": "Gated WebSocket echo round trip p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-5-row-2",
+      "label": "`wf --help` cold start",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-5-row-3",
+      "label": "A refused command line (`metro status --bogus`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-5-row-4",
+      "label": "A parsed command line (`metro status --identifier x`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-6-row-2",
+      "label": "`wf --help`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-6-row-3",
+      "label": "A refused command line (`metro status --bogus`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-6-row-4",
+      "label": "A parsed command line (`metro status --identifier x`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-6-row-5",
+      "label": "With the program options (`--app x --json metro status`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-7-row-1",
+      "label": "Decode of a generated map (4,000 lines, 240,000 segments, 1.2 MB of mappings; the crate's figure includes parsing the JSON), medians of 5 interleaved runs, release build, the two decoders in one binary",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-8-row-2",
+      "label": "`wf --help`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-8-row-3",
+      "label": "A refused command line (`metro status --bogus`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-8-row-4",
+      "label": "A parsed command line (`metro status --identifier x`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-8-row-5",
+      "label": "With the program options (`--app x --json metro status`)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-8-row-6",
+      "label": "A mode probe (`dispatch --stats --log /nonexistent`)",
+      "unit": "ms",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "before",
+      "scenario": "table-3",
+      "metric": "table-3-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5.71,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-3",
+      "metric": "table-3-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.36,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-3",
+      "metric": "table-3-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 11.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-3",
+      "metric": "table-3-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-4",
+      "metric": "table-4-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.36,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-4",
+      "metric": "table-4-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.15,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-4",
+      "metric": "table-4-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.45,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-4",
+      "metric": "table-4-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.37,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-4",
+      "metric": "table-4-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.14,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-4",
+      "metric": "table-4-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.71,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-4",
+      "metric": "table-4-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.69,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-4",
+      "metric": "table-4-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.53,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-4",
+      "metric": "table-4-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.078,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-4",
+      "metric": "table-4-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.073,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-5",
+      "metric": "table-5-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.24,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-5",
+      "metric": "table-5-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.16,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-5",
+      "metric": "table-5-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.93,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-5",
+      "metric": "table-5-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.96,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-5",
+      "metric": "table-5-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.42,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-5",
+      "metric": "table-5-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.66,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-6",
+      "metric": "table-6-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.13,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-6",
+      "metric": "table-6-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.05,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-6",
+      "metric": "table-6-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5.57,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-6",
+      "metric": "table-6-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5.39,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-6",
+      "metric": "table-6-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.71,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-6",
+      "metric": "table-6-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.37,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-6",
+      "metric": "table-6-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.69,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-6",
+      "metric": "table-6-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.15,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-7",
+      "metric": "table-7-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 25.44,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-7",
+      "metric": "table-7-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 11.91,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-8",
+      "metric": "table-8-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 2.99,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-8",
+      "metric": "table-8-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.05,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-8",
+      "metric": "table-8-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.79,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-8",
+      "metric": "table-8-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.75,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-8",
+      "metric": "table-8-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.53,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-8",
+      "metric": "table-8-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.66,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-8",
+      "metric": "table-8-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.59,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-8",
+      "metric": "table-8-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.67,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-8",
+      "metric": "table-8-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.95,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-8",
+      "metric": "table-8-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5.32,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "`wf` binary",
+          "5,712,536 bytes (x86_64 release build, after); 4,936,120 bytes on the VM (aarch64, recorded 2026-10-06)",
+          "not re-measured on the VM: the change is string constants and one list"
+        ],
+        [
+          "Start, memory, latency",
+          "recorded for the whole CLI on 2026-10-06 (`--help` 1.6 ms, 5.2 MB)",
+          "unchanged, not re-measured for the same reason"
+        ],
+        [
+          "Services the plan ships for a service-code change",
+          "the service package plus `clis/*`",
+          "the same, plus the backend workspace manifests and the Tamil face"
+        ],
+        [
+          "What the tier-3 e2e gate exercises",
+          "a local Node copy against the real opencode",
+          "the deployed service"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Paths in the `leetcode-backend` leg",
+          "2 plus its package",
+          "3 plus its package"
+        ],
+        [
+          "Paths in the `remote-chat-agent` leg",
+          "12 plus its package",
+          "13 plus its package"
+        ],
+        [
+          "Binary, start, memory",
+          "not affected",
+          "not re-measured"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "5.71 MB",
+          "7.36 MB"
+        ],
+        [
+          "`wf --help` cold start p50 (n=7 after a warm-up)",
+          "1.62 ms",
+          "2.0 ms (noise between runs is about 0.2 ms)"
+        ],
+        [
+          "`wf --help` peak RSS p50",
+          "12.1 MB",
+          "12.2 MB (measured after slices A to D)"
+        ],
+        [
+          "One command that posts its telemetry event (wall p50, n=5)",
+          "11.9 ms",
+          "5.6 ms"
+        ],
+        [
+          "`curl` spawns",
+          "19",
+          "0"
+        ],
+        [
+          "`extern \"C\"` bindings",
+          "11 sites",
+          "0"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "7.36 MB",
+          "8.15 MB"
+        ],
+        [
+          "`wf --help` cold start (interleaved)",
+          "3.45 ms",
+          "3.37 ms"
+        ],
+        [
+          "`wf auth listener` idle RSS",
+          "7.14 MB",
+          "8.71 MB"
+        ],
+        [
+          "Gated GET p50 (new connection each)",
+          "0.69 ms",
+          "0.53 ms"
+        ],
+        [
+          "Gated WebSocket echo round trip p50",
+          "0.078 ms",
+          "0.073 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "8.18 MB (forwarder slice)",
+          "8.31 MB (`clap` is about 130 KB)"
+        ],
+        [
+          "`wf --help` cold start",
+          "3.24 ms",
+          "3.16 ms"
+        ],
+        [
+          "A refused command line (`metro status --bogus`)",
+          "4.93 ms",
+          "4.96 ms"
+        ],
+        [
+          "A parsed command line (`metro status --identifier x`)",
+          "7.42 ms",
+          "7.66 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "8,305,912 B",
+          "8,311,672 B"
+        ],
+        [
+          "`wf --help`",
+          "3.13 ms",
+          "3.05 ms"
+        ],
+        [
+          "A refused command line (`metro status --bogus`)",
+          "5.57 ms",
+          "5.39 ms"
+        ],
+        [
+          "A parsed command line (`metro status --identifier x`)",
+          "8.71 ms",
+          "8.37 ms"
+        ],
+        [
+          "With the program options (`--app x --json metro status`)",
+          "8.69 ms",
+          "8.15 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Decode of a generated map (4,000 lines, 240,000 segments, 1.2 MB of mappings; the crate's figure includes parsing the JSON), medians of 5 interleaved runs, release build, the two decoders in one binary",
+          "25.44 ms",
+          "11.91 ms"
+        ],
+        [
+          "The segments the two decoders return for that map",
+          "identical",
+          "identical"
+        ],
+        [
+          "`wf` release binary",
+          "8,311,672 B",
+          "8,377,656 B (+65,984 B)"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "8,377,656 B",
+          "8,379,800 B"
+        ],
+        [
+          "`wf --help`",
+          "2.99 ms",
+          "3.05 ms"
+        ],
+        [
+          "A refused command line (`metro status --bogus`)",
+          "4.79 ms",
+          "4.75 ms"
+        ],
+        [
+          "A parsed command line (`metro status --identifier x`)",
+          "7.53 ms",
+          "7.66 ms"
+        ],
+        [
+          "With the program options (`--app x --json metro status`)",
+          "7.59 ms",
+          "7.67 ms"
+        ],
+        [
+          "A mode probe (`dispatch --stats --log /nonexistent`)",
+          "4.95 ms",
+          "5.32 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Integration (`tooling/wf-blackbox`, the real `wf` release binary, fakes at network level): 1141 of 1142. The one failure, `dispatch-batch` \"a file whose dispatch fails ... FAIL 0s\", reads `FAIL 1s` or more on this machine and fails the same three of three times with the std-only binary: a rounded-duration assertion against this machine's speed. A debug build fails a second `dispatch-batch` assertion for the same reason, so the suite is run on the release binary. A binary copied out of the repository fails more tests (the harness and registry lookups follow the executable's path)."
+        ],
+        [
+          "- The servers keep connections alive; a body over 1 MiB to the VNC control listener is answered 413."
+        ],
+        [
+          "- A body over 1 MiB, or declared as such, is answered 413 at once by `tower-http`, before the body is read."
+        ],
+        [
+          "`tailnet_forward.rs` now dials through `tokio-socks` (target sent as a domain), joins the sockets with `tokio::io::copy_bidirectional` and runs on one lazily started one-worker runtime; the `socks` crate is gone. Benchmark (n=5): forward round trip p50 1.156 → 1.094 ms; binary 8,149,368 → 8,176,600 B. Tier: integration, 64 of 64 in the four black-box files that exercise it, unchanged. `dispatch-batch`'s failing assertion pinned a rounded elapsed time and now pins its shape (a test fix; the full `wf` suite is 1147 of 1147). Deviation: no port trait for the SOCKS dial. The known gap noted here about `wf`'s option matching is closed by the next section; the claim that the user-facing parser is a TypeScript Commander front end was wrong (that front end is gone)."
+        ],
+        [
+          "The mode probe costs one more `clap` parse (about 0.4 ms)."
+        ],
+        [
+          "Deviations: the SDK adds `opentelemetry` crates and a blocking `reqwest` client to a command that needed none (release binary 8,381,240 to 8,468,248 B, +86,008 B, +1.0 %). `wf log emit` against a local HTTPS ingest, 5 rounds of 10 runs interleaved: 10.39 ms before, 10.14 ms with the `ureq` adapter, 10.24 ms with the official client (same within noise); peak RSS 22.2 MB unchanged. The first benchmark server answered without a `Content-Length`, which the official client rejects as an unexpected EOF; the script now sends one. Records: `docs/audits/benchmarks/wf-otlp-sdk-{before,after,official-client}.json`, method `wf-otlp-sdk-bench.py`."
+        ],
+        [
+          "Deviation from the plan: `repo sync` is the agent-config sync only; the editor bundle is `repo bundle`. `mcp-guard` stays a hidden top-level command. Measured: 803 black-box tests passing, cold start 3.64 ms median (baseline 3.6 ms), details in the decision log."
+        ],
+        [
+          "After a `wf ship mla-tamagui --clear-cache` the shared Metro compiles its web bundle on the first request, which takes longer than the 30 s navigation budget of the tier-3 browser; request the bundle once before `wf check --deployed`. Cold start on the verification head: median 2.98 ms (`wf --help`) and 3.24 ms (`wf ship --help`), details in the decision log."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "clis-wf.md",
+      "path": "../../../audits/reports/clis-wf.md"
+    }
+  ]
+}

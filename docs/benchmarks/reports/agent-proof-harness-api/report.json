@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "id": "agent-proof-harness-api",
+  "title": "Agent proof with typed harness help",
+  "subject": "Test harnesses",
+  "question": "What timings were recorded for Agent proof with typed harness help?",
+  "date": "2026-10-21",
+  "revision": null,
+  "environment": "expo export --platform web with export:web env + EXPO_PUBLIC_LEETCODE_FIXTURES=1 into agent-proof-bench/export, served by frontend/mla-tamagui/e2e/lib/staticServer.mjs from agent-proof-bench/serve (mla-tamagui -> export)",
+  "workload": "Agent proof with typed harness help",
+  "method": "The source retains the original scenario names and measurement precision.",
+  "finding": "baseline / scripted / runS measured 4.1.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Source measurement",
+        "Reported value"
+      ],
+      "rows": [
+        [
+          "baseline / apiTextBytes",
+          "6432"
+        ],
+        [
+          "baseline / scripted / runS",
+          "4.1"
+        ],
+        [
+          "baseline / sonnet / agentS",
+          "12.0"
+        ],
+        [
+          "baseline / sonnet / runS",
+          "4.0"
+        ],
+        [
+          "baseline / sonnet / costUsd",
+          "0.0281"
+        ],
+        [
+          "baseline / sonnet / tokens",
+          "6114"
+        ],
+        [
+          "baseline / opencode / agentS",
+          "85.4"
+        ],
+        [
+          "baseline / opencode / runS",
+          "3.9"
+        ],
+        [
+          "baseline / opencode / costUsd",
+          "0.0112"
+        ],
+        [
+          "baseline / opencode / tokens",
+          "22249"
+        ],
+        [
+          "stages / 1 / apiTextBytes",
+          "17290"
+        ],
+        [
+          "stages / 1 / runs / 1 / agentS",
+          "12.2"
+        ],
+        [
+          "stages / 1 / runs / 1 / runS",
+          "5.6"
+        ],
+        [
+          "stages / 1 / runs / 1 / costUsd",
+          "0.045498399999999994"
+        ],
+        [
+          "stages / 1 / runs / 1 / tokens",
+          "10440.0"
+        ],
+        [
+          "stages / 1 / runs / 2 / agentS",
+          "93.7"
+        ],
+        [
+          "stages / 1 / runs / 2 / runS",
+          "4.0"
+        ],
+        [
+          "stages / 1 / runs / 2 / costUsd",
+          "0.01164996"
+        ],
+        [
+          "stages / 1 / runs / 2 / tokens",
+          "26348.0"
+        ],
+        [
+          "stages / 1 / runs / 3 / agentS",
+          "37.6"
+        ],
+        [
+          "stages / 1 / runs / 3 / runS",
+          "5.5"
+        ],
+        [
+          "stages / 1 / runs / 3 / costUsd",
+          "0.00652452"
+        ],
+        [
+          "stages / 1 / runs / 3 / tokens",
+          "22105.0"
+        ],
+        [
+          "stages / 1 / runs / 4 / agentS",
+          "64.0"
+        ],
+        [
+          "stages / 1 / runs / 4 / runS",
+          "5.3"
+        ],
+        [
+          "stages / 1 / runs / 4 / costUsd",
+          "0.01136514"
+        ],
+        [
+          "stages / 1 / runs / 4 / tokens",
+          "26109.0"
+        ],
+        [
+          "stages / 2 / apiTextBytes",
+          "16388"
+        ],
+        [
+          "stages / 2 / runs / 1 / agentS",
+          "52.9"
+        ],
+        [
+          "stages / 2 / runs / 1 / runS",
+          "8.9"
+        ],
+        [
+          "stages / 2 / runs / 1 / costUsd",
+          "0.00698136"
+        ],
+        [
+          "stages / 2 / runs / 1 / tokens",
+          "22386.0"
+        ],
+        [
+          "stages / 2 / runs / 2 / agentS",
+          "60.9"
+        ],
+        [
+          "stages / 2 / runs / 2 / runS",
+          "2.7"
+        ],
+        [
+          "stages / 2 / runs / 2 / costUsd",
+          "0.00919458"
+        ],
+        [
+          "stages / 2 / runs / 2 / tokens",
+          "23866.0"
+        ],
+        [
+          "stages / 2 / runs / 3 / agentS",
+          "94.3"
+        ],
+        [
+          "stages / 2 / runs / 3 / runS",
+          "5.7"
+        ],
+        [
+          "stages / 2 / runs / 3 / costUsd",
+          "0.01367574"
+        ],
+        [
+          "stages / 2 / runs / 3 / tokens",
+          "27943.0"
+        ],
+        [
+          "stages / 3 / apiTextBytes",
+          "16906"
+        ],
+        [
+          "stages / 3 / runs / 1 / agentS",
+          "48.8"
+        ],
+        [
+          "stages / 3 / runs / 1 / runS",
+          "5.8"
+        ],
+        [
+          "stages / 3 / runs / 1 / costUsd",
+          "0.00734682"
+        ],
+        [
+          "stages / 3 / runs / 1 / tokens",
+          "23637.0"
+        ],
+        [
+          "stages / 3 / runs / 2 / agentS",
+          "39.8"
+        ],
+        [
+          "stages / 3 / runs / 2 / runS",
+          "5.5"
+        ],
+        [
+          "stages / 3 / runs / 2 / costUsd",
+          "0.00741738"
+        ],
+        [
+          "stages / 3 / runs / 2 / tokens",
+          "22856.0"
+        ],
+        [
+          "stages / 3 / runs / 3 / agentS",
+          "66.6"
+        ],
+        [
+          "stages / 3 / runs / 3 / runS",
+          "5.9"
+        ],
+        [
+          "stages / 3 / runs / 3 / costUsd",
+          "0.00865482"
+        ],
+        [
+          "stages / 3 / runs / 3 / tokens",
+          "24846.0"
+        ],
+        [
+          "stages / 3 / runs / 4 / agentS",
+          "9.9"
+        ],
+        [
+          "stages / 3 / runs / 4 / runS",
+          "5.7"
+        ],
+        [
+          "stages / 3 / runs / 4 / costUsd",
+          "0.040889100000000005"
+        ],
+        [
+          "stages / 3 / runs / 4 / tokens",
+          "10290.0"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "agent-proof-harness-api.json",
+      "path": "../../../runbooks/.results/agent-proof-harness-api.json"
+    }
+  ]
+}

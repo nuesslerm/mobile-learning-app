@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-86-2026-10-08-remote-chat-agent-rust-service-slice-4-the-orchestrati",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, slice 4 (the orchestration engine, chat, control and question)",
+  "question": "What was measured for remote-chat-agent Rust service, slice 4 (the orchestration engine, chat, control and question)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, slice 4 (the orchestration engine, chat, control and question)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark of the slice (same harness, n=5, `rca-rust-slice4.json`): cold start 30.8 ms (Node 503.4), idle RSS 4.5 MB (133.6), chat turn p50 106.5 ms at 6.3 MB resident (121.6 ms at 178.5 MB; the fake opencode's 100 ms delay before its script is in both), diff 9.2 ms, previews 0.99 and 0.64 ms, the whole process peaks at 12.1 MB. Artifact 14,995,376 bytes.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Benchmark of the slice (same harness, n=5, `rca-rust-slice4.json`): cold start 30.8 ms (Node 503.4), idle RSS 4.5 MB (133.6), chat turn p50 106.5 ms at 6.3 MB resident (121.6 ms at 178.5 MB; the fake opencode's 100 ms delay before its script is in both), diff 9.2 ms, previews 0.99 and 0.64 ms, the whole process peaks at 12.1 MB. Artifact 14,995,376 bytes."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1707–1716",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

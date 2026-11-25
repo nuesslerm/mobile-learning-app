@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-05-63",
+  "subject": "Engineering decisions",
+  "title": "Test-tiers",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-05",
+  "revision": null,
+  "environment": null,
+  "workload": "Test-tiers",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "test-tiers: `cf-plan/visual-unit-uses-judge-png` post arm n=1 Sonnet, measures whether cf-plan writes a visual-tier unit with a `.png` judgeInput on a ui-feature plan",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 46 | 2026-09-05 22:13 | test-tiers: `cf-plan/visual-unit-uses-judge-png` post arm n=1 Sonnet, measures whether cf-plan writes a visual-tier unit with a `.png` judgeInput on a ui-feature plan | 0/1 ok, $0.0860, 13 s, 3 tool calls, 0 commits; same precondition failure as cell 45: cf-plan aborted without a requirements.md; cell fails the catalog, not the skill | `.agents/tmp/skill-eval-tiers/cf-plan-visual/pack.json` | test-tiers |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 63",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-137-2026-10-12-on-demand-redroid-and-the-540x960-tamil-check",
+  "subject": "Engineering decisions",
+  "title": "on-demand redroid and the 540x960 Tamil check",
+  "question": "What was measured for on-demand redroid and the 540x960 Tamil check?",
+  "date": "2026-10-12",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-12 on-demand redroid and the 540x960 Tamil check",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "`wf android up|down` (commit 463bfdb7c): `up` boots rdl with the adopted screen and waits for boot; `down` removes it. Host MemAvailable cost of a running redroid: 813 MB (2556 to 1743 MB); with `down` the idle cost is zero. Compose app service is now `restart: \"no\"`.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `wf android up|down` (commit 463bfdb7c): `up` boots rdl with the adopted screen and waits for boot; `down` removes it. Host MemAvailable cost of a running redroid: 813 MB (2556 to 1743 MB); with `down` the idle cost is zero. Compose app service is now `restart: \"no\"`."
+        ],
+        [
+          "- Tamil run at 540x960@240 (`tamil540-072259`, swipes scaled): uyir-1 scores 99, 98, 96, 99, 99, 97 (identical to 720x1280), uyirmei-k 99, write uyir-a 92, words 96 / 82 (second attempt, first 78) / 92 against 96 / 90 / 88. Decision: keep the smaller screen; the trace reads pixels fine, word-uyir-aa needed a retry (one run, n=1)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2281–2287",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

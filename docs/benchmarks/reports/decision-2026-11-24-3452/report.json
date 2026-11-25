@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3452",
+  "subject": "Engineering decisions",
+  "title": "Console flow keyboard frame",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Console flow keyboard frame",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "console flow keyboard frame (n=1 per configuration, no model). The full LeetCode flow suite ran in 27.64 s on the baseline and 28.35 s with the console tap helper settling the web keyboard's scheduled frame inside React act. Both ran 697 passing tests and 13 skips. The initial run had three failures from keyboard-store updates outside act. Keep the frame boundary for console flows.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, console flow keyboard frame (n=1 per configuration, no model). The full LeetCode flow suite ran in 27.64 s on the baseline and 28.35 s with the console tap helper settling the web keyboard's scheduled frame inside React act. Both ran 697 passing tests and 13 skips. The initial run had three failures from keyboard-store updates outside act. Keep the frame boundary for console flows."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3452",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

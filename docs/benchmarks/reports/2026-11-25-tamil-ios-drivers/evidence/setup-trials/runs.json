@@ -1,0 +1,61 @@
+[
+  {
+    "pair": 1,
+    "driver": "wf",
+    "exit": 1,
+    "total": 21.132240750011988,
+    "baseline": 84.703125,
+    "appBaseline": 391.59375,
+    "peak": 129.59375,
+    "appPeak": 391.65625,
+    "residual": 0.203125
+  },
+  {
+    "pair": 1,
+    "driver": "maestro",
+    "exit": 1,
+    "total": 33.99996399995871,
+    "baseline": 0.0,
+    "appBaseline": 391.671875,
+    "peak": 985.515625,
+    "appPeak": 391.671875,
+    "residual": 0.0
+  },
+  {
+    "pair": 2,
+    "driver": "maestro",
+    "exit": 1,
+    "total": 51.13888283306733,
+    "baseline": 0.0,
+    "appBaseline": 371.1875,
+    "peak": 928.59375,
+    "appPeak": 371.1875,
+    "residual": 0.0
+  },
+  {
+    "pair": 2,
+    "driver": "wf",
+    "exit": 0,
+    "total": 6.552491291076876,
+    "baseline": 89.734375,
+    "appBaseline": 368.359375,
+    "peak": 136.03125,
+    "appPeak": 368.359375,
+    "residual": 0.609375,
+    "startup": 2.254970073699951,
+    "journey": 3.890040636062622
+  },
+  {
+    "pair": 3,
+    "driver": "wf",
+    "exit": 0,
+    "total": 5.697241457994096,
+    "baseline": 90.6875,
+    "appBaseline": 366.625,
+    "peak": 133.65625,
+    "appPeak": 384.5,
+    "residual": 0.078125,
+    "startup": 1.8057940006256104,
+    "journey": 3.454322576522827
+  }
+]

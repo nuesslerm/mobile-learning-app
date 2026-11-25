@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2-2026-10-06-wf-rust-migration-baseline-phase-1",
+  "subject": "Engineering decisions",
+  "title": "wf Rust migration, baseline (phase 1)",
+  "question": "What was measured for wf Rust migration, baseline (phase 1)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: wf Rust migration, baseline (phase 1)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Baseline: TypeScript `wf` bundle, node v22.22.0, x86_64, 4 cores, n=5, startup",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "target",
+        "median wall ms",
+        "median RSS MB",
+        "max RSS MB"
+      ],
+      "rows": [
+        [
+          "`--version`",
+          "266.8",
+          "64.2",
+          "64.4"
+        ],
+        [
+          "`--help`",
+          "266.0",
+          "64.5",
+          "64.5"
+        ],
+        [
+          "`secrets --help`",
+          "268.9",
+          "64.3",
+          "64.4"
+        ],
+        [
+          "`dispatch --help`",
+          "266.2",
+          "64.2",
+          "64.2"
+        ],
+        [
+          "`deploy plan --help`",
+          "315.8",
+          "64.3",
+          "64.4"
+        ],
+        [
+          "`verify --help`",
+          "266.3",
+          "64.5",
+          "64.5"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Baseline: TypeScript `wf` bundle, node v22.22.0, x86_64, 4 cores, n=5, startup"
+        ],
+        [
+          "Footprint: `wf.js` 1.94 MB, caveat-guard bundle 0.77 MB, agent-config-sync"
+        ],
+        [
+          "bundle 0.58 MB; `node_modules` holds 4,406,964 entries (recursive listing of the"
+        ],
+        [
+          "Reading: every command, even `--version`, costs about 266 ms and 64 MB, so the"
+        ],
+        [
+          "cluster at about 266 and 316 ms, which suggests coarse timer or scheduler steps"
+        ],
+        [
+          "in this container; treat differences under 50 ms as noise."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 107–140",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

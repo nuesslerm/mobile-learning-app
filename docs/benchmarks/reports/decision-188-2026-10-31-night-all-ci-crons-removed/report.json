@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-188-2026-10-31-night-all-ci-crons-removed",
+  "subject": "Engineering decisions",
+  "title": "night: all CI crons removed",
+  "question": "What was measured for night: all CI crons removed?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31 night: all CI crons removed",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - GitHub starts scheduled workflows hours late in this private repo (the Tailscale watch `0 6 * * 1` fired at 14:20, 12:01 and 12:12 UTC on its last three Mondays; the Nx audit `17 3 * * 1` at 09:03; the ten-minute Gem cron produced no run in 63 minutes after it reached `main`), so the owner had every `schedule` trigger removed: `repomix-gemini-context.yml`, `cold-ci.yml`, `nx-cache-audit.yml`, `tailscale-auth-key-expiry.yml`, `ci-budget.yml`. The workflows …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- GitHub starts scheduled workflows hours late in this private repo (the Tailscale watch `0 6 * * 1` fired at 14:20, 12:01 and 12:12 UTC on its last three Mondays; the Nx audit `17 3 * * 1` at 09:03; the ten-minute Gem cron produced no run in 63 minutes after it reached `main`), so the owner had every `schedule` trigger removed: `repomix-gemini-context.yml`, `cold-ci.yml`, `nx-cache-audit.yml`, `tailscale-auth-key-expiry.yml`, `ci-budget.yml`. The workflows keep `workflow_dispatch` (the Gem sync: the tagged empty commit). `ci-budget.yml`'s dispatch now takes a true/false value, because the monthly reset was its only way to set the flag back to false."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3145–3149",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

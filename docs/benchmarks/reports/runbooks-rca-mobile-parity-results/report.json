@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "id": "runbooks-rca-mobile-parity-results",
+  "subject": "Engineering measurements",
+  "title": "RCA mobile parity results",
+  "question": "What did the RCA mobile parity results measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "RCA mobile parity results",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Case: `fresh-chat-launch` · Strongest simulator evidence: T3 automatically sent the pending current-checkout chat after the shell synchronized, then launched a new chat in a worktree based on `origin/dev`. · Remaining coverage: Native coverage includes Claude in both workspace modes and Codex in the current checkout.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Case",
+        "Strongest simulator evidence",
+        "Remaining coverage"
+      ],
+      "rows": [
+        [
+          "`fresh-chat-launch`",
+          "T3 automatically sent the pending current-checkout chat after the shell synchronized, then launched a new chat in a worktree based on `origin/dev`.",
+          "Native coverage includes Claude in both workspace modes and Codex in the current checkout."
+        ],
+        [
+          "`reconnect`",
+          "Both apps recovered Claude and OpenCode questions with two queued messages after adapter restarts. Both recovered a pending Codex approval.",
+          "Additional interruption timings and physical-network handoff."
+        ],
+        [
+          "`queue-lifecycle`",
+          "Orca Codex completed native creation, edit, reorder, Stop and Resume. T3 Codex completed native creation, edit, Stop and Resume. A paired reorder of two held T3 cards changed the native resume order. Orca Claude and OpenCode and T3 OpenCode exercised native queue delivery and steering.",
+          "The T3 build lacks a native reorder control. The default Queue tap during startup returned an active-run error."
+        ],
+        [
+          "`approve-deny-question`",
+          "Native Codex and OpenCode Allow and Deny on both apps. Native Claude and OpenCode answered structured questions on both apps. Each app submitted an old Codex approval while RCA held a newer one, and the new request stayed pending.",
+          "T3 did not render the newer request started directly through RCA in the stale-tap fixture."
+        ],
+        [
+          "`photo-picker`",
+          "Both apps and all three providers sent two swatches in order, returned the colors to RCA, and restored the two previews after a cold reopen.",
+          "Orca OpenCode omitted the original turn's later assistant segment from the reopened transcript."
+        ],
+        [
+          "`model-switch`",
+          "Codex, Claude and OpenCode switched models in both apps and retained the queued selection after the composer changed again. OpenCode used two configured MiniMax models.",
+          "Deployed host catalog and credentials still need physical-device verification."
+        ],
+        [
+          "`skill-load`",
+          "Claude, Codex and OpenCode selected and ran a workspace skill from native autocomplete in both apps. A fresh T3 Claude turn stayed running through a 37-second provider gate and displayed the reply on the original run.",
+          "The previous cold-start timeout and warm pass are preserved below."
+        ],
+        [
+          "`child-and-background`",
+          "Both apps launched child agents and background work for all three providers. Claude, OpenCode and Codex 0.172.0 Stop exited the owned worker PID in the tested active turns. Both apps displayed Claude's detached completion receipt and stdout on the original turn.",
+          "Older Codex releases lack the targeted terminal API. T3 OpenCode's first completion fixture relaunched."
+        ],
+        [
+          "`history-reopen`",
+          "Warm and cold opens in both apps against 96-turn histories, with ordered scroll samples and paired history receipts.",
+          "Physical-device latency."
+        ],
+        [
+          "`worktree-retirement`",
+          "Both apps kept two branches, files and chats isolated and returned to the survivor after removing the clean checkout. T3 required Settle to remove its retired chat from Working.",
+          "None for the tested variants."
+        ],
+        [
+          "`linux-host-phone`",
+          "No end-to-end run.",
+          "The physical iPhone appeared briefly, but both deployed adapter health probes failed over the tailnet."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "App",
+        "Provider",
+        "Adapter and provider proof",
+        "Native simulator proof"
+      ],
+      "rows": [
+        [
+          "T3",
+          "Claude",
+          "Steer, queue, child agent and timed command output",
+          "Two Photos attachments read correctly, Sonnet to Haiku in-thread, child agent and timed shell completion, and Send now promoted a queued message into the active turn"
+        ],
+        [
+          "T3",
+          "Codex",
+          "Steer, queue, child agent and timed command output",
+          "Interaction cases still need native execution"
+        ],
+        [
+          "T3",
+          "OpenCode",
+          "Steer, queue, child agent and timed command output on default model",
+          "Alternate model rejected its expired credential"
+        ],
+        [
+          "Orca",
+          "Claude",
+          "Steer, queue, child agent and timed command output",
+          "Initial workflow showed a command approval and an approval action. Full approval and question case still open"
+        ],
+        [
+          "Orca",
+          "Codex",
+          "Steer, queue, child agent, timed command output, alternate model and adapter-staged image",
+          "Child agent and timed command started from composer. The app rendered adapter-sent results and showed skill autocomplete"
+        ],
+        [
+          "Orca",
+          "OpenCode",
+          "Steer, queue, child agent and timed command output on default model",
+          "Alternate model rejected its expired credential"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Case",
+        "T3 simulator",
+        "Orca simulator",
+        "Adapter or other evidence"
+      ],
+      "rows": [
+        [
+          "`reconnect`",
+          "Claude turn survived Home and reopen. RCA recorded one start, one completion and the expected Bash output. Pending approval and a populated queue still need a connection-drop test.",
+          "Codex turn remained visible after Home and reopen. RCA retained the same turn ID and accepted a second steer after reopen. Pending approval and a populated queue still need a connection-drop test.",
+          "Orca integration passed service restart and continue once."
+        ],
+        [
+          "`queue-lifecycle`",
+          "The native Queue tap returned “already has an active run.” RCA queue was empty and the draft remained. This prevented the edit, move and resume steps in this run.",
+          "Two follow-up sends steered the same Codex turn. Holding Send did not expose Queue. Native Stop produced an interrupted turn and `queue.held`. Two-item edit, move and resume still need native evidence.",
+          "T3 thread-surface and Orca agent-session tests passed their queue scenarios. Orca's client gates its queue control on `agent-session.queued-messages.v2`, which the tested adapter source does not advertise."
+        ],
+        [
+          "`approve-deny-question`",
+          "Claude emitted `input.requested` and Codex in Supervised mode emitted `approval.requested`. T3 projected an empty `runtimeRequests` list in both cases. Neither the choices nor Allow and Deny controls appeared. Both test turns were stopped from T3.",
+          "Claude's Blue or Green choices remained available after Home and reopen. Selecting Green recorded one `input.answered`, cleared the chooser and completed the same turn with “You chose Green.” The harmless Python command ran without an approval prompt under this host's settings, so this follow-up could not exercise denial.",
+          "Both adapters passed scripted approval and question response forwarding. Orca also checked stale answers."
+        ],
+        [
+          "`photo-picker`",
+          "Prior Claude run identified both images. Cold-reopen persistence and hash checks remain open.",
+          "Codex read both images in order after native selection. Both composer thumbnails were visible. Cold reopen restored the reply but omitted the user message thumbnails.",
+          "T3 passed the small-file staging and readback case but failed the maximum-size upload with HTTP 400. Orca byte-for-byte image integration failed with a socket reset."
+        ],
+        [
+          "`model-switch`",
+          "Prior Claude Sonnet to Haiku switch passed. Codex completed on GPT-6.1 Sol, then T3 projected GPT-5 on the next turn and the CLI rejected it. The OpenCode picker offered only `rca default`. Queued model retention remains open.",
+          "A fresh Codex thread displayed GPT-6.1 Sol but the CLI rejected its `gpt-5-codex` turn. Explicitly selecting the displayed model let the next prompt complete. Alternate selection and queued model retention still need native assertions.",
+          "Orca model catalog and selection integration passed. Live catalog offered GPT-6.1 Sol, GPT-5 Codex and GPT-5 on this run."
+        ],
+        [
+          "`skill-load`",
+          "Prior run showed no native autocomplete entries after adapter discovery.",
+          "Native autocomplete inserted the installed skill, but the send returned to the composer and RCA recorded no new turn. No skill load was observed.",
+          "Orca discovery passed. T3 projection decoded workspace skill data in the initial run."
+        ],
+        [
+          "`child-and-background`",
+          "Prior native Claude child and timed Bash task completed. In this follow-up Claude invoked Agent and Bash, then finished the parent turn saying both were still running. After reopening, the projection had no child rows and the trace had no final stdout marker. Background PID cancellation remains open.",
+          "Prior native Codex child and timed task completed. This run exercised stopping a foreground turn. A child or background PID cancellation still needs coverage.",
+          "Initial six-pair traces capture CLI tool execution and actual background output."
+        ],
+        [
+          "`history-reopen`",
+          "Three warm taps showed the known stopped turn in 1.22–1.40 s. Cold tap took 1.43 s, with 7.79 s from launch through observed history.",
+          "Three warm taps showed the known reply in 1.02–1.06 s. Cold tap took 1.15 s, with 7.96 s from launch through the reply.",
+          "Timings include device automation and accessibility observation. One initial Orca cold probe did not see the picker within 6.31 s. Seeded two-page pagination remains open for both apps."
+        ],
+        [
+          "`worktree-retirement`",
+          "Two-worktree isolation and picker retirement still need native assertions.",
+          "Opened `main` with no tabs and returned to `dev-opencode-orca`, which restored the Claude thread. Cold launch briefly showed retired rows from cache and refreshing removed them. File isolation remains open.",
+          "Fresh Orca `worktree.ps` omitted the retired branches."
+        ],
+        [
+          "`linux-host-phone`",
+          "Blocked for the deployed-host run.",
+          "Blocked for the deployed-host run.",
+          "Mac probe found neither tailnet hostname and could not resolve the VM ops credential. No physical iPhone was available to the device driver."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "App",
+        "Warm reopen (ms)",
+        "Cold tap (ms)",
+        "Cold launch through first message (ms)",
+        "History assertion"
+      ],
+      "rows": [
+        [
+          "Orca",
+          "1285, 1273, 1332",
+          "1405",
+          "7647",
+          "Native replies 052–096 were contiguous across more than two page boundaries. Eight paired history pages reassembled all 96 replies in order."
+        ],
+        [
+          "T3",
+          "1533, 1541, 1576",
+          "1934",
+          "7861",
+          "Native scroll reached reply 045, with consecutive ordinals in each sampled window. The paired projection decoded all 192 messages and verified all 96 reply markers in order."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Scenario",
+        "T3",
+        "Orca"
+      ],
+      "rows": [
+        [
+          "Reorder two held cards",
+          "A drag left the same two IDs in the same order. The card menu exposed Send now, Edit and Remove. Paired `queued-run.reorder` moved the second card ahead of the first without releasing either. Native Resume started each once in the new order.",
+          "The earlier native Codex run covered reorder, edit, Stop and Resume."
+        ],
+        [
+          "Queue during provider startup",
+          "A nonempty draft exposed Queue while the parent showed Pending. Tapping it returned “already has an active run” and retained the draft. Once the worker was running, the explicit Queue menu added both cards.",
+          "The earlier queue matrix covers native delivery with an active turn."
+        ],
+        [
+          "Stale Codex approval",
+          "The cached A action did not answer B and A cleared on reconnect. B was started directly through RCA and did not render in T3. It remained pending until the test declined it through RCA.",
+          "The cached A action did not answer B. The app displayed B after reconnect. The separate native action recorded `accept_for_session` for B and the harmless B command produced output."
+        ],
+        [
+          "Photos from the native picker",
+          "Codex and OpenCode each restored both image previews after a cold reopen. Both T3 asset readbacks were byte-identical to the source PNGs in each case. Codex's first send was images-only and still reported the four colors in order.",
+          "Claude and OpenCode restored both ordered previews after a cold reopen. The stored PNG hashes matched the readbacks, and the decoded pixels matched the originals. RCA held the complete color reply for OpenCode, but the reopened native transcript displayed only the initial assistant segment."
+        ],
+        [
+          "Skill from native autocomplete",
+          "Codex expanded the selected skill in its provider input and rendered the undisclosed marker. In a cold Claude run, T3 timed out waiting for `turn.start` after 30 seconds. The provider nevertheless loaded the skill and completed the marker. In the warm Claude thread a second fixture produced a successful Skill tool call and the app rendered its distinct marker.",
+          "Claude expanded the selected workspace fixture into provider input and rendered the undisclosed marker. The earlier Codex and OpenCode runs also used autocomplete."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Claude's completion frame identifies a spool file on the executor host. The executor now attaches up to 32 KiB from a regular file for the matching shell task in its Claude session. The tests verify the truncation marker and exclude subagent transcripts, files outside the task directory, and linked files. macOS and Linux arm64 each passed eight executor session flows. The backend flow still attributes the receipt to the original turn."
+        ],
+        [
+          "The native outbox waits for a live workspace list before sending a creation. A warm shell subscription reread the entire event store and timed out after 24 seconds on the local fixture. The adapter now retains the shell deltas within the existing replay window. The same caught-up subscription returned its completion marker in 4 ms. The native decoder also rejected an older fork row with a source thread but no source point type. T3 now reads that field as unknown and preserves the parent in the lineage."
+        ],
+        [
+          "In the original cold run, T3 waited 30 seconds for the `turn.start` receipt. RCA had already recorded the turn but was still waiting for the provider to initialize before sending the receipt. Claude eventually produced the marker after T3 had closed its run. RCA now returns the recorded Claude turn ID after the checkpoint and starts the provider on a background task. Provider failures still end that same turn through the journal."
+        ],
+        [
+          "On the iOS simulator, select the `rca-cold-receipt` skill on a fresh Claude thread. A test-only local wrapper held the first provider process for 37 seconds before handing off to the real CLI. T3 remained running past the old deadline. RCA recorded exactly one start, a successful Skill call, the undisclosed marker, and exactly one completion under the same turn ID. T3 showed the marker on the original run. The app's 30-second request deadline stayed in place. The [checked-in receipt](.results/rca-mobile-claude-cold-ack.json) records the before and after projection, the journal, and hashes of the recording and screenshots. The local bundle is under `.context/rca-turn-ack/verified/published/run-d06c0d15225edd96/`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "rca-mobile-parity-results.md",
+      "path": "../../../runbooks/rca-mobile-parity-results.md"
+    }
+  ]
+}

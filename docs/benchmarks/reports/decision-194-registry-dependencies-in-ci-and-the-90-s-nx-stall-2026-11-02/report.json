@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-194-registry-dependencies-in-ci-and-the-90-s-nx-stall-2026-11-02",
+  "subject": "Engineering decisions",
+  "title": "Registry dependencies in CI, and the 90 s Nx stall (2026-11-02)",
+  "question": "What was measured for Registry dependencies in CI, and the 90 s Nx stall (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Registry dependencies in CI, and the 90 s Nx stall (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "That run also resolved `service-kit 0.1.1` and `rca-ladder 0.1.1` from `libs-proxy` inside Docker builds (BuildKit RUN steps reach the tailnet name), and the migrated services built and deployed in 3 to 4 min each (remote-chat-agent 6 m 17 s, leetcode-backend 4 m 08 s, leetcode-auth-cookie-capture 3 m 54 s, reporting-service 3 m 44 s, vnc-auth-session 3 m 57 s).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Run 41387049219 (8e1e0a03e, the library migration): `typecheck-lint-unit-tests` hit its 20 min step limit with every Nx lookup a cache hit. The `WF_NX_TRACE` request log showed the cache requests arriving in bursts exactly 90 s apart (04:20:31, 04:22:01, 04:23:31, 04:25:01), the idle timeout of a pooled client connection; the shim now answers one request per connection (`Connection: close`) and logs each answer time. Run 41392534745 (8446c9d08): the same stage took 2 m 22 s."
+        ],
+        [
+          "- That run also resolved `service-kit 0.1.1` and `rca-ladder 0.1.1` from `libs-proxy` inside Docker builds (BuildKit RUN steps reach the tailnet name), and the migrated services built and deployed in 3 to 4 min each (remote-chat-agent 6 m 17 s, leetcode-backend 4 m 08 s, leetcode-auth-cookie-capture 3 m 54 s, reporting-service 3 m 44 s, vnc-auth-session 3 m 57 s)."
+        ],
+        [
+          "- `deploy (vm-ops-api)` failed in both runs, for two different reasons. 41392534745: the vm-ops-api and watchdog builds ran together on one shared cargo registry cache mount and both unpacked service-kit (`failed to open .cargo-ok: File exists`); every Dockerfile now has a cache of its own (`id=cargo-registry-<image>`). 41396448439: the cold build (every dependency compiled once, 14 min) printed nothing for 200 s, so the client gave up while the VM job finished with exit 0 and pushed the image; the next push finds it cached."
+        ],
+        [
+          "- The wf-harness flow test `a_browser_script_drives_the_daemon_waits_by_observer_and_reports` read a 982 ms wait slice against a 990 to 1000 ms window on a loaded sandbox; the window is 900 to 1000 ms now."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3261–3268",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-175-2026-10-26-the-login-browser-is-headed-again",
+  "subject": "Engineering decisions",
+  "title": "the login browser is headed again",
+  "question": "What was measured for the login browser is headed again?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-26: the login browser is headed again",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Final all-stage run on the finished tree (500 MB `nx` cap, `export:eas`, all cache layers): run 40396799813 at `b9da87c` executed every stage and all passed: plan, flow-tests, typecheck-lint-unit-tests, clis, deploy (reporting-service), integration-tests, cli-e2e-tests, service-e2e-tests, eas-update (export 251 s, upload 36 s), browser-e2e-tests, android-e2e-tests, report. None skipped, no timeout raised. The #349 report is comment 6427607918. Run 4038990593…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Final all-stage run on the finished tree (500 MB `nx` cap, `export:eas`, all cache layers): run 40396799813 at `b9da87c` executed every stage and all passed: plan, flow-tests, typecheck-lint-unit-tests, clis, deploy (reporting-service), integration-tests, cli-e2e-tests, service-e2e-tests, eas-update (export 251 s, upload 36 s), browser-e2e-tests, android-e2e-tests, report. None skipped, no timeout raised. The #349 report is comment 6427607918. Run 40389905935 (`5a5d267`) had run every stage too, but its service-e2e failed once on a BetterStack ClickHouse query answered 403 AUTHENTICATION_FAILED (a rejected `CH_BACKEND_*` credential, no code involved; `wf secret verify --for reporting-service` was ok); the next push re-ran it and it passed, so the cause was external and transient. Bucket sizes after the cap change (`oci os bucket get --fields approximateSize`): build-cache 1.93 GB (1,959 objects), pnpm-cache 0.59 GB, verification-artifacts 6.23 GB, total 8.75 GB, under the 20 GB allowance."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2944–2950",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

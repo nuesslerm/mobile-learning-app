@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "id": "leetcode-backend-pre-std",
+  "subject": "Services and CLI",
+  "title": "leetcode backend pre std",
+  "question": "What did the leetcode backend pre std measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "leetcode backend pre std",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "pre recorded 5.12 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "pre",
+      "label": "pre"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "binarymb",
+      "label": "binaryMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafter60healthmb",
+      "label": "rssAfter60HealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthms",
+      "label": "healthMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "userstatusms",
+      "label": "userStatusMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "runms",
+      "label": "runMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "formatms",
+      "label": "formatMs",
+      "unit": "ms",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "binarymb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.63,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 5.12,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.59,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "rssafter60healthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.63,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 3.01,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "healthms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.46,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "userstatusms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6.66,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "runms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 33.89,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre",
+      "scenario": "service",
+      "metric": "formatms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 37.09,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "leetcode-backend-pre-std.json",
+      "path": "evidence/leetcode-backend-pre-std.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

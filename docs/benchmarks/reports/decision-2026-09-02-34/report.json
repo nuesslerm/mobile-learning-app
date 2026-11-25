@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-34",
+  "subject": "Engineering decisions",
+  "title": "Rtk",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Rtk",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "rtk: crates.io `rtk` is an unrelated crate; `rtk-ai/rtk` first built from a shallow `master` clone (Cargo.toml 0.42.4, lagging the tags), then rebuilt from tag v0.47.0 (`34fe255`) before the rtk arm ran; measured as X10 = shipped config + rtk on the agentic cases before any hook ships; squeez stays out (decision 8)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 17 | 2026-09-02 22:50 | rtk: crates.io `rtk` is an unrelated crate; `rtk-ai/rtk` first built from a shallow `master` clone (Cargo.toml 0.42.4, lagging the tags), then rebuilt from tag v0.47.0 (`34fe255`) before the rtk arm ran; measured as X10 = shipped config + rtk on the agentic cases before any hook ships; squeez stays out (decision 8) | user request; JetBrains rtk +7.6% prior | — |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 34",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

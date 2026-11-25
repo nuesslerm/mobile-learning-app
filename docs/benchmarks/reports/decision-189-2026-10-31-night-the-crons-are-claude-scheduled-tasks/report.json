@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-189-2026-10-31-night-the-crons-are-claude-scheduled-tasks",
+  "subject": "Engineering decisions",
+  "title": "night: the crons are Claude scheduled tasks",
+  "question": "What was measured for night: the crons are Claude scheduled tasks?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31 night: the crons are Claude scheduled tasks",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Cost: each fire is one short Claude session (the failed test fire cost about $0.10), a few dozen a month.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Cost: each fire is one short Claude session (the failed test fire cost about $0.10), a few dozen a month."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3150–3157",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

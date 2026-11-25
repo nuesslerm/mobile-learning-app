@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-57-2026-10-06-launched-device-frame-sessions-in-the-rust-browser-dae",
+  "subject": "Engineering decisions",
+  "title": "launched device-frame sessions in the Rust browser daemon (`open` without `--cdp-endpoint`)",
+  "question": "What was measured for launched device-frame sessions in the Rust browser daemon (`open` without `--cdp-endpoint`)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: launched device-frame sessions in the Rust browser daemon (`open` without `--cdp-endpoint`)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (open, navigate, eval through the CLI, then the daemon's own resident set, Chromium excluded): wall 2180 ms with the Node daemon vs 977 ms with the Rust one, daemon 187.5 MB vs 5.5 MB. Binary 3.7 MB.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision: the nine-piece chain the plan listed, minus the parts named below, as `clis/wf/src/browser_launch.rs` on top of `clis/cdp` (`launch.rs`: find a Chromium, start it with a throwaway profile and an ephemeral DevTools port). `open` starts Chromium with the device flags (`--force-device-scale-factor`, `--disable-site-isolation-trials` and the fake media-stream flags for an emulated device), applies the context options as CDP overrides (shell viewport, pixel ratio, mobile and touch, the identity user agent with `{chrome}` filled from the browser's version, colour scheme, clipboard grants, ignored certificate errors, focus emulation), registers the bindings (`__mcpOpenedUrl`, `__mcpSetColorScheme`, `__mcpFocusChange`; a wrapper makes object payloads JSON strings, since CDP bindings carry strings) and the init scripts (opened-URL capture, fake microphone and camera, generated from the TS functions into `clis/cdp/src/js/`, and the focus script). `navigate` loads the harness page the first time (`/_mcp/device-frame?...` from the daemon itself), waits for `window.__shell`, fits the window to the device box, and applies the safe-area insets (rotated in landscape) and the full identity (platform, client-hint metadata, touch points) on the page; later navigations call `__shell.setTarget` and re-apply them. `eval`, `snapshot` and `scroll` run in the app frame (`device-frame-app`, or the editable frame inside it), as `getAppTarget` does. The mock keyboard works in the daemon's event loop: a focus change on an editable element shows it (the app frame gets `__MCP_KEYBOARD_VISIBLE__`, the mode `overlay` for iOS and `resize` otherwise, and the height 270 or 0), a blur hides it after 150 ms, and keys queued by the shell are forwarded every 100 ms."
+        ],
+        [
+          "Benchmark (open, navigate, eval through the CLI, then the daemon's own resident set, Chromium excluded): wall 2180 ms with the Node daemon vs 977 ms with the Rust one, daemon 187.5 MB vs 5.5 MB. Binary 3.7 MB."
+        ],
+        [
+          "Addendum (launched sessions): ref-based input in device-frame sessions. Element boxes inside the app frame now come from `DOM.getContentQuads` (main-frame coordinates), so `tap`, `type`, `press` and `drag` work through the harness's nested iframe. On a phone or tablet preset `tap` is a finger as in the Node daemon: a random point in the middle 60% of the visible box, held 70 to 140 ms, sent as `touchStart`/`touchEnd` (the page sees `touchstart`, `touchend`, then the emulated `mousedown`, `mouseup`, `click`); `--mouse` or a desktop preset taps with a mouse. `press` accepts focus in any frame, as the Node daemon's check does. Page-side event logs are identical between the daemons for a tap on a button and on an input, `type`, two Backspaces and a drag. Still refused on device-frame sessions: `stroke` (its touch variant), the pointer-routing retries the Node daemon does against the shell (not needed for the fixture page; a page that the shell overlays would show the difference), and platform fonts."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1407–1424",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

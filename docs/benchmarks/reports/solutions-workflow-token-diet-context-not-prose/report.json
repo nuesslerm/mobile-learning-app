@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "solutions-workflow-token-diet-context-not-prose",
+  "subject": "Engineering measurements",
+  "title": "token-diet-context-not-prose",
+  "question": "What did the token-diet-context-not-prose measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "token-diet-context-not-prose",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Median context per call 442 K tokens, p90 695 K; 74% of calls ran with more than 300 K in the window",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "bucket",
+        "tokens",
+        "share of cost"
+      ],
+      "rows": [
+        [
+          "cache reads",
+          "1,839 M",
+          "81%"
+        ],
+        [
+          "cache writes",
+          "22.1 M",
+          "12%"
+        ],
+        [
+          "output (incl. thinking)",
+          "3.15 M",
+          "7%"
+        ],
+        [
+          "uncached input",
+          "0.2 M",
+          "0%"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Median context per call 442 K tokens, p90 695 K; 74% of calls ran with more than 300 K in the window"
+        ],
+        [
+          "(autocompact at 80% of 1 M). Tool results totalled 7.5 MB (Bash 3.9 MB, Read 2.0 MB) and were re-read on"
+        ],
+        [
+          "answer still costs about $0.07 on Sonnet."
+        ],
+        [
+          "So: making replies terse moves at most the 7%. Fewer tokens per call, fewer calls per turn, and a smaller"
+        ],
+        [
+          "−8.5% output tokens (advertised −65%), quality flat;"
+        ],
+        [
+          "[rtk](https://blog.jetbrains.com/ai/2026/07/rtk-claude-code-token-savings/) +7.6% cost at low effort, no"
+        ],
+        [
+          "less code) −10.3% cost, −15% code, −11% time, p=0.004, the only one that paid off."
+        ],
+        [
+          "prompts, \"Be brief.\" (419 tokens) ties caveman lite/full (401/404) and beats ultra (449); baseline 636."
+        ],
+        [
+          "(63% headline, 4–12% on real work in its own fine print)."
+        ],
+        [
+          "- **Tool output goes on a diet too.** rtk's rewrite hook and a Bash|Read masker (`updatedToolOutput`, 800 B) were measured on the shipped baseline before either hook shipped (ladder 3: chat −19% / −18%, agentic −4% / −14%, judge 0.82 / 0.81 vs 0.73). squeez, measured the same way, cost more and stayed out."
+        ],
+        [
+          "quiet hooks → T3 prefix diet → T4 squeez/rtk → T5 compaction at 50% → T6 effort medium → T7 code diet) on"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "token-diet-context-not-prose.md",
+      "path": "../../../solutions/workflow/token-diet-context-not-prose.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-06-69",
+  "subject": "Engineering decisions",
+  "title": "Model-routing ladder",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Model-routing ladder",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "model-routing ladder: `model-routing/ladders.document` (catalog cell `cf-dispatch/rotates-on-bad-output`, replay mock `MOCK_OPENCODE_MODE=bad-output`, document shape) — cell ran post arm n=1 Sonnet",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 52 | 2026-09-06 18:16 | model-routing ladder: `model-routing/ladders.document` (catalog cell `cf-dispatch/rotates-on-bad-output`, replay mock `MOCK_OPENCODE_MODE=bad-output`, document shape) — cell ran post arm n=1 Sonnet | `pnpm --filter @cli/agent-evals exec agent-evals skill-eval --arm post --runs 1 --model sonnet --id cf-dispatch/rotates-on-bad-output --out-dir .agents/tmp/skill-eval-routing`. 0/1 ok, $0.2521, 82 s, 14 tool calls, 0 commits — the harness itself was replayed so no cheap-model tokens were spent on dispatch, only the Sonnet skill-body session ran; `resolveLadder` walked the document ladder (`opencode-go/deepseek-v4-flash → kimi-for-coding/kimi-for-coding → kimi-for-coding/k3 → claude-haiku-4-5`) via the mock returning `bad-output` on every rung, but the cf-dispatch SKILL failed the catalog's relay check: final text lacks `served by`, missing trailer `ACTIONS:`, and `Read` was called (catalog note: the end-to-end rotation is owned by `opencode-dispatch-ladder.integration.test.ts`, this cell grades the skill relay). The grader failure is on cf-dispatch, not the ladder | `.agents/tmp/skill-eval-routing/cf-dispatch-rotates.log`, `clis/agent-evals/.agents/tmp/skill-eval-routing/{pack,summary}.json`; dispatch run `920d3bdb-4fe6-4618-b4e8-3252d5b1819e` in `.agents/tmp/opencode-dispatch-runs.jsonl` | model-routing |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 69",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

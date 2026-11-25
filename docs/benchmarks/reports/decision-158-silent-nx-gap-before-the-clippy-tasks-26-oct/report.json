@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-158-silent-nx-gap-before-the-clippy-tasks-26-oct",
+  "subject": "Engineering decisions",
+  "title": "Silent Nx gap before the clippy tasks (26 Oct)",
+  "question": "What was measured for Silent Nx gap before the clippy tasks (26 Oct)?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "Silent Nx gap before the clippy tasks (26 Oct)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Runs 40246994252 (timed out at the 20-min step limit) and 40251453496 (red on a real lint): in `typecheck-lint-unit-tests` the `cargo-clippy` call prints its banner and then nothing for 7.5 min (13 crates) before its first task starts; in run 815 the same call waited 6 min for 10 crates and `cargo-unit` 90 s for 5, while cached tasks (`existing outputs match the cache`) start at once and the tasks themselves finish in under a minute. Remote-cache latency i…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Runs 40246994252 (timed out at the 20-min step limit) and 40251453496 (red on a real lint): in `typecheck-lint-unit-tests` the `cargo-clippy` call prints its banner and then nothing for 7.5 min (13 crates) before its first task starts; in run 815 the same call waited 6 min for 10 crates and `cargo-unit` 90 s for 5, while cached tasks (`existing outputs match the cache`) start at once and the tasks themselves finish in under a minute. Remote-cache latency is not it (16 gets, 1.5 s in total). Locally Nx starts the same tasks in 2 s. The gap grows with the number of tasks that miss, roughly with its square."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2804–2809",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

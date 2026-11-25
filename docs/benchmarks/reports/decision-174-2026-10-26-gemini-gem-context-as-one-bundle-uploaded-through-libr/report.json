@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-174-2026-10-26-gemini-gem-context-as-one-bundle-uploaded-through-libr",
+  "subject": "Engineering decisions",
+  "title": "Gemini Gem context as one bundle, uploaded through librclone",
+  "question": "What was measured for Gemini Gem context as one bundle, uploaded through librclone?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-26: Gemini Gem context as one bundle, uploaded through librclone",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Not measured: the `wf rca ask` draft quality (no answer within 150 s from the sandbox; the checklist run belongs on the VM) and a real Drive upload (`docs/gaps/gemini-sync-unverified.md`).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Spike (n=1, Sonnet-free): a release binary linking it is 92.8 MB against 13.2 MB for today's static `wf`; an incremental release build took 12.5 s. A local `operations/copyfile` and its `object not found` error work, and a `:drive,scope=drive,token='{...}',root_folder_id=...:` connection string reached Google (401 for a fake token) from the sandbox, so no config file or environment is needed. Decision from the size: the dependency is the optional cargo feature `rclone` of `knowledge`, off in the shared `wf` build (which is also a musl static binary); the nightly workflow builds `knowledge --features rclone` and flow-tests the upload against a local remote first."
+        ],
+        [
+          "- Not measured: the `wf rca ask` draft quality (no answer within 150 s from the sandbox; the checklist run belongs on the VM) and a real Drive upload (`docs/gaps/gemini-sync-unverified.md`)."
+        ],
+        [
+          "- vnc-auth: `Launcher::run_login` no longer takes the lock a navigation holds (the desktop user is a field of the launcher); a flow journey with a never-answering browser endpoint failed with a 20 s client timeout before the change and passes in under a second after it. Merge: `origin/main` was `dev@c82c316dd` (a squash), recorded with `merge -s ours`; the Metro and emulator memory caps of 2026-10-13 are moot because that container infra was retired (`0ca9ab744`)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2936–2943",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

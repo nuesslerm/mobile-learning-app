@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-11-24-cli-performance",
+  "subject": "Performance profiles",
+  "title": "CLI performance · Orca and T3",
+  "question": "What did the CLI performance · Orca and T3 measurements show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "CLI performance · Orca and T3",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Executor artifact stat reached 16.09 ms p95 against a 3.76 ms limit. The two slowest calls took 16.09 and 17.71 ms. The other 28 finished in 1.74 ms or less. The parent Orca artifact-open journey met its limit. The executor span covers path resolution, file metadata, fingerprinting and binary detection. This recording cannot attribute the delay to an individual step.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Published findings"
+      ],
+      "rows": [
+        [
+          "Executor artifact stat reached 16.09 ms p95 against a 3.76 ms limit. The two slowest calls took 16.09 and 17.71 ms. The other 28 finished in 1.74 ms or less. The parent Orca artifact-open journey met its limit. The executor span covers path resolution, file metadata, fingerprinting and binary detection. This recording cannot attribute the delay to an individual step."
+        ],
+        [
+          "Opening a 4 KiB terminal artifact on Orca took 99.79 ms at p95. Listing and reading a 4 KiB project file on T3 took 138.60 ms. Orca session history took 32.09 ms and the T3 thread projection took 0.45 ms. The two hosts perform different operations on each path."
+        ],
+        [
+          "In the second run, all four integration tests passed and two latency checks failed. Executor artifact stat rose from 0.76 to 2.73 ms at p95. Executor file read rose from 1.00 to 2.21 ms. Both complete file journeys got faster. Those measurements establish run-to-run variation on this machine. The cause remains unmeasured."
+        ],
+        [
+          "The two short filesystem operations now require at least a 3 ms increase over baseline before the relative gate fails. The original failed verdict is retained."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-11-24-cli-performance.html",
+      "path": "evidence/2026-11-24-cli-performance.html"
+    }
+  ]
+}

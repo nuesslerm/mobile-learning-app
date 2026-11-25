@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-203-the-one-pat-push-and-the-service-kit-registry-2026-11-02",
+  "subject": "Engineering decisions",
+  "title": "The one-PAT push and the service-kit registry (2026-11-02)",
+  "question": "What was measured for The one-PAT push and the service-kit registry (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "The one-PAT push and the service-kit registry (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Removing `GITHUB_TOKEN` and `CI_RUNNER_GITHUB_READ_TOKEN` from `backend/service-kit/data/registry.json` (kept equal to `clis/secrets/src/data/registry.json` by a flow test) changes a file every Rust service builds from, so the deploy-legs flow test saw every leg change and the gate failed (with an offload worker test and the Nx cache contract test, which ran while the disk had 0 MB free). The registry edits were reverted; the compose and group changes stay…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Removing `GITHUB_TOKEN` and `CI_RUNNER_GITHUB_READ_TOKEN` from `backend/service-kit/data/registry.json` (kept equal to `clis/secrets/src/data/registry.json` by a flow test) changes a file every Rust service builds from, so the deploy-legs flow test saw every leg change and the gate failed (with an offload worker test and the Nx cache contract test, which ran while the disk had 0 MB free). The registry edits were reverted; the compose and group changes stay. The two keys are cleaned out of both registries in one push that is allowed to redeploy every service, together with the next change to `service-kit`, not alone."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3321–3324",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

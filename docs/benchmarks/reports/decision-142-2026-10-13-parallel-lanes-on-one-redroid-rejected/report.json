@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-142-2026-10-13-parallel-lanes-on-one-redroid-rejected",
+  "subject": "Engineering decisions",
+  "title": "parallel lanes on one redroid: rejected",
+  "question": "What was measured for parallel lanes on one redroid: rejected?",
+  "date": "2026-10-13",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-13: parallel lanes on one redroid: rejected",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Test (under the lease, real device): lab app on display 0, Settings on an overlay display (id 2). Rendering works for both at once; capture does not: `screencap -d 2` rc 1, `uiautomator dump --display 2` no nodes, `input -d 2` unverifiable. Cost: +385 MB device RAM (1.18 to 1.57 GB), lab app 205 MB PSS, Settings 75 MB. Decision: one lane; runs queue behind the lease. Not tried: Android multi-user copies of one app (same memory problem, and the VM has 0.3 t…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Test (under the lease, real device): lab app on display 0, Settings on an overlay display (id 2). Rendering works for both at once; capture does not: `screencap -d 2` rc 1, `uiautomator dump --display 2` no nodes, `input -d 2` unverifiable. Cost: +385 MB device RAM (1.18 to 1.57 GB), lab app 205 MB PSS, Settings 75 MB. Decision: one lane; runs queue behind the lease. Not tried: Android multi-user copies of one app (same memory problem, and the VM has 0.3 to 1 GB free)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2321–2324",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

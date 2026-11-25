@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3462",
+  "subject": "Engineering decisions",
+  "title": "RCA protocol performance tracing",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "RCA protocol performance tracing",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "RCA protocol performance tracing (macOS arm64 debug, one local run, 30 iterations per client). Opening a 4 KiB file through the Orca artifact protocol took 74.4 ms p95. Listing and reading it through T3 took 146.8 ms p95. SQLite held all 180 parent and child spans in 92 KiB. Keep trace capture local and compare hosted runs against a separate pinned runner baseline.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, RCA protocol performance tracing (macOS arm64 debug, one local run, 30 iterations per client). Opening a 4 KiB file through the Orca artifact protocol took 74.4 ms p95. Listing and reading it through T3 took 146.8 ms p95. SQLite held all 180 parent and child spans in 92 KiB. Keep trace capture local and compare hosted runs against a separate pinned runner baseline."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3462",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

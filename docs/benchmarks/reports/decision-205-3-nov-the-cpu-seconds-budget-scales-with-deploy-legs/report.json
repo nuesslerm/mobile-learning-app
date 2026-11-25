@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-205-3-nov-the-cpu-seconds-budget-scales-with-deploy-legs",
+  "subject": "Engineering decisions",
+  "title": "3 Nov: the CPU-seconds budget scales with deploy legs",
+  "question": "What was measured for 3 Nov: the CPU-seconds budget scales with deploy legs?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "3 Nov: the CPU-seconds budget scales with deploy legs",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Run 41557723708 (38533cc0e: reporting-service and leetcode-auth-cookie-capture refactors, two image builds) breached `cpuSecondsPerRun` with 1048 against 1000; every job was green and the wall time was 10m41s. Single-leg runs this session (8m04s to 8m46s) stayed under 1000.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Run 41557723708 (38533cc0e: reporting-service and leetcode-auth-cookie-capture refactors, two image builds) breached `cpuSecondsPerRun` with 1048 against 1000; every job was green and the wall time was 10m41s. Single-leg runs this session (8m04s to 8m46s) stayed under 1000."
+        ],
+        [
+          "- Decision: `cpuSecondsPerExtraDeploy: 500` in `.github/ci-budget.json`; the ceiling is `cpuSecondsPerRun + (deploy legs - 1) * cpuSecondsPerExtraDeploy`, so a run is judged against the work it was asked to do. 500 is a first estimate (n=1, one two-leg run at 1048); revise once the budget job reports the measured CPU-seconds of more multi-leg runs."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3331–3335",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

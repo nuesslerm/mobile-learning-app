@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-115-2026-10-09-per-slice-before-and-after-in-one-table-standard-crate",
+  "subject": "Engineering decisions",
+  "title": "per-slice before and after, in one table (standard-crates plan, done-when 4)",
+  "question": "What was measured for per-slice before and after, in one table (standard-crates plan, done-when 4)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: per-slice before and after, in one table (standard-crates plan, done-when 4)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "n=5 medians, release builds, one fresh process per run unless the row says otherwise. The baselines are the plan's: `leetcode-backend` 0.63 MB, 5.7 ms, 2.5 MB; `rca-post-rust.json` for `remote-chat-agent`. Records are in `docs/audits/benchmarks/`; the CLI slices carry their method in the report named in the last column.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Slice",
+        "Before",
+        "After",
+        "Record"
+      ],
+      "rows": [
+        [
+          "`leetcode-backend` on axum, reqwest, tower-http, tracing (phase 2)",
+          "0.63 MB, cold start 5.12 ms, idle RSS 2.59 MB, `/health` p50 0.46 ms, user status 6.66 ms, run 33.89 ms",
+          "4.10 MB, 12.10 ms, 6.42 MB, 0.46 ms, 1.08 ms, 33.27 ms",
+          "`leetcode-backend-{pre,post}-std.json`"
+        ],
+        [
+          "`remote-chat-agent` on axum, tokio, reqwest, pulldown-cmark (phase 3 A to C)",
+          "17.67 MB, 32.54 ms, 6.53 MB, `/health` 0.40 ms, chat turn 105.52 ms",
+          "21.61 MB, 33.76 ms, 10.26 MB, 0.39 ms, 104.97 ms",
+          "`rca-pre-std.json`, `rca-post-std.json`"
+        ],
+        [
+          "`remote-chat-agent` request validation on serde (phase 3 D)",
+          "21.61 MB, 33.76 ms, 10.26 MB",
+          "21.85 MB, 34.53 ms, 10.37 MB, `/health` 0.38 ms, chat turn 104.83 ms",
+          "`rca-post-std.json`, `rca-post-serde.json`"
+        ],
+        [
+          "Pipeline build profile (`deploy`, no fat LTO)",
+          "release with LTO: 21.85 MB, 34.01 ms, 10.29 MB",
+          "21.85 MB, 35.80 ms, 10.26 MB; Deploy of all four targets 14 min 45 s to 3 min 17 s",
+          "`rca-ci-release-lto.json`, `rca-ci-deploy-profile.json`"
+        ],
+        [
+          "`wf` outbound HTTP and OTLP on ureq (phase 4 A to D)",
+          "5.71 MB; a telemetry-posting command 11.9 ms; 19 `curl` spawns",
+          "7.36 MB; 5.6 ms; 0",
+          "`clis-http.md`, `clis-wf.md`"
+        ],
+        [
+          "`cdp` on tungstenite, ureq, base64 (phase 4 E)",
+          "`eval` p50 0.195 ms, p95 0.44 ms, screenshot p50 34.1 ms",
+          "0.191 ms, 0.39 ms, 34.0 ms",
+          "`clis-cdp.md`"
+        ],
+        [
+          "`wf` VNC gate and control listener on tokio, axum, reqwest (phase 4b)",
+          "7.36 MB; gated GET p50 0.69 ms; listener idle RSS 7.14 MB",
+          "8.15 MB; 0.53 ms; 8.71 MB",
+          "`clis-wf.md`"
+        ],
+        [
+          "`wf` option parsing on clap (phase 4c)",
+          "8.18 MB; `--help` 3.24 ms; parsed line 7.42 ms",
+          "8.31 MB; 3.16 ms; 7.66 ms",
+          "`clis-wf.md`"
+        ],
+        [
+          "`wf` program options and mode probes (phase 4d)",
+          "8,305,912 B; parsed line 8.71 ms",
+          "8,311,672 B; 8.37 ms",
+          "`clis-wf.md`"
+        ],
+        [
+          "`wf` source maps on the `sourcemap` crate",
+          "decoding a generated 240,000-segment map 25.44 ms",
+          "11.91 ms; binary +65,984 B",
+          "`clis-wf.md`"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "n=5 medians, release builds, one fresh process per run unless the row says otherwise. The baselines are the plan's: `leetcode-backend` 0.63 MB, 5.7 ms, 2.5 MB; `rca-post-rust.json` for `remote-chat-agent`. Records are in `docs/audits/benchmarks/`; the CLI slices carry their method in the report named in the last column."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2086–2104",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

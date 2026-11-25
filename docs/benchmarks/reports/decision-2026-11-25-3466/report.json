@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3466",
+  "subject": "Engineering decisions",
+  "title": "The API performance catalog ran twice on macOS arm64 against Orca, T3, RCA and the",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "The API performance catalog ran twice on macOS arm64 against Orca, T3, RCA and the",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "The API performance catalog ran twice on macOS arm64 against Orca, T3, RCA and the executor. Each run produced five samples for each of 1,657 local operations. The second run exceeded one median limit, the Orca encrypted handshake (12.881 ms against 11.672 ms). Keep the five-round gate alongside the 30-sample end-to-end tests. The offline [per-call report](2026-11-25-api-performance.html)…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — The API performance catalog ran twice on macOS arm64 against Orca, T3, RCA and the executor. Each run produced five samples for each of 1,657 local operations. The second run exceeded one median limit, the Orca encrypted handshake (12.881 ms against 11.672 ms). Keep the five-round gate alongside the 30-sample end-to-end tests. The offline [per-call report](2026-11-25-api-performance.html) includes every span in the repository history and identifies the seven third-party phone requests outside the local hosts."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3466",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

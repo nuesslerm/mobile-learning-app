@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-15-3416",
+  "subject": "Engineering decisions",
+  "title": "Doctests in the Rust unit stage",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-15",
+  "revision": null,
+  "environment": null,
+  "workload": "Doctests in the Rust unit stage",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "doctests in the Rust unit stage (issue #83 section 2; test type: unit, a lib crate's `cargo test --doc` inside its `cargo-unit` target, n=1, commit `42cca5b`, green run 43693607344 on `5510388`). The doctest of `wf_kit::time::iso` runs in 0.39 s locally; the unit shards took 109 to 213 s against 95 to 132 s on the run before (43690328314), but that run replayed most crates from the cache and…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 15 Nov, doctests in the Rust unit stage (issue #83 section 2; test type: unit, a lib crate's `cargo test --doc` inside its `cargo-unit` target, n=1, commit `42cca5b`, green run 43693607344 on `5510388`). The doctest of `wf_kit::time::iso` runs in 0.39 s locally; the unit shards took 109 to 213 s against 95 to 132 s on the run before (43690328314), but that run replayed most crates from the cache and this one rebuilt every dependant of `wf-kit`, so the shard times do not isolate the added stage; the added work is one doctest binary per lib crate that has a runnable fence. Decision: keep it, a crate gets the stage when a runnable fence (rust, no_run, should_panic, compile_fail, edition) appears in its lib doc comments."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3416",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

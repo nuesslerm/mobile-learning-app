@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-81-2026-10-08-remote-chat-agent-pre-state-benchmark-the-node-service",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent PRE-STATE benchmark, the Node service before any port (goal step 1)",
+  "question": "What was measured for remote-chat-agent PRE-STATE benchmark, the Node service before any port (goal step 1)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent PRE-STATE benchmark, the Node service before any port (goal step 1)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Start and idle: cold start to the first `/health` 503.4 ms; idle RSS 133.6 MB; RSS after 300 `/health` requests 139.5 MB; `/health` p50 1.0 ms.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "scenario",
+        "p50",
+        "RSS after"
+      ],
+      "rows": [
+        [
+          "chat turn (20 deltas, scripted opencode)",
+          "121.6 ms",
+          "178.5 MB"
+        ],
+        [
+          "convert PDF (2 pages)",
+          "12.4 ms",
+          "228.3 MB"
+        ],
+        [
+          "convert PDF (Chromium, two columns, Tamil)",
+          "16.0 ms",
+          "232.7 MB"
+        ],
+        [
+          "convert DOCX",
+          "61.7 ms",
+          "293.8 MB"
+        ],
+        [
+          "diff register and page (200 hunks)",
+          "39.5 ms",
+          "326.8 MB"
+        ],
+        [
+          "file preview, markdown",
+          "1.2 ms",
+          "326.9 MB"
+        ],
+        [
+          "file preview, TypeScript",
+          "1.2 ms",
+          "326.9 MB"
+        ],
+        [
+          "Tamil check (raster, then the scripted vision model)",
+          "479.9 ms",
+          "491.2 MB"
+        ],
+        [
+          "voice transcribe (fake STT sidecar)",
+          "6.6 ms",
+          "491.6 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Start and idle: cold start to the first `/health` 503.4 ms; idle RSS 133.6 MB; RSS after 300 `/health` requests 139.5 MB; `/health` p50 1.0 ms."
+        ],
+        [
+          "- Peak: 491.6 MB median over the runs (497.1 MB the largest). Reading it: the 134 MB idle floor grows to about 490 MB once every media path has run once, and it does not come back, because the heavy packages stay loaded: the Tamil check alone adds 165 MB (sharp and librsvg), the DOCX parser 65 MB, the PDF parser 50 MB, the diff viewer 33 MB. That resident growth, not the per-request time, is what the Rust service is compared on."
+        ],
+        [
+          "- Image size: the registry's compressed `nuesslerm/remote-chat-agent` image (arm64) is 441.1 MB for `sha-5aee168` and for `sha-9a91e81` (Docker Hub tags API). The uncompressed size and the container's memory on the VM were not read: `docker` is not reachable from agent-shell through `wf vm exec` (the image listing came back empty). The installed Node media packages alone are about 245 MB (`ffmpeg-static` 76.3, `tesseract.js-core` 43.2, `pdfjs-dist` 35.3, `pdf-parse` 27.2, `@img/sharp` 17.9, `whisper-node` 13.8, `playwright-core` 13.0)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1655–1676",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

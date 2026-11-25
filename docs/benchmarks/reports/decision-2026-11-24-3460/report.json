@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3460",
+  "subject": "Engineering decisions",
+  "title": "Masked iOS reference comparison",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Masked iOS reference comparison",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "masked iOS reference comparison (one flow run, no model). The comparison flow took 2.48 s. One differing pixel among 16 scored pixels failed a 5% budget and passed at 6.25%. Keep the explicit budget and reject fully masked frames.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, masked iOS reference comparison (one flow run, no model). The comparison flow took 2.48 s. One differing pixel among 16 scored pixels failed a 5% budget and passed at 6.25%. Keep the explicit budget and reject fully masked frames."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3460",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

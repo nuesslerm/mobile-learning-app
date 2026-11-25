@@ -1,0 +1,262 @@
+[
+  {
+    "pair": 1,
+    "variant": "wf",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 354309,
+        "sha256": "2e914defe04a2d1295bd6b32af17f50aa7aeaca1727a104afed690057e17fdae"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 167966,
+        "sha256": "cd6ca7a1a09e5c813872e791e93d978318b1f9e8b1a41b4c2ed4b8c3daed494b"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 4633214,
+        "sha256": "b9cae5bc0275a63f5595479e901caa6f71b96ce972e4fa4a9461cbb8d78028a4"
+      },
+      {
+        "name": "start.png",
+        "bytes": 307735,
+        "sha256": "1f3ae1c65fc98c16df76f72a5ab1e7bb0baf6018fc572ad3575e6c36e9ec4068"
+      }
+    ]
+  },
+  {
+    "pair": 1,
+    "variant": "maestro",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 273912,
+        "sha256": "d25c960f4c37d32b0d704880701b7e9089c84389e4332a6e1fe8521f0f6ded83"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 127065,
+        "sha256": "1e2f3afa1ed4992056ab4362808086a54c332b3eb9b4a7190c5e37ea316df528"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 5362829,
+        "sha256": "d19d1aa1571c2825d9e6999db4b4b1e8e115e3fc6a1585113c302adc964b7985"
+      },
+      {
+        "name": "start.png",
+        "bytes": 273912,
+        "sha256": "d25c960f4c37d32b0d704880701b7e9089c84389e4332a6e1fe8521f0f6ded83"
+      }
+    ]
+  },
+  {
+    "pair": 2,
+    "variant": "maestro",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 273907,
+        "sha256": "60af0530df073bd41d7cf54f2042e2fd4793f7f05b5169559e1f85d5843ae442"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 127066,
+        "sha256": "3bf25bf557ac439cbfa505098d99bb76489173ee30ea989c6c0dfa43bb72bc46"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 5438101,
+        "sha256": "91da4c27d7cfd1d8af919fc3cd5fac04537e5570bc13d63ad9805e50f40ba0ae"
+      },
+      {
+        "name": "start.png",
+        "bytes": 273907,
+        "sha256": "60af0530df073bd41d7cf54f2042e2fd4793f7f05b5169559e1f85d5843ae442"
+      }
+    ]
+  },
+  {
+    "pair": 2,
+    "variant": "wf",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 332829,
+        "sha256": "56991da25c24aa36345f9a8ee10f296ecac04971572fa78ad1007c6286d296bc"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 153498,
+        "sha256": "91c722f52448026ad0670930fedf01b1cca1af3ccde711ac6bbc08302bb0e643"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 5507893,
+        "sha256": "6acd4cfa36b87bb72d147e9b74f2cc543c1e8fa73ebd58fe85ee62b8322f5b05"
+      },
+      {
+        "name": "start.png",
+        "bytes": 307895,
+        "sha256": "0ff08ef4c56533e51e1a0154411a3f95d5ecc39bc819e88fc68cd5f8d610d616"
+      }
+    ]
+  },
+  {
+    "pair": 3,
+    "variant": "wf",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 333175,
+        "sha256": "2cb3ac2c3791883b29125bae9c3d80350af5ef659722f203d222442b17e7034d"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 156524,
+        "sha256": "d9619761c4f1fa984ccc29acf9d3a153dede33e5e95c4699382ab74312a296ca"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 4960174,
+        "sha256": "534fb6a15958af456316282365c99e13a1def2293e9e5d1d691771930918b08f"
+      },
+      {
+        "name": "start.png",
+        "bytes": 307895,
+        "sha256": "0ff08ef4c56533e51e1a0154411a3f95d5ecc39bc819e88fc68cd5f8d610d616"
+      }
+    ]
+  },
+  {
+    "pair": 3,
+    "variant": "maestro",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 273935,
+        "sha256": "c0a37a24b338fa1067126dc3c3dafd80b6578e826ca590a69d11f4378b673dca"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 127075,
+        "sha256": "3374e8c082f9c42c2acc3abfb8448fe38eb72645a61e9ee0c64b4273ca9f8276"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 5538655,
+        "sha256": "75220000ba127872ab6c01afc9932c5267d88d31bfac43ee34fc82deb50e274e"
+      },
+      {
+        "name": "start.png",
+        "bytes": 273935,
+        "sha256": "c0a37a24b338fa1067126dc3c3dafd80b6578e826ca590a69d11f4378b673dca"
+      }
+    ]
+  },
+  {
+    "pair": 4,
+    "variant": "maestro",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 273219,
+        "sha256": "9b85d39a2da72738565115220249c3362aae2bc53f9c43a54dd4890f0b2ad9d7"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 126400,
+        "sha256": "57c847dea2ffa224c42a6beda62cedd40b29e26235529fff202486b220d5680f"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 5322458,
+        "sha256": "777f16453e9766610fc90534a53e7e4f33c88597bae8cc5c7acf31c227317b60"
+      },
+      {
+        "name": "start.png",
+        "bytes": 273219,
+        "sha256": "9b85d39a2da72738565115220249c3362aae2bc53f9c43a54dd4890f0b2ad9d7"
+      }
+    ]
+  },
+  {
+    "pair": 4,
+    "variant": "wf",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 361705,
+        "sha256": "7ff1e6b66067bb57ed2a292a83f30c868058c40bd139b2cb77321c76db68ac6f"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 167422,
+        "sha256": "342ba5301b48475f5743f1b27e2eb5deee7168b77fcf3ac4974858f57e1772ad"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 4431459,
+        "sha256": "efb5d936278be25e2dc62cbd478285efce6feb75432698c50a80c6f3127ec072"
+      },
+      {
+        "name": "start.png",
+        "bytes": 307722,
+        "sha256": "71af11240a5eeef238868d48b937bc9b032eb98bb8033fa9da61ad1f396d7e4b"
+      }
+    ]
+  },
+  {
+    "pair": 5,
+    "variant": "wf",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 350844,
+        "sha256": "7737ee7ae3a1642ff2c9d89e73e257474448a190b669794ddbf4437621624574"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 167842,
+        "sha256": "1898eb1d87e2ca993e02c25bee7cdac00822256b12c8d5cb86f46d74b39ba84d"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 4584377,
+        "sha256": "0ece2b411b18f5c3ab608ca67d5a5d43dd153767859803b274c9867f09d98516"
+      },
+      {
+        "name": "start.png",
+        "bytes": 307722,
+        "sha256": "71af11240a5eeef238868d48b937bc9b032eb98bb8033fa9da61ad1f396d7e4b"
+      }
+    ]
+  },
+  {
+    "pair": 5,
+    "variant": "maestro",
+    "artifacts": [
+      {
+        "name": "finish.png",
+        "bytes": 273287,
+        "sha256": "08588f39873cdde4614c6563f2cc7b1efca8d87863dfde67fae8dff0c6f64705"
+      },
+      {
+        "name": "lesson.png",
+        "bytes": 126473,
+        "sha256": "bae84a1bb3e23bb05885e4740c204acdd1b463eb78c0650f9d9b3fdddf63715f"
+      },
+      {
+        "name": "run.mp4",
+        "bytes": 5212095,
+        "sha256": "7c29cc9a94babbe198bf422d79a33b510acc6e634a0bdd2b6954457dee596da1"
+      },
+      {
+        "name": "start.png",
+        "bytes": 273718,
+        "sha256": "99710beebe2af947a86cdf0f991a52a158a44fef11b016b4a4cdaf9d27ad388c"
+      }
+    ]
+  }
+]

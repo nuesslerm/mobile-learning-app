@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-204-run-af52e39f5-eleven-commits-in-one-push-36-min-51-s-2026-11-02",
+  "subject": "Engineering decisions",
+  "title": "Run af52e39f5: eleven commits in one push, 36 min 51 s (2026-11-02)",
+  "question": "What was measured for Run af52e39f5: eleven commits in one push, 36 min 51 s (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Run af52e39f5: eleven commits in one push, 36 min 51 s (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Three gate attempts failed before it (disk at 0 MB free, the Nx cache contract test and an offload worker test under that pressure, then a moved remote), so eleven commits went out together. Every job was green; `budget` failed on `cpu-seconds`: 3706 against a limit of 1000.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Three gate attempts failed before it (disk at 0 MB free, the Nx cache contract test and an offload worker test under that pressure, then a moved remote), so eleven commits went out together. Every job was green; `budget` failed on `cpu-seconds`: 3706 against a limit of 1000."
+        ],
+        [
+          "- The Nx ledger of the run says 49 tasks replayed and only `reporting-service:test:verify:deployed` ran, yet `typecheck-lint-unit-tests` took 824 s and `flow-tests` 547 s inside one `wf test run` step each. The CPU went somewhere the ledger does not name (a cargo build or clippy outside an Nx task, or the Nx hashing of a changed workspace). Not yet explained; the next measurement runs with `WF_NX_TRACE`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3325–3330",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

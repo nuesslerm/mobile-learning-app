@@ -1,0 +1,3 @@
+Usage: wf bench reports build|check
+
+Build or verify the offline benchmark library from its JSON records.

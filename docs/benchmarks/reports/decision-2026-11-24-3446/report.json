@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3446",
+  "subject": "Engineering decisions",
+  "title": "IOS reference comparison",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "IOS reference comparison",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "iOS reference comparison (n=1 per screen, no model). `wf test ios-visual --reference` normalized and compared the dark approval picker in 5.11 s and reproduced the golden's 174 differing pixels. The same harness compared the reordered LeetCode keyboard in 8.23 s, wrote the mismatch images, and exited 1 with 248,955 differing pixels (6.979% at the shared pixelmatch tolerance). Keep the…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, iOS reference comparison (n=1 per screen, no model). `wf test ios-visual --reference` normalized and compared the dark approval picker in 5.11 s and reproduced the golden's 174 differing pixels. The same harness compared the reordered LeetCode keyboard in 8.23 s, wrote the mismatch images, and exited 1 with 248,955 differing pixels (6.979% at the shared pixelmatch tolerance). Keep the reference mode so device evidence and design diffs use one command."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3446",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

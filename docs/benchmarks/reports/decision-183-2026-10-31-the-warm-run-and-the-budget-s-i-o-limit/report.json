@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-183-2026-10-31-the-warm-run-and-the-budget-s-i-o-limit",
+  "subject": "Engineering decisions",
+  "title": "the warm run, and the budget's I/O limit",
+  "question": "What was measured for the warm run, and the budget's I/O limit?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: the warm run, and the budget's I/O limit",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Gates on the warm run: duration 2m 17s (gate 8 min) met; CPU's I/O wait 0% (gate 10%) met. CPU peak 100% over two samples: not under 60%, and with 2 cores and a run this short that cannot be. Attribution of a 2-sample run is noise (containers 0.43 of 1.78 busy cores); on the long runs the gap was 0.44-0.50 cores, which is the kernel's own 25%.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Run",
+        "What it changed",
+        "Wall",
+        "VM CPU avg / peak",
+        "CPU iowait peak",
+        "Kernel I/O pressure peak"
+      ],
+      "rows": [
+        [
+          "aa65ffd",
+          "docs only (every Nx task replayed)",
+          "**2m 17s**",
+          "89% / 100%",
+          "0%",
+          "1%"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Gates on the warm run: duration 2m 17s (gate 8 min) met; CPU's I/O wait 0% (gate 10%) met. CPU peak 100% over two samples: not under 60%, and with 2 cores and a run this short that cannot be. Attribution of a 2-sample run is noise (containers 0.43 of 1.78 busy cores); on the long runs the gap was 0.44-0.50 cores, which is the kernel's own 25%."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3045–3053",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-22-port-wf-auth-list-capture-done-launch-url-to-rust-2026-10-06",
+  "subject": "Engineering decisions",
+  "title": "Port: `wf auth list|capture|done|launch-url` to Rust (2026-10-06)",
+  "question": "What was measured for Port: `wf auth list|capture|done|launch-url` to Rust (2026-10-06)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Port: `wf auth list|capture|done|launch-url` to Rust (2026-10-06)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release build, n=5, `auth done s1` against a refused local port, so it covers",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "wall (median)",
+        "peak RSS (median)"
+      ],
+      "rows": [
+        [
+          "TypeScript bundle",
+          "295.5 ms",
+          "69.1 MB"
+        ],
+        [
+          "Rust",
+          "16.3 ms",
+          "11.0 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release build, n=5, `auth done s1` against a refused local port, so it covers"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 765–790",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}
