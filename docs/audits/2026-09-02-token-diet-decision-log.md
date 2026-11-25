@@ -3814,3 +3814,5 @@ An up-to-date build took 0.339 s and check took 0.268 s across 311 records. One 
 2026-11-25 — Clean PR scope check against the existing dev branch (one local run, 0.175 s): 160 commits and 779 changed files. Checking history and the file list exposes the inherited scope before opening a task PR. [Branch procedure](../solutions/workflow/land-on-dev.md)
 
 2026-11-25 — Basic Memory encrypted Git round trip, one Markdown note and one local run per command. Saving took 0.454 s, first agent-config sync in a fresh clone took 0.172 s, and repeat sync took 0.141 s. Keep decryption on session sync and seal edited notes explicitly before commit.
+
+2026-11-25 — Clean PR from dev to main. In one merge of main (d8e537fe) into dev (1d169f4a), the count from `git rev-list --count dev..origin/main` fell from 1 to 0. The resolved merge tree matched the pre-merge dev tree exactly. Use a normal merge and push for this request.

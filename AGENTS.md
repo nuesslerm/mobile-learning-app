@@ -48,7 +48,7 @@ Goal, numbered decisions, `###` items (Local/CI boxes, Do, Proof, State), Blocke
 
 ## Land on dev
 
-Default to `dev`. “Clean PR” or “fresh PR” means a new branch from current `origin/main`, task-only commits and diff. See `docs/solutions/workflow/land-on-dev.md`. Never delete branches. Bring `dev` to parity first (`docs/solutions/workflow/dev-parity-with-main.md`); never rebase a merge of `main`. Push to `dev` deploys automatically; never call `/redeploy`. Replace a merged or closed standing PR with title `dev → main` and body exactly ``This is `dev` ``.
+Default to `dev`. For a “clean PR” or “fresh PR” from `dev` to `main`, merge `origin/main` into `dev`, push, and open the standing PR. For other clean/fresh PRs, branch from `origin/main` with task-only commits and diff. See `docs/solutions/workflow/land-on-dev.md`. Never delete branches. Bring `dev` to parity first (`docs/solutions/workflow/dev-parity-with-main.md`). Never rebase a merge of `main`. Push to deploy, never call `/redeploy`. Replace a closed or merged standing PR with title `dev → main` and body exactly ``This is `dev` ``.
 
 ## Benchmarks: always, and as cheap as still meaningful
 

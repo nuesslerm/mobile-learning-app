@@ -21,11 +21,14 @@ When the open `dev` → `main` PR is merged or closed, open a new `dev` → `mai
 
 ## When the owner asks for a clean PR or a fresh PR
 
-Fetch `origin/main` and create a new task branch from that commit. Make the requested changes there, or cherry-pick only the commits that belong to the task. If a commit mixes concerns, carry over only the relevant changes. The standing trunk PR follows its own lifecycle.
+For a **clean PR from dev to main** or a **fresh PR from dev to main**, use the shared `dev` branch as the PR head.
 
-Before opening the PR against `main`, fetch again and inspect both `git log --oneline origin/main..HEAD` and `git diff origin/main...HEAD`. Every commit and every changed hunk must belong to the request. A clean working tree alone tells you nothing about the scope of the PR.
+1. Fetch `origin/main` and `origin/dev`. Bring local `dev` up to date with the remote, preserving existing commits.
+2. Merge `origin/main` into `dev`, resolve conflicts, and push `dev` normally. This preserves the shared history, including commits previously squash-merged into `main`.
+3. Fetch again. Verify `git merge-base --is-ancestor origin/main origin/dev` succeeds and inspect `git diff origin/main...origin/dev`.
+4. Open the standing PR with head `dev`, base `main`, title `dev → main` and body exactly ``This is `dev` ``. If that PR is already open, the push updates it. Return its link.
 
-“Work on dev” can describe where the work starts. Prepare the clean PR on its own branch from `origin/main`. If the owner explicitly requires `dev` itself as the PR head and its history contains unrelated commits, explain the conflict and ask before realigning or force-pushing the shared branch.
+For **other clean or fresh PRs**, fetch `origin/main` and create a task branch from that commit. Carry over only the requested changes. Before opening the PR, fetch again and inspect both `git log --oneline origin/main..HEAD` and `git diff origin/main...HEAD`. Every commit and changed hunk must belong to the task.
 
 ## Batches, landed as they pass (22 Nov 2026, batch rule 22 Nov evening)
 
