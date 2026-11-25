@@ -1,3 +1,4 @@
+import { useRouteNavigation } from './useRouteAction';
 // The problem editor screen: the code editor, its keyboard rails and the console (action bar, dock, Testcase and Run Result sheet).
 import { Logger } from '@lib/logging';
 import { toast } from 'sonner-native';
@@ -123,6 +124,7 @@ function ProblemEditorContent({
   onBlocksSource,
   drafts,
 }: EditorScreenProps & { drafts?: CodeDraftSession }) {
+  const { leave, pushRoute } = useRouteNavigation();
   const { gateway, runner, libraryContent } = useLeetCodePorts();
   const problem = React.useMemo(() => id ? libraryContent.problem(id) : undefined, [id, libraryContent]);
 
@@ -449,28 +451,30 @@ function ProblemEditorContent({
   const handleResetCode = React.useCallback(() => {
     if (!problem) return;
     Logger.info('editor_v2.reset_code.request', { problemId: problem.id });
-    useResetCodeRequestStore.getState().request({
-      problemId: problem.id,
-      onConfirm: () => {
-        Logger.info('editor_v2.reset_code.confirm', {
-          problemId: problem.id,
-        });
-        // Reset is the most destructive path in the screen and used to be
-        // genuinely irreversible -- the dialog said so. Snapshot first.
-        snapshot('reset');
-        updateCode(pickStarterCode(problem.starterCode, lang));
-        clearConsoleResult();
-        // The edit mark belongs to the code that was just discarded.
-        setHasEdit(false);
-        setDiffMode(false);
-        editorRef.current?.clearEditMark();
-      },
-      onCancel: () => {
-        Logger.info('editor_v2.reset_code.cancel', { problemId: problem.id });
-      },
+    leave(() => {
+      useResetCodeRequestStore.getState().request({
+        problemId: problem.id,
+        onConfirm: () => {
+          Logger.info('editor_v2.reset_code.confirm', {
+            problemId: problem.id,
+          });
+          // Reset is the most destructive path in the screen and used to be
+          // genuinely irreversible -- the dialog said so. Snapshot first.
+          snapshot('reset');
+          updateCode(pickStarterCode(problem.starterCode, lang));
+          clearConsoleResult();
+          // The edit mark belongs to the code that was just discarded.
+          setHasEdit(false);
+          setDiffMode(false);
+          editorRef.current?.clearEditMark();
+        },
+        onCancel: () => {
+          Logger.info('editor_v2.reset_code.cancel', { problemId: problem.id });
+        },
+      });
+      router.push(`/leetcode/${problem.id}/reset-code`);
     });
-    router.push(`/leetcode/${problem.id}/reset-code`);
-  }, [problem, lang, snapshot, clearConsoleResult, updateCode]);
+  }, [problem, lang, snapshot, clearConsoleResult, updateCode, leave]);
 
   const fontSize = useEditorPreferencesStore((s) => s.fontSize);
   const tabSize = useEditorPreferencesStore((s) => s.tabSize);
@@ -506,24 +510,26 @@ function ProblemEditorContent({
       dirty: isDirty,
     });
     if (!isDirty || draftStatus === 'saved') {
-      router.back();
+      leave(() => router.back());
       return;
     }
-    requestUnsavedChanges({
-      problemId: problem?.id ?? '',
-      onDiscard: () => {
-        snapshot('navigate-away');
-        router.back();
-      },
-      onCancel: () => {},
+    leave(() => {
+      requestUnsavedChanges({
+        problemId: problem?.id ?? '',
+        onDiscard: () => {
+          snapshot('navigate-away');
+          router.back();
+        },
+        onCancel: () => {},
+      });
+      router.push(`/leetcode/${id ?? ''}/unsaved`);
     });
-    router.push(`/leetcode/${id ?? ''}/unsaved`);
   };
 
   const handleInfo = () => {
     Logger.info('editor_v2.info_tap', { problemId: problem?.id });
     dismissEditorKeyboard();
-    if (problem) router.push(`/leetcode/${problem.id}/description`);
+    if (problem) pushRoute(`/leetcode/${problem.id}/description`);
   };
 
   const handleHistory = () => {
@@ -533,18 +539,20 @@ function ProblemEditorContent({
     // Register the restore target BEFORE pushing: the sheet
     // is its own route, so it shares no React tree with this
     // screen and cannot reach setEditorText directly.
-    useCodeHistoryRequestStore.getState().request({
-      problemId: problem.id,
-      onRestore: (code, language) => {
-        snapshot('reset');
-        updateCode(code, language as EditorLanguage);
-        editorRef.current?.setTextAndSelection(code, { start: code.length, end: code.length });
-        if (language !== lang) {
-          setLang(language as EditorLanguage);
-        }
-      },
+    leave(() => {
+      useCodeHistoryRequestStore.getState().request({
+        problemId: problem.id,
+        onRestore: (code, language) => {
+          snapshot('reset');
+          updateCode(code, language as EditorLanguage);
+          editorRef.current?.setTextAndSelection(code, { start: code.length, end: code.length });
+          if (language !== lang) {
+            setLang(language as EditorLanguage);
+          }
+        },
+      });
+      router.push(`/leetcode/${problem.id}/history`);
     });
-    router.push(`/leetcode/${problem.id}/history`);
   };
 
   const handleLogin = () => {
@@ -554,7 +562,7 @@ function ProblemEditorContent({
       return;
     }
     Logger.info('editor_v2.login_tap', { problemId: problem?.id });
-    router.push('/leetcode/login');
+    pushRoute('/leetcode/login');
   };
 
   // Off by default, the code stays wired: see domain/featureFlags.ts.
@@ -659,7 +667,7 @@ function ProblemEditorContent({
               Logger.info('editor_v2.toolbar_configure', {
                 problemId: problem?.id,
               });
-              router.push('/leetcode/toolbar');
+              pushRoute('/leetcode/toolbar');
             }}
             onDismissKeyboard={dismissEditorKeyboard}
             compactSymbols={iosCanvas && !aiEdit}

@@ -1,9 +1,10 @@
+import { useRouteNavigation } from '../useRouteAction';
 import { libraryArtwork } from './libraryArtwork';
 import { CompactIconButton, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { BookOpen, ChevronRight, Code, Menu, Network } from '@lib/tamagui-design-system/icons';
-import { router, useNavigation, type Href } from 'expo-router';
+import { useNavigation, type Href } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLeetCodePorts } from '../../state/ports';
@@ -27,6 +28,7 @@ function collectionRoute(name: string, search = false): Href {
 }
 
 export function LibraryHomeScreen() {
+  const { pushRoute } = useRouteNavigation();
   const colors = useCompactColors();
   const { top, bottom } = useSafeAreaInsets();
   const [width, setWidth] = useState(390);
@@ -36,16 +38,13 @@ export function LibraryHomeScreen() {
   const [expanded, setExpanded] = useState(false);
   const groups = useMemo(() => Array.from(new Set(libraryContent.studyPlan.map((entry) => entry.group))), [libraryContent]);
   const bannerWidth = Math.round(width * 0.835);
-  const prepareCollection = (name: string) => {
-    if (Platform.OS === 'ios' && name !== 'Database' && name !== 'Blind 75') router.prefetch(collectionRoute(name));
-  };
   const select = (name: string) => {
-    if (name === 'Blind 75') router.push('/blind75' as Href);
+    if (name === 'Blind 75') pushRoute('/blind75' as Href);
     else if (name === 'Database') void Linking.openURL('https://leetcode.com/problemset/database/');
-    else router.push(collectionRoute(name));
+    else pushRoute(collectionRoute(name));
   };
   const heading = (name: string) => <Text accessibilityRole="header" style={[styles.section, { color: colors.foreground }]}>{name}</Text>;
-  const chip = (name: string) => <Pressable key={name} accessibilityRole="button" testID={`LibraryTopic-${name}`} onPressIn={() => prepareCollection(name)} onPress={() => select(name)}
+  const chip = (name: string) => <Pressable key={name} accessibilityRole="button" testID={`LibraryTopic-${name}`} onPress={() => select(name)}
     style={[styles.chip, { backgroundColor: colors.surface }]}><Text style={{ color: colors.muted, fontSize: 15, fontWeight: '600' }}>{name}</Text></Pressable>;
 
   return <View testID="LibraryHome" onLayout={({ nativeEvent }) => {
@@ -58,11 +57,11 @@ export function LibraryHomeScreen() {
     <ScrollView ref={scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottom + 150 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} decelerationRate="fast" snapToInterval={bannerWidth + 10}
         contentContainerStyle={styles.rail}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Weekly Contest" onPress={() => router.push('/leetcode/library/contest' as Href)}
+        <Pressable accessibilityRole="button" accessibilityLabel="Weekly Contest" onPress={() => pushRoute('/leetcode/library/contest' as Href)}
           style={[styles.banner, { width: bannerWidth, height: bannerWidth / 2 }]}>
           <Image source={libraryArtwork.contest} style={{ position: 'absolute', width: bannerWidth, height: bannerWidth / 2 }} resizeMode="cover" />
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="NeetCode 150 study plan" onPressIn={() => prepareCollection('NeetCode 150')} onPress={() => select('NeetCode 150')}
+        <Pressable accessibilityRole="button" accessibilityLabel="NeetCode 150 study plan" onPress={() => select('NeetCode 150')}
           style={[styles.banner, { width: bannerWidth, height: bannerWidth / 2, backgroundColor: '#ffc56b' }]}>
           <Icon as={Network} color="#75460d" size={64} /><Text style={styles.bannerLabel}>NeetCode 150</Text>
         </Pressable>
@@ -70,7 +69,7 @@ export function LibraryHomeScreen() {
       {heading('Category')}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
         {categories.map(({ name, icon, color }) => <Pressable accessibilityRole="button" key={name} testID={`LibraryCategory-${name}`}
-          onPressIn={() => prepareCollection(name)} onPress={() => select(name)} style={[styles.tile, { width: width * 0.322, backgroundColor: colors.background, borderColor: colors.line }]}>
+          onPress={() => select(name)} style={[styles.tile, { width: width * 0.322, backgroundColor: colors.background, borderColor: colors.line }]}>
           <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: color, opacity: 0.11 }]} />
           <Icon as={icon} size={26} color={color} /><Text style={[styles.tileLabel, { color: colors.foreground }]}>{name}</Text>
         </Pressable>)}
@@ -83,7 +82,7 @@ export function LibraryHomeScreen() {
       </ScrollView>
       {expanded && <View style={styles.expanded}>{groups.filter((name) => !firstTopics.flat().includes(name)).map(chip)}</View>}
     </ScrollView>
-    <LibraryDock prefetchResume onSearch={() => router.push(collectionRoute('All Topics', true))} onLibrary={() => scroll.current?.scrollTo({ y: 0 })} />
+    <LibraryDock pushRoute={pushRoute} onSearch={() => pushRoute(collectionRoute('All Topics', true))} onLibrary={() => scroll.current?.scrollTo({ y: 0 })} />
   </View>;
 }
 

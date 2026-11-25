@@ -138,14 +138,22 @@ describe('the problem editor header on the native twin', () => {
     await waitFor(() => expect(screen.queryByTestId('NativeHeaderCustom')).toBeNull());
   });
 
-  it('given a clean buffer, when Back is pressed, then the router goes back; and Info pushes the description', async () => {
+  it('given the editor, when Back arrives after Info, then only the description opens', async () => {
     await openEditor('ios');
 
     await userEvent.click(screen.getByTestId('NativeHeaderItem-Problem description'));
     await userEvent.click(screen.getByTestId('NativeHeaderItem-Back to the problem list'));
 
     expect(routerHarness().pushes()).toEqual(['/leetcode/two-sum/description']);
-    expect(routerHarness().calls().at(-1)).toEqual(['back']);
+    expect(routerHarness().calls()).toEqual([['push', '/leetcode/two-sum/description']]);
+  });
+
+  it('given a clean buffer, when Back is tapped twice, then the editor leaves once', async () => {
+    await openEditor('ios');
+    const back = screen.getByTestId('NativeHeaderItem-Back to the problem list');
+    await userEvent.click(back);
+    await userEvent.click(back);
+    expect(routerHarness().calls()).toEqual([['back']]);
   });
 
   it('given an edited iOS draft, when the editor is unmounted and reopened, then it restores the edited code', async () => {

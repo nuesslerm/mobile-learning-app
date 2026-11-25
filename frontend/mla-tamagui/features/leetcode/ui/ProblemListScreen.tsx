@@ -1,8 +1,9 @@
+import { useRouteNavigation } from './useRouteAction';
 import type { Blind75Problem, Difficulty } from '../domain';
 import { Logger } from '@lib/logging';
 import { Badge, Button, IconButton, InsetGroup, ListItem, Text, View } from '@lib/tamagui-design-system';
 import { CollapsingHeader } from '@lib/tamagui-design-system/composites/collapsing-header';
-import { router, useNavigation } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import { Menu } from '@lib/tamagui-design-system/icons';
 import { Fragment, useCallback, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,7 +31,7 @@ const DIFFICULTY_VARIANT: Record<
   hard: 'destructive',
 };
 
-function AuthRow() {
+function AuthRow({ pushRoute }: { pushRoute: ReturnType<typeof useRouteNavigation>['pushRoute'] }) {
   const isLoggedIn = useLeetCodeAuthStore((s) => s.isLoggedIn);
   const username = useLeetCodeAuthStore((s) => s.username);
   const clearCredentials = useLeetCodeAuthStore((s) => s.clearCredentials);
@@ -80,7 +81,7 @@ function AuthRow() {
           pressLog="off"
           onPress={() => {
             Logger.info('leetcode.list.signin_tap', { isLoggedIn });
-            router.push('/leetcode/login');
+            pushRoute('/leetcode/login');
           }}
         >
           Sign in
@@ -90,7 +91,7 @@ function AuthRow() {
   );
 }
 
-function ProblemRow({ problem }: { problem: Blind75Problem }) {
+function ProblemRow({ problem, pushRoute }: { problem: Blind75Problem; pushRoute: ReturnType<typeof useRouteNavigation>['pushRoute'] }) {
   return (
     <ListItem
       testID="LeetcodeListItem"
@@ -102,7 +103,7 @@ function ProblemRow({ problem }: { problem: Blind75Problem }) {
           problemId: problem.id,
           leetcodeId: problem.leetcodeId,
         });
-        router.push(`/leetcode/${problem.id}`);
+        pushRoute(`/leetcode/${problem.id}`);
       }}
     >
       <XStack items="center" gap="$3">
@@ -143,6 +144,7 @@ function HeroChip({
 }
 
 export function ProblemListScreen(): React.ReactElement {
+  const { pushRoute } = useRouteNavigation();
   const insets = useSafeAreaInsets();
   const cursorPad = useLeetCodeFlag('cursorPad');
   const categories = useMemo(() => ProblemCatalog.getCategories(), []);
@@ -229,7 +231,7 @@ export function ProblemListScreen(): React.ReactElement {
         testID="LeetcodeListHeader"
         scrollViewTestID="LeetcodeListScroll"
       >
-        <AuthRow />
+        <AuthRow pushRoute={pushRoute} />
         <RunnerSettingRow />
         <AutocompleteSettingRow />
         {cursorPad ? <CursorHandleSettingRow /> : null}
@@ -246,7 +248,7 @@ export function ProblemListScreen(): React.ReactElement {
             </Text>
             <InsetGroup testID="LeetcodeListSection">
               {category.problems.map((problem) => (
-                <ProblemRow key={problem.id} problem={problem} />
+                <ProblemRow pushRoute={pushRoute} key={problem.id} problem={problem} />
               ))}
             </InsetGroup>
           </Fragment>

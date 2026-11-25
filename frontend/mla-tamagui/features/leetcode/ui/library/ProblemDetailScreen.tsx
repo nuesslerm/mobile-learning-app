@@ -1,3 +1,4 @@
+import { useRouteNavigation } from '../useRouteAction';
 import { CompactHeader, CompactIconButton, CompactTabs, FloatingBar, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { ChevronDown, Lightbulb, Play, Share, Star, Tag } from '@lib/tamagui-design-system/icons';
 import { Link, router, useFocusEffect } from 'expo-router';
@@ -18,6 +19,7 @@ const tabs = [
 ] as const;
 
 export function ProblemDetailScreen({ id }: { id: string }) {
+  const { leave, pushRoute } = useRouteNavigation();
   const colors = useCompactColors();
   const { top, bottom } = useSafeAreaInsets();
   const { libraryContent } = useLeetCodePorts();
@@ -43,7 +45,7 @@ export function ProblemDetailScreen({ id }: { id: string }) {
 
   return <View testID="AlgorithmsProblemDetail" style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
     <CompactHeader title={scrolled ? title : undefined} closeIcon={ChevronDown} closeLabel="Close problem"
-      onClose={() => router.canGoBack() ? router.back() : router.replace('/')} trailing={problem && <View style={styles.headerActions}>
+      onClose={() => leave(() => router.canGoBack() ? router.back() : router.replace('/'))} trailing={problem && <View style={styles.headerActions}>
         <CompactIconButton icon={Star} label={favorited ? 'Remove favorite' : 'Add favorite'} testID="ProblemFavorite"
           color={favorited ? colors.gold : undefined} filled={favorited} onPress={() => { void actions.favorite(id); }} />
         <CompactIconButton icon={Share} label="Share problem" testID="ProblemShare" onPress={() => { void shareProblem(id, title); }} />
@@ -70,7 +72,7 @@ export function ProblemDetailScreen({ id }: { id: string }) {
       </ScrollView>
       {problem && <FloatingBar bottom={bottom + 7} style={{ justifyContent: 'flex-end' }}>
         <CompactIconButton icon={Play} label="Open editor" testID="ProblemOpenEditor" emphasis filled
-          onPress={() => router.push(editorRoute)} />
+          onPress={() => pushRoute(editorRoute)} />
       </FloatingBar>}
     </>}
     {information && problem && <ProblemInformationSheet kind={information} topics={problem.topics} hints={problem.hints} onClose={() => setInformation(undefined)} />}

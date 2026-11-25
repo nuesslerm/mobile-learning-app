@@ -1,3 +1,4 @@
+import { useRouteNavigation } from '../ui/useRouteAction';
 import { CompactIconButton, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { ChevronLeft, Hand, Share as ShareIcon } from '@lib/tamagui-design-system/icons';
 import { router, type Href } from 'expo-router';
@@ -33,6 +34,7 @@ function ContestClock({ color }: { color: string }) {
 }
 
 export default function WeeklyContestRoute() {
+  const { leave, pushRoute } = useRouteNavigation();
   const colors = useCompactColors();
   const { top, bottom } = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -41,7 +43,7 @@ export default function WeeklyContestRoute() {
       <View style={{ backgroundColor: '#000', paddingTop: width * 0.445 }}>
         <Image source={libraryArtwork.contestDetail} style={{ position: 'absolute', top: 0, width, height: width * 0.65 }} />
         <View style={[styles.actions, { top: Math.min(top, width * 0.108) }]}>
-          <CompactIconButton label="Back to Library" icon={ChevronLeft} onPress={() => router.canGoBack() ? router.back() : router.replace('/')} />
+          <CompactIconButton label="Back to Library" icon={ChevronLeft} onPress={() => leave(() => router.canGoBack() ? router.back() : router.replace('/'))} />
           <CompactIconButton label="Share contest" icon={ShareIcon} onPress={() => { void Share.share({ url: contestUrl, message: contestUrl }); }} />
         </View>
         <Text accessibilityRole="header" style={styles.title}>{'Weekly\nContest 530'}</Text>
@@ -64,7 +66,7 @@ export default function WeeklyContestRoute() {
         </View>
       </View>
     </ScrollView>
-    <LibraryDock onLibrary={() => router.dismissTo('/')} onSearch={() => router.push({ pathname: '/leetcode/library/collection', params: { collection: 'All Topics', search: '1' } } as Href)} />
+    <LibraryDock pushRoute={pushRoute} onLibrary={() => leave(() => router.dismissTo('/'))} onSearch={() => pushRoute({ pathname: '/leetcode/library/collection', params: { collection: 'All Topics', search: '1' } } as Href)} />
   </View>;
 }
 

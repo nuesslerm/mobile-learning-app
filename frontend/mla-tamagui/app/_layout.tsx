@@ -15,7 +15,6 @@ import {
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
 import { Stack, ThemeProvider, useGlobalSearchParams } from 'expo-router';
 import { Platform, useColorScheme } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
@@ -27,6 +26,7 @@ import {
   NativeChromeBridge,
   useNavigationTheme,
 } from '../app-shell/NativeChromeBridge';
+import { NavigationTouchBoundary } from '../app-shell/NavigationTouchBoundary';
 import { RouteLogger } from '../app-shell/RouteLogger';
 
 // A require, not an import: production inlines the flag and Platform.OS, so a flagless or native build (the CI's EAS
@@ -93,7 +93,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationTouchBoundary>
         {/* defaultTheme is required, not cosmetic: without it Tamagui throws
             "Can't find Tamagui configuration" when a theme resolves late. */}
         <TamaguiProvider config={tamaguiConfig} defaultTheme={themeName}>
@@ -152,7 +152,7 @@ export default function RootLayout() {
             {FloatingDevTools && <BuoyDevTools />}
           </Theme>
         </TamaguiProvider>
-      </GestureHandlerRootView>
+      </NavigationTouchBoundary>
     </SafeAreaProvider>
   );
 }

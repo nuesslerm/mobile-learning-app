@@ -1,3 +1,4 @@
+import { useRouteNavigation } from '../useRouteAction';
 import {
   CompactHeader, CompactIconButton, DenseActionRow, FloatingSurface, Icon, MenuPanel, SearchPill, useCompactColors, useKeyboardFrame,
 } from '@lib/tamagui-design-system';
@@ -25,6 +26,7 @@ const collectionArtwork = new Map([
 ]);
 
 export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { collection: string; focusSearch?: boolean }) {
+  const { leave, pushRoute } = useRouteNavigation();
   const colors = useCompactColors();
   const navigation = useNavigation();
   const { top, bottom } = useSafeAreaInsets();
@@ -48,7 +50,7 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
   };
   const openProblem = (id: string) => {
     dismissKeyboard();
-    router.push(`/leetcode/${id}/problem`);
+    pushRoute(`/leetcode/${id}/problem`);
   };
   useEffect(() => {
     if (focusSearch) searchRef.current?.focus();
@@ -59,7 +61,7 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
     setSearching(false);
   };
   const back = () => {
-    if (router.canGoBack()) router.back();
+    if (router.canGoBack()) leave(() => router.back());
     else navigation.getParent()?.dispatch({ type: 'OPEN_DRAWER' });
   };
 
@@ -70,8 +72,8 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
         {isTopic && <CompactIconButton label={saved ? 'Unsave collection' : 'Save collection'} icon={Star} filled={saved} onPress={() => { void actions.toggleCollection(collection); }} />}
         <MenuPanel icon={MoreHorizontal} size={42} glassTrigger accessibilityLabel="Library actions" testID="AlgorithmsLibraryMenu"
           panelWidth={220} items={[
-            { label: 'Blind 75', icon: BookOpen, testID: 'AlgorithmsBlind75', onPress: () => router.push('/blind75' as Href) },
-            { label: 'Settings', icon: User, testID: 'AlgorithmsSettings', onPress: () => router.push('/settings') },
+            { label: 'Blind 75', icon: BookOpen, testID: 'AlgorithmsBlind75', onPress: () => pushRoute('/blind75' as Href) },
+            { label: 'Settings', icon: User, testID: 'AlgorithmsSettings', onPress: () => pushRoute('/settings') },
           ]} />
         </View>
       } />}
@@ -100,7 +102,7 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
           </Pressable>
         </View>
         } />
-      {!keyboard.visible && <LibraryDock onSearch={() => searchRef.current?.focus()} onLibrary={() => router.dismissTo('/')} />}
+      {!keyboard.visible && <LibraryDock pushRoute={pushRoute} onSearch={() => searchRef.current?.focus()} onLibrary={() => leave(() => router.dismissTo('/'))} />}
       {saving && <SavedListSheets problemId={saving.id} onClose={() => setSaving(undefined)} />}
     </View>
   );

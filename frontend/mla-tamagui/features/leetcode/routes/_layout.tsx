@@ -1,25 +1,9 @@
-import { router, Stack } from 'expo-router';
-
-import { useScreenHeaderOptions } from '@lib/tamagui-design-system';
+import { Stack } from 'expo-router';
 
 import { LeetCodeLiveContainer } from '../di/LeetCodeContainer';
 import { LeetCodeFixtureOverrides } from '../di/fixtureOverrides';
 
 export default function LeetCodeLayout() {
-  const loginHeader = useScreenHeaderOptions({
-    glass: true,
-    testID: 'LeetCodeLoginHeader',
-    title: 'Sign in',
-    subtitle: 'LeetCode',
-    onBack: () => router.back(),
-  });
-  const toolbarHeader = useScreenHeaderOptions({
-    glass: true,
-    testID: 'ToolbarConfigHeader',
-    title: 'Toolbar',
-    subtitle: 'Editor shortcuts',
-    onBack: () => router.back(),
-  });
   return (
     <LeetCodeFixtureOverrides>
       <LeetCodeLiveContainer>
@@ -88,8 +72,8 @@ export default function LeetCodeLayout() {
           />
           {/* Full screens, so they keep a header -- but it has to be the
             app's own, or the title falls back to the route pattern. */}
-          <Stack.Screen name="login" options={loginHeader} />
-          <Stack.Screen name="toolbar" options={toolbarHeader} />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="toolbar" />
         </Stack>
       </LeetCodeLiveContainer>
     </LeetCodeFixtureOverrides>

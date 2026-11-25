@@ -11,6 +11,13 @@ describe('Algorithms library journey', () => {
     await waitFor(() => expect(JSON.stringify(router.lastPush())).toContain('NeetCode'));
   });
 
+  it('Given a problem description, When I repeatedly tap Play, Then it opens exactly one editor', async () => {
+    const detail = await app.render('/leetcode/car-fleet/problem');
+    const router = routerHarness();
+    for (let i = 0; i < 5; i++) await detail.tap('ProblemOpenEditor');
+    expect(router.pushes()).toEqual([{ pathname: '/leetcode/[id]', params: { id: 'car-fleet', lang: 'javascript' } }]);
+  });
+
   it('Given a NeetCode problem beyond Blind 75, When I open its lesson, Then its video and worked approaches are available', async () => {
     const detail = await app.render('/leetcode/car-fleet/problem');
     await detail.tap('ProblemOpenLesson');

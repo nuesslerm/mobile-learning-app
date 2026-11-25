@@ -10,7 +10,7 @@ beforeEach(() => useAutocompleteSettingStore.setState({ autocomplete: DEFAULT_AU
 describe('the suggestions setting on the problem list', () => {
   it('given suggestions off, when the person turns them on and taps On again, then the setting is on and stays on', async () => {
     useAutocompleteSettingStore.setState({ autocomplete: false });
-    await app.render('/');
+    await app.render('/blind75');
     expect(screen.getByTestId('LeetcodeListAutocompleteRow')).toBeTruthy();
 
     await userEvent.click(screen.getByTestId('LeetcodeListAutocompleteOn'));
@@ -22,7 +22,7 @@ describe('the suggestions setting on the problem list', () => {
 
   it('given suggestions on, when the person taps Off, then the setting is off', async () => {
     useAutocompleteSettingStore.setState({ autocomplete: true });
-    await app.render('/');
+    await app.render('/blind75');
 
     await userEvent.click(screen.getByTestId('LeetcodeListAutocompleteOff'));
 

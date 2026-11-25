@@ -1,11 +1,10 @@
+import type { useRouteNavigation } from '../useRouteAction';
 import { FloatingBar, FloatingSurface, Icon, MarqueeLabel, useCompactColors } from '@lib/tamagui-design-system';
 import { BookOpen, CalendarDays, MessageSquare, Play, Search, User } from '@lib/tamagui-design-system/icons';
-import { router } from 'expo-router';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { libraryArtwork } from './libraryArtwork';
-import { usePrefetchProblem } from './usePrefetchProblem';
 import { useLibrary } from '../../state/library/useLibrary';
 import { useLeetCodePorts } from '../../state/ports';
 
@@ -17,17 +16,16 @@ const tabs = [
   { label: 'Search', icon: Search },
 ];
 
-export function LibraryDock({ onLibrary, onSearch, prefetchResume = false }: { prefetchResume?: boolean; onLibrary: () => void; onSearch: () => void }) {
+export function LibraryDock({ pushRoute, onLibrary, onSearch }: { pushRoute: ReturnType<typeof useRouteNavigation>['pushRoute']; onLibrary: () => void; onSearch: () => void }) {
   const colors = useCompactColors();
   const { bottom } = useSafeAreaInsets();
   const { libraryContent } = useLeetCodePorts();
   const { lastOpened } = useLibrary();
   const resume = libraryContent.rows.find((row) => row.id === lastOpened);
-  usePrefetchProblem(prefetchResume ? resume?.id : undefined);
   const dockBottom = Math.max(bottom - 14, 10);
   return <>
           {resume && <FloatingBar style={styles.bar} bottom={dockBottom + 74}>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Resume ${resume.title}`} testID="AlgorithmsResume" onPress={() => router.push(`/leetcode/${resume.id}/problem`)} style={{ flex: 1 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Resume ${resume.title}`} testID="AlgorithmsResume" onPress={() => pushRoute(`/leetcode/${resume.id}/problem`)} style={{ flex: 1 }}>
               <FloatingSurface style={styles.resume} tone="overlay">
                 <Image source={libraryArtwork.resume} style={styles.resumeIcon} />
                 <View style={{ flex: 1 }}>
@@ -49,7 +47,7 @@ export function LibraryDock({ onLibrary, onSearch, prefetchResume = false }: { p
                     testID={`AlgorithmsTab-${label}`} style={styles.tab} onPress={() => {
                       if (label === 'Search') onSearch();
                       else if (label === 'Discuss') void Linking.openURL('https://leetcode.com/discuss/');
-                      else if (label === 'You') router.push('/settings');
+                      else if (label === 'You') pushRoute('/settings');
                       else onLibrary();
                     }}>
                     {selected && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: 26, backgroundColor: colors.background, opacity: 0.55 }]} />}
