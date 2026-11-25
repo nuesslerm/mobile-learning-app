@@ -316,7 +316,11 @@ async def drive(socket, udid, info=None):
                     dims = info["screen_dimensions"]
                     result = dict(width=dims["width_points"], height=dims["height_points"], dpr=dims["density"])
                 elif op == "stop":
-                    await client.terminate("host.exp.Exponent")
+                    try:
+                        await client.terminate("host.exp.Exponent")
+                    except Exception as error:
+                        if "found nothing to terminate" not in str(error):
+                            raise
                 elif op == "open":
                     await client.open_url(args[0])
                 elif op == "tap":

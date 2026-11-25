@@ -100,3 +100,7 @@ Two Android runners passed all thirty journeys. The third passed all fifteen Tam
 | 2 | 3 s | 31 s | 69 s | 13/15 in 440.7 s | 15/15 in 262.0 s | 3 s | 985 s |
 | 3 | 2 s | 32 s | 78 s | 15/15 in 356.7 s | 15/15 in 283.7 s | 4 s | 900 s |
 Shared Linux wf build job: 136 s.
+
+### Warm update and platform controls
+
+[Qualification on ac0cc9d2](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45557351214) used the same update as the named iPhone. Locally all 15 LeetCode journeys passed in 199.9 s and all 15 Tamil journeys in 182.6 s, with 30 recordings and the original learner data restored. The three Android samples passed 15, 13 and 15 LeetCode journeys in 240.0, 352.3 and 253.5 s and all 15 Tamil journeys in 188.9, 213.2 and 191.9 s. The second emulator's recordings show Expo's floating Tools menu covering the editor and its system task switcher opening over the partially clipped Blocks setting. Hosted iOS startup recordings show the first-open Expo consent alert in SpringBoard with an empty accessibility tree.

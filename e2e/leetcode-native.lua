@@ -204,7 +204,9 @@ local function enable_list_setting(id)
   local x, y = math.floor(screen.width*.5), math.floor(screen.height*.52)
   local step = math.floor(screen.height*.18)
   for _ = 1, 8 do
-    if device:get_element({id=id}) then break end
+    local target = device:get_element({id=id})
+    -- The Android navigation bar can cover the bottom of an accessible radio button.
+    if target and target.bounds.bottom <= screen.height*.90 then break end
     device:swipe(("%d,%d"):format(x, y+step), ("%d,%d"):format(x, y), {duration=500})
   end
   tap(id)

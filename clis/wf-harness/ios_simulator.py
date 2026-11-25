@@ -14,6 +14,7 @@ import sys
 import tempfile
 import urllib.request
 import uuid
+import xml.etree.ElementTree as ET
 
 RUNTIME = "com.apple.CoreSimulator.SimRuntime.iOS-27-0"
 MODEL = "com.apple.CoreSimulator.SimDeviceType.iPhone-17"
@@ -65,11 +66,15 @@ def prepare(udid):
         # A fresh simulator may expose only an empty AXApplication until these are on before app launch.
         for key in ("AccessibilityEnabled", "ApplicationAccessibilityEnabled"):
             sim("spawn", udid, "defaults", "write", "com.apple.Accessibility", key, "-bool", "true")
+        # CoreSimulatorBridge opens update links. Its first-open prompt belongs to SpringBoard.
+        sim("spawn", udid, "defaults", "write", "com.apple.launchservices.schemeapproval",
+            "com.apple.CoreSimulator.CoreSimulatorBridge-->exp", "-string", EXPO)
         prefs = Path(sim("get_app_container", udid, EXPO, "data")) / "Library/Preferences" / (EXPO + ".plist")
         prefs.parent.mkdir(parents=True, exist_ok=True)
         settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
         settings.update(EXDevMenuShowFloatingActionButton=False, EXDevMenuIsOnboardingFinished=True)
         prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
+        sim("launch", udid, EXPO)
     print(json.dumps(simulator_manifest(udid)))
 
 
@@ -124,6 +129,26 @@ def clean_experience(udid):
             restore()
 
 
+def configure_android_dev_menu(adb):
+    prefs = "/data/user/0/host.exp.exponent/shared_prefs/expo.modules.devmenu.sharedpreferences.xml"
+    existing = subprocess.check_output([*adb, f'if [ -f {prefs} ]; then cat {prefs}; else echo "<map/>"; fi'])
+    root = ET.fromstring(existing)
+    changed = False
+    for name, value in {"showFab": "false", "showsAtLaunch": "false", "isOnboardingFinished": "true"}.items():
+        entry = root.find(f"./boolean[@name='{name}']")
+        if entry is None:
+            entry = ET.SubElement(root, "boolean", name=name)
+        if entry.get("value") != value:
+            entry.set("value", value)
+            changed = True
+    if changed:
+        directory = "/data/user/0/host.exp.exponent"
+        write = (f'set -e; cd {directory}; mkdir -p shared_prefs; cat > {prefs}; '
+                 f'chown "$(stat -c %u .):$(stat -c %g .)" shared_prefs {prefs}; '
+                 f'chmod 660 {prefs}; restorecon shared_prefs {prefs}')
+        subprocess.run([*adb, write], input=ET.tostring(root, encoding="utf-8"), check=True)
+
+
 def run_case(args):
     if args.platform == "ios":
         prepared = os.getenv("WF_NATIVE_DEVICE_INFO")
@@ -155,6 +180,8 @@ for dir in files/ExperienceData/*; do
 done
 rm -f -- databases/RKStorage*
 """], check=True)
+    configure_android_dev_menu(adb)
+
     def prop(key):
         return subprocess.check_output([*adb, "getprop", key], text=True).strip()
     package_info = subprocess.check_output([*adb, "dumpsys", "package", "host.exp.exponent"], text=True)
