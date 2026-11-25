@@ -48,7 +48,7 @@ Goal, numbered decisions, `###` items (Local/CI boxes, Do, Proof, State), Blocke
 
 ## Land on dev
 
-Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land per the commit rule (never over a merge of `main`). Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. More: `docs/solutions/workflow/land-on-dev.md`.
+Default to `dev`. “Clean PR” or “fresh PR” means a new branch from current `origin/main`, task-only commits and diff. See `docs/solutions/workflow/land-on-dev.md`. Never delete branches. Bring `dev` to parity first (`docs/solutions/workflow/dev-parity-with-main.md`); never rebase a merge of `main`. Push to `dev` deploys automatically; never call `/redeploy`. Replace a merged or closed standing PR with title `dev → main` and body exactly ``This is `dev` ``.
 
 ## Benchmarks: always, and as cheap as still meaningful
 
