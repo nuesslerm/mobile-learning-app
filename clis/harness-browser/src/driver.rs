@@ -65,7 +65,9 @@ impl DaemonClient {
         args.insert("name".into(), json!(self.session));
         let url = self.url()?.to_string();
         let started = Instant::now();
+        let span = wf_kit::performance::HarnessSpan::begin("browser", method);
         let out = crate::browser::call_at(&url, method, args);
+        span.finish(if out.is_ok() { "ok" } else { "error" });
         harness_core::device::log_timing(method, started.elapsed());
         out
     }

@@ -49,7 +49,11 @@ pub fn run(args: &[String]) -> Option<i32> {
         if goldens {
             cmd.env("FLOW_GOLDENS", "1");
         }
-        let status = match cmd.status() {
+        let vitest = wf_kit::performance::HarnessSpan::begin("flow", "vitest");
+        let status = cmd.status();
+        vitest.finish(if status.as_ref().is_ok_and(|s| s.success()) { "ok" } else { "error" });
+        drop(vitest);
+        let status = match status {
             Ok(s) => s,
             Err(e) => {
                 println!("{}", json!({ "error": format!("cannot run vitest in {}: {e}", dir.display()), "next": "pnpm install, then wf flow run" }));
@@ -58,7 +62,10 @@ pub fn run(args: &[String]) -> Option<i32> {
         };
         code = code.max(status.code().unwrap_or(1));
         let mode = if p.flag("update-goldens") { "update" } else if goldens { "compare" } else { "save" };
-        code = code.max(check_goldens(&dir, theme, &snapshots, mode, file.is_some()));
+        let paint = wf_kit::performance::HarnessSpan::begin("flow", "goldens");
+        let paint_status = check_goldens(&dir, theme, &snapshots, mode, file.is_some());
+        paint.finish(if paint_status == 0 { "ok" } else { "error" });
+        code = code.max(paint_status);
     }
     let report = report_dir.join("report.json");
     println!("report: {}", report_dir.join("index.html").display());

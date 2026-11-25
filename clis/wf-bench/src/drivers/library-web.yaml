@@ -1,0 +1,17 @@
+url: ${URL}
+---
+- launchApp
+- startRecording: run
+- assertVisible: {css: '[data-testid="TamilCollection-first-steps"]'}
+- takeScreenshot: start
+- tapOn: {css: '[data-testid="TamilCollection-first-steps"]'}
+- assertVisible: {css: '[data-testid="TamilPractice"]'}
+- tapOn: {css: '[data-testid="TamilPractice"]'}
+- assertVisible: {css: '[data-testid="TamilStartPractice"]'}
+- takeScreenshot: lesson
+- tapOn: Back
+- assertVisible: {css: '[data-testid="TamilPractice"]'}
+- tapOn: Back
+- assertVisible: {css: '[data-testid="TamilCollection-first-steps"]'}
+- takeScreenshot: finish
+- stopRecording

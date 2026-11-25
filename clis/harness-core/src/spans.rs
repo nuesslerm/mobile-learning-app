@@ -24,6 +24,7 @@ pub fn current() -> Option<String> {
 }
 
 pub struct Span {
+    otel: wf_kit::performance::HarnessSpan,
     id: String,
     parent: Option<String>,
     kind: &'static str,
@@ -39,11 +40,12 @@ pub fn begin(kind: &'static str, name: &str, line: Option<String>) -> Span {
     let id = format!("{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed));
     let parent = current();
     OPEN.with(|o| o.borrow_mut().push(id.clone()));
-    Span { id, parent, kind, name: name.to_string(), line, started: Instant::now(), at: std::time::SystemTime::now(), outcome: "ok" }
+    Span { otel: wf_kit::performance::HarnessSpan::begin(kind, name), id, parent, kind, name: name.to_string(), line, started: Instant::now(), at: std::time::SystemTime::now(), outcome: "ok" }
 }
 
 impl Drop for Span {
     fn drop(&mut self) {
+        self.otel.finish(self.outcome);
         OPEN.with(|o| {
             let mut o = o.borrow_mut();
             if let Some(i) = o.iter().rposition(|x| *x == self.id) {

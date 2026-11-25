@@ -1,0 +1,8 @@
+Usage: wf bench drivers --platform browser|ios|android --url <Tamil library URL> --out <new directory>
+                        [--device <serial> --app-id <bundle or package>] [--pairs N] [--first wf|maestro]
+
+Compare fresh wf and Maestro processes on the library, collection, practice and back journey.
+Native runs require an installed app and a booted device. Run Android on the CI emulator.
+Use wf --performance bench drivers to collect wf operation spans in WF_PERFORMANCE_DB.
+The JSON result and samples.json contain exit status, screenshot boundaries, elapsed time and
+sampled host process-tree RSS. Each attempt keeps its recording, process log and RSS samples.

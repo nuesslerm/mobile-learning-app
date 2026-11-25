@@ -125,7 +125,7 @@ jobs:
         run: |
           flags=()
           if [[ "$FRESH" == true ]]; then flags+=(--fresh); fi
-          wf test run --stage ios-e2e-tests --plan "$RUNNER_TEMP/plan.json" --out "$RUNNER_TEMP/e2e-runs" "${flags[@]}"
+          WF_PERFORMANCE_DB="$RUNNER_TEMP/harness-spans.sqlite" wf --performance test run --stage ios-e2e-tests --plan "$RUNNER_TEMP/plan.json" --out "$RUNNER_TEMP/e2e-runs" "${flags[@]}"
       - name: Close XCTest automation
         if: always() && env.WF_IOS_UDID != ''
         run: wf test prepare-ios --stop-automation "$WF_IOS_UDID"
@@ -139,6 +139,7 @@ jobs:
             ${{ runner.temp }}/ios-device.json
             ${{ runner.temp }}/ios-preflight
             ${{ runner.temp }}/test-runs
+            ${{ runner.temp }}/harness-spans.sqlite
             ${{ runner.temp }}/e2e-runs/**/summary.json
             ${{ runner.temp }}/e2e-runs/**/run.log
             ${{ runner.temp }}/e2e-runs/**/rec/wait-timeout-*.hierarchy.json
