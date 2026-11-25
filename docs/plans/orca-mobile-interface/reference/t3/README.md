@@ -9,3 +9,5 @@ To reproduce, start the pinned server on loopback, point the proxy at its origin
 ## Expo against RCA
 
 The staged route is `/coding-agent?presentation=orca&transport=t3`. It has a separate saved connection for T3. On the exported mobile web app, the RCA-backed server accepted a pairing grant, returned the fixture project and opened its thread using a fresh RPC ticket. Sending through the composer dispatched a real provider turn. The transcript displayed the streamed reply and restored it after reloading. The [restored chat](mla-web-chat.png) was captured with the keyboard dismissed. Native visual matching, uploads and interrupted-turn recovery remain open.
+
+The native Expo release build also completed pairing on the RCA iPhone 17 Pro Max simulator. It used its own fresh invite to the same server, subscribed to the same thread and displayed the provider reply previously sent from the browser. See the [native Expo chat](mla-ios-chat.png). The header, background and composer still differ from the [Orca chat reference](../ios/paired-chat/photo-thread.png).
