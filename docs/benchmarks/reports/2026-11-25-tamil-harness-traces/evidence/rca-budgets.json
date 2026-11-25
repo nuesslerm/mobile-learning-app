@@ -1,0 +1,100 @@
+[
+  {
+    "name": "orca.artifact.open",
+    "samples": 30,
+    "p95_ms": 77.214,
+    "baseline_ms": null,
+    "budget_ms": 750
+  },
+  {
+    "name": "orca.artifact.resolve",
+    "samples": 30,
+    "p95_ms": 39.18,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "orca.artifact.read",
+    "samples": 30,
+    "p95_ms": 37.667,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "t3.project.open",
+    "samples": 30,
+    "p95_ms": 150.716,
+    "baseline_ms": null,
+    "budget_ms": 750
+  },
+  {
+    "name": "t3.project.list",
+    "samples": 30,
+    "p95_ms": 84.539,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "t3.project.read",
+    "samples": 30,
+    "p95_ms": 79.675,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "orca.session.history",
+    "samples": 30,
+    "p95_ms": 18.999,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "t3.thread.projection",
+    "samples": 30,
+    "p95_ms": 0.374,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "orca.rpc.files.resolveTerminalPath",
+    "samples": 30,
+    "p95_ms": 38.765,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "t3.rpc.projects.readFile",
+    "samples": 30,
+    "p95_ms": 79.401,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "rca.client.artifact.stat",
+    "samples": 30,
+    "p95_ms": 23.046,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "rca.server.artifact.stat",
+    "samples": 30,
+    "p95_ms": 21.517,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "rca.executor.artifact_stat",
+    "samples": 30,
+    "p95_ms": 0.741,
+    "baseline_ms": null,
+    "budget_ms": 400
+  },
+  {
+    "name": "rca.executor.read_file",
+    "samples": 30,
+    "p95_ms": 0.982,
+    "baseline_ms": null,
+    "budget_ms": 400
+  }
+]

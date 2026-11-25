@@ -1,0 +1,3312 @@
+[
+  {
+    "pair": 1,
+    "driver": "maestro",
+    "stats": {
+      "sampleCount": 102,
+      "durationMs": 26440,
+      "jsFps": {
+        "min": 48,
+        "max": 60,
+        "avg": 59.21568627450981,
+        "p95": 60
+      },
+      "uiFps": {
+        "min": 36,
+        "max": 60,
+        "avg": 57.627450980392155,
+        "p95": 60
+      },
+      "cpuUsage": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "p95": 0
+      },
+      "memoryUsage": {
+        "min": 55.5,
+        "max": 75.4,
+        "avg": 63.3921568627451,
+        "p95": 73.2
+      },
+      "jsJankFrames": 0,
+      "uiJankFrames": 2,
+      "deviceMaxRefreshRate": 60
+    },
+    "samples": [
+      {
+        "timestamp": 1795606360432,
+        "jsFps": 56,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606360688,
+        "jsFps": 56,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606360955,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606361222,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606361488,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606361755,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606362005,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606362272,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606362538,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606362805,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606363072,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606363322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606363588,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606363855,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606364122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606364372,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606364638,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606364888,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606365155,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606365422,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606365688,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606365955,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606366221,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606366472,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606366738,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606367005,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606367271,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606367522,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606367789,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606368055,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606368321,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 61.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606368572,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606368822,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606369088,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606369339,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606369605,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606369855,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606370122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606370388,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606370655,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606370921,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606371172,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606371438,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606371705,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606371971,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606372238,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606372489,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606372755,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606373005,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606373255,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606373505,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606373772,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606374022,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606374288,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 62.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606374555,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 62.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606374822,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606375072,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606375338,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606375589,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606375855,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606376105,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606376355,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606376622,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606376888,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606377155,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606377422,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606377689,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606377955,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606378222,
+        "jsFps": 48,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606378488,
+        "jsFps": 48,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606378755,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 73.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606379022,
+        "jsFps": 60,
+        "uiFps": 42,
+        "cpuUsage": 0,
+        "memoryUsage": 73.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606379288,
+        "jsFps": 60,
+        "uiFps": 42,
+        "cpuUsage": 0,
+        "memoryUsage": 73.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606379555,
+        "jsFps": 60,
+        "uiFps": 42,
+        "cpuUsage": 0,
+        "memoryUsage": 73.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606379818,
+        "jsFps": 60,
+        "uiFps": 42,
+        "cpuUsage": 0,
+        "memoryUsage": 75.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606380072,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 75.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606380322,
+        "jsFps": 50,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 75.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606380589,
+        "jsFps": 50,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 75.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606380839,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 55.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606381105,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 55.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606381358,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 55.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606381622,
+        "jsFps": 60,
+        "uiFps": 55,
+        "cpuUsage": 0,
+        "memoryUsage": 55.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606381889,
+        "jsFps": 50,
+        "uiFps": 55,
+        "cpuUsage": 0,
+        "memoryUsage": 59.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606382155,
+        "jsFps": 50,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 59.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606382405,
+        "jsFps": 60,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 59.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606382655,
+        "jsFps": 60,
+        "uiFps": 36,
+        "cpuUsage": 0,
+        "memoryUsage": 60.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606382905,
+        "jsFps": 60,
+        "uiFps": 36,
+        "cpuUsage": 0,
+        "memoryUsage": 60.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606383186,
+        "jsFps": 60,
+        "uiFps": 49,
+        "cpuUsage": 0,
+        "memoryUsage": 60.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606383439,
+        "jsFps": 56,
+        "uiFps": 49,
+        "cpuUsage": 0,
+        "memoryUsage": 60.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606383705,
+        "jsFps": 56,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 61.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606383972,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 61.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606384222,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 61.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606384489,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 61.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606384756,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606385022,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606385289,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606385556,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606385822,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 60.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606386089,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 60.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606386355,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 60.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606386605,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 60.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606386872,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.3,
+        "deviceMaxRefreshRate": 60
+      }
+    ],
+    "diagnostics": [
+      {
+        "id": "native-toolkit",
+        "severity": "warn",
+        "detail": "JS fallback mode — CPU is 0, memory is JS heap only, UI FPS is approximated."
+      },
+      {
+        "id": "reanimated-frame-callback",
+        "severity": "ok",
+        "detail": "react-native-reanimated useFrameCallback available — worklet-thread FPS sampling on."
+      }
+    ]
+  },
+  {
+    "pair": 1,
+    "driver": "wf",
+    "stats": {
+      "sampleCount": 26,
+      "durationMs": 6644,
+      "jsFps": {
+        "min": 0,
+        "max": 60,
+        "avg": 52.61538461538461,
+        "p95": 60
+      },
+      "uiFps": {
+        "min": 0,
+        "max": 60,
+        "avg": 47.69230769230769,
+        "p95": 60
+      },
+      "cpuUsage": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "p95": 0
+      },
+      "memoryUsage": {
+        "min": 45.8,
+        "max": 62.6,
+        "avg": 52.60384615384615,
+        "p95": 62.6
+      },
+      "jsJankFrames": 2,
+      "uiJankFrames": 2,
+      "deviceMaxRefreshRate": 60
+    },
+    "samples": [
+      {
+        "timestamp": 1795606351177,
+        "jsFps": 0,
+        "uiFps": 0,
+        "cpuUsage": 0,
+        "memoryUsage": 48,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606351438,
+        "jsFps": 0,
+        "uiFps": 0,
+        "cpuUsage": 0,
+        "memoryUsage": 48,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606351689,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 48,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606351955,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 48,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606352222,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 45.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606352488,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 45.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606352755,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 45.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606353021,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 45.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606353288,
+        "jsFps": 60,
+        "uiFps": 52,
+        "cpuUsage": 0,
+        "memoryUsage": 47.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606353555,
+        "jsFps": 60,
+        "uiFps": 52,
+        "cpuUsage": 0,
+        "memoryUsage": 47.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606353811,
+        "jsFps": 51,
+        "uiFps": 44,
+        "cpuUsage": 0,
+        "memoryUsage": 47.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606354089,
+        "jsFps": 51,
+        "uiFps": 44,
+        "cpuUsage": 0,
+        "memoryUsage": 47.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606354355,
+        "jsFps": 55,
+        "uiFps": 47,
+        "cpuUsage": 0,
+        "memoryUsage": 52.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606354622,
+        "jsFps": 55,
+        "uiFps": 47,
+        "cpuUsage": 0,
+        "memoryUsage": 52.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606354872,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 52.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606355155,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 52.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606355405,
+        "jsFps": 52,
+        "uiFps": 42,
+        "cpuUsage": 0,
+        "memoryUsage": 55.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606355672,
+        "jsFps": 52,
+        "uiFps": 42,
+        "cpuUsage": 0,
+        "memoryUsage": 55.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606355938,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 55.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606356240,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 55.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606356505,
+        "jsFps": 50,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 60.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606356771,
+        "jsFps": 50,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 60.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606357038,
+        "jsFps": 60,
+        "uiFps": 53,
+        "cpuUsage": 0,
+        "memoryUsage": 60.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606357305,
+        "jsFps": 60,
+        "uiFps": 53,
+        "cpuUsage": 0,
+        "memoryUsage": 62.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606357571,
+        "jsFps": 56,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 62.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606357821,
+        "jsFps": 56,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 62.6,
+        "deviceMaxRefreshRate": 60
+      }
+    ],
+    "diagnostics": [
+      {
+        "id": "native-toolkit",
+        "severity": "warn",
+        "detail": "JS fallback mode — CPU is 0, memory is JS heap only, UI FPS is approximated."
+      },
+      {
+        "id": "reanimated-frame-callback",
+        "severity": "ok",
+        "detail": "react-native-reanimated useFrameCallback available — worklet-thread FPS sampling on."
+      }
+    ]
+  },
+  {
+    "pair": 2,
+    "driver": "maestro",
+    "stats": {
+      "sampleCount": 98,
+      "durationMs": 25208,
+      "jsFps": {
+        "min": 48,
+        "max": 60,
+        "avg": 59.30612244897959,
+        "p95": 60
+      },
+      "uiFps": {
+        "min": 30,
+        "max": 60,
+        "avg": 58.265306122448976,
+        "p95": 60
+      },
+      "cpuUsage": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "p95": 0
+      },
+      "memoryUsage": {
+        "min": 62.8,
+        "max": 86.2,
+        "avg": 70.19489795918366,
+        "p95": 85.2
+      },
+      "jsJankFrames": 0,
+      "uiJankFrames": 3,
+      "deviceMaxRefreshRate": 60
+    },
+    "samples": [
+      {
+        "timestamp": 1795606389214,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606389474,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606389739,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606390005,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606390256,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606390522,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606390789,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606391056,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606391322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606391589,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606391855,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606392122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606392373,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606392639,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606392889,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606393156,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606393422,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606393689,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606393956,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606394206,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606394473,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606394739,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606395006,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606395272,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606395539,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606395789,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606396039,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606396306,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606396572,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606396839,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606397089,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606397356,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606397606,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606397873,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606398123,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 64.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606398389,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606398639,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606398906,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606399156,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606399406,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606399673,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606399923,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606400189,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606400439,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606400689,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606400956,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606401206,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606401456,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 66.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606401706,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 66.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606401956,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 66.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606402223,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 66.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606402473,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606402723,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606402973,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606403223,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606403473,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606403740,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606404006,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606404256,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 65.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606404523,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 65.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606404790,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 65.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606405056,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 65.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606405352,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 68.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606405605,
+        "jsFps": 48,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 68.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606405856,
+        "jsFps": 48,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 68.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606406123,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 68.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606406373,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 74.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606406623,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 74.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606406873,
+        "jsFps": 60,
+        "uiFps": 30,
+        "cpuUsage": 0,
+        "memoryUsage": 74.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606407140,
+        "jsFps": 60,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 74.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606407390,
+        "jsFps": 60,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 78.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606407656,
+        "jsFps": 54,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 78.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606407906,
+        "jsFps": 54,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 78.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606408173,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 78.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606408423,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 77.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606408673,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 77.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606408940,
+        "jsFps": 48,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 77.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606409207,
+        "jsFps": 48,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 77.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606409473,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 83.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606409723,
+        "jsFps": 60,
+        "uiFps": 51,
+        "cpuUsage": 0,
+        "memoryUsage": 83.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606409973,
+        "jsFps": 60,
+        "uiFps": 51,
+        "cpuUsage": 0,
+        "memoryUsage": 83.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606410238,
+        "jsFps": 60,
+        "uiFps": 30,
+        "cpuUsage": 0,
+        "memoryUsage": 83.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606410489,
+        "jsFps": 60,
+        "uiFps": 30,
+        "cpuUsage": 0,
+        "memoryUsage": 81.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606410739,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 81.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606411005,
+        "jsFps": 56,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 81.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606411272,
+        "jsFps": 56,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 81.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606411522,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606411789,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 86.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606412056,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 86.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606412322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606412588,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 83.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606412855,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 83.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606413122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 83.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606413388,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 83.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606413655,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 85.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606413922,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 85.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606414172,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 85.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606414422,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 82.8,
+        "deviceMaxRefreshRate": 60
+      }
+    ],
+    "diagnostics": [
+      {
+        "id": "native-toolkit",
+        "severity": "warn",
+        "detail": "JS fallback mode — CPU is 0, memory is JS heap only, UI FPS is approximated."
+      },
+      {
+        "id": "reanimated-frame-callback",
+        "severity": "ok",
+        "detail": "react-native-reanimated useFrameCallback available — worklet-thread FPS sampling on."
+      }
+    ]
+  },
+  {
+    "pair": 2,
+    "driver": "wf",
+    "stats": {
+      "sampleCount": 27,
+      "durationMs": 6856,
+      "jsFps": {
+        "min": 50,
+        "max": 60,
+        "avg": 57.77777777777778,
+        "p95": 60
+      },
+      "uiFps": {
+        "min": 45,
+        "max": 60,
+        "avg": 53.25925925925926,
+        "p95": 60
+      },
+      "cpuUsage": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "p95": 0
+      },
+      "memoryUsage": {
+        "min": 56.8,
+        "max": 87.9,
+        "avg": 72.46666666666668,
+        "p95": 87.9
+      },
+      "jsJankFrames": 0,
+      "uiJankFrames": 0,
+      "deviceMaxRefreshRate": 60
+    },
+    "samples": [
+      {
+        "timestamp": 1795606417066,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606417322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606417589,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606417856,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606418122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606418372,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606418639,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606418905,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606419155,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 85.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606419422,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 85.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606419717,
+        "jsFps": 51,
+        "uiFps": 45,
+        "cpuUsage": 0,
+        "memoryUsage": 85.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606419972,
+        "jsFps": 51,
+        "uiFps": 45,
+        "cpuUsage": 0,
+        "memoryUsage": 85.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606420222,
+        "jsFps": 59,
+        "uiFps": 53,
+        "cpuUsage": 0,
+        "memoryUsage": 56.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606420488,
+        "jsFps": 59,
+        "uiFps": 53,
+        "cpuUsage": 0,
+        "memoryUsage": 56.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606420739,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 56.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606420994,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 56.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606421255,
+        "jsFps": 54,
+        "uiFps": 46,
+        "cpuUsage": 0,
+        "memoryUsage": 57.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606421522,
+        "jsFps": 54,
+        "uiFps": 46,
+        "cpuUsage": 0,
+        "memoryUsage": 57.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606421788,
+        "jsFps": 60,
+        "uiFps": 52,
+        "cpuUsage": 0,
+        "memoryUsage": 57.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606422055,
+        "jsFps": 60,
+        "uiFps": 52,
+        "cpuUsage": 0,
+        "memoryUsage": 57.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606422322,
+        "jsFps": 50,
+        "uiFps": 46,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606422588,
+        "jsFps": 50,
+        "uiFps": 46,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606422855,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606423122,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 65.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606423389,
+        "jsFps": 56,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 65.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606423655,
+        "jsFps": 56,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 65.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606423922,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 65.8,
+        "deviceMaxRefreshRate": 60
+      }
+    ],
+    "diagnostics": [
+      {
+        "id": "native-toolkit",
+        "severity": "warn",
+        "detail": "JS fallback mode — CPU is 0, memory is JS heap only, UI FPS is approximated."
+      },
+      {
+        "id": "reanimated-frame-callback",
+        "severity": "ok",
+        "detail": "react-native-reanimated useFrameCallback available — worklet-thread FPS sampling on."
+      }
+    ]
+  },
+  {
+    "pair": 3,
+    "driver": "maestro",
+    "stats": {
+      "sampleCount": 97,
+      "durationMs": 25225,
+      "jsFps": {
+        "min": 45,
+        "max": 60,
+        "avg": 59.27835051546392,
+        "p95": 60
+      },
+      "uiFps": {
+        "min": 37,
+        "max": 60,
+        "avg": 57.52577319587629,
+        "p95": 60
+      },
+      "cpuUsage": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "p95": 0
+      },
+      "memoryUsage": {
+        "min": 58.4,
+        "max": 90.7,
+        "avg": 80.23917525773193,
+        "p95": 90.4
+      },
+      "jsJankFrames": 0,
+      "uiJankFrames": 4,
+      "deviceMaxRefreshRate": 60
+    },
+    "samples": [
+      {
+        "timestamp": 1795606435414,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 88.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606435672,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 88.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606435922,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 88.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606436189,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606436456,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606436722,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606436988,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606437256,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606437522,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606437788,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606438056,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606438322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606438589,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606438855,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606439122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606439389,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606439656,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606439922,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606440172,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606440439,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606440689,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606440956,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606441223,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606441489,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606441756,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606442022,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606442272,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606442538,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606442789,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 86.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606443056,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 86.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606443322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 86.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606443589,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606443839,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606444105,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606444355,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606444622,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606444872,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606445122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606445388,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606445655,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606445922,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606446188,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606446455,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606446722,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606446988,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606447255,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606447522,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 88.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606447789,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 90.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606448056,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 90.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606448322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 90.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606448589,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606448839,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606449105,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606449355,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 87.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606449622,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606449889,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606450156,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606450422,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 89.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606450688,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 90.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606450938,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 90.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606451189,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 90.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606451445,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 90.7,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606451705,
+        "jsFps": 45,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 58.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606451955,
+        "jsFps": 45,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 58.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606452222,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 58.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606452472,
+        "jsFps": 60,
+        "uiFps": 41,
+        "cpuUsage": 0,
+        "memoryUsage": 58.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606452738,
+        "jsFps": 60,
+        "uiFps": 41,
+        "cpuUsage": 0,
+        "memoryUsage": 58.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606453005,
+        "jsFps": 60,
+        "uiFps": 37,
+        "cpuUsage": 0,
+        "memoryUsage": 58.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606453306,
+        "jsFps": 60,
+        "uiFps": 37,
+        "cpuUsage": 0,
+        "memoryUsage": 58.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606453572,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 58.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606453823,
+        "jsFps": 54,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 63.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606454089,
+        "jsFps": 54,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 63.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606454355,
+        "jsFps": 60,
+        "uiFps": 58,
+        "cpuUsage": 0,
+        "memoryUsage": 63.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606454622,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 63.9,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606454902,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 62.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606455156,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 62.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606455422,
+        "jsFps": 50,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 62.3,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606455688,
+        "jsFps": 50,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 67.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606455939,
+        "jsFps": 60,
+        "uiFps": 39,
+        "cpuUsage": 0,
+        "memoryUsage": 67.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606456205,
+        "jsFps": 60,
+        "uiFps": 39,
+        "cpuUsage": 0,
+        "memoryUsage": 67.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606456455,
+        "jsFps": 60,
+        "uiFps": 41,
+        "cpuUsage": 0,
+        "memoryUsage": 67.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606456739,
+        "jsFps": 60,
+        "uiFps": 41,
+        "cpuUsage": 0,
+        "memoryUsage": 68.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606457005,
+        "jsFps": 56,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 68.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606457255,
+        "jsFps": 56,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 68.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606457522,
+        "jsFps": 60,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 68.1,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606457772,
+        "jsFps": 60,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 70.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606458022,
+        "jsFps": 60,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 70.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606458289,
+        "jsFps": 60,
+        "uiFps": 59,
+        "cpuUsage": 0,
+        "memoryUsage": 70.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606458556,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 70.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606458822,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 67.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606459089,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 67.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606459339,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 67.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606459605,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 67.4,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606459856,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 69.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606460122,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 69.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606460389,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 69.5,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606460639,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 69.5,
+        "deviceMaxRefreshRate": 60
+      }
+    ],
+    "diagnostics": [
+      {
+        "id": "native-toolkit",
+        "severity": "warn",
+        "detail": "JS fallback mode — CPU is 0, memory is JS heap only, UI FPS is approximated."
+      },
+      {
+        "id": "reanimated-frame-callback",
+        "severity": "ok",
+        "detail": "react-native-reanimated useFrameCallback available — worklet-thread FPS sampling on."
+      }
+    ]
+  },
+  {
+    "pair": 3,
+    "driver": "wf",
+    "stats": {
+      "sampleCount": 27,
+      "durationMs": 6760,
+      "jsFps": {
+        "min": 50,
+        "max": 60,
+        "avg": 57.925925925925924,
+        "p95": 60
+      },
+      "uiFps": {
+        "min": 46,
+        "max": 60,
+        "avg": 52.888888888888886,
+        "p95": 60
+      },
+      "cpuUsage": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "p95": 0
+      },
+      "memoryUsage": {
+        "min": 66.2,
+        "max": 87.8,
+        "avg": 75.23703703703703,
+        "p95": 87.8
+      },
+      "jsJankFrames": 0,
+      "uiJankFrames": 0,
+      "deviceMaxRefreshRate": 60
+    },
+    "samples": [
+      {
+        "timestamp": 1795606426279,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 67.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606426539,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 67.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606426806,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 67.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606427056,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 67.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606427322,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 68.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606427589,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 68.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606427840,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 68.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606428105,
+        "jsFps": 60,
+        "uiFps": 60,
+        "cpuUsage": 0,
+        "memoryUsage": 68.6,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606428356,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 66.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606428622,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 66.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606428883,
+        "jsFps": 50,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 66.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606429139,
+        "jsFps": 50,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 66.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606429389,
+        "jsFps": 60,
+        "uiFps": 46,
+        "cpuUsage": 0,
+        "memoryUsage": 77,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606429656,
+        "jsFps": 60,
+        "uiFps": 46,
+        "cpuUsage": 0,
+        "memoryUsage": 77,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606429917,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 77,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606430172,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 77,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606430439,
+        "jsFps": 56,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 80.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606430689,
+        "jsFps": 56,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 80.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606430939,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 80.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606431205,
+        "jsFps": 60,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 80.2,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606431456,
+        "jsFps": 50,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 82.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606431723,
+        "jsFps": 50,
+        "uiFps": 48,
+        "cpuUsage": 0,
+        "memoryUsage": 82.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606431989,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 82.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606432256,
+        "jsFps": 60,
+        "uiFps": 54,
+        "cpuUsage": 0,
+        "memoryUsage": 82.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606432522,
+        "jsFps": 56,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 87.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606432774,
+        "jsFps": 56,
+        "uiFps": 50,
+        "cpuUsage": 0,
+        "memoryUsage": 87.8,
+        "deviceMaxRefreshRate": 60
+      },
+      {
+        "timestamp": 1795606433039,
+        "jsFps": 60,
+        "uiFps": 56,
+        "cpuUsage": 0,
+        "memoryUsage": 87.8,
+        "deviceMaxRefreshRate": 60
+      }
+    ],
+    "diagnostics": [
+      {
+        "id": "native-toolkit",
+        "severity": "warn",
+        "detail": "JS fallback mode — CPU is 0, memory is JS heap only, UI FPS is approximated."
+      },
+      {
+        "id": "reanimated-frame-callback",
+        "severity": "ok",
+        "detail": "react-native-reanimated useFrameCallback available — worklet-thread FPS sampling on."
+      }
+    ]
+  }
+]

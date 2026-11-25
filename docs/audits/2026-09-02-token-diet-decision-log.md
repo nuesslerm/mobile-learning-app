@@ -3808,3 +3808,5 @@ Run live over SSH into `agent-shell-sessions` (the machine-only e2e identity fro
 ## 2026-11-25 — Offline benchmark library
 
 An up-to-date build took 0.339 s and check took 0.268 s across 311 records. One local run per command. Keep generation explicit and use check for verification. [Benchmark record](../benchmarks/reports/2026-11-25-benchmark-library/report.json)
+
+2026-11-25 — On five Tamil iOS pairs, median elapsed time was 5.49 s with wf and 27.22 s with Maestro. Median incremental driver RSS was 133.0 and 951.8 MiB. On five web pairs, elapsed time was 6.36 and 19.13 s on the same Chrome executable. Maestro produced an empty web video. With recording disabled for both drivers, three further pairs took 4.30 and 17.49 s. After instrumentation, five iOS pairs took 5.21 and 23.40 s and three hosted Android pairs took 5.93 and 26.68 s. Keep the current drivers for these workloads. OpenTelemetry spans, Buoy measurements and the separate integration suite outcomes are in the report. [Measurements and evidence](../benchmarks/reports/2026-11-25-tamil-harness-traces/report.json)

@@ -1,0 +1,182 @@
+{
+  "rca": {
+    "spans": 18009,
+    "operations": 2568,
+    "runs": 2
+  },
+  "hosts": {
+    "spans": 22941,
+    "operations": 433,
+    "runs": 1
+  },
+  "service": {
+    "spans": 1,
+    "operations": 1,
+    "runs": 1
+  },
+  "t3": {
+    "spans": 23621,
+    "operations": 532,
+    "runs": 1
+  },
+  "web-final": {
+    "spans": 1055,
+    "operations": 56,
+    "runs": 1
+  },
+  "web-matched": {
+    "spans": 1051,
+    "operations": 56,
+    "runs": 1
+  },
+  "buoy-pairs": {
+    "spans": 637,
+    "operations": 56,
+    "runs": 1
+  },
+  "buoy-matched": {
+    "spans": 630,
+    "operations": 56,
+    "runs": 1
+  },
+  "screenshots-only": {
+    "spans": 606,
+    "operations": 52,
+    "runs": 1
+  },
+  "ios-qualified": {
+    "spans": 546,
+    "operations": 23,
+    "runs": 1
+  },
+  "tamil-native": {
+    "spans": 2577,
+    "operations": 45,
+    "runs": 1
+  },
+  "leetcode-native": {
+    "spans": 2634,
+    "operations": 46,
+    "runs": 1
+  },
+  "rebuilt-tamil-native": {
+    "spans": 2570,
+    "operations": 45,
+    "runs": 1
+  },
+  "rebuilt-leetcode-native": {
+    "spans": 2892,
+    "operations": 47,
+    "runs": 1
+  },
+  "fixed-library": {
+    "spans": 116,
+    "operations": 21,
+    "runs": 1
+  },
+  "fixed-neetcode": {
+    "spans": 120,
+    "operations": 25,
+    "runs": 1
+  },
+  "fixed-custom-input": {
+    "spans": 166,
+    "operations": 24,
+    "runs": 1
+  },
+  "qualified-tamil-native": {
+    "spans": 2410,
+    "operations": 45,
+    "runs": 1
+  },
+  "qualified-leetcode-native": {
+    "spans": 2678,
+    "operations": 46,
+    "runs": 1
+  },
+  "hosted/test-runs-browser-e2e-2-sample-1/harness-spans.sqlite": {
+    "spans": 15874,
+    "operations": 93,
+    "runs": 1
+  },
+  "hosted/test-runs-android-e2e-1-sample-3/harness-spans.sqlite": {
+    "spans": 442,
+    "operations": 41,
+    "runs": 1
+  },
+  "hosted/test-runs-android-e2e-1-sample-3/driver-spans.sqlite": {
+    "spans": 6,
+    "operations": 6,
+    "runs": 1
+  },
+  "hosted/test-runs-android-e2e-1-sample-2/harness-spans.sqlite": {
+    "spans": 5825,
+    "operations": 82,
+    "runs": 1
+  },
+  "hosted/test-runs-android-e2e-1-sample-2/driver-spans.sqlite": {
+    "spans": 102,
+    "operations": 21,
+    "runs": 1
+  },
+  "hosted/test-runs-ios-e2e-sample-1/harness-spans.sqlite": {
+    "spans": 1226,
+    "operations": 58,
+    "runs": 1
+  },
+  "hosted/test-runs-browser-e2e-1-sample-1/harness-spans.sqlite": {
+    "spans": 17272,
+    "operations": 82,
+    "runs": 1
+  },
+  "hosted/test-runs-android-e2e-1-sample-1/harness-spans.sqlite": {
+    "spans": 5724,
+    "operations": 82,
+    "runs": 1
+  },
+  "hosted/test-runs-android-e2e-1-sample-1/driver-spans.sqlite": {
+    "spans": 100,
+    "operations": 21,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-browser-e2e-2-sample-1/harness-spans.sqlite": {
+    "spans": 15074,
+    "operations": 93,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-android-e2e-1-sample-3/harness-spans.sqlite": {
+    "spans": 5372,
+    "operations": 81,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-android-e2e-1-sample-3/driver-spans.sqlite": {
+    "spans": 115,
+    "operations": 29,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-android-e2e-1-sample-2/harness-spans.sqlite": {
+    "spans": 5558,
+    "operations": 81,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-android-e2e-1-sample-2/driver-spans.sqlite": {
+    "spans": 122,
+    "operations": 30,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-browser-e2e-1-sample-1/harness-spans.sqlite": {
+    "spans": 15948,
+    "operations": 82,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-android-e2e-1-sample-1/harness-spans.sqlite": {
+    "spans": 8905,
+    "operations": 81,
+    "runs": 1
+  },
+  "qualification-hosted/test-runs-android-e2e-1-sample-1/driver-spans.sqlite": {
+    "spans": 119,
+    "operations": 29,
+    "runs": 1
+  }
+}
