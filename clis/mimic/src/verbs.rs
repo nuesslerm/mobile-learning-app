@@ -20,6 +20,8 @@ mod scan_verb;
 mod exec_verb;
 #[path = "projects_verb.rs"]
 mod projects_verb;
+#[path = "proxy_verb.rs"]
+mod proxy_verb;
 
 use crate::adapters::{open_driver, FsCheckpoint, FsStore};
 use crate::config::{relative, Config, Target};
@@ -54,6 +56,7 @@ const RECORD_PROJECTS: Spec = Spec { values: &["run-id", "stale-minutes", "state
 const SCAN: Spec = Spec { values: &["clis"], positional: Positional::Any, ..Spec::NONE };
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
+const PROXY: Spec = Spec { values: &["upstream", "out", "listen", "duration", "max-events", "ready"], positional: Positional::None, ..Spec::NONE };
 
 /// What a verb prints when it cannot run at all (exit 2).
 struct Fail {
@@ -100,6 +103,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "record-projects" => finish("mimic-record-projects/1", projects_verb::record_projects(&parse_spec(rest, &RECORD_PROJECTS)?)),
         "scan" => finish("mimic-scan/1", scan_verb::scan_verb(&parse_spec(rest, &SCAN)?)),
         "exec" => finish("mimic-exec/1", exec_verb::exec_verb(&parse_spec(rest, &EXEC)?)),
+        "proxy" => finish("mimic-proxy/1", proxy_verb::proxy_verb(&parse_spec(rest, &PROXY)?)),
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),
         "import" => finish("mimic-import/1", import(&parse_spec(rest, &IMPORT)?)),
         "export" => finish("mimic-export/1", export(&parse_spec(rest, &EXPORT)?)),

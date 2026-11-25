@@ -29,6 +29,12 @@ mod help;
 mod import;
 #[path = "flow/real_clis.rs"]
 mod real_clis;
+#[path = "flow/proxy.rs"]
+mod proxy;
+#[path = "flow/proxy_shape.rs"]
+mod proxy_shape;
+#[path = "flow/proxy_vocabulary.rs"]
+mod proxy_vocabulary;
 #[path = "flow/record.rs"]
 mod record;
 #[path = "flow/record_projects.rs"]

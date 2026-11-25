@@ -3820,3 +3820,7 @@ An up-to-date build took 0.339 s and check took 0.268 s across 311 records. One 
 ### 2026-11-25 — Target native iOS text input for RCA pairing
 
 One native T3 pairing run on the simulator named `rca`. The previous input runner targeted Expo Go during address entry. With `WF_IOS_APP_ID=com.t3tools.t3code` and the persistent XCTest driver, two field entries and one submit produced one successful OAuth exchange, a WebSocket ticket and a 101 upgrade against the pinned T3 server. Keep the bundle ID override for native runbooks. Existing Expo Go runs retain the default.
+
+### 2026-11-25 — Observe native T3 pairing through Mimic
+
+One paired iOS run against the pinned 0.1.9 server produced 106 traffic rows before the footer, including OAuth, a ticket, the shell snapshot, a 101 upgrade and correlated RPC frames. A second capture opening the fixture thread demonstrated the additional orchestration, preview, source-control and terminal subscriptions. Keep the filtered vocabulary and connection-local request labels. Targeted Mimic flow suite including split T3 replies and chunked HTTP: 29 passed in 1.53 s locally.

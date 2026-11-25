@@ -18,4 +18,5 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("mimic coverage", false, include_str!("help/wf__mimic__coverage.txt")),
     ("mimic track", false, include_str!("help/wf__mimic__track.txt")),
     ("mimic export", false, include_str!("help/wf__mimic__export.txt")),
+    ("mimic proxy", false, include_str!("help/wf__mimic__proxy.txt")),
 ];

@@ -12,6 +12,9 @@ changed rules.json to a committed set and re-seals it; `import` and `export`
 convert legacy CLI fixtures into an imported set and prove the conversion lossless.
 `coverage` and `track` keep the phone apps' coverage tables (docs/plans/rca-parity/plan.md
 section 5) and follow the pins of the real servers the sets are recorded from.
+`proxy` observes the native T3 mobile app against the server it is configured
+for: a loopback proxy that forwards every byte and writes the shape of what
+crossed as an ordered, correlated JSONL.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -73,4 +76,5 @@ Commands:
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
+  proxy [options] --upstream <url> --out <file>  Observe the native T3 mobile app against its own server
   help [command]              display help for command

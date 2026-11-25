@@ -4354,6 +4354,9 @@ changed rules.json to a committed set and re-seals it; `import` and `export`
 convert legacy CLI fixtures into an imported set and prove the conversion lossless.
 `coverage` and `track` keep the phone apps' coverage tables (docs/plans/rca-parity/plan.md
 section 5) and follow the pins of the real servers the sets are recorded from.
+`proxy` observes the native T3 mobile app against the server it is configured
+for: a loopback proxy that forwards every byte and writes the shape of what
+crossed as an ordered, correlated JSONL.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -4415,6 +4418,7 @@ Commands:
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
+  proxy [options] --upstream <url> --out <file>  Observe the native T3 mobile app against its own server
   help [command]              display help for command
 ```
 
@@ -5307,6 +5311,103 @@ Options:
   --run, --sha                the workflow run and the commit the report names (report)
   --root <dir>                the repository root (default: this checkout)
   -h, --help                  display help for command
+```
+
+</details>
+
+### `wf mimic proxy`
+
+Observe the native T3 mobile app against the server it is configured for
+
+Usage: `wf mimic proxy [options] --upstream <url> --out <file>`
+
+Examples:
+
+```sh
+wf mimic proxy --upstream http://127.0.0.1:8787 --listen 127.0.0.1:8788 --out /tmp/t3-proxy.jsonl --duration 300
+wf mimic proxy --upstream http://127.0.0.1:8787 --out /tmp/t3-proxy.jsonl --max-events 200
+```
+
+The runbook is `docs/runbooks/observe-the-native-t3-mobile-app.md`: it starts the
+T3 server, points the phone at the proxy and reads the file.
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic proxy [options] --upstream <url> --out <file>
+
+Observe the native T3 mobile app against the server it is configured for: a
+reverse proxy on the loopback that forwards every byte and writes what crossed
+as an ordered, correlated JSONL.
+
+The upstream is one local T3 server: only a loopback address is accepted
+(127.0.0.0/8, ::1 or localhost), and the proxy listens on a loopback address
+too, so it observes the app on this machine and nothing else. The upstream's
+own path and query are ignored; the app's request paths are forwarded as they
+are. No refusal names the URL or the address: they may carry a credential of
+their own.
+
+Forwarding is faithful: the method, the target, the headers (the Authorization
+header and the cookies among them) and the body go to the server untouched, so
+the app keeps working, and the server's answer comes back as it was. A socket
+is relayed frame by frame in both directions; the compression offer is dropped
+so that the frames stay readable. Every ordinary exchange is one connection,
+closed after the answer.
+
+What is written is the shape of what crossed, never a value: the HTTP verb,
+the route's own words, the names of the query parameters, the header names,
+the JSON keys, the envelope's tag, the RPC method name and the type of every
+leaf. A credential, a ticket, an authorization value, a pairing code, a cookie
+and the user's own text cannot reach the file: a path segment or a query name
+that is not one of the server's route words becomes <seg> or <param>, and no
+value of any kind is written.
+
+A name is free text on the wire, so a name the vocabulary of the pinned T3
+fixtures does not know is masked as well: a JSON key becomes <key>, a header
+name <header>, an envelope tag <tag>, an RPC method <method> and an HTTP verb
+<verb>. Each masked name keeps a place of its own, so no entry of a body is
+merged away. What survives is what the pinned fixtures know: the JSON keys,
+the header names and the RPC method names of the T3 wire (the OAuth form keys
+among them), the tags of the orchestration socket and the verbs of HTTP.
+
+The file (schema mimic-proxy/1) is one JSON object per line:
+  header        {"schema","kind":"header","tool","started_at","upstream","listen"}
+  http.request  {"schema","kind","seq","exchange","method","route","query","headers","body"}
+  http.response {"schema","kind","seq","exchange","status","headers","body"}
+  ws.open       {"schema","kind","seq","connection","route","query","status"}
+  ws.refused    {"schema","kind","seq","connection","route","query","status","body"}
+  ws.frame      {"schema","kind","seq","connection","direction","envelope","method"?,"request"?,"payload"}
+  ws.close      {"schema","kind","seq","connection","direction"?,"code"?,"tcp"}
+  error         {"schema","kind","seq","what"}
+  footer        {"schema","kind":"footer","lines","http","ws","errors"}
+
+seq counts the traffic lines from 1, in the order they were seen. exchange
+(e1, e2, ...) ties a request to its answer, connection (c1, c2, ...) a socket's
+lines together, and request (r1, r2, ...) the frames of one orchestration
+request to the chunks and the exit that answer it. A request id is told apart
+by the connection it came on, so two sockets that name their requests alike
+are not mixed up. A body is a shape: an object's fields by name, an array's
+length and the shape of its first item, a leaf's type.
+
+The run ends when --duration is spent, when --max-events lines are written, or
+on Ctrl-C; the file is complete up to its last line. --ready <file> writes the
+address the proxy listens on as soon as it does. An --out file that holds a run
+of its own is never written over: name another file. The file is written for
+its owner alone, and a run whose file cannot be written fails instead of
+pretending to have observed the traffic.
+
+Options:
+  --upstream <url>        the T3 server to observe (http://127.0.0.1:<port>)
+  --out <file>            the JSONL file to write
+  --listen <addr>         where to listen (default 127.0.0.1:0)
+  --duration <seconds>    stop after this long
+  --max-events <n>        stop after this many traffic lines
+  --ready <file>          write the listening address here once the proxy is up
+  -h, --help              display help for command
+
+Output (schema mimic-proxy/1):
+  {schema, ok, upstream, listen, out, lines, http: {requests, responses, methods, routes}, ws: {connections, frames, methods}, errors, warnings, next}
+Exit 0 clean, 1 a connection failed, 2 a usage or environment error.
 ```
 
 </details>
