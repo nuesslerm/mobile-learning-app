@@ -1,0 +1,146 @@
+Editor startup benchmark from the Buoy verification worktree.
+Base commit a8bb0f4caab4f128b8ac388f494352a39d48c67b
+Apply in a clean checkout of that commit with git apply <path-to-this-patch>.
+
+diff --git a/frontend/mla-tamagui/features/leetcode/routes/[id].tsx b/frontend/mla-tamagui/features/leetcode/routes/[id].tsx
+index 25a3a184..080782af 100644
+--- a/frontend/mla-tamagui/features/leetcode/routes/[id].tsx
++++ b/frontend/mla-tamagui/features/leetcode/routes/[id].tsx
+@@ -4,7 +4,7 @@ import { devSeed } from '../ui/devSeed';
+ import { ProblemWorkspace } from '../ui/ProblemWorkspace';
+
+ export default function ProblemEditorRoute() {
+-  const { id, seed, seed64, lang } = useLocalSearchParams<{ id: string; seed?: string; seed64?: string; lang?: string }>();
++  const { id, seed, seed64, lang, run } = useLocalSearchParams<{ id: string; seed?: string; seed64?: string; lang?: string }>();
+   // a link to the open problem with another seed starts that screen afresh: expo-router updates params, it does not remount
+-  return <ProblemWorkspace key={`${id}:${seed64 ?? seed ?? ''}:${lang ?? ''}`} id={id} seed={devSeed({ seed, seed64 })} lang={lang === 'javascript' ? 'javascript' : undefined} />;
++  return <ProblemWorkspace key={`${run}:${id}:${seed64 ?? seed ?? ''}:${lang ?? ''}`} id={id} seed={devSeed({ seed, seed64 })} lang={lang === 'javascript' ? 'javascript' : undefined} />;
+ }
+\ No newline at end of file
+diff --git a/frontend/mla-tamagui/features/leetcode/ui/editor/EditorInput.tsx b/frontend/mla-tamagui/features/leetcode/ui/editor/EditorInput.tsx
+index 18c82599..3d960b2b 100644
+--- a/frontend/mla-tamagui/features/leetcode/ui/editor/EditorInput.tsx
++++ b/frontend/mla-tamagui/features/leetcode/ui/editor/EditorInput.tsx
+@@ -1,3 +1,5 @@
++import { useLocalSearchParams } from 'expo-router';
++import { File, Paths } from 'expo-file-system';
+ import { normalizeText, type CompletionEntry, type Language, type Reply } from '@lib/code-editor-api';
+ import { Logger } from '@lib/logging';
+ import { View } from '@lib/tamagui-design-system';
+@@ -129,6 +131,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
+     },
+     ref
+   ) {
++    const {probe = 'full', run} = useLocalSearchParams();
++    const stamp = (event) => Logger.info('editor.probe', {event, probe, run, t: performance.now()});
++    useLayoutEffect(() => { stamp('commit'); }, []);
+     const webViewRef = useRef<WebView>(null);
+     const isReadyRef = useRef(false);
+     const hydratedRef = useRef(false);
+@@ -195,12 +200,18 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
+     const { editorBridge, clock } = useLeetCodePorts();
+     const { source, htmlBytes } = useMemo(() => {
+       const html = editorBridge.html();
++      if (probe === 'tiny') {
++        const file = new File(Paths.cache,'diagnostic-page.html');
++        if (!file.exists) { file.create(); file.writeSync('<html><body>test</body></html>'); }
++        return {source:{uri:file.uri},htmlBytes:30};
++      }
++      if (probe === 'inline') return {source:{html},htmlBytes:html.length};
+       return { source: editorBridge.pageSource?.(html) ?? { html }, htmlBytes: html.length };
+     }, [editorBridge]);
+     const coldStartRef = useRef<ReturnType<typeof createColdStart> | null>(null);
+     if (coldStartRef.current === null) {
+       coldStartRef.current = createColdStart({ clock, nth: nextEditorNth(), htmlBytes });
+-      coldStartRef.current.mark('mount');
++      coldStartRef.current.mark('mount'); stamp('render');
+     }
+     const pageEvalMsRef = useRef<number | undefined>(undefined);
+
+@@ -730,7 +741,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
+             holdText(m.text);
+             onUndoAvailabilityChange?.(false);
+             updateHydrated(true);
+-            coldStartRef.current?.mark('hydrated');
++            stamp('hydrated'); coldStartRef.current?.mark('hydrated');
+             logColdStart();
+             // The view hydrated from whatever `initialText` was when it
+             // mounted; React state may have moved since. Reconcile to state
+@@ -855,8 +866,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
+       [apiBridge]
+     );
+
++    if (probe === 'native') return <View flex={1} onLayout={() => stamp('layout')} />;
+     return (
+-      <View
++      <View onLayout={() => stamp('layout')}
+         testID={testID ?? 'CodeEditorContainer'}
+         flex={1}
+         overflow="hidden"
+@@ -864,17 +876,17 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
+         style={{ backgroundColor }}
+       >
+         <WebView<object>
+-          testID="CodeEditorInput"
++          testID="CodeEditorInput" nativeID={probe === "prefetch" ? "preloaded-code-editor" : undefined}
+           ref={webViewRef}
+           source={source}
+           injectedJavaScriptBeforeContentLoaded={bootstrapScript}
+           onMessage={handleMessage}
+           onLoadStart={() => {
+-            coldStartRef.current?.mark('loadStart');
++            stamp('loadStart'); coldStartRef.current?.mark('loadStart');
+             Logger.info('editor.webview.load_start', {});
+           }}
+           onLoadEnd={() => {
+-            Logger.info('editor.webview.load_end', {});
++            stamp('loadEnd'); Logger.info('editor.webview.load_end', {});
+           }}
+           onError={(e) => {
+             Logger.warn('editor.webview.error', {
+diff --git a/frontend/mla-tamagui/features/leetcode/ui/library/ProblemDetailScreen.tsx b/frontend/mla-tamagui/features/leetcode/ui/library/ProblemDetailScreen.tsx
+index 920be74e..68de68a0 100644
+--- a/frontend/mla-tamagui/features/leetcode/ui/library/ProblemDetailScreen.tsx
++++ b/frontend/mla-tamagui/features/leetcode/ui/library/ProblemDetailScreen.tsx
+@@ -1,6 +1,8 @@
+ import { CompactHeader, CompactIconButton, CompactTabs, FloatingBar, Icon, useCompactColors } from '@lib/tamagui-design-system';
+ import { ChevronDown, Lightbulb, Play, Share, Star, Tag } from '@lib/tamagui-design-system/icons';
+-import { Link, router } from 'expo-router';
++import { WebView } from 'react-native-webview';
++import { Logger } from '@lib/logging';
++import { Link, router, useLocalSearchParams } from 'expo-router';
+ import { useEffect, useMemo, useState } from 'react';
+ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+ import { useSafeAreaInsets } from 'react-native-safe-area-context';
+@@ -18,6 +20,14 @@ const tabs = [
+ ] as const;
+
+ export function ProblemDetailScreen({ id }: { id: string }) {
++  const { probe = 'full', run = '0' } = useLocalSearchParams();
++  const target = { pathname: '/leetcode/[id]', params: { id, lang: 'javascript', probe, run } };
++  useEffect(() => {
++    if (probe === 'prefetch') {
++      const work = requestIdleCallback(() => router.prefetch(target));
++      return () => cancelIdleCallback(work);
++    }
++  }, [probe, run]);
+   const colors = useCompactColors();
+   const { top, bottom } = useSafeAreaInsets();
+   const { libraryContent, editorBridge } = useLeetCodePorts();
+@@ -41,6 +51,7 @@ export function ProblemDetailScreen({ id }: { id: string }) {
+   }, [editorBridge, hasProblem]);
+
+   return <View testID="AlgorithmsProblemDetail" style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
++    {probe === 'warm' && <View pointerEvents="none" accessibilityElementsHidden style={{position:'absolute',width:8,height:8,opacity:0}}><WebView source={{html:'<!doctype html><title>warm</title>'}} onLoadEnd={() => Logger.info('editor.probe', {event:'warmLoaded',probe,t:performance.now()})}/></View>}
+     <CompactHeader title={scrolled ? title : undefined} closeIcon={ChevronDown} closeLabel="Close problem"
+       onClose={() => router.canGoBack() ? router.back() : router.replace('/')} trailing={problem && <View style={styles.headerActions}>
+         <CompactIconButton icon={Star} label={favorited ? 'Remove favorite' : 'Add favorite'} testID="ProblemFavorite"
+@@ -69,7 +80,7 @@ export function ProblemDetailScreen({ id }: { id: string }) {
+       </ScrollView>
+       {problem && <FloatingBar bottom={bottom + 7} style={{ justifyContent: 'flex-end' }}>
+         <CompactIconButton icon={Play} label="Open editor" testID="ProblemOpenEditor" emphasis filled
+-          onPress={() => router.push({ pathname: '/leetcode/[id]', params: { id, lang: 'javascript' } })} />
++          onPress={() => { Logger.info('editor.probe', { event: 'tap', run, probe, t: performance.now() }); router.push(target); }} />
+       </FloatingBar>}
+     </>}
+     {information && problem && <ProblemInformationSheet kind={information} topics={problem.topics} hints={problem.hints} onClose={() => setInformation(undefined)} />}
