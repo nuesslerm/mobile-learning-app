@@ -1,0 +1,247 @@
+{
+  "schema": "rca-mobile-parity-results/1",
+  "runId": "rca-mobile-claude-cold-ack-final",
+  "started": "2026-11-24T13:54:40+00:00",
+  "finished": "2026-11-24T13:56:10.571907+00:00",
+  "serverBase": "29cf68e0",
+  "device": "iPhone 18 Pro Max Simulator, iOS 27.0",
+  "appVersion": "T3 Code 2.3.0 (build 1)",
+  "recordings": [
+    "recordings/t3-cold-provider.mp4"
+  ],
+  "results": [
+    {
+      "case": "skill-load",
+      "variant": "t3-claude-cold-provider-acknowledged-before-startup",
+      "app": "t3",
+      "provider": "claude",
+      "tier": "simulator",
+      "verdict": "pass",
+      "deviceAppBundleId": "com.t3tools.t3code",
+      "threadId": "3ce138cc-91f6-49d8-82b7-54d434379081",
+      "turnId": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+      "providerHeldSeconds": 37,
+      "pendingProjectionObservedAfterSeconds": 36,
+      "assertions": {
+        "nativeAutocompleteSelected": true,
+        "oneAcknowledgedTurn": true,
+        "t3StillRunningPastPreviousDeadline": true,
+        "providerLoadedSelectedSkill": true,
+        "nativeReplyVisible": true,
+        "sameRunCompleted": true
+      },
+      "evidence": [
+        "recordings/t3-cold-provider.mp4",
+        "shots/skill-picker.png",
+        "shots/t3-cold-provider-reply.png",
+        "shots/t3-still-running-past-deadline.png",
+        "traces/cold-receipt-skill.txt",
+        "traces/complete-t3.json",
+        "traces/group.log",
+        "traces/journal.json",
+        "traces/linux-flow.log",
+        "traces/past-deadline-t3.json"
+      ],
+      "receipts": {
+        "pastDeadlineProjection": {
+          "run": {
+            "id": "run:thread:3ce138cc-91f6-49d8-82b7-54d434379081:ordinal:1",
+            "status": "running",
+            "providerInstanceId": "claudeAgent",
+            "providerTurnId": null
+          },
+          "assistant": []
+        },
+        "finalProjection": {
+          "runs": [
+            {
+              "id": "run:thread:3ce138cc-91f6-49d8-82b7-54d434379081:ordinal:1",
+              "status": "completed",
+              "providerInstanceId": "claudeAgent",
+              "providerTurnId": null
+            }
+          ],
+          "assistant": [
+            "Auto-loaded: caveman, using-superpowersRCA_COLD_RECEIPT_PINE_55F0\n\n\ud83e\udea8"
+          ]
+        },
+        "journal": [
+          {
+            "seq": 17004,
+            "type": "turn.started",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": null,
+            "text": null,
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17005,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "user",
+            "text": "$rca-cold-receipt Return the fixture marker.",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17010,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "assistant",
+            "text": "Auto-loaded: ca",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17011,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "assistant",
+            "text": "veman, using-superpow",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17012,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "assistant",
+            "text": "ers",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17013,
+            "type": "tool.started",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": null,
+            "text": null,
+            "tool": "Skill",
+            "args": {
+              "skill": "rca-cold-receipt"
+            },
+            "call": "toolu_01Wb193LYR3bhqc8UZ8vmwBx",
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17014,
+            "type": "tool.output",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": null,
+            "text": null,
+            "tool": null,
+            "args": null,
+            "call": "toolu_01Wb193LYR3bhqc8UZ8vmwBx",
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17015,
+            "type": "tool.finished",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": null,
+            "text": null,
+            "tool": null,
+            "args": null,
+            "call": "toolu_01Wb193LYR3bhqc8UZ8vmwBx",
+            "ok": true,
+            "reason": null
+          },
+          {
+            "seq": 17016,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "assistant",
+            "text": "RCA_COLD_",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17017,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "assistant",
+            "text": "RECEIPT_P",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17018,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "assistant",
+            "text": "INE_55F0",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17019,
+            "type": "message.delta",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": "assistant",
+            "text": "\n\n\ud83e\udea8",
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": null
+          },
+          {
+            "seq": 17020,
+            "type": "turn.finished",
+            "turn": "turn-49aab598-b178-47c6-8a9f-452aefad40a3",
+            "role": null,
+            "text": null,
+            "tool": null,
+            "args": null,
+            "call": null,
+            "ok": null,
+            "reason": "completed"
+          }
+        ]
+      }
+    }
+  ],
+  "bundle": {
+    "id": "run-d06c0d15225edd96",
+    "localPath": ".context/rca-turn-ack/verified/published/run-d06c0d15225edd96",
+    "files": {
+      "recordings/t3-cold-provider.mp4": "13f3ba47c43957a4690c5af29db818c2a4abbd7481dcae9041c26e5759e277bc",
+      "shots/skill-picker.png": "ed89e0d3d41736601037a81a748c9416fe305b1ace336d0eab02079ee199b090",
+      "shots/t3-cold-provider-reply.png": "082994e9c1ce8e36409c3566ac5701fa2e8126e6b64e8f59f8dee293c6d362c7",
+      "shots/t3-still-running-past-deadline.png": "bafeb89d1cdff35696bdb20deed97e6626643ff41a8ffd13030a3c8e202266fd",
+      "traces/cold-receipt-skill.txt": "acbcce5417947735c7d0a290bfc022fcdf3b168021befbd9b7e27a5c9e7d5129",
+      "traces/complete-t3.json": "fdb4c10f201753d18d9bb164d8535c5b48385466d7a71c8e4c6265d693633ad2",
+      "traces/group.log": "23ce8b80beee3567fb140d48653cb8b299619a4e1f671bef4151cfada38d8580",
+      "traces/journal.json": "f0b64998a7157712a0bc463e2768e5776e2add5982896df4b05089a76c1419b9",
+      "traces/linux-flow.log": "b12b2061b14a500ac37e027645e6192c89cab4048ba4e1a9d750de292f18bb86",
+      "traces/past-deadline-t3.json": "d187e969435812e476c12bf162ac765c45f68b4b428eb581907bbd34e481c428"
+    }
+  }
+}

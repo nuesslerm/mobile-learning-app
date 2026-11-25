@@ -29,7 +29,7 @@ fn rig(answers: impl Fn(&str, &Value) -> Result<ActionOutput, RemoteError> + Sen
     let executors: Arc<Registry> = Arc::default();
     executors.open_executor("e1", "w1", channel.clone() as Arc<dyn ExecutorChannel>).unwrap();
     let clock = Arc::new(SetClock::at(1_000));
-    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), clock.clone(), Arc::new(ScriptedSpeech::saying("hello world")))))];
+    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), clock.clone(), Arc::new(ScriptedSpeech::saying("hello world")), None)))];
     Rig { api: AgentApi::new(groups).unwrap(), clock, channel, executors }
 }
 
@@ -239,9 +239,9 @@ async fn given_a_speech_engine_when_a_recording_is_transcribed_then_its_words_co
     assert_eq!(said["result"], json!({"text": "hello world", "took_ms": 0}));
     assert_eq!((not_base64["error"]["code"].as_str(), not_base64["error"]["message"].as_str()), (Some("INVALID_PARAMS"), Some("`audio` is not base64")));
     // And a service with no engine says so, and an engine that fails refuses with its own words
-    let none = Catalog::new(rig.executors.clone(), rig.clock.clone(), Arc::new(ScriptedSpeech { engine: None, said: Ok(String::new()), heard: Default::default() }));
+    let none = Catalog::new(rig.executors.clone(), rig.clock.clone(), Arc::new(ScriptedSpeech { engine: None, said: Ok(String::new()), heard: Default::default() }), None);
     assert_eq!(none.speech_status(), api::SpeechStatusResult { available: false, engine: "none".into() });
-    let failing = Catalog::new(rig.executors.clone(), rig.clock.clone(), Arc::new(ScriptedSpeech { engine: Some("sidecar".into()), said: Err("the sidecar is down".into()), heard: Default::default() }));
+    let failing = Catalog::new(rig.executors.clone(), rig.clock.clone(), Arc::new(ScriptedSpeech { engine: Some("sidecar".into()), said: Err("the sidecar is down".into()), heard: Default::default() }), None);
     let refused = failing.transcribe(api::SpeechTranscribeParams { audio: "UklGRg==".into(), format: None }).await.unwrap_err();
     assert_eq!((refused.code.as_str(), refused.message.as_str()), ("SPEECH_UNAVAILABLE", "the sidecar is down"));
     let no_engine = none.transcribe(api::SpeechTranscribeParams { audio: "UklGRg==".into(), format: None }).await.unwrap_err();

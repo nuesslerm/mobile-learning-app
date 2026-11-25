@@ -1,4 +1,4 @@
-import type { CompletionEntry, Language, Reply } from '@lib/code-editor-api';
+import { normalizeText, type CompletionEntry, type Language, type Reply } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
 import { decode } from '@lib/webview-rpc';
@@ -13,7 +13,7 @@ import React, {
   useState,
 } from 'react';
 import { Platform } from 'react-native';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import type { WebView } from 'react-native-webview';
 
 import type {
   CodeEditorPort,
@@ -33,10 +33,8 @@ import { applyPlannedEdit, readBasis, type EditBasis, type EditOutcome, type Edi
 import { lineHeightFor } from '../../domain/editor-settings/editorPreferences';
 import { useEditorPreferencesStore } from '../../state/editor/editorPreferencesStore';
 import { useLeetCodePorts } from '../../state/ports';
-import {
-  getPalette,
-  useCodeEditorSettingsStore,
-} from '../../state/editor/editorSettings';
+import { EditorPage } from './EditorPage';
+import { useEditorAppearance } from './useEditorAppearance';
 import type { EditResult } from '../../domain/editor/editing';
 import { checkpointWithin, clearErrorLine, showErrorLine, type ErrorCheckpoint, type ErrorJump, type ErrorPlace } from '../../domain/editor/errorJump';
 import type { Selection } from '../../domain/editor/types';
@@ -66,7 +64,7 @@ export type EditorInputHandle = EditTarget & {
   /** Text as if typed at the caret: auto-closed brackets, re-indented `else:` and the rest of what typing does. */
   typeText: (text: string) => void;
   /** Replace the whole document and place the selection: one hunk, one undo step. */
-  setTextAndSelection: (text: string, sel: Selection) => void;
+  setTextAndSelection: (text: string, sel: Selection, focus?: boolean) => void;
   /** Apply a pure whole-document edit to the editor's own text and selection (the toolbar's Tab on a selection, Dedent, Comment, Newline). */
   transformDocument: (transform: (text: string, sel: Selection) => EditResult) => void;
   /** Starts a caret drag at the finger's grab: the editor is focused once, the page's selection events are held while it lasts, and React is told the selection once, at `end`. */
@@ -95,13 +93,17 @@ type Props = {
   value: string;
   onChangeText: (text: string) => void;
   onSelectionChange: (sel: Selection) => void;
+  documentReady?: boolean;
   onHydratedChange?: (hydrated: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
+  onUndoAvailabilityChange?: (canUndo: boolean) => void;
+  documentKey?: string;
   /** The language the editor highlights and indents in; changing it switches the live editor. */
   language?: Language;
   /** Suggestions while typing: off when absent or not enabled. The names are what the problem's own signature adds. */
   completion?: { enabled: boolean; entries: readonly CompletionEntry[] };
   testID?: string;
+  appearance?: 'panel' | 'canvas';
 };
 
 /**
@@ -119,10 +121,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       onChangeText,
       onSelectionChange,
       onHydratedChange,
+      documentReady,
       onFocusChange,
+      onUndoAvailabilityChange,
+      documentKey,
       language = 'python',
       completion,
       testID,
+      appearance = 'panel',
     },
     ref
   ) {
@@ -142,7 +148,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
      * displayed the 68-character stub while the backend reported a
      * CompileError on a `while` at line 5.
      */
-    const queuedTextRef = useRef<{ text: string; sel: Selection } | null>(null);
+    const queuedTextRef = useRef<{ text: string; sel: Selection; focus: boolean } | null>(null);
     const valueRef = useRef(value);
     valueRef.current = value;
     const onSelectionChangeRef = useRef(onSelectionChange);
@@ -150,6 +156,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     // the live caret drag, and the last selection the page reported while it ran: React hears the drag's end once, not every call
     const caretDragRef = useRef<{ drag: CaretDrag; held: Selection | null } | null>(null);
     const initialValueRef = useRef(value);
+    const appliedDocumentKey = useRef(documentKey);
     // Tracks the last text CM6 reported via contentChanged, so we can detect
     // external store changes (e.g. replaceAll) and push them back to CM6.
     const lastWebViewTextRef = useRef(value);
@@ -174,26 +181,28 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const completionOpenRef = useRef(false);
     const initLanguageRef = useRef(language);
 
-    const paletteId = useCodeEditorSettingsStore((s) => s.paletteId);
     const fontSize = useEditorPreferencesStore((s) => s.fontSize);
     const wordWrap = useEditorPreferencesStore((s) => s.wrap);
     const tabSize = useEditorPreferencesStore((s) => s.tabSize);
     const showWhitespace = useEditorPreferencesStore((s) => s.whitespace);
-    const palette = getPalette(paletteId);
+    const canvas = appearance === 'canvas';
+    const { backgroundColor, syntaxPalette, isDark, palette, paletteId } = useEditorAppearance(canvas);
     const lineHeight = lineHeightFor(fontSize);
-    const isDark = palette.appearance === 'dark';
     // Editor chrome colors (gutter + border) are intentionally tied to the
     // editor palette's appearance, not the OS theme — they live inside the
     // embedded WebView, so the surrounding app's tokens don't apply.
     const gutterColor = isDark ? '#5c6370' : '#9aa0a6';
-    const borderColor = isDark ? '#3e4451' : '#dadce0';
+    const borderColor = canvas ? backgroundColor : isDark ? '#3e4451' : '#dadce0';
 
     // HTML is static — no config injected. All config flows via postMessage.
     const { editorBridge, clock } = useLeetCodePorts();
-    const html = useMemo(() => editorBridge.html(), [editorBridge]);
+    const { source, htmlBytes } = useMemo(() => {
+      const html = editorBridge.html();
+      return { source: editorBridge.pageSource?.(html) ?? { html }, htmlBytes: html.length };
+    }, [editorBridge]);
     const coldStartRef = useRef<ReturnType<typeof createColdStart> | null>(null);
     if (coldStartRef.current === null) {
-      coldStartRef.current = createColdStart({ clock, nth: nextEditorNth(), htmlBytes: html.length });
+      coldStartRef.current = createColdStart({ clock, nth: nextEditorNth(), htmlBytes });
       coldStartRef.current.mark('mount');
     }
     const pageEvalMsRef = useRef<number | undefined>(undefined);
@@ -216,7 +225,10 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         );
       };
       return {
-        post: createForwardingPost(apiBridge.client, legacyPost, { blurThroughApi: Platform.OS !== 'ios' }),
+        post: createForwardingPost(apiBridge.client, legacyPost, {
+          blurThroughApi: Platform.OS !== 'ios',
+          isDisposing: () => !isReadyRef.current,
+        }),
         onMessage(listener) {
           messageListenersRef.current.add(listener);
           return () => {
@@ -347,7 +359,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           Logger.info('editor.type_text', { effect: 'typeText' });
           sendMessage({ type: 'typeText', text });
         },
-        setTextAndSelection(text: string, sel: Selection) {
+        setTextAndSelection(text: string, sel: Selection, focus = true) {
           Logger.info('editor.set_text_and_selection', {
             effect: 'setTextAndSelection',
             queued: !isReadyRef.current || !isInitializedRef.current,
@@ -356,10 +368,10 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             // Deliver on `hydrated`, like focus and selection already do. The
             // mirror is left alone: it must describe what the view HAS, not
             // what it was asked for.
-            queuedTextRef.current = { text, sel };
+            queuedTextRef.current = { text, sel, focus };
             return;
           }
-          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text', focus: true });
+          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text', focus });
         },
         transformDocument(transform: (text: string, sel: Selection) => EditResult) {
           Logger.info('editor.transform_document', { effect: 'transformDocument' });
@@ -498,16 +510,19 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         language,
         cursorColor: palette.cursor,
         selectionColor: palette.selection,
-        backgroundColor: palette.background,
+        backgroundColor,
         gutterColor,
         borderColor,
         tabSize,
-        noAutoFocus: false,
+        ...(canvas ? { noAutoFocus: true, surface: 'canvas' as const, syntaxPalette } : {}),
       }),
       [
         fontSize,
         lineHeight,
+        canvas,
+        syntaxPalette,
         palette,
+        backgroundColor,
         isDark,
         gutterColor,
         borderColor,
@@ -519,8 +534,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       ]
     );
 
+    const [initialConfig] = useState(editorConfig);
+    const bootstrapScript = useMemo(() => Platform.OS === 'ios' && canvas
+      ? `window.__editorInitialConfig = ${JSON.stringify(initialConfig)}; true;`
+      : undefined, [canvas, initialConfig]);
+
     // Render-phase sync: before the WebView initializes, keep the pending initial text aligned with the latest React value
     if (!isInitializedRef.current) {
+      appliedDocumentKey.current = documentKey;
       initialValueRef.current = value;
       lastWebViewTextRef.current = value;
       textMirror.set(value, false);
@@ -558,7 +579,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           showWhitespace,
           cursorColor: palette.cursor,
           selectionColor: palette.selection,
-          backgroundColor: palette.background,
+          backgroundColor,
+          ...(syntaxPalette ? { syntaxPalette } : {}),
           gutterColor,
           borderColor,
           tabSize,
@@ -575,7 +597,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       lineHeight,
       palette.cursor,
       palette.selection,
-      palette.background,
+      backgroundColor,
+      syntaxPalette,
       gutterColor,
       borderColor,
     ]);
@@ -596,7 +619,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       if (sentCompletionRef.current === key || (sentCompletionRef.current === null && !wanted.enabled)) return;
       sentCompletionRef.current = key;
       void apiBridge.client.setConfig({ completion: wanted }).then((reply) => {
-        if (!reply.ok) Logger.warn('editor.completion.config_failed', { code: reply.error.code });
+        if (reply.ok) return;
+        if (reply.error.code === 'transport' && reply.error.cause === 'closed' && !isInitializedRef.current) return;
+        Logger.warn('editor.completion.config_failed', { code: reply.error.code });
       });
     }, [apiBridge]);
     const completionKey = JSON.stringify(completion ?? null);
@@ -620,10 +645,27 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     useEffect(() => {
       Logger.debug('editor.value_sync', { effect: 'valueSync' });
       if (!isInitializedRef.current) return;
+      if (appliedDocumentKey.current !== documentKey) {
+        appliedDocumentKey.current = documentKey;
+        const loadDocument = async () => {
+          if (!isReadyRef.current || appliedDocumentKey.current !== documentKey) return;
+          const reply = await apiBridge.client.load(value);
+          if (appliedDocumentKey.current !== documentKey) return;
+          if (!reply.ok) {
+            Logger.warn('editor.document.load_failed', { code: reply.error.code });
+            return;
+          }
+          holdText(normalizeText(value));
+          onUndoAvailabilityChange?.(false);
+          onSelectionChange({ start: 0, end: 0 });
+        };
+        writeChainRef.current = writeChainRef.current.then(loadDocument, loadDocument);
+        return;
+      }
       if (value !== lastWebViewTextRef.current) {
         void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.value' });
       }
-    }, [value, writeDocument]);
+    }, [apiBridge, documentKey, holdText, onSelectionChange, onUndoAvailabilityChange, value, writeDocument]);
 
     const updateHydratedRef = useRef(updateHydrated);
     updateHydratedRef.current = updateHydrated;
@@ -640,7 +682,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       return () => clearTimeout(timer);
     }, []);
 
+    const bridgeEpoch = useRef(0);
     useLayoutEffect(() => {
+      const epoch = ++bridgeEpoch.current;
       Logger.debug('editor.cleanup', { effect: 'cleanup' });
       return () => {
         isReadyRef.current = false;
@@ -651,8 +695,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         caretDragRef.current?.drag.cancel();
         caretDragRef.current = null;
         updateHydratedRef.current(false);
+        queueMicrotask(() => {
+          if (bridgeEpoch.current !== epoch) return;
+          apiBridge.close();
+          completionListenerRef.current?.();
+          completionListenerRef.current = null;
+        });
       };
-    }, []);
+    }, [apiBridge]);
 
     const logColdStart = () => {
       const report = coldStartRef.current?.take({ evalMs: pageEvalMsRef.current });
@@ -667,10 +717,21 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             coldStartRef.current?.mark('ready');
             pageEvalMsRef.current = m.evalMs;
             isReadyRef.current = true;
-            initializeEditor();
+            if (m.initializedOnPage) {
+              isInitializedRef.current = true;
+              appliedLanguageRef.current = initialConfig.language as Language;
+              initLanguageRef.current = initialConfig.language as Language;
+              if (initialConfig !== editorConfig) {
+                const { initialText: _text, noAutoFocus: _focus, surface: _surface, ...settings } = editorConfig;
+                sendMessage({ type: 'updateConfig', config: settings });
+              }
+            } else {
+              initializeEditor();
+            }
             break;
           case 'hydrated':
             holdText(m.text);
+            onUndoAvailabilityChange?.(false);
             updateHydrated(true);
             coldStartRef.current?.mark('hydrated');
             logColdStart();
@@ -680,9 +741,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             // otherwise the current value -- so the editor never shows code
             // other than what Run Local will run.
             if (queuedTextRef.current != null) {
-              const { text, sel } = queuedTextRef.current;
+              const { text, sel, focus } = queuedTextRef.current;
               queuedTextRef.current = null;
-              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued', focus: true });
+              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued', focus });
             } else if (m.text !== valueRef.current) {
               Logger.info('editor.hydrated.reconciled', {
                 viewLength: m.text.length,
@@ -731,8 +792,18 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               message: m.message.slice(0, 200),
             });
             break;
+          case 'inputTiming':
+            if (__DEV__) Logger.info('editor.input_timing', {
+              inputToUpdateMs: m.inputToUpdateMs,
+              updateToFrameMs: m.updateToFrameMs,
+              updates: m.updates,
+              frameToHostMs: Math.max(0, Date.now() - m.sentAtMs),
+              nth: coldStartRef.current?.nth,
+            });
+            break;
           case 'contentChanged':
             holdText(m.text);
+            onUndoAvailabilityChange?.(m.canUndo);
             onChangeText(m.text);
             onSelectionChange(m.selection);
             break;
@@ -744,9 +815,12 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       },
       [
         initializeEditor,
+        initialConfig,
+        editorConfig,
         onChangeText,
         onFocusChange,
         onSelectionChange,
+        onUndoAvailabilityChange,
         listenForCompletion,
         sendCompletion,
         sendMessage,
@@ -763,15 +837,15 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
 
     // The WebView's onMessage feeds this editor first, then any port subscribers.
     const handleMessage = useCallback(
-      (event: WebViewMessageEvent) => {
+      (raw: string) => {
         // A typed-API frame goes to the rpc client and never enters the old path, whose listeners expect a `type`.
-        if (decode(event.nativeEvent.data).type !== 'foreign') {
-          apiBridge.receive(event.nativeEvent.data);
+        if (decode(raw).type !== 'foreign') {
+          apiBridge.receive(raw);
           return;
         }
         let msg: FromEditorMessage;
         try {
-          msg = JSON.parse(event.nativeEvent.data) as FromEditorMessage;
+          msg = JSON.parse(raw) as FromEditorMessage;
         } catch (err) {
           Logger.withError(err).debug('editor.message.parse_skip');
           return;
@@ -789,47 +863,22 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         testID={testID ?? 'CodeEditorContainer'}
         flex={1}
         overflow="hidden"
-        rounded="$3"
-        style={{ backgroundColor: palette.background }}
+        rounded={canvas ? 0 : "$3"}
+        style={{ backgroundColor }}
       >
-        <WebView<object>
-          testID="CodeEditorInput"
-          ref={webViewRef}
-          source={{ html }}
-          onMessage={handleMessage}
-          onLoadStart={() => {
+        <EditorPage nativeRef={webViewRef} source={source} canvas={canvas} beforeLoad={bootstrapScript}
+          backgroundColor={backgroundColor} onData={handleMessage} onTerminate={() => {
+            isReadyRef.current = false;
+            isInitializedRef.current = false;
+            updateHydrated(false);
+            webViewRef.current?.reload();
+          }} onLoadStart={() => {
             coldStartRef.current?.mark('loadStart');
             Logger.info('editor.webview.load_start', {});
-          }}
-          onLoadEnd={() => {
-            Logger.info('editor.webview.load_end', {});
-          }}
-          onError={(e) => {
-            Logger.warn('editor.webview.error', {
-              desc: e.nativeEvent.description,
-            });
-          }}
-          onHttpError={(e) => {
-            Logger.warn('editor.webview.http_error', {
-              statusCode: e.nativeEvent.statusCode,
-            });
-          }}
-          onRenderProcessGone={(e) => {
-            Logger.error('editor.webview.process_gone', {
-              didCrash: e.nativeEvent.didCrash,
-            });
-          }}
-          originWhitelist={['*']}
-          javaScriptEnabled
-          domStorageEnabled={false}
-          bounces={false}
-          scrollEnabled={false}
-          keyboardDisplayRequiresUserAction={false}
-          hideKeyboardAccessoryView
-          allowsInlineMediaPlayback
-          style={{ flex: 1, backgroundColor: palette.background }}
-        />
-        {Platform.OS === 'android' ? <EditorTextMirror source={textMirror} /> : null}
+          }} />
+        {(Platform.OS === 'android' || process.env.EXPO_PUBLIC_DEVICE_LAB === '1') && (
+          <EditorTextMirror source={textMirror} loading={process.env.EXPO_PUBLIC_DEVICE_LAB === '1' && !documentReady} />
+        )}
       </View>
     );
   }

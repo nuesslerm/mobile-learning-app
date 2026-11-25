@@ -155,6 +155,7 @@ services:
       # this container; confirmed live via the redeploy bisect diagnostic
       # that it was landing in .env but never reaching this service).
       OPENCODE_DEFAULT_MODEL: ${OPENCODE_DEFAULT_MODEL:-}
+      RCA_OPENCODE_MODELS: ${RCA_OPENCODE_MODELS:-}
       # The voice-edit planner's model (config/models.ts reads it; empty keeps
       # the code default). Env, not image, so the race set and model can move
       # without a rebuild.

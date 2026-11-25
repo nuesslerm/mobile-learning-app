@@ -18,6 +18,7 @@ use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, Set
 use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult, SessionEnded, SessionOpen, SessionSend};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
 use crate::adapters::git::{Repo, Watches};
+use crate::adapters::claude_task_output::ClaudeTaskOutput;
 use crate::adapters::opencode_bridge::Bridge;
 use crate::adapters::hosted::Hosted;
 use crate::hosted::plan::Paths;
@@ -430,7 +431,21 @@ impl ToolExecutor for LocalExecutor {
             None
         };
         self.sessions.reserve(&args.session)?;
-        let ended = self.drive(id, cmd, None, usize::MAX, Some(Live { name: &args.session, started: events, bridge }), output);
+        let live = Live { name: &args.session, started: events, bridge };
+        let ended = match ClaudeTaskOutput::for_session(args) {
+            Some(mut relay) => {
+                let ended = self.drive(id, cmd, None, usize::MAX, Some(live), &mut |stream, text| {
+                    if stream == Stream::Stdout {
+                        relay.forward(text, &mut |text| output(Stream::Stdout, text));
+                    } else {
+                        output(stream, text);
+                    }
+                });
+                relay.flush(&mut |text| output(Stream::Stdout, text));
+                ended
+            }
+            None => self.drive(id, cmd, None, usize::MAX, Some(live), output),
+        };
         self.sessions.release(&args.session);
         ended.map(|r| SessionEnded { exit_code: r.exit_code, cancelled: r.cancelled })
     }

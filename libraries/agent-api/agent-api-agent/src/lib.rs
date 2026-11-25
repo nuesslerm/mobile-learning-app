@@ -23,7 +23,7 @@ pub mod results;
 pub mod testing;
 mod wire;
 
-pub use events::{FileOp, FinishCause, FinishReason, OutputStream, Role, ThreadEvent, Usage};
+pub use events::{FileOp, FinishCause, FinishReason, MessageAttachment, OutputStream, Role, ThreadEvent, Usage};
 pub use params::{CreateParams, GetParams, HistoryParams, InterruptParams, ListParams, StartParams, SubscribeParams, TranscriptParams};
 pub use results::{HistoryResult, InterruptResult, ListResult, StartResult, Status, SubscribeResult, ThreadView, TranscriptItem, TranscriptResult};
 

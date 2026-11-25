@@ -122,11 +122,20 @@ pub fn codex(args: &CodexRequest, path: &Path, search: &str, home: &Path) -> Exe
         let mut input = child.stdin.take().ok_or_else(|| ExecError::new(Code::Io, "the Codex app-server takes no input"))?;
         let deadline = Instant::now() + Duration::from_millis(args.timeout_ms);
         let mut send = |value: Value| writeln!(input, "{value}").and_then(|()| input.flush()).map_err(io);
+        let init = tracing::info_span!("codex.initialize", api.outcome = "error").entered();
         send(json!({"id": 1, "method": "initialize", "params": {"clientInfo": {"name": "rca-exec", "version": "1.0.0"}}}))?;
         answer(&rx, 1, deadline, "the Codex app-server")?;
+        init.record("api.outcome", "ok");
+        drop(init);
+        let notice = tracing::info_span!("codex.initialized", api.outcome = "error").entered();
         send(json!({"method": "initialized", "params": {}}))?;
+        notice.record("api.outcome", "sent");
+        drop(notice);
+        let request = tracing::info_span!("codex.request", otel.name = %format!("codex.{}", args.method), api.outcome = "error").entered();
         send(json!({"id": 2, "method": args.method, "params": args.params}))?;
-        answer(&rx, 2, deadline, "the Codex app-server").map(|result| CodexAnswer { result })
+        let result = answer(&rx, 2, deadline, "the Codex app-server")?;
+        request.record("api.outcome", "ok");
+        Ok(CodexAnswer { result })
     })();
     kill_group(&mut child);
     outcome
@@ -143,6 +152,7 @@ fn claude_token(home: &Path) -> ExecResult<String> {
 pub fn claude_usage(url: &str, search: &str, home: &Path) -> ExecResult<ClaudeAnswer> {
     let token = claude_token(home)?;
     let curl = std::env::split_paths(search).map(|dir| dir.join("curl")).find(|p| p.is_file()).ok_or_else(|| ExecError::new(Code::NotFound, "curl is not installed here"))?;
+    let span = tracing::info_span!("claude.http.usage", api.outcome = "error", http.response.status_code = tracing::field::Empty).entered();
     let mut child = Command::new(&curl)
         .args(["-sS", "--max-time", "10", "-w", "\n%{http_code}", "-H", "@-", url])
         .env("PATH", search)
@@ -166,5 +176,7 @@ pub fn claude_usage(url: &str, search: &str, home: &Path) -> ExecResult<ClaudeAn
     let (body, status) = text.rsplit_once('\n').ok_or_else(|| ExecError::new(Code::Io, "the usage answer has no status"))?;
     let status: u16 = status.trim().parse().map_err(|_| ExecError::new(Code::Io, "the usage answer has no status"))?;
     let body = serde_json::from_str::<Value>(body).unwrap_or_else(|_| Value::String(tail(body, 400)));
+    span.record("http.response.status_code", status);
+    span.record("api.outcome", if status >= 400 { "error" } else { "ok" });
     Ok(ClaudeAnswer { status, body })
 }

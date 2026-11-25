@@ -67,6 +67,43 @@ pub fn open_chat(agent: &dyn AgentApi, workspace: &str, session: &str, chat_agen
     open(agent, workspace, json!({"id": session, "kind": "agent-session", "sessionId": session, "agent": chat_agent, "title": title}))
 }
 
+pub use agent_api_agent::THREAD_LIST;
+
+/// The feed opens the workspace by ID. Install mobile-owned threads as tabs before delivering its first snapshot.
+pub fn discover_mobile_chats(agent: &dyn AgentApi, workspace: &str) -> Result<(), Failure> {
+    let listed = match agent.request(THREAD_LIST.name(), json!({})) {
+        Ok(listed) => listed,
+        Err(orca_core::AgentError::Refused { code, .. }) if code == "UNKNOWN_METHOD" => return Ok(()),
+        Err(error) => return Err(refusal(error)),
+    };
+    for thread in listed["threads"].as_array().into_iter().flatten().filter(|t| t["workspace"] == workspace) {
+        let Some(id) = thread["id"].as_str() else { continue };
+        let agent_id = match thread["driver"].as_str() {
+            Some("codex") => "codex", Some("claudeAgent") => "claude", Some("opencode") => "opencode", _ => continue,
+        };
+        import_mobile_chat(agent, workspace, id, agent_id, thread["title"].as_str().unwrap_or("Chat"))?;
+    }
+    Ok(())
+}
+
+/// Import an externally created mobile chat once. A later close or change of focus stays a user decision.
+pub fn import_mobile_chat(agent: &dyn AgentApi, workspace: &str, session: &str, chat_agent: &str, title: &str) -> Result<(), Failure> {
+    let origin = agent.state_get("mobile.thread.workspace", session).map_err(refusal)?;
+    if origin.as_ref().and_then(Value::as_str) != Some(workspace) {
+        let task = agent.state_get("mobile.thread.task", session).map_err(refusal)?;
+        if task.as_ref().and_then(|v| v["workspace"].as_str()) != Some(workspace) { return Ok(()); }
+    }
+    let _turn = orca_core::kept_state_turn();
+    let imported = format!("tabs.imported.{session}");
+    if agent.state_get(SCOPE, &imported).map_err(refusal)? == Some(json!(true)) { return Ok(()); }
+    let mut tabs = kept(agent, workspace)?;
+    if !tabs.iter().any(|tab| tab["id"] == session) {
+        tabs.push(json!({"id":session,"kind":"agent-session","sessionId":session,"agent":chat_agent,"title":title}));
+        keep(agent, &extras_key(workspace), Value::Array(tabs))?;
+    }
+    keep(agent, &imported, json!(true))
+}
+
 fn language(path: &str) -> &'static str {
     match extension(path).as_str() {
         ".ts" | ".tsx" | ".mts" | ".cts" => "typescript",

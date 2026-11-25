@@ -1,3 +1,4 @@
+import type { MobilePort } from './mobile';
 import type {
   OrchestrationSubscribeShellItem,
   OrchestrationSubscribeThreadItem,
@@ -83,6 +84,7 @@ export type TokenStorePort = {
 };
 
 export type CodingAgentPorts = {
+  mobile?: MobilePort;
   orchestration: OrchestrationPort;
   dispatchRuns: DispatchRunsPort;
   tokenStore: TokenStorePort;

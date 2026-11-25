@@ -1,5 +1,6 @@
 //! What the core needs from outside, in its own words.
 use serde_json::Value;
+use std::sync::atomic::AtomicBool;
 
 pub type Millis = i64;
 
@@ -195,7 +196,7 @@ pub enum Finish {
 }
 
 /// What a thread's log says happened, neutral of any provider's own wire. `Other` is what t3 shows nothing of yet (usage, plans, file
-/// changes, requests for an answer).
+/// changes).
 #[derive(Debug, Clone, PartialEq)]
 pub enum AgentEventKind {
     TurnStarted,
@@ -206,9 +207,24 @@ pub enum AgentEventKind {
     ToolStarted { id: String, name: String, input: Value },
     ToolOutput { id: String, data: String },
     ToolFinished { id: String, ok: bool },
+    Request(RuntimeRequestEvent),
     Failure(String),
     TurnFinished(Finish),
     Other,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RuntimeRequestEvent {
+    Approval { id: String, tool: String, args: Value },
+    Question { id: String, prompt: String, options: Vec<String> },
+    Closed { id: String, response: RuntimeResponse },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RuntimeResponse {
+    Approval(&'static str),
+    Answer(String),
+    Dismissed,
 }
 
 /// `seq` is the thread's own event number; `turn` the turn the event belongs to.
@@ -268,7 +284,8 @@ pub enum Op {
     QueueMove { thread: String, item: String, before: Option<String> },
     QueueDelete { thread: String, item: String },
     QueueResume { thread: String, item: Option<String> },
-    TurnSteer { thread: String, turn: Option<String>, item: Option<String> },
+    QueueList { thread: String },
+    TurnSteer { thread: String, turn: Option<String>, item: Option<String>, prompt: Option<String> },
     ThreadArchive { thread: String, archived: bool },
     ThreadDelete { thread: String, only_if_unused: bool },
     ThreadFork { thread: String, fork: String, turn: Option<String>, title: Option<String> },
@@ -388,6 +405,7 @@ impl Op {
             Op::QueueMove { .. } => "queue.move",
             Op::QueueDelete { .. } => "queue.delete",
             Op::QueueResume { .. } => "queue.resume",
+            Op::QueueList { .. } => "queue.list",
             Op::TurnSteer { .. } => "turn.steer",
             Op::ThreadArchive { .. } => "thread.archive",
             Op::ThreadDelete { .. } => "thread.delete",
@@ -506,7 +524,11 @@ pub trait AgentApi: Send + Sync {
     /// Asks the running turn to stop; a thread with nothing to stop is not an error.
     fn interrupt(&self, thread_id: &str) -> Result<(), AgentError>;
     /// Calls `sink` with each event after `after_seq`, those the thread already has first, until it answers `Stop`.
-    fn follow(&self, thread_id: &str, after_seq: u64, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError>;
+    fn follow(&self, thread_id: &str, after_seq: u64, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
+        self.follow_until(thread_id, after_seq, &AtomicBool::new(false), sink)
+    }
+    /// A follow whose owner may stop it even while the thread is quiet.
+    fn follow_until(&self, thread_id: &str, after_seq: u64, stop: &AtomicBool, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError>;
     /// Up to `limit` events after `after_seq`.
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError>;
     fn list_dir(&self, root: &str, path: &str) -> Result<Vec<DirEntry>, AgentError>;

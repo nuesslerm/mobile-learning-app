@@ -148,10 +148,11 @@ describe('Run from the console', () => {
     await tap('ConsoleBarRun');
     await waitFor(() => expect(runner.held).toBe(1));
 
-    act(() => runner.release(new CodeRunnerError('unavailable', 'The runner is not available')));
+    await act(async () => runner.release(new CodeRunnerError('unavailable', 'The runner is not available')));
 
     await waitFor(() => expect(verdict()).toBe('Run failed'));
     expect(text('ConsoleResultErrorText')).toBe('The runner is not available');
+    expect(await loggedLines('editor_v2.run_local.error')).not.toHaveLength(0);
     await tap('ConsoleTabs-testcase');
     expect(isDisabled('ConsoleFooterRun')).toBe(false);
   });

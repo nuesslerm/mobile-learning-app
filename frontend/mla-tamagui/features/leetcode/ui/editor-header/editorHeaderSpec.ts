@@ -1,5 +1,7 @@
 import type { HeaderMenuSpec, MenuNode, ScreenHeaderSpec } from '@lib/tamagui-design-system';
-import { History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw } from '@lib/tamagui-design-system/icons';
+import { Cloud, History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw } from '@lib/tamagui-design-system/icons';
+
+import type { DraftStatus } from '../../state/editor/useCodeDrafts';
 
 export const EDITOR_HEADER_IDS = {
   header: 'ProblemEditorHeader',
@@ -8,7 +10,10 @@ export const EDITOR_HEADER_IDS = {
   history: 'ProblemEditorMenuHistory',
   login: 'ProblemEditorMenuLogin',
   resetCode: 'ProblemEditorMenuResetCode',
+  undo: 'ProblemEditorUndo',
 } as const;
+
+const SAVE_LABELS: Record<DraftStatus, string> = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved' };
 
 export type EditorHeaderInput = {
   title: string;
@@ -20,8 +25,10 @@ export type EditorHeaderInput = {
   busy: boolean;
   /** The editor settings menu, its own piece of glass. */
   settings: HeaderMenuSpec;
+  nativeWorkspace?: { language: HeaderMenuSpec; saveStatus: DraftStatus; backgroundColor?: string; railStyle?: MenuNode };
   onBack: () => void;
   onInfo: () => void;
+  onUndo?: () => void;
   onHistory: () => void;
   onLogin: () => void;
   /** Given only when the console replaces the Reset button of the classic rows. */
@@ -69,5 +76,32 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
     testID: EDITOR_HEADER_IDS.info,
     onPress: input.onInfo,
   };
-  return { ...base, busy: input.busy, groups: [[input.settings], [info, moreMenu(input)]] };
+  const workspaceActions = input.onUndo ? [[{
+    icon: RotateCcw,
+    sfSymbol: 'arrow.uturn.backward' as const,
+    accessibilityLabel: 'Undo',
+    testID: EDITOR_HEADER_IDS.undo,
+    onPress: input.onUndo,
+  }]] : [];
+  const native = input.nativeWorkspace;
+  const more = moreMenu(input);
+  return {
+    ...base,
+    busy: input.busy,
+    ...(native ? {
+      nativeTitle: 'hidden' as const,
+      nativeBackgroundColor: native.backgroundColor,
+      leadingStatus: {
+        label: SAVE_LABELS[native.saveStatus],
+        icon: Cloud,
+        sfSymbol: 'cloud',
+        testID: 'ProblemEditorSaveStatus',
+        menu: {
+          accessibilityLabel: 'Problem actions',
+          items: [{ ...info, label: 'Problem description' }, ...more.items, ...(native.railStyle ? [native.railStyle] : [])],
+        },
+      },
+    } : {}),
+    groups: [...workspaceActions, ...(native ? [[native.language, input.settings]] : [[input.settings], [info, more]])],
+  };
 }

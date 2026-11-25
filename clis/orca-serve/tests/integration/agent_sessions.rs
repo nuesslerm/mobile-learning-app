@@ -323,6 +323,97 @@ fn queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_tu
         assert_eq!(resumed["result"]["ok"], true, "{resumed}");
         // Then the live CLI was sent the prompts in the order the phone set: the first job, the one sent now, then the queue as moved, edited and pruned
         assert_eq!(sent_to_cli(&chain, &["first-job", "alpha-one", "beta-edited", "beta-two", "gamma-three", "delta-four"]), ["first-job", "delta-four", "gamma-three", "beta-edited"], "{}", chain.evidence());
+
+        // And after reconnect the journal links each dispatched card to a distinct submission in dispatch order.
+        rca.wait_events(s, "turn.finished", 4);
+        let mut reopened = Phone::connect(case, &chain);
+        let history = tail(&mut reopened, case, &chain, s);
+        let handoffs = history["submissions"].as_array().unwrap();
+        let ids = [id("delta-four"), id("gamma-three"), id("beta-two")];
+        assert_eq!(
+            handoffs
+                .iter()
+                .map(|row| row["queuedMessageId"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            ids.iter().map(String::as_str).collect::<Vec<_>>()
+        );
+        assert!(handoffs.iter().all(|row| row["clientMessageId"].is_string()
+            && row["clientMessageId"] != row["queuedMessageId"]));
+        assert_eq!(
+            now["result"]["value"]["submission"]["clientMessageId"],
+            handoffs[0]["clientMessageId"]
+        );
+        assert_eq!(
+            handoffs[2]["payloadFingerprint"],
+            orca_map_agent::body_fingerprint(s, "beta-edited")
+        );
+        assert_eq!(history["queuedMessages"], json!([]));
+
+        // And a subscription resumed from before dispatch contains the same handoffs.
+        let (_, replay) = reopened.subscribe(
+            case,
+            &chain,
+            &[],
+            "agentSession.subscribe",
+            json!({"sessionId": s, "cursor": page["liveCursor"]}),
+        );
+        assert_eq!(replay["result"]["batch"]["submissions"], json!(handoffs));
+        let status = reopened.call(case, &chain, &[], "status.get", json!({}));
+        let features = status["result"]["capabilities"].as_array().unwrap();
+        assert!(features.contains(&json!("agent-session.queued-messages.v2")));
+        assert!(features.contains(&json!("agent-session.queued-message-reorder.v1")));
+    });
+}
+
+#[test]
+fn a_queued_message_being_edited_waits_for_its_new_text_when_the_active_turn_finishes() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a running turn waiting on a question and a queued message the phone is editing.
+        let chain = Chain::start(None);
+        let waiting = Turn::replaying(&[said("waiting")])
+            .then_calling("ask1", "ask_user", json!({"question": "Continue?", "options": ["yes"]}));
+        chain.cli.script("claude", &Script::of(vec![waiting, Turn::replaying(&[said("done")])]).printing_version("0.0.0-flow"));
+        let mut phone = Phone::connect(case, &chain);
+        let mut rca = chain.direct();
+        let session = "claude_edit_queue";
+        phone.call(case, &chain, &["rpc:agentSession.create"], "agentSession.create", create_params(session, "create", None));
+        phone.call(case, &chain, &["rpc:agentSession.send"], "agentSession.send", mutation(session, "first", json!({"body": body("first-job")})));
+        rca.wait_events(session, "input.requested", 1);
+        let queued = phone.call(case, &chain, &["rpc:agentSession.send"], "agentSession.send", mutation(session, "queue", json!({"delivery": "queue-if-active", "body": body("before-edit")})));
+        let card = queued["result"]["value"]["queued"]["messageId"].as_str().unwrap();
+        let fingerprint = orca_map_agent::body_fingerprint(session, "before-edit");
+        let lease = |action: &str| json!({"sessionId": session, "messageId": card, "editId": "edit-1", "action": action, "expectedBodyFingerprint": fingerprint});
+        let held = phone.call(case, &chain, &["rpc:agentSession.queuedMessageEditHold"], "agentSession.queuedMessageEditHold", lease("acquire"));
+        assert_eq!(held["result"]["status"], "held", "{held}");
+
+        // When the first turn finishes and the queue is asked to dispatch, the original card stays queued.
+        let page = tail(&mut phone, case, &chain, session);
+        let question = items(&page).into_iter().find(|item| item["body"]["kind"] == "question").expect("a pending question");
+        let answer = mutation(session, "answer", json!({"itemId": question["itemId"], "expectedRevision": question["revision"], "optionId": "yes"}));
+        phone.call_settled(case, &chain, &["rpc:agentSession.respondToQuestion"], "agentSession.respondToQuestion", answer, |_| {
+            rca.wait_events(session, "turn.finished", 1);
+        });
+        phone.call(case, &chain, &["rpc:agentSession.queuedMessagesResume"], "agentSession.queuedMessagesResume", mutation(session, "wake", json!({})));
+        let waiting = tail(&mut phone, case, &chain, session);
+        assert_eq!(waiting["queuedMessages"][0]["messageId"], card, "{waiting}");
+        assert_eq!(waiting["nextQueuedMessageId"], Value::Null);
+        assert!(rca.events(session, "queue.started").is_empty());
+
+        // When the phone saves and releases the lease, only the edited text runs under the same card id.
+        let update = mutation(session, "update", json!({"messageId": card, "expectedBodyFingerprint": fingerprint, "text": "after-edit"}));
+        let updated = phone.call(case, &chain, &["rpc:agentSession.queuedMessageUpdate"], "agentSession.queuedMessageUpdate", update);
+        assert_eq!(updated["result"]["value"]["status"], "updated", "{updated}");
+        let released = phone.call_settled(case, &chain, &["rpc:agentSession.queuedMessageEditHold"], "agentSession.queuedMessageEditHold", lease("release"), |_| {
+            rca.wait_events(session, "turn.finished", 2);
+        });
+        assert_eq!(released["result"]["status"], "released", "{released}");
+        let starts = rca.events(session, "queue.started");
+        assert_eq!(starts.len(), 1);
+        assert_eq!(starts[0]["item"], card);
+        assert_eq!(sent_to_cli(&chain, &["first-job", "before-edit", "after-edit"]), ["first-job", "after-edit"]);
+        let finished = tail(&mut phone, case, &chain, session);
+        assert_eq!(finished["submissions"][0]["queuedMessageId"], card);
+        assert_eq!(finished["queuedMessages"], json!([]));
     });
 }
 
@@ -371,15 +462,29 @@ fn an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_re
         assert_eq!(aborted["result"], json!({"aborted": true}));
         let gone = phone.refused(case, &chain, &["rpc:agentSessionAttachment.uploadAppend"], "agentSessionAttachment.uploadAppend", json!({"uploadId": spare["result"]["uploadId"], "offset": 0, "contentBase64": b64(b"0123456789")}));
         assert_eq!(gone["error"]["message"], "Attachment upload was not found");
-        // When a message names the image
+        // Given a second committed image with different bytes.
+        let second = phone.call(case, &chain, &[], "agentSessionAttachment.uploadStart", json!({"sessionId": s, "name": "another.png", "byteLength": 3}));
+        let second_upload = &second["result"]["uploadId"];
+        phone.call(case, &chain, &[], "agentSessionAttachment.uploadAppend", json!({"uploadId": second_upload, "offset": 0, "contentBase64": b64(b"two")}));
+        let second_path = phone.call(case, &chain, &[], "agentSessionAttachment.uploadCommit", json!({"uploadId": second_upload}))["result"]["path"].clone();
+        // When the phone sends both and a fresh connection reads the chat.
         let id = path.split('/').nth(3).unwrap().to_string();
-        phone.call_settled(case, &chain, &["rpc:agentSession.send"], "agentSession.send", json!({"envelope": env(s, "s1"), "body": {"blocks": [{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}]}}), |_| {
+        phone.call_settled(case, &chain, &["rpc:agentSession.send"], "agentSession.send", json!({"envelope": env(s, "s1"), "body": {"blocks": [{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}, {"type": "image-ref", "path": second_path}]}}), |_| {
             rca.wait_events(s, "turn.finished", 1);
         });
         // Then rca-exec staged the image in the workspace under the upload's id, byte for byte, and the live CLI was sent the text
         let staged = chain.repo.path().join(format!(".rca/attachments/{id}/shot.png"));
         assert_eq!(std::fs::read(&staged).unwrap_or_else(|e| panic!("{}: {e}\n{}", staged.display(), chain.evidence())), png);
         assert!(chain.cli.claude_prompts("claude").iter().any(|sent| sent.contains("what is this")), "{:?}", chain.cli.claude_prompts("claude"));
+        // And the replayed user message retains both image blocks in order and both paths still read back the original bytes.
+        let mut reopened = Phone::connect(case, &chain);
+        let page = tail(&mut reopened, case, &chain, s);
+        let message = items(&page).into_iter().find(|i| i["body"]["role"] == "user").unwrap();
+        assert_eq!(message["body"]["blocks"], json!([{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}, {"type": "image-ref", "path": second_path}]));
+        for (block, expected) in message["body"]["blocks"].as_array().unwrap()[1..].iter().zip([png.as_slice(), b"two"]) {
+            let preview = reopened.call(case, &chain, &[], "files.readChatImage", json!({"worktree": format!("id:{WS}::"), "path": block["path"]}));
+            assert_eq!(decode(&preview), expected);
+        }
     });
 }
 

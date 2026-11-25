@@ -236,7 +236,7 @@ mod tests {
         // When it hears a start, a delta, a finish, a failure, an interrupt, a question and a permission request
         for event in [
             ThreadEvent::TurnStarted {},
-            ThreadEvent::MessageDelta { role: agent_api_agent::Role::Assistant, text: "hi".into() },
+            ThreadEvent::message_delta(agent_api_agent::Role::Assistant, "hi".into()),
             ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None },
             ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None },
             ThreadEvent::TurnFinished { reason: FinishReason::Interrupted, cause: None },

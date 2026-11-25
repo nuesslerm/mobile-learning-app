@@ -4,6 +4,10 @@ import { useMemo, type ReactNode } from 'react';
 
 import type { AudioRecordingPort, LeetCodePortOverrides, LeetCodePorts } from '../domain/ports';
 import { resolveLeetCodeFlags } from '../domain/featureFlags';
+import { bundledLibrary } from '../data/library/libraryContent';
+import { deviceLibraryCover } from '../data/library/deviceLibraryCover';
+import { deviceLibrary } from '../data/library/deviceLibrary';
+import { deviceCodeDrafts } from '../data/editor/deviceCodeDrafts';
 import { createWebViewEditorBridge } from '../data/editor/cm6/webViewEditorBridge';
 import { ExpoAudioRecorderProvider, useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
 import { createGatewayCodeRunner } from '../data/gatewayCodeRunner';
@@ -29,6 +33,10 @@ export function createDefaultContainer(
   return {
     clock: overrides.clock ?? (() => performance.now()),
     editorBridge: overrides.editorBridge ?? createWebViewEditorBridge(),
+    codeDrafts: overrides.codeDrafts ?? deviceCodeDrafts,
+    libraryStorage: overrides.libraryStorage ?? deviceLibrary,
+    libraryContent: overrides.libraryContent ?? bundledLibrary,
+    libraryCover: overrides.libraryCover ?? deviceLibraryCover,
     gateway,
     voice: overrides.voice ?? createLiveVoiceEditTransport(),
     audio: overrides.audio,

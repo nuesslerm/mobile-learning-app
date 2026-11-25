@@ -6,6 +6,7 @@
 pub const HELP: &[(&str, bool, &str)] = &[
     ("", true, include_str!("help/wf.txt")),
     ("test", false, include_str!("help/wf__test.txt")),
+    ("content", true, include_str!("help/wf__content.txt")),
     ("check", false, include_str!("help/wf__check.txt")),
     ("log", true, include_str!("help/wf__log.txt")),
     ("log emit", false, include_str!("help/wf__log__emit.txt")),

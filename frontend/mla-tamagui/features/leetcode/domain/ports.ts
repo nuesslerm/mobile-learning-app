@@ -4,6 +4,7 @@
 // dependency-free.
 
 import type { EditorClient } from '@lib/code-editor-api';
+import type { LibraryContentPort, LibraryCoverPort, LibraryStoragePort } from './library/library';
 import type { LeetCodeFlags } from './featureFlags';
 import type { RunResponse, TestCase } from './run/execution';
 import type { Harness, NodeType } from './models';
@@ -115,6 +116,8 @@ export type EditorConfig = {
   borderColor: string;
   tabSize: number;
   noAutoFocus?: boolean;
+  surface?: 'canvas';
+  syntaxPalette?: 'default' | 'contrast';
 };
 
 export type ToEditorMessage =
@@ -132,14 +135,15 @@ type EditorSelection = { start: number; end: number };
 
 // Mirrors the webview's postMessage protocol (see data/editor/cm6/cm6Bundle.src.ts).
 export type FromEditorMessage =
-  | { type: 'ready'; evalMs?: number }
+  | { type: 'ready'; evalMs?: number; initializedOnPage?: boolean }
   | { type: 'hydrated'; text: string; selection: EditorSelection }
   | { type: 'focused' }
   | { type: 'blurred' }
   | { type: 'log'; message: string }
   | { type: 'error'; message: string }
-  | { type: 'contentChanged'; text: string; selection: EditorSelection }
-  | { type: 'selectionChanged'; selection: EditorSelection };
+  | { type: 'contentChanged'; text: string; selection: EditorSelection; canUndo: boolean }
+  | { type: 'selectionChanged'; selection: EditorSelection }
+  | { type: 'inputTiming'; inputToUpdateMs: number | null; updateToFrameMs: number; updates: number; sentAtMs: number };
 
 /** What the editor view hands the page it shows: a WebView that takes scripts. */
 export type WebViewHandle = { injectJavaScript(script: string): void };
@@ -150,7 +154,8 @@ export type WebViewHandle = { injectJavaScript(script: string): void };
  */
 export interface EditorBridgePort {
   html(): string;
-  connect(webView: () => WebViewHandle | null): { client: EditorClient; receive(raw: string): void };
+  pageSource?(html: string): { html: string } | { uri: string };
+  connect(webView: () => WebViewHandle | null): { client: EditorClient; receive(raw: string): void; close(): void };
 }
 
 export interface CodeEditorPort {
@@ -185,11 +190,20 @@ export class CodeRunnerError extends Error {
   }
 }
 
+export interface CodeDraftPort {
+  read(problemId: string, language: string): Promise<string | null>;
+  write(problemId: string, language: string, code: string | null): Promise<void>;
+}
+
 export interface LeetCodePorts {
+  libraryStorage: LibraryStoragePort;
+  libraryContent: LibraryContentPort;
+  libraryCover: LibraryCoverPort;
   /** A monotonic clock in milliseconds; the editor's cold start is measured with it. */
   clock: () => number;
   /** The CodeMirror page and the typed editor API over it. */
   editorBridge: EditorBridgePort;
+  codeDrafts: CodeDraftPort;
   gateway: LeetCodeGatewayPort;
   voice: VoiceEditTransportPort;
   audio: AudioRecordingPort;

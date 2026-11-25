@@ -188,6 +188,7 @@ fn connection(mut client: TcpStream, upstream: SocketAddr, carry: Carry, log: &L
 
 /// One HTTP exchange, forwarded with `Connection: close` so the answer is read to its end.
 fn exchange(head: Head, rest: Vec<u8>, client: &mut TcpStream, up: &mut TcpStream, log: &Log) -> std::io::Result<()> {
+        let _span = wf_kit::performance::external("mimic.http");
     let body = read_body(client, &head, rest, false)?;
     let skip = |k: &str| matches!(k, "host" | "connection" | "accept-encoding" | "transfer-encoding" | "content-length");
     let host = up.peer_addr()?;

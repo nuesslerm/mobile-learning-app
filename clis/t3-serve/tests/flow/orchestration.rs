@@ -1,7 +1,7 @@
 //! Orchestration V2 through the socket: thread commands and their events, a turn from message to finished run on a scripted
 //! agent API double, interrupts and failures, the file RPCs, and the declared-unsupported table.
 use super::support::*;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use t3_core::ports::AgentEventKind;
 
 const QUIET: Duration = Duration::from_millis(300);
@@ -90,6 +90,12 @@ fn a_thread_can_be_pinned_visited_and_have_its_modes_and_model_changed_each_as_a
 fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_text_a_tool_row_and_a_finished_run() {
     // Given an agent API whose turn answers with two text deltas around one tool call that prints twice
     let (h, mut rpc, thread) = started();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !h.agent.calls.lock().unwrap().contains(&"thread.subscribe") {
+        assert!(Instant::now() < deadline, "the thread event watcher did not subscribe");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    h.agent.calls.lock().unwrap().clear();
     *h.agent.script.lock().unwrap() = vec![
         AgentEventKind::Text("Hel".into()),
         AgentEventKind::ToolStarted { id: "k1".into(), name: "bash".into(), input: json!({"command": "ls"}) },
@@ -266,6 +272,35 @@ fn queued(command_id: &str, text: &str) -> Value {
     json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": "t1", "messageId": format!("m-{command_id}"), "text": text, "dispatchMode": {"type": "queue_after_active"}})
 }
 
+#[test]
+fn automatic_mobile_follow_up_queues_while_the_provider_turn_is_starting() {
+    // Given a run that owns the thread, before its provider opens a turn.
+    let (h, mut rpc, _thread) = started();
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, message("first", "start")));
+
+    // When an explicitly immediate send and then an automatic mobile send arrive.
+    let immediate = dispatch(&mut rpc, message("immediate", "refused"));
+    assert!(failure(&immediate)["message"].as_str().unwrap().contains("already has an active run"));
+    let mut automatic = message("auto", "deliver once");
+    automatic["creationSource"] = "mobile".into();
+    automatic["dispatchMode"] = json!({"type": "start_immediately"});
+    automatic["deliveryIntent"] = "auto".into();
+    let sent = dispatch(&mut rpc, automatic.clone());
+    assert_eq!(success(&sent), success(&dispatch(&mut rpc, automatic)));
+    drain(&mut rpc);
+
+    // Then the duplicate command has the same receipt and only one queued card.
+    let ops = h.agent.ops.lock().unwrap();
+    let adds: Vec<_> = ops.iter().filter_map(|op| match op {
+        t3_core::ports::Op::QueueAdd { item, prompt, .. } => Some((item.as_str(), prompt.as_str())),
+        _ => None,
+    }).collect();
+    assert_eq!(adds, [("run:thread:t1:ordinal:2", "deliver once")]);
+    drop(ops);
+    assert_eq!(run_rows(&mut rpc).into_iter().map(|(_, status, _)| status).collect::<Vec<_>>(), ["running", "queued"]);
+}
+
 fn run_rows(rpc: &mut Rpc) -> Vec<(String, String, Value)> {
     projection(rpc)["runs"].as_array().unwrap().iter().map(|r| (r["id"].as_str().unwrap().to_string(), r["status"].as_str().unwrap().to_string(), r["queuePosition"].clone())).collect()
 }
@@ -338,6 +373,47 @@ fn a_queued_message_is_steered_into_a_turn_only_once_the_provider_has_begun_it()
     std::thread::sleep(std::time::Duration::from_millis(300));
     success(&dispatch(&mut rpc, steer("c-4")));
     assert!(h.agent.ops.lock().unwrap().iter().any(|o| matches!(o, t3_core::ports::Op::TurnSteer { .. })));
+}
+
+#[test]
+fn the_mobile_steer_action_delivers_once_into_the_active_provider_turn() {
+    // Given an active provider turn and an existing queued message.
+    let (h, _events, _thread) = started();
+    let mut rpc = connect(&h);
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, message("first", "keep running")));
+    success(&dispatch(&mut rpc, queued("queued", "wait until later")));
+    h.agent.append("t1", Some("u1"), AgentEventKind::Text("working".into()));
+    for _ in 0..30 {
+        if projection(&mut rpc)["providerTurns"].as_array().unwrap().iter().any(|p| p["status"] == "running") {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+
+    // When the mobile composer sends Steer now and retries the same command.
+    let mut steer = message("steer", "change the active work");
+    steer["creationSource"] = "mobile".into();
+    steer["dispatchMode"] = json!({"type": "start_immediately"});
+    steer["deliveryIntent"] = "steer".into();
+    let first = dispatch(&mut rpc, steer.clone());
+    assert_eq!(success(&first), success(&dispatch(&mut rpc, steer)));
+
+    // Then one steer was sent and appears in the active run with nothing added to the queue.
+    let operations = h.agent.ops.lock().unwrap();
+    let steers: Vec<_> = operations.iter().filter_map(|op| match op {
+        t3_core::ports::Op::TurnSteer { prompt, turn, item, .. } => Some((prompt.as_deref(), turn.as_deref(), item.as_deref())),
+        _ => None,
+    }).collect();
+    assert_eq!(steers, [(Some("change the active work"), Some("u1"), None)]);
+    drop(operations);
+    let projection = projection(&mut rpc);
+    assert_eq!(projection["runs"].as_array().unwrap().len(), 2);
+    assert_eq!(projection["runs"][0]["status"], "running");
+    assert_eq!(projection["runs"][1]["status"], "queued");
+    let item = projection["turnItems"].as_array().unwrap().iter().find(|r| r["text"] == "change the active work").expect("one visible steer");
+    assert_eq!(item["runId"], projection["runs"][0]["id"]);
+    assert_eq!(item["inputIntent"], "steer");
 }
 
 #[test]

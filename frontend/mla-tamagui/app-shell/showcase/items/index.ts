@@ -15,6 +15,7 @@ import {
   DiffViewItem,
   MarkdownItem,
 } from './codingAgent';
+import { CompactNavigationItem } from './compactNavigation';
 import { GlassPickerItem } from './glassPicker';
 import {
   ChipItem,
@@ -96,6 +97,7 @@ export const SHOWCASE_ITEMS: ShowcaseItem[] = [
     title: 'Glass approval picker',
     Component: GlassPickerItem,
   },
+  { id: 'compact-navigation', group: 'navigation', title: 'Compact navigation', Component: CompactNavigationItem },
   {
     id: 'drawer',
     group: 'navigation',

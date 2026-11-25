@@ -11,3 +11,4 @@ pub mod root;
 pub mod stop;
 pub mod time;
 pub mod usage;
+pub mod performance;

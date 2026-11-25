@@ -8,25 +8,27 @@ pub mod params;
 pub mod results;
 
 pub use events::QueueEvent;
-pub use params::{AddParams, DeleteParams, EditParams, ListParams, MoveParams, ResumeParams, SteerParams};
-pub use results::{AddResult, DeleteResult, EditResult, ListResult, MoveResult, QueueItem, ResumeResult, SteerResult};
+pub use params::{AddParams, DeleteParams, EditHoldAction, EditHoldParams, EditParams, ListParams, MoveParams, ResumeParams, SteerParams};
+pub use results::{AddResult, DeleteResult, EditHoldResult, EditHoldStatus, EditResult, ListResult, MoveResult, QueueItem, ResumeResult, SteerResult};
 
 pub const GROUP: GroupName = GroupName::new("agent.queue");
 
 pub const QUEUE_LIST: Method = Method::new(GROUP, "queue.list");
 pub const QUEUE_ADD: Method = Method::new(GROUP, "queue.add");
+pub const QUEUE_EDIT_HOLD: Method = Method::new(GROUP, "queue.editHold");
 pub const QUEUE_EDIT: Method = Method::new(GROUP, "queue.edit");
 pub const QUEUE_MOVE: Method = Method::new(GROUP, "queue.move");
 pub const QUEUE_DELETE: Method = Method::new(GROUP, "queue.delete");
 pub const QUEUE_RESUME: Method = Method::new(GROUP, "queue.resume");
 pub const TURN_STEER: Method = Method::new(GROUP, "turn.steer");
 
-pub const METHODS: &[Method] = &[QUEUE_LIST, QUEUE_ADD, QUEUE_EDIT, QUEUE_MOVE, QUEUE_DELETE, QUEUE_RESUME, TURN_STEER];
+pub const METHODS: &[Method] = &[QUEUE_LIST, QUEUE_ADD, QUEUE_EDIT, QUEUE_EDIT_HOLD, QUEUE_MOVE, QUEUE_DELETE, QUEUE_RESUME, TURN_STEER];
 
 /// The codes of the group. `THREAD_NOT_FOUND`, `NO_TURN` (a steer with no turn running) and `INVALID_PARAMS` are the shared ones.
 pub mod code {
     /// The item is not in the thread's queue (it started, was deleted, or never was).
     pub const ITEM_NOT_QUEUED: &str = "ITEM_NOT_QUEUED";
+    pub const ITEM_EDITING: &str = "ITEM_EDITING";
     /// The thread is archived or deleted, so nothing of its queue starts.
     pub const THREAD_NOT_ACTIVE: &str = "THREAD_NOT_ACTIVE";
     /// `queue.resume` naming an item while a turn runs: a queued prompt is sent now only while the thread is stopped.
@@ -36,7 +38,7 @@ pub mod code {
     /// The queue's first item was started while a forced stop still holds the queue.
     pub const QUEUE_HELD: &str = "QUEUE_HELD";
 
-    pub const ALL: [&str; 5] = [ITEM_NOT_QUEUED, THREAD_NOT_ACTIVE, NOT_STOPPED, NO_DEFAULTS, QUEUE_HELD];
+    pub const ALL: [&str; 6] = [ITEM_NOT_QUEUED, ITEM_EDITING, THREAD_NOT_ACTIVE, NOT_STOPPED, NO_DEFAULTS, QUEUE_HELD];
 }
 
 pub mod message {
@@ -75,6 +77,7 @@ mod tests {
         match method {
             "queue.list" => ListParams::parse(params).map(drop),
             "queue.add" => AddParams::parse(params).map(drop),
+            "queue.editHold" => EditHoldParams::parse(params).map(drop),
             "queue.edit" => EditParams::parse(params).map(drop),
             "queue.move" => MoveParams::parse(params).map(drop),
             "queue.delete" => DeleteParams::parse(params).map(drop),
@@ -91,6 +94,7 @@ mod tests {
         match method {
             "queue.list" => read::<ListResult>(result),
             "queue.add" => read::<AddResult>(result),
+            "queue.editHold" => read::<EditHoldResult>(result),
             "queue.edit" => read::<EditResult>(result),
             "queue.move" => read::<MoveResult>(result),
             "queue.delete" => read::<DeleteResult>(result),

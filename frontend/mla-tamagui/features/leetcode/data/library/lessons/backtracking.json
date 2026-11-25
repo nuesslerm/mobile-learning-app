@@ -1,0 +1,850 @@
+{
+ "subsets": {
+  "url": "https://neetcode.io/problems/subsets?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=REOH22Xwdkk",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "Subsets Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/11"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Backtracking"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def subsets(self, nums: List[int]) -> List[List[int]]:\n        res = []\n        subset = []\n\n        def dfs(i):\n            if i >= len(nums):\n                res.append(subset.copy())\n                return\n            subset.append(nums[i])\n            dfs(i + 1)\n            subset.pop()\n            dfs(i + 1)\n\n        dfs(0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(2 ^ n) for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def subsets(self, nums: List[int]) -> List[List[int]]:\n        res = [[]]\n\n        for num in nums:\n            res += [subset + [num] for subset in res]\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(2 ^ n) for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bit Manipulation"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def subsets(self, nums: List[int]) -> List[List[int]]:\n        n = len(nums)\n        res = []\n        for i in range(1 << n):\n            subset = [nums[j] for j in range(n) if (i & (1 << j))]\n            res.append(subset)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(2 ^ n) for the output list."
+   }
+  ]
+ },
+ "combination-sum": {
+  "url": "https://neetcode.io/problems/combination-target-sum?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=GBKI9VSKdGg",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "Combinations Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/12"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Backtracking"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def combinationSum(self, nums: List[int], target: int) -> List[List[int]]:\n        res = []\n\n        def dfs(i, cur, total):\n            if total == target:\n                res.append(cur.copy())\n                return\n            if i >= len(nums) or total > target:\n                return\n\n            cur.append(nums[i])\n            dfs(i, cur, total + nums[i])\n            cur.pop()\n            dfs(i + 1, cur, total)\n\n        dfs(0, [], 0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ \\frac{t}{m})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(\\frac{t}{m})"
+   },
+   {
+    "kind": "p",
+    "text": "Where t is the given target and m is the minimum value in nums."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Backtracking (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def combinationSum(self, nums: List[int], target: int) -> List[List[int]]:\n        res = []\n        nums.sort()\n\n        def dfs(i, cur, total):\n            if total == target:\n                res.append(cur.copy())\n                return\n\n            for j in range(i, len(nums)):\n                if total + nums[j] > target:\n                    return\n                cur.append(nums[j])\n                dfs(j, cur, total + nums[j])\n                cur.pop()\n\n        dfs(0, [], 0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ \\frac{t}{m})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(\\frac{t}{m})"
+   },
+   {
+    "kind": "p",
+    "text": "Where t is the given target and m is the minimum value in nums."
+   }
+  ]
+ },
+ "combination-sum-ii": {
+  "url": "https://neetcode.io/problems/combination-target-sum-ii?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=FOyRpNUSFeA",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "Combinations Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/12"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def combinationSum2(self, candidates, target):\n        res = set()\n        candidates.sort()\n\n        def generate_subsets(i, cur, total):\n            if total == target:\n                res.add(tuple(cur))\n                return\n            if total > target or i == len(candidates):\n                return\n\n            cur.append(candidates[i])\n            generate_subsets(i + 1, cur, total + candidates[i])\n            cur.pop()\n\n            generate_subsets(i + 1, cur, total)\n\n        generate_subsets(0, [], 0)\n        return [list(combination) for combination in res]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Backtracking"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def combinationSum2(self, candidates: List[int], target: int) -> List[List[int]]:\n        res = []\n        candidates.sort()\n\n        def dfs(i, cur, total):\n            if total == target:\n                res.append(cur.copy())\n                return\n            if total > target or i == len(candidates):\n                return\n\n            cur.append(candidates[i])\n            dfs(i + 1, cur, total + candidates[i])\n            cur.pop()\n\n\n            while i + 1 < len(candidates) and candidates[i] == candidates[i+1]:\n                i += 1\n            dfs(i + 1, cur, total)\n\n        dfs(0, [], 0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Backtracking (Hash Map)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def combinationSum2(self, nums, target):\n        self.res = []\n        self.count = defaultdict(int)\n        cur = []\n        A = []\n\n        for num in nums:\n            if self.count[num] == 0:\n                A.append(num)\n            self.count[num] += 1\n        self.backtrack(A, target, cur, 0)\n        return self.res\n\n    def backtrack(self, nums, target, cur, i):\n        if target == 0:\n            self.res.append(cur.copy())\n            return\n        if target < 0 or i >= len(nums):\n            return\n\n        if self.count[nums[i]] > 0:\n            cur.append(nums[i])\n            self.count[nums[i]] -= 1\n            self.backtrack(nums, target - nums[i], cur, i)\n            self.count[nums[i]] += 1\n            cur.pop()\n\n        self.backtrack(nums, target, cur, i + 1)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Backtracking (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def combinationSum2(self, candidates: List[int], target: int) -> List[List[int]]:\n        res = []\n        candidates.sort()\n\n        def dfs(idx, path, cur):\n            if cur == target:\n                res.append(path.copy())\n                return\n            for i in range(idx, len(candidates)):\n                if i > idx and candidates[i] == candidates[i - 1]:\n                    continue\n                if cur + candidates[i] > target:\n                    break\n\n                path.append(candidates[i])\n                dfs(i + 1, path, cur + candidates[i])\n                path.pop()\n\n        dfs(0, [], 0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "permutations": {
+  "url": "https://neetcode.io/problems/permutations?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=FZe0UqISmUw",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "Permutations Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/13"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def permute(self, nums: List[int]) -> List[List[int]]:\n        if len(nums) == 0:\n            return [[]]\n\n        perms = self.permute(nums[1:])\n        res = []\n        for p in perms:\n            for i in range(len(p) + 1):\n                p_copy = p.copy()\n                p_copy.insert(i, nums[0])\n                res.append(p_copy)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n! * n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n! * n) for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def permute(self, nums: List[int]) -> List[List[int]]:\n        perms = [[]]\n        for num in nums:\n            new_perms = []\n            for p in perms:\n                for i in range(len(p) + 1):\n                    p_copy = p.copy()\n                    p_copy.insert(i, num)\n                    new_perms.append(p_copy)\n            perms = new_perms\n        return perms"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n! * n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n! * n) for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Backtracking"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def permute(self, nums: List[int]) -> List[List[int]]:\n        self.res = []\n        self.backtrack([], nums, [False] * len(nums))\n        return self.res\n\n    def backtrack(self, perm: List[int], nums: List[int], pick: List[bool]):\n        if len(perm) == len(nums):\n            self.res.append(perm[:])\n            return\n        for i in range(len(nums)):\n            if not pick[i]:\n                perm.append(nums[i])\n                pick[i] = True\n                self.backtrack(perm, nums, pick)\n                perm.pop()\n                pick[i] = False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n! * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n! * n) for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Backtracking (Bit Mask)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def permute(self, nums: List[int]) -> List[List[int]]:\n        self.res = []\n        self.backtrack([], nums, 0)\n        return self.res\n\n    def backtrack(self, perm: List[int], nums: List[int], mask: int):\n        if len(perm) == len(nums):\n            self.res.append(perm[:])\n            return\n        for i in range(len(nums)):\n            if not (mask & (1 << i)):\n                perm.append(nums[i])\n                self.backtrack(perm, nums, mask | (1 << i))\n                perm.pop()"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n! * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n! * n) for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Backtracking (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def permute(self, nums: List[int]) -> List[List[int]]:\n        self.res = []\n        self.backtrack(nums, 0)\n        return self.res\n\n    def backtrack(self, nums: List[int], idx: int):\n        if idx == len(nums):\n            self.res.append(nums[:])\n            return\n        for i in range(idx, len(nums)):\n            nums[idx], nums[i] = nums[i], nums[idx]\n            self.backtrack(nums, idx + 1)\n            nums[idx], nums[i] = nums[i], nums[idx]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n! * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n! * n) for the output list."
+   }
+  ]
+ },
+ "subsets-ii": {
+  "url": "https://neetcode.io/problems/subsets-ii?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=Vn2v6ajA7U0",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "Subsets Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/11"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:\n        res = set()\n\n        def backtrack(i, subset):\n            if i == len(nums):\n                res.add(tuple(subset))\n                return\n\n            subset.append(nums[i])\n            backtrack(i + 1, subset)\n            subset.pop()\n            backtrack(i + 1, subset)\n\n        nums.sort()\n        backtrack(0, [])\n        return [list(s) for s in res]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(2 ^ n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Backtracking - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:\n        res = []\n        nums.sort()\n\n        def backtrack(i, subset):\n            if i == len(nums):\n                res.append(subset[::])\n                return\n\n            subset.append(nums[i])\n            backtrack(i + 1, subset)\n            subset.pop()\n\n            while i + 1 < len(nums) and nums[i] == nums[i + 1]:\n                i += 1\n            backtrack(i + 1, subset)\n\n        backtrack(0, [])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(2 ^ n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Backtracking - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:\n        nums.sort()\n        res = []\n        def backtrack(i, subset):\n            res.append(subset[::])\n\n            for j in range(i, len(nums)):\n                if j > i and nums[j] == nums[j - 1]:\n                    continue\n                subset.append(nums[j])\n                backtrack(j + 1, subset)\n                subset.pop()\n\n        backtrack(0, [])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(2 ^ n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:\n        nums.sort()\n        res = [[]]\n        prev_Idx = idx = 0\n\n        for i in range(len(nums)):\n            idx = prev_idx if i >= 1 and nums[i] == nums[i - 1] else 0\n            prev_idx = len(res)\n            for j in range(idx, prev_idx):\n                tmp = res[j].copy()\n                tmp.append(nums[i])\n                res.append(tmp)\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(2 ^ n) space for the output list."
+   }
+  ]
+ },
+ "generate-parentheses": {
+  "url": "https://neetcode.io/problems/generate-parentheses?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=s9fokUqJ76A",
+  "prerequisites": [
+   {
+    "title": "Stacks Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/4"
+   },
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def generateParenthesis(self, n: int) -> List[str]:\n        res = []\n\n        def valid(s: str):\n            open = 0\n            for c in s:\n                open += 1 if c == '(' else -1\n                if open < 0:\n                    return False\n            return not open\n\n        def dfs(s: str):\n            if n * 2 == len(s):\n                if valid(s):\n                    res.append(s)\n                return\n\n            dfs(s + '(')\n            dfs(s + ')')\n\n        dfs(\"\")\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ {2n} * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(2 ^ {2n} * n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Backtracking"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def generateParenthesis(self, n: int) -> List[str]:\n        stack = []\n        res = []\n\n        def backtrack(openN, closedN):\n            if openN == closedN == n:\n                res.append(\"\".join(stack))\n                return\n\n            if openN < n:\n                stack.append(\"(\")\n                backtrack(openN + 1, closedN)\n                stack.pop()\n            if closedN < openN:\n                stack.append(\")\")\n                backtrack(openN, closedN + 1)\n                stack.pop()\n\n        backtrack(0, 0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(\\frac{4^n}{\\sqrt{n}})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def generateParenthesis(self, n):\n        res = [[] for _ in range(n+1)]\n        res[0] = [\"\"]\n\n        for k in range(n + 1):\n            for i in range(k):\n                for left in res[i]:\n                    for right in res[k-i-1]:\n                        res[k].append(\"(\" + left + \")\" + right)\n\n        return res[-1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(\\frac{4^n}{\\sqrt{n}})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "word-search": {
+  "url": "https://neetcode.io/problems/search-for-word?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=pfiQ_PS1g8E",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "Matrix DFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/29"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Backtracking (Hash Set)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def exist(self, board: List[List[str]], word: str) -> bool:\n        ROWS, COLS = len(board), len(board[0])\n        path = set()\n\n        def dfs(r, c, i):\n            if i == len(word):\n                return True\n\n            if (min(r, c) < 0 or\n                r >= ROWS or c >= COLS or\n                word[i] != board[r][c] or\n                (r, c) in path):\n                return False\n\n            path.add((r, c))\n            res = (dfs(r + 1, c, i + 1) or\n                   dfs(r - 1, c, i + 1) or\n                   dfs(r, c + 1, i + 1) or\n                   dfs(r, c - 1, i + 1))\n            path.remove((r, c))\n            return res\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if dfs(r, c, 0):\n                    return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * 4 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of cells in the board and n is the length of the word."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Backtracking (Visited Array)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def exist(self, board: List[List[str]], word: str) -> bool:\n        ROWS, COLS = len(board), len(board[0])\n        visited = [[False for _ in range(COLS)] for _ in range(ROWS)]\n\n        def dfs(r, c, i):\n            if i == len(word):\n                return True\n            if (r < 0 or c < 0 or r >= ROWS or c >= COLS or\n                word[i] != board[r][c] or visited[r][c]):\n                return False\n\n            visited[r][c] = True\n            res = (dfs(r + 1, c, i + 1) or\n                   dfs(r - 1, c, i + 1) or\n                   dfs(r, c + 1, i + 1) or\n                   dfs(r, c - 1, i + 1))\n            visited[r][c] = False\n            return res\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if dfs(r, c, 0):\n                    return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * 4 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of cells in the board and n is the length of the word."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Backtracking (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def exist(self, board: List[List[str]], word: str) -> bool:\n        ROWS, COLS = len(board), len(board[0])\n\n        def dfs(r, c, i):\n            if i == len(word):\n                return True\n            if (r < 0 or c < 0 or r >= ROWS or c >= COLS or\n                word[i] != board[r][c] or board[r][c] == '#'):\n                return False\n\n            board[r][c] = '#'\n            res = (dfs(r + 1, c, i + 1) or\n                   dfs(r - 1, c, i + 1) or\n                   dfs(r, c + 1, i + 1) or\n                   dfs(r, c - 1, i + 1))\n            board[r][c] = word[i]\n            return res\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if dfs(r, c, 0):\n                    return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * 4 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of cells in the board and n is the length of the word."
+   }
+  ]
+ },
+ "palindrome-partitioning": {
+  "url": "https://neetcode.io/problems/palindrome-partitioning?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=3jvWodd7ht0",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Backtracking - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def partition(self, s: str) -> List[List[str]]:\n        res, part = [], []\n\n        def dfs(j, i):\n            if i >= len(s):\n                if i == j:\n                    res.append(part.copy())\n                return\n\n            if self.isPali(s, j, i):\n                part.append(s[j : i + 1])\n                dfs(i + 1, i + 1)\n                part.pop()\n\n            dfs(j, i + 1)\n\n        dfs(0, 0)\n        return res\n\n    def isPali(self, s, l, r):\n        while l < r:\n            if s[l] != s[r]:\n                return False\n            l, r = l + 1, r - 1\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(n * 2 ^ n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Backtracking - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n\n    def partition(self, s: str) -> List[List[str]]:\n        res, part = [], []\n\n        def dfs(i):\n            if i >= len(s):\n                res.append(part.copy())\n                return\n            for j in range(i, len(s)):\n                if self.isPali(s, i, j):\n                    part.append(s[i : j + 1])\n                    dfs(j + 1)\n                    part.pop()\n\n        dfs(0)\n        return res\n\n    def isPali(self, s, l, r):\n        while l < r:\n            if s[l] != s[r]:\n                return False\n            l, r = l + 1, r - 1\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(n * 2 ^ n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Backtracking (DP)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n\n    def partition(self, s: str) -> List[List[str]]:\n        n = len(s)\n        dp = [[False] * n for _ in range(n)]\n        for l in range(1, n + 1):\n            for i in range(n - l + 1):\n                dp[i][i + l - 1] = (s[i] == s[i + l - 1] and\n                                    (i + 1 > (i + l - 2) or\n                                    dp[i + 1][i + l - 2]))\n\n        res, part = [], []\n        def dfs(i):\n            if i >= len(s):\n                res.append(part.copy())\n                return\n            for j in range(i, len(s)):\n                if dp[i][j]:\n                    part.append(s[i : j + 1])\n                    dfs(j + 1)\n                    part.pop()\n\n        dfs(0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n ^ 2) extra space.\nO(n * 2 ^ n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n\n    def partition(self, s: str) -> List[List[str]]:\n        n = len(s)\n        dp = [[False] * n for _ in range(n)]\n        for l in range(1, n + 1):\n            for i in range(n - l + 1):\n                dp[i][i + l - 1] = (s[i] == s[i + l - 1] and\n                                    (i + 1 > (i + l - 2) or\n                                    dp[i + 1][i + l - 2]))\n\n        def dfs(i):\n            if i >= n:\n                return [[]]\n\n            ret = []\n            for j in range(i, n):\n                if dp[i][j]:\n                    nxt = dfs(j + 1)\n                    for part in nxt:\n                        cur = [s[i : j + 1]] + part\n                        ret.append(cur)\n            return ret\n\n        return dfs(0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n ^ 2) extra space.\nO(n * 2 ^ n) space for the output list."
+   }
+  ]
+ },
+ "letter-combinations-of-a-phone-number": {
+  "url": "https://neetcode.io/problems/combinations-of-a-phone-number?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=0snEunUacZY",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Backtracking"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def letterCombinations(self, digits: str) -> List[str]:\n        res = []\n        digitToChar = {\n            \"2\": \"abc\",\n            \"3\": \"def\",\n            \"4\": \"ghi\",\n            \"5\": \"jkl\",\n            \"6\": \"mno\",\n            \"7\": \"qprs\",\n            \"8\": \"tuv\",\n            \"9\": \"wxyz\",\n        }\n\n        def backtrack(i, curStr):\n            if len(curStr) == len(digits):\n                res.append(curStr)\n                return\n            for c in digitToChar[digits[i]]:\n                backtrack(i + 1, curStr + c)\n\n        if digits:\n            backtrack(0, \"\")\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 4 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(n * 4 ^ n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def letterCombinations(self, digits: str) -> List[str]:\n        if not digits:\n            return []\n\n        res = [\"\"]\n        digitToChar = {\n            \"2\": \"abc\",\n            \"3\": \"def\",\n            \"4\": \"ghi\",\n            \"5\": \"jkl\",\n            \"6\": \"mno\",\n            \"7\": \"qprs\",\n            \"8\": \"tuv\",\n            \"9\": \"wxyz\",\n        }\n\n        for digit in digits:\n            tmp = []\n            for curStr in res:\n                for c in digitToChar[digit]:\n                    tmp.append(curStr + c)\n            res = tmp\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * 4 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(n) extra space.\nO(n * 4 ^ n) space for the output list."
+   }
+  ]
+ },
+ "n-queens": {
+  "url": "https://neetcode.io/problems/n-queens?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=Ph95IHmRp5M",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Backtracking"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def solveNQueens(self, n: int) -> List[List[str]]:\n        res = []\n        board = [[\".\"] * n for i in range(n)]\n\n        def backtrack(r):\n            if r == n:\n                copy = [\"\".join(row) for row in board]\n                res.append(copy)\n                return\n            for c in range(n):\n                if self.isSafe(r, c, board):\n                    board[r][c] = \"Q\"\n                    backtrack(r + 1)\n                    board[r][c] = \".\"\n\n        backtrack(0)\n        return res\n\n    def isSafe(self, r: int, c: int, board):\n        row = r - 1\n        while row >= 0:\n            if board[row][c] == \"Q\":\n                return False\n            row -= 1\n\n        row, col = r - 1, c - 1\n        while row >= 0 and col >= 0:\n            if board[row][col] == \"Q\":\n                return False\n            row -= 1\n            col -= 1\n\n        row, col = r - 1, c + 1\n        while row >= 0 and col < len(board):\n            if board[row][col] == \"Q\":\n                return False\n            row -= 1\n            col += 1\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n!)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Backtracking (Hash Set)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def solveNQueens(self, n: int) -> List[List[str]]:\n        col = set()\n        posDiag = set()\n        negDiag = set()\n\n        res = []\n        board = [[\".\"] * n for i in range(n)]\n\n        def backtrack(r):\n            if r == n:\n                copy = [\"\".join(row) for row in board]\n                res.append(copy)\n                return\n\n            for c in range(n):\n                if c in col or (r + c) in posDiag or (r - c) in negDiag:\n                    continue\n\n                col.add(c)\n                posDiag.add(r + c)\n                negDiag.add(r - c)\n                board[r][c] = \"Q\"\n\n                backtrack(r + 1)\n\n                col.remove(c)\n                posDiag.remove(r + c)\n                negDiag.remove(r - c)\n                board[r][c] = \".\"\n\n        backtrack(0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n!)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Backtracking (Visited Array)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def solveNQueens(self, n: int) -> List[List[str]]:\n        col = [False] * n\n        posDiag = [False] * (n * 2)\n        negDiag = [False] * (n * 2)\n        res = []\n        board = [[\".\"] * n for i in range(n)]\n\n        def backtrack(r):\n            if r == n:\n                copy = [\"\".join(row) for row in board]\n                res.append(copy)\n                return\n            for c in range(n):\n                if col[c] or posDiag[r + c] or negDiag[r - c + n]:\n                    continue\n                col[c] = True\n                posDiag[r + c] = True\n                negDiag[r - c + n] = True\n                board[r][c] = \"Q\"\n\n                backtrack(r + 1)\n\n                col[c] = False\n                posDiag[r + c] = False\n                negDiag[r - c + n] = False\n                board[r][c] = \".\"\n\n        backtrack(0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n!)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Backtracking (Bit Mask)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def solveNQueens(self, n: int) -> List[List[str]]:\n        col = 0\n        posDiag = 0\n        negDiag = 0\n        res = []\n        board = [[\".\"] * n for i in range(n)]\n\n        def backtrack(r):\n            nonlocal col, posDiag, negDiag\n            if r == n:\n                copy = [\"\".join(row) for row in board]\n                res.append(copy)\n                return\n            for c in range(n):\n                if ((col & (1 << c)) or (posDiag & (1 << (r + c)))\n                    or (negDiag & (1 << (r - c + n)))):\n                    continue\n                col ^= (1 << c)\n                posDiag ^= (1 << (r + c))\n                negDiag ^= (1 << (r - c + n))\n                board[r][c] = \"Q\"\n\n                backtrack(r + 1)\n\n                col ^= (1 << c)\n                posDiag ^= (1 << (r + c))\n                negDiag ^= (1 << (r - c + n))\n                board[r][c] = \".\"\n\n        backtrack(0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n!)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   }
+  ]
+ }
+}

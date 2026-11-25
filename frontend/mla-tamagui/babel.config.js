@@ -11,9 +11,6 @@
 module.exports = function babelConfig(api) {
   api.cache(true);
   return {
-    // @lib/logging/babel-preset injects {file, line, fn} into every Logger.*
-    // call at compile time, which is what makes a log line traceable back to
-    // its source rather than just a message.
     presets: [
       [
         'babel-preset-expo',
@@ -29,7 +26,6 @@ module.exports = function babelConfig(api) {
           unstable_transformImportMeta: true,
         },
       ],
-      '@lib/logging/babel-preset',
     ],
     plugins: [
       [

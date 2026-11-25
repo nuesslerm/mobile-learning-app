@@ -97,6 +97,7 @@ impl RcaExec {
             .args(["--secret-env", BEARER_ENV])
             .args(flags)
             .env_clear()
+            .envs(std::env::vars_os().filter(|(name, _)| name == "WF_PERFORMANCE_ENDPOINT" || name == "WF_PERFORMANCE_FIXTURE"))
             .envs(repo.git_env())
             .env("PATH", path)
             .envs(home.map(|h| ("HOME", h)))
@@ -132,8 +133,7 @@ impl RcaExec {
 
 impl Drop for RcaExec {
     fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        crate::stop_fixture(&mut self.child, "-USR1");
     }
 }
 

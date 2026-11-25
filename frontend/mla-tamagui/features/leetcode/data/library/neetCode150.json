@@ -1,0 +1,1555 @@
+[
+ {
+  "id": "contains-duplicate",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "valid-anagram",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "two-sum",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "Hash Table"
+  ]
+ },
+ {
+  "id": "group-anagrams",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "String",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "top-k-frequent-elements",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Divide and Conquer",
+   "Sorting",
+   "Heap (Priority Queue)",
+   "Bucket Sort",
+   "Counting",
+   "Quickselect"
+  ]
+ },
+ {
+  "id": "encode-and-decode-strings",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "String",
+   "Design"
+  ]
+ },
+ {
+  "id": "product-of-array-except-self",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "Prefix Sum"
+  ]
+ },
+ {
+  "id": "valid-sudoku",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "longest-consecutive-sequence",
+  "group": "Arrays & Hashing",
+  "topicId": "arrays-hashing",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Union Find"
+  ]
+ },
+ {
+  "id": "valid-palindrome",
+  "group": "Two Pointers",
+  "topicId": "two-pointers",
+  "topics": [
+   "Two Pointers",
+   "String"
+  ]
+ },
+ {
+  "id": "two-sum-ii-input-array-is-sorted",
+  "group": "Two Pointers",
+  "topicId": "two-pointers",
+  "topics": [
+   "Array",
+   "Two Pointers",
+   "Binary Search"
+  ]
+ },
+ {
+  "id": "3sum",
+  "group": "Two Pointers",
+  "topicId": "two-pointers",
+  "topics": [
+   "Array",
+   "Two Pointers",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "container-with-most-water",
+  "group": "Two Pointers",
+  "topicId": "two-pointers",
+  "topics": [
+   "Array",
+   "Two Pointers",
+   "Greedy"
+  ]
+ },
+ {
+  "id": "trapping-rain-water",
+  "group": "Two Pointers",
+  "topicId": "two-pointers",
+  "topics": [
+   "Array",
+   "Two Pointers",
+   "Dynamic Programming",
+   "Stack",
+   "Monotonic Stack"
+  ]
+ },
+ {
+  "id": "best-time-to-buy-and-sell-stock",
+  "group": "Sliding Window",
+  "topicId": "sliding-window",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "longest-substring-without-repeating-characters",
+  "group": "Sliding Window",
+  "topicId": "sliding-window",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Sliding Window"
+  ]
+ },
+ {
+  "id": "longest-repeating-character-replacement",
+  "group": "Sliding Window",
+  "topicId": "sliding-window",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Sliding Window"
+  ]
+ },
+ {
+  "id": "permutation-in-string",
+  "group": "Sliding Window",
+  "topicId": "sliding-window",
+  "topics": [
+   "Hash Table",
+   "Two Pointers",
+   "String",
+   "Sliding Window"
+  ]
+ },
+ {
+  "id": "minimum-window-substring",
+  "group": "Sliding Window",
+  "topicId": "sliding-window",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Sliding Window"
+  ]
+ },
+ {
+  "id": "sliding-window-maximum",
+  "group": "Sliding Window",
+  "topicId": "sliding-window",
+  "topics": [
+   "Array",
+   "Queue",
+   "Sliding Window",
+   "Heap (Priority Queue)",
+   "Monotonic Queue"
+  ]
+ },
+ {
+  "id": "valid-parentheses",
+  "group": "Stack",
+  "topicId": "stack",
+  "topics": [
+   "String",
+   "Stack"
+  ]
+ },
+ {
+  "id": "min-stack",
+  "group": "Stack",
+  "topicId": "stack",
+  "topics": [
+   "Stack",
+   "Design"
+  ]
+ },
+ {
+  "id": "evaluate-reverse-polish-notation",
+  "group": "Stack",
+  "topicId": "stack",
+  "topics": [
+   "Array",
+   "Math",
+   "Stack"
+  ]
+ },
+ {
+  "id": "daily-temperatures",
+  "group": "Stack",
+  "topicId": "stack",
+  "topics": [
+   "Array",
+   "Stack",
+   "Monotonic Stack"
+  ]
+ },
+ {
+  "id": "car-fleet",
+  "group": "Stack",
+  "topicId": "stack",
+  "topics": [
+   "Array",
+   "Stack",
+   "Sorting",
+   "Monotonic Stack"
+  ]
+ },
+ {
+  "id": "largest-rectangle-in-histogram",
+  "group": "Stack",
+  "topicId": "stack",
+  "topics": [
+   "Array",
+   "Stack",
+   "Monotonic Stack"
+  ]
+ },
+ {
+  "id": "binary-search",
+  "group": "Binary Search",
+  "topicId": "binary-search",
+  "topics": [
+   "Array",
+   "Binary Search"
+  ]
+ },
+ {
+  "id": "search-a-2d-matrix",
+  "group": "Binary Search",
+  "topicId": "binary-search",
+  "topics": [
+   "Array",
+   "Binary Search",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "koko-eating-bananas",
+  "group": "Binary Search",
+  "topicId": "binary-search",
+  "topics": [
+   "Array",
+   "Binary Search"
+  ]
+ },
+ {
+  "id": "find-minimum-in-rotated-sorted-array",
+  "group": "Binary Search",
+  "topicId": "binary-search",
+  "topics": [
+   "Array",
+   "Binary Search"
+  ]
+ },
+ {
+  "id": "search-in-rotated-sorted-array",
+  "group": "Binary Search",
+  "topicId": "binary-search",
+  "topics": [
+   "Array",
+   "Binary Search"
+  ]
+ },
+ {
+  "id": "time-based-key-value-store",
+  "group": "Binary Search",
+  "topicId": "binary-search",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Binary Search",
+   "Design"
+  ]
+ },
+ {
+  "id": "median-of-two-sorted-arrays",
+  "group": "Binary Search",
+  "topicId": "binary-search",
+  "topics": [
+   "Array",
+   "Binary Search",
+   "Divide and Conquer"
+  ]
+ },
+ {
+  "id": "reverse-linked-list",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Linked List",
+   "Recursion"
+  ]
+ },
+ {
+  "id": "merge-two-sorted-lists",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Linked List",
+   "Recursion"
+  ]
+ },
+ {
+  "id": "linked-list-cycle",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Hash Table",
+   "Linked List",
+   "Two Pointers"
+  ]
+ },
+ {
+  "id": "reorder-list",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Linked List",
+   "Two Pointers",
+   "Stack",
+   "Recursion"
+  ]
+ },
+ {
+  "id": "remove-nth-node-from-end-of-list",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Linked List",
+   "Two Pointers"
+  ]
+ },
+ {
+  "id": "copy-list-with-random-pointer",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Hash Table",
+   "Linked List"
+  ]
+ },
+ {
+  "id": "add-two-numbers",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Linked List",
+   "Math",
+   "Recursion"
+  ]
+ },
+ {
+  "id": "find-the-duplicate-number",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Array",
+   "Two Pointers",
+   "Binary Search",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "lru-cache",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Hash Table",
+   "Linked List",
+   "Design",
+   "Doubly-Linked List"
+  ]
+ },
+ {
+  "id": "merge-k-sorted-lists",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Linked List",
+   "Divide and Conquer",
+   "Heap (Priority Queue)",
+   "Merge Sort"
+  ]
+ },
+ {
+  "id": "reverse-nodes-in-k-group",
+  "group": "Linked List",
+  "topicId": "linked-list",
+  "topics": [
+   "Linked List",
+   "Recursion"
+  ]
+ },
+ {
+  "id": "invert-binary-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "maximum-depth-of-binary-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "diameter-of-binary-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "balanced-binary-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "same-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "subtree-of-another-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "String Matching",
+   "Binary Tree",
+   "Hash Function"
+  ]
+ },
+ {
+  "id": "lowest-common-ancestor-of-a-binary-search-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Binary Search Tree",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "binary-tree-level-order-traversal",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Breadth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "binary-tree-right-side-view",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "count-good-nodes-in-binary-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "validate-binary-search-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Binary Search Tree",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "kth-smallest-element-in-a-bst",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Tree",
+   "Depth-First Search",
+   "Binary Search Tree",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "construct-binary-tree-from-preorder-and-inorder-traversal",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Divide and Conquer",
+   "Tree",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "binary-tree-maximum-path-sum",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "Dynamic Programming",
+   "Tree",
+   "Depth-First Search",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "serialize-and-deserialize-binary-tree",
+  "group": "Trees",
+  "topicId": "trees",
+  "topics": [
+   "String",
+   "Tree",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Design",
+   "Binary Tree"
+  ]
+ },
+ {
+  "id": "kth-largest-element-in-a-stream",
+  "group": "Heap / Priority Queue",
+  "topicId": "heap-priority-queue",
+  "topics": [
+   "Tree",
+   "Design",
+   "Binary Search Tree",
+   "Heap (Priority Queue)",
+   "Binary Tree",
+   "Data Stream"
+  ]
+ },
+ {
+  "id": "last-stone-weight",
+  "group": "Heap / Priority Queue",
+  "topicId": "heap-priority-queue",
+  "topics": [
+   "Array",
+   "Heap (Priority Queue)"
+  ]
+ },
+ {
+  "id": "k-closest-points-to-origin",
+  "group": "Heap / Priority Queue",
+  "topicId": "heap-priority-queue",
+  "topics": [
+   "Array",
+   "Math",
+   "Divide and Conquer",
+   "Geometry",
+   "Sorting",
+   "Heap (Priority Queue)",
+   "Quickselect"
+  ]
+ },
+ {
+  "id": "kth-largest-element-in-an-array",
+  "group": "Heap / Priority Queue",
+  "topicId": "heap-priority-queue",
+  "topics": [
+   "Array",
+   "Divide and Conquer",
+   "Sorting",
+   "Heap (Priority Queue)",
+   "Quickselect"
+  ]
+ },
+ {
+  "id": "task-scheduler",
+  "group": "Heap / Priority Queue",
+  "topicId": "heap-priority-queue",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Greedy",
+   "Sorting",
+   "Heap (Priority Queue)",
+   "Counting"
+  ]
+ },
+ {
+  "id": "design-twitter",
+  "group": "Heap / Priority Queue",
+  "topicId": "heap-priority-queue",
+  "topics": [
+   "Hash Table",
+   "Linked List",
+   "Design",
+   "Heap (Priority Queue)"
+  ]
+ },
+ {
+  "id": "find-median-from-data-stream",
+  "group": "Heap / Priority Queue",
+  "topicId": "heap-priority-queue",
+  "topics": [
+   "Two Pointers",
+   "Design",
+   "Sorting",
+   "Heap (Priority Queue)",
+   "Data Stream"
+  ]
+ },
+ {
+  "id": "subsets",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Array",
+   "Backtracking",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "combination-sum",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Array",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "combination-sum-ii",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Array",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "permutations",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Array",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "subsets-ii",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Array",
+   "Backtracking",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "generate-parentheses",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "String",
+   "Dynamic Programming",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "word-search",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Array",
+   "String",
+   "Backtracking",
+   "Depth-First Search",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "palindrome-partitioning",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "String",
+   "Dynamic Programming",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "letter-combinations-of-a-phone-number",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "n-queens",
+  "group": "Backtracking",
+  "topicId": "backtracking",
+  "topics": [
+   "Array",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "implement-trie-prefix-tree",
+  "group": "Tries",
+  "topicId": "tries",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Design",
+   "Trie"
+  ]
+ },
+ {
+  "id": "design-add-and-search-words-data-structure",
+  "group": "Tries",
+  "topicId": "tries",
+  "topics": [
+   "String",
+   "Depth-First Search",
+   "Design",
+   "Trie"
+  ]
+ },
+ {
+  "id": "word-search-ii",
+  "group": "Tries",
+  "topicId": "tries",
+  "topics": [
+   "Array",
+   "String",
+   "Backtracking",
+   "Trie",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "number-of-islands",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Array",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Union Find",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "max-area-of-island",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Array",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Union Find",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "clone-graph",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Hash Table",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Graph"
+  ]
+ },
+ {
+  "id": "walls-and-gates",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Array",
+   "Breadth-First Search",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "rotting-oranges",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Array",
+   "Breadth-First Search",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "pacific-atlantic-water-flow",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Array",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "surrounded-regions",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Array",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Union Find",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "course-schedule",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Graph",
+   "Topological Sort"
+  ]
+ },
+ {
+  "id": "course-schedule-ii",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Graph",
+   "Topological Sort"
+  ]
+ },
+ {
+  "id": "graph-valid-tree",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Union Find",
+   "Graph"
+  ]
+ },
+ {
+  "id": "number-of-connected-components-in-an-undirected-graph",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Union Find",
+   "Graph"
+  ]
+ },
+ {
+  "id": "redundant-connection",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Union Find",
+   "Graph"
+  ]
+ },
+ {
+  "id": "word-ladder",
+  "group": "Graphs",
+  "topicId": "graphs",
+  "topics": [
+   "Hash Table",
+   "String",
+   "Breadth-First Search"
+  ]
+ },
+ {
+  "id": "network-delay-time",
+  "group": "Advanced Graphs",
+  "topicId": "advanced-graphs",
+  "topics": [
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Graph",
+   "Heap (Priority Queue)",
+   "Shortest Path"
+  ]
+ },
+ {
+  "id": "reconstruct-itinerary",
+  "group": "Advanced Graphs",
+  "topicId": "advanced-graphs",
+  "topics": [
+   "Depth-First Search",
+   "Graph",
+   "Eulerian Circuit"
+  ]
+ },
+ {
+  "id": "min-cost-to-connect-all-points",
+  "group": "Advanced Graphs",
+  "topicId": "advanced-graphs",
+  "topics": [
+   "Array",
+   "Union Find",
+   "Graph",
+   "Minimum Spanning Tree"
+  ]
+ },
+ {
+  "id": "swim-in-rising-water",
+  "group": "Advanced Graphs",
+  "topicId": "advanced-graphs",
+  "topics": [
+   "Array",
+   "Binary Search",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Union Find",
+   "Heap (Priority Queue)",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "alien-dictionary",
+  "group": "Advanced Graphs",
+  "topicId": "advanced-graphs",
+  "topics": [
+   "Array",
+   "String",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Graph",
+   "Topological Sort"
+  ]
+ },
+ {
+  "id": "cheapest-flights-within-k-stops",
+  "group": "Advanced Graphs",
+  "topicId": "advanced-graphs",
+  "topics": [
+   "Dynamic Programming",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Graph",
+   "Heap (Priority Queue)",
+   "Shortest Path"
+  ]
+ },
+ {
+  "id": "climbing-stairs",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Math",
+   "Dynamic Programming",
+   "Memoization"
+  ]
+ },
+ {
+  "id": "min-cost-climbing-stairs",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "house-robber",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "house-robber-ii",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "longest-palindromic-substring",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Two Pointers",
+   "String",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "palindromic-substrings",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Two Pointers",
+   "String",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "decode-ways",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "String",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "coin-change",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming",
+   "Breadth-First Search"
+  ]
+ },
+ {
+  "id": "maximum-product-subarray",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "word-break",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "String",
+   "Dynamic Programming",
+   "Trie",
+   "Memoization"
+  ]
+ },
+ {
+  "id": "longest-increasing-subsequence",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Binary Search",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "partition-equal-subset-sum",
+  "group": "1-D Dynamic Programming",
+  "topicId": "1-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "unique-paths",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "Math",
+   "Dynamic Programming",
+   "Combinatorics"
+  ]
+ },
+ {
+  "id": "longest-common-subsequence",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "String",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "best-time-to-buy-and-sell-stock-with-cooldown",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "coin-change-ii",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "target-sum",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming",
+   "Backtracking"
+  ]
+ },
+ {
+  "id": "interleaving-string",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "String",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "longest-increasing-path-in-a-matrix",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming",
+   "Depth-First Search",
+   "Breadth-First Search",
+   "Graph",
+   "Topological Sort",
+   "Memoization",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "distinct-subsequences",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "String",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "edit-distance",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "String",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "burst-balloons",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "Array",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "regular-expression-matching",
+  "group": "2-D Dynamic Programming",
+  "topicId": "2-d-dynamic-programming",
+  "topics": [
+   "String",
+   "Dynamic Programming",
+   "Recursion"
+  ]
+ },
+ {
+  "id": "maximum-subarray",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "Array",
+   "Divide and Conquer",
+   "Dynamic Programming"
+  ]
+ },
+ {
+  "id": "jump-game",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "Array",
+   "Dynamic Programming",
+   "Greedy"
+  ]
+ },
+ {
+  "id": "jump-game-ii",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "Array",
+   "Dynamic Programming",
+   "Greedy"
+  ]
+ },
+ {
+  "id": "gas-station",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "Array",
+   "Greedy"
+  ]
+ },
+ {
+  "id": "hand-of-straights",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Greedy",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "merge-triplets-to-form-target-triplet",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "Array",
+   "Greedy"
+  ]
+ },
+ {
+  "id": "partition-labels",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "Hash Table",
+   "Two Pointers",
+   "String",
+   "Greedy"
+  ]
+ },
+ {
+  "id": "valid-parenthesis-string",
+  "group": "Greedy",
+  "topicId": "greedy",
+  "topics": [
+   "String",
+   "Dynamic Programming",
+   "Stack",
+   "Greedy"
+  ]
+ },
+ {
+  "id": "insert-interval",
+  "group": "Intervals",
+  "topicId": "intervals",
+  "topics": [
+   "Array"
+  ]
+ },
+ {
+  "id": "merge-intervals",
+  "group": "Intervals",
+  "topicId": "intervals",
+  "topics": [
+   "Array",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "non-overlapping-intervals",
+  "group": "Intervals",
+  "topicId": "intervals",
+  "topics": [
+   "Array",
+   "Dynamic Programming",
+   "Greedy",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "meeting-rooms",
+  "group": "Intervals",
+  "topicId": "intervals",
+  "topics": [
+   "Array",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "meeting-rooms-ii",
+  "group": "Intervals",
+  "topicId": "intervals",
+  "topics": [
+   "Array",
+   "Two Pointers",
+   "Greedy",
+   "Sorting",
+   "Heap (Priority Queue)",
+   "Prefix Sum"
+  ]
+ },
+ {
+  "id": "minimum-interval-to-include-each-query",
+  "group": "Intervals",
+  "topicId": "intervals",
+  "topics": [
+   "Array",
+   "Binary Search",
+   "Line Sweep",
+   "Sorting",
+   "Heap (Priority Queue)"
+  ]
+ },
+ {
+  "id": "rotate-image",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Array",
+   "Math",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "spiral-matrix",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Array",
+   "Matrix",
+   "Simulation"
+  ]
+ },
+ {
+  "id": "set-matrix-zeroes",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Matrix"
+  ]
+ },
+ {
+  "id": "happy-number",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Hash Table",
+   "Math",
+   "Two Pointers"
+  ]
+ },
+ {
+  "id": "plus-one",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Array",
+   "Math"
+  ]
+ },
+ {
+  "id": "powx-n",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Math",
+   "Recursion"
+  ]
+ },
+ {
+  "id": "multiply-strings",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Math",
+   "String",
+   "Simulation"
+  ]
+ },
+ {
+  "id": "detect-squares",
+  "group": "Math & Geometry",
+  "topicId": "math-geometry",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Design",
+   "Counting"
+  ]
+ },
+ {
+  "id": "single-number",
+  "group": "Bit Manipulation",
+  "topicId": "bit-manipulation",
+  "topics": [
+   "Array",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "number-of-1-bits",
+  "group": "Bit Manipulation",
+  "topicId": "bit-manipulation",
+  "topics": [
+   "Divide and Conquer",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "counting-bits",
+  "group": "Bit Manipulation",
+  "topicId": "bit-manipulation",
+  "topics": [
+   "Dynamic Programming",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "reverse-bits",
+  "group": "Bit Manipulation",
+  "topicId": "bit-manipulation",
+  "topics": [
+   "Divide and Conquer",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "missing-number",
+  "group": "Bit Manipulation",
+  "topicId": "bit-manipulation",
+  "topics": [
+   "Array",
+   "Hash Table",
+   "Math",
+   "Binary Search",
+   "Bit Manipulation",
+   "Sorting"
+  ]
+ },
+ {
+  "id": "sum-of-two-integers",
+  "group": "Bit Manipulation",
+  "topicId": "bit-manipulation",
+  "topics": [
+   "Math",
+   "Bit Manipulation"
+  ]
+ },
+ {
+  "id": "reverse-integer",
+  "group": "Bit Manipulation",
+  "topicId": "bit-manipulation",
+  "topics": [
+   "Math"
+  ]
+ }
+]

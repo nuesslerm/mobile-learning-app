@@ -1,0 +1,2026 @@
+{
+ "invert-binary-tree": {
+  "url": "https://neetcode.io/problems/invert-a-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=OnSn2XEQ4MY",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Breadth First Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To invert (mirror) a binary tree, every node must swap its left and right children. Using Breadth-First Search (BFS), we process the tree level-by-level:"
+   },
+   {
+    "kind": "li",
+    "text": "Start from the root."
+   },
+   {
+    "kind": "li",
+    "text": "For each node, swap its children."
+   },
+   {
+    "kind": "li",
+    "text": "Then push the (new) left and right children into the queue."
+   },
+   {
+    "kind": "li",
+    "text": "Continue until every node has been processed."
+   },
+   {
+    "kind": "p",
+    "text": "This approach ensures that every node is visited exactly once and inverted immediately when encountered."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the tree is empty, return null."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize a queue and insert the root node."
+   },
+   {
+    "kind": "li",
+    "text": "While the queue is not empty:\nRemove the front node.\nSwap its left and right children.\nIf the left child exists, add it to the queue.\nIf the right child exists, add it to the queue."
+   },
+   {
+    "kind": "li",
+    "text": "After all nodes are processed, return the root as the inverted tree."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:\n        if not root:\n            return None\n        queue = deque([root])\n        while queue:\n            node = queue.popleft()\n            node.left, node.right = node.right, node.left\n            if node.left:\n                queue.append(node.left)\n            if node.right:\n                queue.append(node.right)\n        return root"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Inverting a binary tree means swapping every node’s left and right subtree.\nWith Depth-First Search (DFS), we use recursion to invert the tree in a top-down manner:"
+   },
+   {
+    "kind": "li",
+    "text": "At each node, swap the left and right children."
+   },
+   {
+    "kind": "li",
+    "text": "Then recursively invert the left subtree."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively invert the right subtree."
+   },
+   {
+    "kind": "p",
+    "text": "Because every subtree is itself a smaller binary tree, recursion naturally handles this structure.\nThe inversion happens during the descent of the recursion, and each subtree becomes correctly mirrored."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the current node is null, return null."
+   },
+   {
+    "kind": "li",
+    "text": "Swap the node’s left and right pointers."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively call DFS on the new left child."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively call DFS on the new right child."
+   },
+   {
+    "kind": "li",
+    "text": "Return the current node (now inverted)."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:\n        if not root: return None\n\n        root.left, root.right = root.right, root.left\n\n        self.invertTree(root.left)\n        self.invertTree(root.right)\n\n        return root"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n) for recursion stack."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Iterative DFS"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Iterative DFS inverts a binary tree using an explicit stack instead of recursion.\nThe idea is the same as recursive DFS:"
+   },
+   {
+    "kind": "li",
+    "text": "Visit a node."
+   },
+   {
+    "kind": "li",
+    "text": "Swap its left and right children."
+   },
+   {
+    "kind": "li",
+    "text": "Continue the process for its children."
+   },
+   {
+    "kind": "p",
+    "text": "But instead of the call stack, we use our own stack data structure."
+   },
+   {
+    "kind": "p",
+    "text": "The process is:"
+   },
+   {
+    "kind": "li",
+    "text": "Push the root into the stack."
+   },
+   {
+    "kind": "li",
+    "text": "Pop the top node, swap its children."
+   },
+   {
+    "kind": "li",
+    "text": "Push its children onto the stack (if they exist)."
+   },
+   {
+    "kind": "li",
+    "text": "Continue until the stack is empty."
+   },
+   {
+    "kind": "p",
+    "text": "This simulates the recursive DFS in an iterative manner and works well when recursion depth may be too large."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If root is null → return null."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize a stack with root."
+   },
+   {
+    "kind": "li",
+    "text": "While stack is not empty:\nPop a node.\nSwap its left and right pointers.\nIf the left child exists, push it to the stack.\nIf the right child exists, push it to the stack."
+   },
+   {
+    "kind": "li",
+    "text": "Return the root."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:\n        if not root:\n            return None\n        stack = [root]\n        while stack:\n            node = stack.pop()\n            node.left, node.right = node.right, node.left\n            if node.left:\n                stack.append(node.left)\n            if node.right:\n                stack.append(node.right)\n        return root"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "maximum-depth-of-binary-tree": {
+  "url": "https://neetcode.io/problems/depth-of-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=hTM3phVI6YQ",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   },
+   {
+    "title": "Breadth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/20"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursive DFS"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Recursive DFS computes the maximum depth of a binary tree by exploring every node.\nThe idea is simple:"
+   },
+   {
+    "kind": "li",
+    "text": "The depth of a tree = 1 + maximum depth of its left and right subtrees."
+   },
+   {
+    "kind": "li",
+    "text": "If a node is None, its depth is 0."
+   },
+   {
+    "kind": "p",
+    "text": "So for each node:"
+   },
+   {
+    "kind": "li",
+    "text": "Recursively compute the depth of the left subtree."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively compute the depth of the right subtree."
+   },
+   {
+    "kind": "li",
+    "text": "Take the maximum of the two."
+   },
+   {
+    "kind": "li",
+    "text": "Add 1 for the current node."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If root is null, return 0."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise:\nRecursively compute leftDepth = maxDepth(root.left)\nRecursively compute rightDepth = maxDepth(root.right)"
+   },
+   {
+    "kind": "li",
+    "text": "Return 1 + max(leftDepth, rightDepth)."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def maxDepth(self, root: Optional[TreeNode]) -> int:\n        if not root:\n            return 0\n\n        return 1 + max(self.maxDepth(root.left), self.maxDepth(root.right))"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(h)\nBest Case (balanced tree): O(log(n))\nWorst Case (degenerate tree): O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of nodes in the tree and h is the height of the tree."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iterative DFS (Stack)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of relying on recursion to explore the tree, we can simulate DFS explicitly using a stack.\nThe stack will store pairs of:"
+   },
+   {
+    "kind": "li",
+    "text": "the current node"
+   },
+   {
+    "kind": "li",
+    "text": "the depth of that node in the tree"
+   },
+   {
+    "kind": "p",
+    "text": "Every time we pop a node from the stack:"
+   },
+   {
+    "kind": "li",
+    "text": "We update the maximum depth seen so far."
+   },
+   {
+    "kind": "li",
+    "text": "We push its left and right children onto the stack with depth + 1."
+   },
+   {
+    "kind": "p",
+    "text": "This approach works like a manual DFS where we keep track of depth ourselves.\nIt avoids recursion and is useful when recursion depth may become too large."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the root is null, return 0."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize a stack with the pair (root, 1) to represent depth 1."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize maxDepth = 0."
+   },
+   {
+    "kind": "li",
+    "text": "While the stack is not empty:\nPop (node, depth).\nUpdate maxDepth = max(maxDepth, depth).\nPush (node.left, depth + 1) onto the stack if left child exists.\nPush (node.right, depth + 1) onto the stack if right child exists."
+   },
+   {
+    "kind": "li",
+    "text": "When the stack becomes empty, return maxDepth."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def maxDepth(self, root: Optional[TreeNode]) -> int:\n        stack = [[root, 1]]\n        res = 0\n\n        while stack:\n            node, depth = stack.pop()\n\n            if node:\n                res = max(res, depth)\n                stack.append([node.left, depth + 1])\n                stack.append([node.right, depth + 1])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Breadth First Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Breadth-First Search (BFS) processes the tree level by level.\nThis makes it a perfect fit for computing the maximum depth because:"
+   },
+   {
+    "kind": "li",
+    "text": "Every iteration of BFS processes one entire level of the tree."
+   },
+   {
+    "kind": "li",
+    "text": "So each completed level corresponds to increasing the depth by 1."
+   },
+   {
+    "kind": "p",
+    "text": "We simply count how many levels we traverse until the queue becomes empty."
+   },
+   {
+    "kind": "p",
+    "text": "Think of the queue like a moving frontier:"
+   },
+   {
+    "kind": "li",
+    "text": "Start with the root → depth = 1"
+   },
+   {
+    "kind": "li",
+    "text": "Add its children → depth = 2"
+   },
+   {
+    "kind": "li",
+    "text": "Add their children → depth = 3"
+   },
+   {
+    "kind": "li",
+    "text": "Continue until no nodes remain."
+   },
+   {
+    "kind": "p",
+    "text": "The number of BFS layers processed is exactly the depth of the tree."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the tree is empty (root == null), return 0."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize a queue and push the root."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize level = 0."
+   },
+   {
+    "kind": "li",
+    "text": "While the queue is not empty:\nDetermine the number of nodes at the current level (size = len(queue)).\nProcess all size nodes:\nPop from the queue.\nPush their left and right children if they exist.\n\n\nAfter processing the entire level, increment level."
+   },
+   {
+    "kind": "li",
+    "text": "Return level when the queue becomes empty."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def maxDepth(self, root: Optional[TreeNode]) -> int:\n        q = deque()\n        if root:\n            q.append(root)\n\n        level = 0\n        while q:\n            for i in range(len(q)):\n                node = q.popleft()\n                if node.left:\n                    q.append(node.left)\n                if node.right:\n                    q.append(node.right)\n            level += 1\n        return level"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "diameter-of-binary-tree": {
+  "url": "https://neetcode.io/problems/binary-tree-diameter?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=K81C31ytOZE",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "For any node in a tree, the longest path that goes through it is:"
+   },
+   {
+    "kind": "li",
+    "text": "height of left subtree + height of right subtree"
+   },
+   {
+    "kind": "p",
+    "text": "So to find the tree’s diameter, we check this value for every node.\nWe also compare it with the best diameter found in the left and right subtrees."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the tree is empty → diameter is 0."
+   },
+   {
+    "kind": "li",
+    "text": "For each node:\nCompute height of its left subtree.\nCompute height of its right subtree.\nCompute diameter through that node = leftHeight + rightHeight."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively find diameter of left subtree."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively find diameter of right subtree."
+   },
+   {
+    "kind": "li",
+    "text": "The final diameter for this node is the maximum of:\ndiameter through this node  \ndiameter in left subtree  \ndiameter in right subtree"
+   },
+   {
+    "kind": "li",
+    "text": "Return that maximum."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:\n        if not root:\n            return 0\n\n        leftHeight = self.maxHeight(root.left)\n        rightHeight = self.maxHeight(root.right)\n        diameter = leftHeight + rightHeight\n        sub = max(self.diameterOfBinaryTree(root.left),\n                  self.diameterOfBinaryTree(root.right))\n        return max(diameter, sub)\n\n\n    def maxHeight(self, root: Optional[TreeNode]) -> int:\n        if not root:\n            return 0\n\n        return 1 + max(self.maxHeight(root.left), self.maxHeight(root.right))"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The diameter of a binary tree is the longest path between any two nodes.\nThis path must go through some node, and at that node the path length is:"
+   },
+   {
+    "kind": "li",
+    "text": "(left subtree height) + (right subtree height)"
+   },
+   {
+    "kind": "p",
+    "text": "So while doing a DFS to compute heights, we can simultaneously track the\nmaximum left + right seen so far.\nThis gives the diameter in one pass without recomputing heights."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Use DFS to compute the height of every subtree."
+   },
+   {
+    "kind": "li",
+    "text": "For each node during DFS:\nRecursively get left height.\nRecursively get right height.\nDiameter through this node = left + right.\nUpdate the global answer with this diameter."
+   },
+   {
+    "kind": "li",
+    "text": "Height returned to parent = 1 + max(left, right)."
+   },
+   {
+    "kind": "li",
+    "text": "After DFS finishes, the global answer contains the diameter."
+   },
+   {
+    "kind": "p",
+    "text": "This gives an O(n) time solution with a single DFS traversal."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:\n        res = 0\n\n        def dfs(root):\n            nonlocal res\n\n            if not root:\n                return 0\n            left = dfs(root.left)\n            right = dfs(root.right)\n            res = max(res, left + right)\n\n            return 1 + max(left, right)\n\n        dfs(root)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(h)\nBest Case (balanced tree): O(log(n))\nWorst Case (degenerate tree): O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of nodes in the tree and h is the height of the tree."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Iterative DFS"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Recursive DFS is the easiest way to compute diameter, but it uses the call stack.\nWe can simulate the same behavior iteratively using our own stack."
+   },
+   {
+    "kind": "p",
+    "text": "We perform a post-order traversal:"
+   },
+   {
+    "kind": "li",
+    "text": "Visit left subtree"
+   },
+   {
+    "kind": "li",
+    "text": "Visit right subtree"
+   },
+   {
+    "kind": "li",
+    "text": "Then process the current node"
+   },
+   {
+    "kind": "p",
+    "text": "For each node, we store in a map:"
+   },
+   {
+    "kind": "li",
+    "text": "its height"
+   },
+   {
+    "kind": "li",
+    "text": "its best diameter"
+   },
+   {
+    "kind": "p",
+    "text": "After both children are processed, we can compute:"
+   },
+   {
+    "kind": "li",
+    "text": "Height = 1 + max(leftHeight, rightHeight)"
+   },
+   {
+    "kind": "li",
+    "text": "Diameter = max(leftHeight + rightHeight, leftDiameter, rightDiameter)"
+   },
+   {
+    "kind": "p",
+    "text": "This means every node is processed exactly once."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Use a stack to simulate DFS."
+   },
+   {
+    "kind": "li",
+    "text": "Maintain a map storing (height, diameter) for each visited node."
+   },
+   {
+    "kind": "li",
+    "text": "For each node:\nFirst push its children until you reach the bottom (post-order).\nWhen both children are processed, pop the node:\nRetrieve left and right heights/diameters.\nCompute:height = 1 + max(leftHeight, rightHeight)\ndiameter = max(leftHeight + rightHeight, leftDiameter, rightDiameter)\nSave these results in the map."
+   },
+   {
+    "kind": "li",
+    "text": "The final diameter is the second value stored for the root."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:\n        stack = [root]\n        mp = {None: (0, 0)}\n\n        while stack:\n            node = stack[-1]\n\n            if node.left and node.left not in mp:\n                stack.append(node.left)\n            elif node.right and node.right not in mp:\n                stack.append(node.right)\n            else:\n                node = stack.pop()\n\n                leftHeight, leftDiameter = mp[node.left]\n                rightHeight, rightDiameter = mp[node.right]\n\n                mp[node] = (1 + max(leftHeight, rightHeight),\n                           max(leftHeight + rightHeight, leftDiameter, rightDiameter))\n\n        return mp[root][1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "balanced-binary-tree": {
+  "url": "https://neetcode.io/problems/balanced-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=QfJsau0ItOY",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "A tree is balanced if every node’s left and right subtree heights differ by at most 1."
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force approach directly follows the definition:"
+   },
+   {
+    "kind": "li",
+    "text": "For every node, compute the height of its left subtree."
+   },
+   {
+    "kind": "li",
+    "text": "Compute the height of its right subtree."
+   },
+   {
+    "kind": "li",
+    "text": "Check if their difference is ≤ 1."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively repeat this check for all nodes."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the current node is null, the subtree is balanced."
+   },
+   {
+    "kind": "li",
+    "text": "Compute:\nleftHeight = height(left subtree)\nrightHeight = height(right subtree)"
+   },
+   {
+    "kind": "li",
+    "text": "If abs(leftHeight - rightHeight) > 1, return False."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively check if:\nleft subtree is balanced\nright subtree is balanced"
+   },
+   {
+    "kind": "li",
+    "text": "If all checks pass, return True."
+   },
+   {
+    "kind": "p",
+    "text": "Height function:"
+   },
+   {
+    "kind": "li",
+    "text": "If node is null → return 0"
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise → 1 + max(height(left), height(right))"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isBalanced(self, root: Optional[TreeNode]) -> bool:\n        if not root:\n            return True\n\n        left = self.height(root.left)\n        right = self.height(root.right)\n        if abs(left - right) > 1:\n            return False\n        return self.isBalanced(root.left) and self.isBalanced(root.right)\n\n    def height(self, root: Optional[TreeNode]) -> int:\n        if not root:\n            return 0\n\n        return 1 + max(self.height(root.left), self.height(root.right))"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force solution wastes time by repeatedly recomputing subtree heights.\nWe fix this by doing one DFS that returns two things at once for every node:"
+   },
+   {
+    "kind": "li",
+    "text": "Is the subtree balanced? (True/False)"
+   },
+   {
+    "kind": "li",
+    "text": "What is its height?"
+   },
+   {
+    "kind": "p",
+    "text": "This way, each subtree is processed only once.\nIf at any node the height difference > 1, we mark it as unbalanced and stop worrying about deeper levels."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Write a DFS function that:\nReturns [isBalanced, height]."
+   },
+   {
+    "kind": "li",
+    "text": "For each node:\nRecursively get results from left and right children.\nA node is balanced if:\nLeft subtree is balanced  \nRight subtree is balanced  \nHeight difference ≤ 1"
+   },
+   {
+    "kind": "li",
+    "text": "Height of the current node = 1 + max(leftHeight, rightHeight)"
+   },
+   {
+    "kind": "li",
+    "text": "Run DFS on the root and return the isBalanced value."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isBalanced(self, root: Optional[TreeNode]) -> bool:\n        def dfs(root):\n            if not root:\n                return [True, 0]\n\n            left, right = dfs(root.left), dfs(root.right)\n            balanced = left[0] and right[0] and abs(left[1] - right[1]) <= 1\n            return [balanced, 1 + max(left[1], right[1])]\n\n        return dfs(root)[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(h)\nBest Case (balanced tree): O(log(n))\nWorst Case (degenerate tree): O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of nodes in the tree and h is the height of the tree."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Iterative DFS"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The recursive DFS solution computes height and balance in one postorder traversal.\nThis iterative version does the same thing, but simulates recursion using a stack."
+   },
+   {
+    "kind": "p",
+    "text": "The idea:"
+   },
+   {
+    "kind": "li",
+    "text": "We must visit each node after its children (postorder)."
+   },
+   {
+    "kind": "li",
+    "text": "Once both children of a node are processed, we already know their heights."
+   },
+   {
+    "kind": "li",
+    "text": "Then we:\nCheck if the height difference ≤ 1  \nSave the node’s height (1 + max(left, right))"
+   },
+   {
+    "kind": "p",
+    "text": "If any node is unbalanced, return False immediately."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Use a stack to simulate postorder traversal."
+   },
+   {
+    "kind": "li",
+    "text": "Use a dictionary/map (depths) to store the height of each visited node."
+   },
+   {
+    "kind": "li",
+    "text": "For each node:\nTraverse left until possible.\nWhen left is done, try right.\nWhen both children are done:\nGet their heights from depths.\nIf the difference > 1 → tree is unbalanced → return False.\nCompute current node height and store it."
+   },
+   {
+    "kind": "li",
+    "text": "If the traversal completes without violations → return True."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isBalanced(self, root):\n        stack = []\n        node = root\n        last = None\n        depths = {}\n\n        while stack or node:\n            if node:\n                stack.append(node)\n                node = node.left\n            else:\n                node = stack[-1]\n                if not node.right or last == node.right:\n                    stack.pop()\n                    left = depths.get(node.left, 0)\n                    right = depths.get(node.right, 0)\n\n                    if abs(left - right) > 1:\n                        return False\n\n                    depths[node] = 1 + max(left, right)\n                    last = node\n                    node = None\n                else:\n                    node = node.right\n\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "same-tree": {
+  "url": "https://neetcode.io/problems/same-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=vRbbcKXCxOw",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   },
+   {
+    "title": "Breadth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/20"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Two binary trees are the same if:"
+   },
+   {
+    "kind": "li",
+    "text": "Their structure is identical."
+   },
+   {
+    "kind": "li",
+    "text": "Their corresponding nodes have the same values."
+   },
+   {
+    "kind": "p",
+    "text": "So at every position:"
+   },
+   {
+    "kind": "li",
+    "text": "If both nodes are None → they match."
+   },
+   {
+    "kind": "li",
+    "text": "If one is None but the other isn’t → mismatch."
+   },
+   {
+    "kind": "li",
+    "text": "If both exist but values differ → mismatch."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise, compare their left subtrees and right subtrees recursively."
+   },
+   {
+    "kind": "p",
+    "text": "This is a direct structural + value-based DFS comparison."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If both p and q are None, return True."
+   },
+   {
+    "kind": "li",
+    "text": "If only one is None, return False."
+   },
+   {
+    "kind": "li",
+    "text": "If their values differ, return False."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively compare:\np.left with q.left\np.right with q.right"
+   },
+   {
+    "kind": "li",
+    "text": "Return True only if both subtree comparisons are True."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isSameTree(self, p: Optional[TreeNode], q: Optional[TreeNode]) -> bool:\n        if not p and not q:\n            return True\n        if p and q and p.val == q.val:\n            return self.isSameTree(p.left, q.left) and self.isSameTree(p.right, q.right)\n        else:\n            return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)\nBest Case (balanced tree): O(log(n))\nWorst Case (degenerate tree): O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of nodes in the tree and h is the height of the tree."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iterative DFS"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of using recursion, we can use an explicit stack to compare the two trees.\nEach stack entry contains a pair of nodes—one from each tree—that should match."
+   },
+   {
+    "kind": "p",
+    "text": "For every pair:"
+   },
+   {
+    "kind": "li",
+    "text": "If both are None, they match → continue."
+   },
+   {
+    "kind": "li",
+    "text": "If only one is None, or their values differ → trees are not the same."
+   },
+   {
+    "kind": "li",
+    "text": "If they match, push their children in the same order:\nLeft child pair\nRight child pair"
+   },
+   {
+    "kind": "p",
+    "text": "If we finish processing all pairs with no mismatch, the trees are identical."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize a stack with the pair (p, q)."
+   },
+   {
+    "kind": "li",
+    "text": "While the stack is not empty:\nPop a pair (node1, node2).\nIf both are None, continue.\nIf exactly one is None, return False.\nIf node1.val != node2.val, return False.\nPush:\n(node1.left, node2.left)\n(node1.right, node2.right)"
+   },
+   {
+    "kind": "li",
+    "text": "After the loop finishes, return True (all nodes matched)."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isSameTree(self, p: Optional[TreeNode], q: Optional[TreeNode]) -> bool:\n        stack = [(p, q)]\n\n        while stack:\n            node1, node2 = stack.pop()\n\n            if not node1 and not node2:\n                continue\n            if not node1 or not node2 or node1.val != node2.val:\n                return False\n\n            stack.append((node1.right, node2.right))\n            stack.append((node1.left, node2.left))\n\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Breadth First Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "BFS (level-order traversal) lets us compare the two trees level by level.\nWe maintain two queues—one for each tree. At every step, we remove a pair of nodes\nthat should match:"
+   },
+   {
+    "kind": "li",
+    "text": "If both nodes are None, they match → continue."
+   },
+   {
+    "kind": "li",
+    "text": "If only one is None, or their values differ → trees are not the same."
+   },
+   {
+    "kind": "li",
+    "text": "If they match, we push their children into their respective queues\nin the same order: left child first, then right child."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two queues:\nq1 containing the root of the first tree.\nq2 containing the root of the second tree."
+   },
+   {
+    "kind": "li",
+    "text": "While both queues are non-empty:\nPop one node from each queue: nodeP, nodeQ.\nIf both are None, continue.\nIf only one is None, return False.\nIf their values differ, return False.\nEnqueue their children:\nLeft children of both trees.\nRight children of both trees."
+   },
+   {
+    "kind": "li",
+    "text": "After BFS completes with no mismatch, return True."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isSameTree(self, p: Optional[TreeNode], q: Optional[TreeNode]) -> bool:\n        q1 = deque([p])\n        q2 = deque([q])\n\n        while q1 and q2:\n            for _ in range(len(q1)):\n                nodeP = q1.popleft()\n                nodeQ = q2.popleft()\n\n                if nodeP is None and nodeQ is None:\n                    continue\n                if nodeP is None or nodeQ is None or nodeP.val != nodeQ.val:\n                    return False\n\n                q1.append(nodeP.left)\n                q1.append(nodeP.right)\n                q2.append(nodeQ.left)\n                q2.append(nodeQ.right)\n\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "subtree-of-another-tree": {
+  "url": "https://neetcode.io/problems/subtree-of-a-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=E36O5SWp-LE",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search (DFS)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To check whether one tree is a subtree of another, we do two things:"
+   },
+   {
+    "kind": "li",
+    "text": "Walk through every node of the main tree (root) using DFS."
+   },
+   {
+    "kind": "li",
+    "text": "At each node, check if the subtree starting here is exactly the same as subRoot."
+   },
+   {
+    "kind": "p",
+    "text": "So for every node in the big tree:"
+   },
+   {
+    "kind": "li",
+    "text": "If its value matches subRoot’s root, we compare both subtrees fully."
+   },
+   {
+    "kind": "li",
+    "text": "If they are identical, subRoot is a subtree."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise, continue searching on the left and right children."
+   },
+   {
+    "kind": "p",
+    "text": "The helper sameTree simply checks whether two trees match exactly, node-for-node."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If subRoot is empty → return True (empty tree is always a subtree)."
+   },
+   {
+    "kind": "li",
+    "text": "If root is empty but subRoot is not → return False."
+   },
+   {
+    "kind": "li",
+    "text": "At the current root node:\nIf sameTree(root, subRoot) is True, return True."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively check:\nisSubtree(root.left, subRoot)\nisSubtree(root.right, subRoot)"
+   },
+   {
+    "kind": "li",
+    "text": "Return True if either side returns True."
+   },
+   {
+    "kind": "p",
+    "text": "sameTree(root1, root2):"
+   },
+   {
+    "kind": "li",
+    "text": "If both nodes are None → return True."
+   },
+   {
+    "kind": "li",
+    "text": "If only one is None → return False."
+   },
+   {
+    "kind": "li",
+    "text": "If values differ → return False."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively check left children and right children."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n\n    def isSubtree(self, root: Optional[TreeNode], subRoot: Optional[TreeNode]) -> bool:\n        if not subRoot:\n            return True\n        if not root:\n            return False\n\n        if self.sameTree(root, subRoot):\n            return True\n        return (self.isSubtree(root.left, subRoot) or\n               self.isSubtree(root.right, subRoot))\n\n    def sameTree(self, root: Optional[TreeNode], subRoot: Optional[TreeNode]) -> bool:\n        if not root and not subRoot:\n            return True\n        if root and subRoot and root.val == subRoot.val:\n            return (self.sameTree(root.left, subRoot.left) and\n                   self.sameTree(root.right, subRoot.right))\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of nodes in subRoot and n is the number of nodes in root."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Serialization And Pattern Matching"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of comparing trees directly, we can first turn each tree into a string and then just check whether one string is contained in the other."
+   },
+   {
+    "kind": "li",
+    "text": "Serialize both root and subRoot into strings using the same traversal (for example, preorder)."
+   },
+   {
+    "kind": "li",
+    "text": "While serializing, we must include markers for null children (like #) and separators (like $) so different shapes don’t accidentally look the same in the string."
+   },
+   {
+    "kind": "li",
+    "text": "Once we have:\nS_root  = serialization of the main tree\nS_sub   = serialization of the subtree\nthe problem becomes:\n“Is S_sub a substring of S_root?”"
+   },
+   {
+    "kind": "p",
+    "text": "To efficiently check this, we can use a linear-time pattern matching algorithm (like Z-function or KMP) instead of naive substring search."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Serialize a tree\n\nUse preorder traversal.\nFor each node:\nAppend a separator (e.g., $) + node value.\n\n\nFor each null child, append a special marker (e.g., #$ or just #).\nThis ensures structure and values are uniquely encoded."
+   },
+   {
+    "kind": "li",
+    "text": "Build strings\n\nLet S_sub  = serialization of subRoot.\nLet S_root = serialization of root."
+   },
+   {
+    "kind": "li",
+    "text": "Combine for pattern matching\n\nBuild a combined string:\ncombined = S_sub + \"|\" + S_root\n(| is just a separator that does not appear in the serializations.)"
+   },
+   {
+    "kind": "li",
+    "text": "Run pattern matching\n\nCompute the Z-array (or use another pattern-matching algorithm) on combined.\nLet m = length(S_sub).\nScan the Z-values:\nIf any Z[i] == m, then S_sub appears completely starting at that position → subRoot is a subtree → return true."
+   },
+   {
+    "kind": "li",
+    "text": "If no such position is found, return false."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def serialize(self, root: Optional[TreeNode]) -> str:\n        if root == None:\n            return \"$#\"\n\n        return (\"$\" + str(root.val) + self.serialize(root.left) + self.serialize(root.right))\n\n    def z_function(self, s: str) -> list:\n        z = [0] * len(s)\n        l, r, n = 0, 0, len(s)\n        for i in range(1, n):\n            if i <= r:\n                z[i] = min(r - i + 1, z[i - l])\n            while i + z[i] < n and s[z[i]] == s[i + z[i]]:\n                z[i] += 1\n            if i + z[i] - 1 > r:\n                l, r = i, i + z[i] - 1\n        return z\n\n    def isSubtree(self, root: Optional[TreeNode], subRoot: Optional[TreeNode]) -> bool:\n        serialized_root = self.serialize(root)\n        serialized_subRoot = self.serialize(subRoot)\n        combined = serialized_subRoot + \"|\" + serialized_root\n\n        z_values = self.z_function(combined)\n        sub_len = len(serialized_subRoot)\n\n        for i in range(sub_len + 1, len(combined)):\n            if z_values[i] == sub_len:\n                return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m + n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of nodes in subRoot and n is the number of nodes in root."
+   }
+  ]
+ },
+ "lowest-common-ancestor-of-a-binary-search-tree": {
+  "url": "https://neetcode.io/problems/lowest-common-ancestor-in-binary-search-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=gs2LMfuOR9k",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Binary Search Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/17"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def lowestCommonAncestor(self, root: TreeNode, p: TreeNode, q: TreeNode) -> TreeNode:\n        if not root or not p or not q:\n            return None\n        if (max(p.val, q.val) < root.val):\n            return self.lowestCommonAncestor(root.left, p, q)\n        elif (min(p.val, q.val) > root.val):\n            return self.lowestCommonAncestor(root.right, p, q)\n        else:\n            return root"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(h)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(h)"
+   },
+   {
+    "kind": "p",
+    "text": "Where h is the height of the tree."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def lowestCommonAncestor(self, root: TreeNode, p: TreeNode, q: TreeNode) -> TreeNode:\n        cur = root\n\n        while cur:\n            if p.val > cur.val and q.val > cur.val:\n                cur = cur.right\n            elif p.val < cur.val and q.val < cur.val:\n                cur = cur.left\n            else:\n                return cur"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(h)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "p",
+    "text": "Where h is the height of the tree."
+   }
+  ]
+ },
+ "binary-tree-level-order-traversal": {
+  "url": "https://neetcode.io/problems/level-order-traversal-of-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=6ZnyEApgFYg",
+  "prerequisites": [
+   {
+    "title": "Breadth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/20"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:\n        res = []\n\n        def dfs(node, depth):\n            if not node:\n                return None\n            if len(res) == depth:\n                res.append([])\n\n            res[depth].append(node.val)\n            dfs(node.left, depth + 1)\n            dfs(node.right, depth + 1)\n\n        dfs(root, 0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:\n        res = []\n\n        q = collections.deque()\n        q.append(root)\n\n        while q:\n            qLen = len(q)\n            level = []\n            for i in range(qLen):\n                node = q.popleft()\n                if node:\n                    level.append(node.val)\n                    q.append(node.left)\n                    q.append(node.right)\n            if level:\n                res.append(level)\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "binary-tree-right-side-view": {
+  "url": "https://neetcode.io/problems/binary-tree-right-side-view?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=d4zLyf32e3I",
+  "prerequisites": [
+   {
+    "title": "Breadth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/20"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def rightSideView(self, root: Optional[TreeNode]) -> List[int]:\n        res = []\n\n        def dfs(node, depth):\n            if not node:\n                return None\n            if depth == len(res):\n                res.append(node.val)\n\n            dfs(node.right, depth + 1)\n            dfs(node.left, depth + 1)\n\n        dfs(root, 0)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def rightSideView(self, root: Optional[TreeNode]) -> List[int]:\n        res = []\n        q = deque([root])\n\n        while q:\n            rightSide = None\n            qLen = len(q)\n\n            for i in range(qLen):\n                node = q.popleft()\n                if node:\n                    rightSide = node\n                    q.append(node.left)\n                    q.append(node.right)\n            if rightSide:\n                res.append(rightSide.val)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "count-good-nodes-in-binary-tree": {
+  "url": "https://neetcode.io/problems/count-good-nodes-in-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=7cp5imvDzl4",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def goodNodes(self, root: TreeNode) -> int:\n\n        def dfs(node, maxVal):\n            if not node:\n                return 0\n\n            res = 1 if node.val >= maxVal else 0\n            maxVal = max(maxVal, node.val)\n            res += dfs(node.left, maxVal)\n            res += dfs(node.right, maxVal)\n            return res\n\n        return dfs(root, root.val)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def goodNodes(self, root: TreeNode) -> int:\n        res = 0\n        q = deque()\n\n        q.append((root,-float('inf')))\n\n        while q:\n            node,maxval = q.popleft()\n            if node.val >= maxval:\n                res += 1\n\n            if node.left:\n                q.append((node.left,max(maxval,node.val)))\n\n            if node.right:\n                q.append((node.right,max(maxval,node.val)))\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "validate-binary-search-tree": {
+  "url": "https://neetcode.io/problems/valid-binary-search-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=s6ATEkipzow",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Binary Search Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/17"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    left_check = staticmethod(lambda val, limit: val < limit)\n    right_check = staticmethod(lambda val, limit: val > limit)\n\n    def isValidBST(self, root: Optional[TreeNode]) -> bool:\n        if not root:\n            return True\n\n        if (not self.isValid(root.left, root.val, self.left_check) or\n            not self.isValid(root.right, root.val, self.right_check)):\n            return False\n\n        return self.isValidBST(root.left) and self.isValidBST(root.right)\n\n    def isValid(self, root: Optional[TreeNode], limit: int, check) -> bool:\n        if not root:\n            return True\n        if not check(root.val, limit):\n            return False\n        return (self.isValid(root.left, limit, check) and\n                self.isValid(root.right, limit, check))"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isValidBST(self, root: Optional[TreeNode]) -> bool:\n        def valid(node, left, right):\n            if not node:\n                return True\n            if not (left < node.val < right):\n                return False\n\n            return valid(node.left, left, node.val) and valid(\n                node.right, node.val, right\n            )\n\n        return valid(root, float(\"-inf\"), float(\"inf\"))"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def isValidBST(self, root: Optional[TreeNode]) -> bool:\n        if not root:\n            return True\n\n        q = deque([(root, float(\"-inf\"), float(\"inf\"))])\n\n        while q:\n            node, left, right = q.popleft()\n            if not (left < node.val < right):\n                return False\n            if node.left:\n                q.append((node.left, left, node.val))\n            if node.right:\n                q.append((node.right, node.val, right))\n\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "kth-smallest-element-in-a-bst": {
+  "url": "https://neetcode.io/problems/kth-smallest-integer-in-bst?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=5LUXSvjmGCw",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Binary Search Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/17"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def kthSmallest(self, root: Optional[TreeNode], k: int) -> int:\n        arr = []\n\n        def dfs(node):\n            if not node:\n                return\n\n            arr.append(node.val)\n            dfs(node.left)\n            dfs(node.right)\n\n        dfs(root)\n        arr.sort()\n        return arr[k - 1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Inorder Traversal"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def kthSmallest(self, root: Optional[TreeNode], k: int) -> int:\n        arr = []\n\n        def dfs(node):\n            if not node:\n                return\n\n            dfs(node.left)\n            arr.append(node.val)\n            dfs(node.right)\n\n        dfs(root)\n        return arr[k - 1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Recursive DFS (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def kthSmallest(self, root: Optional[TreeNode], k: int) -> int:\n        cnt = k\n        res = root.val\n\n        def dfs(node):\n            nonlocal cnt, res\n            if not node:\n                return\n\n            dfs(node.left)\n            cnt -= 1\n            if cnt == 0:\n                res = node.val\n                return\n            dfs(node.right)\n\n        dfs(root)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Iterative DFS (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def kthSmallest(self, root: Optional[TreeNode], k: int) -> int:\n        stack = []\n        curr = root\n\n        while stack or curr:\n            while curr:\n                stack.append(curr)\n                curr = curr.left\n            curr = stack.pop()\n            k -= 1\n            if k == 0:\n                return curr.val\n            curr = curr.right"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "5. Morris Traversal"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def kthSmallest(self, root: Optional[TreeNode], k: int) -> int:\n        curr = root\n\n        while curr:\n            if not curr.left:\n                k -= 1\n                if k == 0:\n                    return curr.val\n                curr = curr.right\n            else:\n                pred = curr.left\n                while pred.right and pred.right != curr:\n                    pred = pred.right\n\n                if not pred.right:\n                    pred.right = curr\n                    curr = curr.left\n                else:\n                    pred.right = None\n                    k -= 1\n                    if k == 0:\n                        return curr.val\n                    curr = curr.right\n\n        return -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "construct-binary-tree-from-preorder-and-inorder-traversal": {
+  "url": "https://neetcode.io/problems/binary-tree-from-preorder-and-inorder-traversal?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=ihj4IQGZ2zc",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:\n        if not preorder or not inorder:\n            return None\n\n        root = TreeNode(preorder[0])\n        mid = inorder.index(preorder[0])\n        root.left = self.buildTree(preorder[1 : mid + 1], inorder[:mid])\n        root.right = self.buildTree(preorder[mid + 1 :], inorder[mid + 1 :])\n        return root"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Map + Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:\n        indices = {val: idx for idx, val in enumerate(inorder)}\n\n        self.pre_idx = 0\n        def dfs(l, r):\n            if l > r:\n                return None\n\n            root_val = preorder[self.pre_idx]\n            self.pre_idx += 1\n            root = TreeNode(root_val)\n            mid = indices[root_val]\n            root.left = dfs(l, mid - 1)\n            root.right = dfs(mid + 1, r)\n            return root\n\n        return dfs(0, len(inorder) - 1)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Depth First Search (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:\n        preIdx = inIdx = 0\n        def dfs(limit):\n            nonlocal preIdx, inIdx\n            if preIdx >= len(preorder):\n                return None\n            if inorder[inIdx] == limit:\n                inIdx += 1\n                return None\n\n            root = TreeNode(preorder[preIdx])\n            preIdx += 1\n            root.left = dfs(root.val)\n            root.right = dfs(limit)\n            return root\n        return dfs(float('inf'))"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n) for recursion stack."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Morris Traversal"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def buildTree(self, preorder: List[int], inorder: List[int]) -> Optional[TreeNode]:\n        head = TreeNode(None)\n        curr = head\n        i, j, n = 0, 0, len(preorder)\n        while i < n and j < n:\n            # Go right and then as far left as possible\n            curr.right = TreeNode(preorder[i], right = curr.right)\n            curr = curr.right\n            i += 1\n            while i < n and curr.val != inorder[j]:\n                curr.left = TreeNode(preorder[i], right=curr)\n                curr = curr.left\n                i += 1\n            j += 1\n            while curr.right and j < n and curr.right.val == inorder[j]:\n                prev = curr.right\n                curr.right = None\n                curr = prev\n                j += 1\n        \n        return head.right"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) for the output tree."
+   }
+  ]
+ },
+ "binary-tree-maximum-path-sum": {
+  "url": "https://neetcode.io/problems/binary-tree-maximum-path-sum?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=Hr5cWUld4vU",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def maxPathSum(self, root: Optional[TreeNode]) -> int:\n        res = -float('inf')\n        def dfs(root):\n            nonlocal res\n            if not root:\n                return\n            left = self.getMax(root.left)\n            right = self.getMax(root.right)\n            res =max(res, root.val + left + right)\n            dfs(root.left)\n            dfs(root.right)\n        dfs(root)\n        return res\n\n    def getMax(self, root: Optional[TreeNode]) -> int:\n        if not root:\n            return 0\n\n        left = self.getMax(root.left)\n        right = self.getMax(root.right)\n        path = root.val + max(left, right)\n        return max(0, path)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Solution:\n    def maxPathSum(self, root: Optional[TreeNode]) -> int:\n        res = [root.val]\n\n        def dfs(root):\n            if not root:\n                return 0\n\n            leftMax = dfs(root.left)\n            rightMax = dfs(root.right)\n            leftMax = max(leftMax, 0)\n            rightMax = max(rightMax, 0)\n\n            res[0] = max(res[0], root.val + leftMax + rightMax)\n            return root.val + max(leftMax, rightMax)\n\n        dfs(root)\n        return res[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "serialize-and-deserialize-binary-tree": {
+  "url": "https://neetcode.io/problems/serialize-and-deserialize-binary-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=u4JAi2JJhI8",
+  "prerequisites": [
+   {
+    "title": "Binary Tree Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/16"
+   },
+   {
+    "title": "Depth-First Search Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Codec:\n\n    # Encodes a tree to a single string.\n    def serialize(self, root: Optional[TreeNode]) -> str:\n        res = []\n\n        def dfs(node):\n            if not node:\n                res.append(\"N\")\n                return\n            res.append(str(node.val))\n            dfs(node.left)\n            dfs(node.right)\n\n        dfs(root)\n        return \",\".join(res)\n\n    # Decodes your encoded data to tree.\n    def deserialize(self, data: str) -> Optional[TreeNode]:\n        vals = data.split(\",\")\n        self.i = 0\n\n        def dfs():\n            if vals[self.i] == \"N\":\n                self.i += 1\n                return None\n            node = TreeNode(int(vals[self.i]))\n            self.i += 1\n            node.left = dfs()\n            node.right = dfs()\n            return node\n\n        return dfs()"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\n\nclass Codec:\n\n    # Encodes a tree to a single string.\n    def serialize(self, root: Optional[TreeNode]) -> str:\n        if not root:\n            return \"N\"\n        res = []\n        queue = deque([root])\n        while queue:\n            node = queue.popleft()\n            if not node:\n                res.append(\"N\")\n            else:\n                res.append(str(node.val))\n                queue.append(node.left)\n                queue.append(node.right)\n        return \",\".join(res)\n\n    # Decodes your encoded data to tree.\n    def deserialize(self, data: str) -> Optional[TreeNode]:\n        vals = data.split(\",\")\n        if vals[0] == \"N\":\n            return None\n        root = TreeNode(int(vals[0]))\n        queue = deque([root])\n        index = 1\n        while queue:\n            node = queue.popleft()\n            if vals[index] != \"N\":\n                node.left = TreeNode(int(vals[index]))\n                queue.append(node.left)\n            index += 1\n            if vals[index] != \"N\":\n                node.right = TreeNode(int(vals[index]))\n                queue.append(node.right)\n            index += 1\n        return root"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ }
+}

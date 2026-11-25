@@ -136,6 +136,26 @@ impl Device for AndroidDevice {
         crate::android_lease::check()
     }
 
+    fn relaunch_link(&self, link: &str) -> Result<(), String> {
+        let serial = self.serial()?;
+        let package = "host.exp.exponent";
+        let url = input::sh_word(&harness_core::android_logs::link_with_run_id(link));
+        input::adb_run(&serial, &["shell", "am", "force-stop", package])?;
+        // Start through the launcher so Android creates the new process before Expo handles the update intent.
+        for intent in [
+            vec!["-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER"],
+            vec!["-a", "android.intent.action.VIEW", "-d", &url],
+        ] {
+            let mut args = vec!["shell", "am", "start", "-W", "--include-stopped-packages", "-p", package];
+            args.extend(intent);
+            let started = input::adb_text(&serial, &args)?;
+            if !started.lines().any(|line| line.trim() == "Status: ok") {
+                return Err(format!("Android could not relaunch Expo Go: {started}"));
+            }
+        }
+        Ok(())
+    }
+
     fn open_link(&self, link: &str) -> Result<(), String> {
         input::open_link(&self.serial()?, &harness_core::android_logs::link_with_run_id(link))
     }
@@ -160,8 +180,15 @@ impl Device for AndroidDevice {
         input::type_text(&self.serial()?, text, self.log().as_deref())
     }
 
+    fn replace_text(&self, text: &str) -> Result<(), String> {
+        crate::android_u2::set_focused_text(&self.serial()?, text, true)
+    }
+
     fn press_key(&self, key: Key) -> Result<(), String> {
         let serial = self.serial()?;
+        if key == Key::SelectAll {
+            return input::press_combination(&serial, &[113, 29], "select-all", self.log().as_deref());
+        }
         if key == Key::CtrlEnd {
             return input::press_combination(&serial, &[113, 123], "ctrl-end", self.log().as_deref());
         }

@@ -8,6 +8,8 @@ use agent_api_agent::{code as thread_code, queue, requests, THREAD_CREATE, TURN_
 use orca_core::wire::Failure;
 use orca_core::{AgentApi, AgentError};
 use serde_json::{json, Value};
+
+pub(crate) const PERMISSION_MODES: &str = "agent-session.permission-modes.v1";
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -109,7 +111,7 @@ pub(crate) fn start_turn(agent: &dyn AgentApi, thread: &str, prompt: &str, attac
     if let Some(m) = model.or(picked.as_deref()).or(view["model"].as_str()).or(default_model) {
         params["model"] = m.into();
     }
-    if let Some(mode) = settings["nativeChatPermissionMode"].as_str() {
+    if let Some(mode) = crate::catalog::permission_mode(agent, thread, &settings)? {
         params["runtime_mode"] = runtime_mode(mode).into();
     }
     if !attachments.is_empty() {
@@ -148,6 +150,10 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
         let mut queued = json!({"thread": env.session, "prompt": prompt});
         if let Some(model) = model.or(picked.as_deref()) {
             queued["model"] = model.into();
+        }
+        let settings = crate::agent::state_get(agent, "settings")?.unwrap_or(Value::Null);
+        if let Some(mode) = crate::catalog::permission_mode(agent, &env.session, &settings)? {
+            queued["runtime_mode"] = runtime_mode(mode).into();
         }
         let added = ask(agent, queue::QUEUE_ADD.name(), queued)?;
         json!({"clientMessageId": env.op, "queued": {"messageId": added["item"]["item"], "position": added["position"], "state": "waiting"}})

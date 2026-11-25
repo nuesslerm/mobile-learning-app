@@ -32,7 +32,7 @@ pub const TERMINAL_OPEN_INPUT_SESSION: &str = "terminal.openInputSession";
 pub use tabs::{SESSION_TABS_ACTIVATE, SESSION_TABS_CLOSE, SESSION_TABS_CREATE_TERMINAL, SESSION_TABS_LIST, SESSION_TABS_SUBSCRIBE, SESSION_TABS_UNSUBSCRIBE};
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE, OPEN, READ, ATTACH, orca_map_state::STATE_SET];
+pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE, OPEN, READ, ATTACH, orca_map_state::STATE_SET, orca_map_workspace::layout::THREAD_LIST];
 
 const METHODS: &[Method] = &[
     Method { name: TERMINAL_LIST, kind: Kind::Unary },

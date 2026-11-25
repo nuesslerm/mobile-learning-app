@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  /><title>RCA API performance</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font: 16px/1.5 system-ui;
+      color: light-dark(#182a31, #e4efec);
+      background: light-dark(#fafcfb, #101918);
+    }
+    body {
+      max-width: 98rem;
+      margin: auto;
+      padding: clamp(1rem, 4vw, 3rem);
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 1.1;
+      margin: 0.3em 0;
+    }
+    h2 {
+      font-size: 1.45rem;
+    }
+    p {
+      max-width: 84ch;
+    }
+    input,
+    select,
+    button {
+      font: inherit;
+      padding: 0.4rem;
+      max-width: 100%;
+    }
+    label {
+      min-width: 0;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      font-weight: 600;
+    }
+    header,
+    section {
+      border-bottom: 1px solid #788e86;
+      padding-bottom: 1.2rem;
+    }
+    nav,
+    .tools {
+      display: flex;
+      align-items: end;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    a {
+      color: light-dark(#005a55, #91ded2);
+    }
+    .scroll {
+      overflow: auto;
+    }
+    table {
+      border-collapse: collapse;
+      min-width: 100%;
+      font-size: 0.88rem;
+    }
+    th,
+    td {
+      text-align: left;
+      padding: 0.35rem 0.65rem;
+      border-bottom: 1px solid #7f958855;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    #history td:nth-child(5) {
+      white-space: normal;
+      min-width: 24rem;
+      max-width: 45rem;
+    }
+    th {
+      background: light-dark(#e6efea, #233631);
+    }
+    button:disabled {
+      opacity: 0.45;
+    }
+    code,
+    .num {
+      font-variant-numeric: tabular-nums;
+    }
+    strong {
+      color: light-dark(#075950, #9ce7da);
+    }
+  </style>
+  <header>
+    <h1>RCA API performance</h1>
+    <p id="summary">Reading the embedded SQLite export…</p>
+    <p id="latest"></p>
+    <nav>
+      <a href="#catalog">Endpoint coverage</a
+      ><a href="#limits">API comparisons</a
+      ><a href="#operations">Operation timings</a
+      ><a href="#calls">Individual calls</a><a href="#sites">CLI call sites</a
+      ><a href="#history">Run history</a>
+    </nav>
+  </header>
+  <div class="tools">
+    <label
+      >Run<select id="run">
+        <option value="">All runs</option>
+      </select></label
+    ><label
+      >Filter by operation, service or trace ID<input
+        type="search"
+        id="query"
+        placeholder="e.g. artifact.stat"
+    /></label>
+  </div>
+  <section id="catalog">
+    <h2>Endpoint coverage</h2>
+    <p>
+      Every pinned Orca and T3 endpoint, registered RCA HTTP route, service
+      method and executor action in the catalog runs. Select an endpoint to
+      inspect its calls. Catalog probes dispatch a schema fixture or a minimal
+      input through a test host with scripted dependencies. Accepted streams
+      measure the opening dispatch. Refusals and HTTP errors measure that
+      response path. RCA service probes use empty parameters. RCA HTTP probes
+      send empty JSON without credentials and exercise the wildcard gateway with
+      POST. Executor probes verify the requested action against a recording
+      executor. The seven third-party Orca requests originate on the phone.
+    </p>
+  </section>
+  <section id="limits">
+    <h2>Per-API regression checks</h2>
+    <p>
+      Each catalog workload runs five times. CI compares the median duration to
+      the first passing run on the same profile with identical outcomes. The
+      limit allows 50% or 5 ms of growth, whichever is larger. The first run
+      establishes the reference.
+    </p>
+  </section>
+  <section id="operations">
+    <h2>Operation timings</h2>
+    <p>
+      Percentiles are nearest-rank milliseconds within one run. Only repeated
+      workload operations have a CI limit. The history records the whole run’s
+      verdict, including test failures.
+    </p>
+  </section>
+  <section id="calls">
+    <h2>Individual calls and spans</h2>
+    <p>
+      Each row is one recorded invocation at the named layer. A request can
+      produce client, server and executor spans. An empty outcome means that
+      instrumentation did not record one. Search a trace ID to inspect its
+      related spans.
+    </p>
+  </section>
+  <section id="sites">
+    <h2>CLI call sites</h2>
+    <p>
+      Shared clients can issue the same HTTP verb or launch the same external
+      tool from different commands. Each row groups calls from one recorded
+      source location in one run.
+    </p>
+  </section>
+  <section id="history"><h2>Run history</h2></section>
+  <script id="payload" type="application/octet-stream">
+    __DATA__
+  </script>
+  <script>
+    (async () => {
+      const $ = (id) => document.getElementById(id);
+      const raw = Uint8Array.from(atob($('payload').textContent), (c) =>
+        c.charCodeAt(0)
+      );
+      const data = await new Response(
+        new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'))
+      ).json();
+      const { runs, calls, operations, inventory, checks } = data;
+      const labels = new Map(
+        runs.map((r) => [r[0], r[1] + ' · ' + r[2] + ' · ' + r[0].slice(0, 8)])
+      );
+      for (const [id, label] of labels) $('run').add(new Option(label, id));
+      $('summary').textContent =
+        calls.length.toLocaleString() +
+        ' recorded spans across ' +
+        new Set(calls.map((c) => c[1])).size +
+        ' operations and ' +
+        runs.length +
+        ' runs. The API inventory contains ' +
+        inventory.length +
+        ' endpoints.';
+      const latest = runs.find((r) => r[3] === 'rca-api-catalog-v1');
+      if (latest) {
+        const measured = checks.filter((c) => c[0] === latest[0] && c[2] > 0);
+        const totals = new Map();
+        for (const c of measured) {
+          for (const [outcome, count] of JSON.parse(c[3]))
+            totals.set(outcome, (totals.get(outcome) || 0) + count);
+        }
+        const over = measured.filter((c) =>
+          ['Exceeded', 'Incomplete', 'Fewer successful calls'].includes(c[7])
+        );
+        $('latest').textContent =
+          'Latest catalog run · ' +
+          measured.length.toLocaleString() +
+          ' local operations · ' +
+          [...totals]
+            .map(([k, v]) => v.toLocaleString() + ' ' + k)
+            .join(' · ') +
+          '. ';
+        for (const c of over) {
+          const a = document.createElement('a');
+          a.href = '#limits';
+          a.textContent =
+            c[1] +
+            ' · ' +
+            c[7] +
+            (c[6] != null
+              ? ' (' +
+                c[4].toFixed(3) +
+                ' ms median, ' +
+                c[6].toFixed(3) +
+                ' ms limit)'
+              : '');
+          a.onclick = () => {
+            $('run').value = latest[0];
+            $('query').value = c[1];
+            render();
+          };
+          $('latest').append(a, ' ');
+        }
+      }
+      function cell(tag, value) {
+        const el = document.createElement(tag);
+        el.textContent = value ?? '—';
+        return el;
+      }
+      function table(id, headers) {
+        const section = $(id),
+          controls = document.createElement('div');
+        controls.className = 'tools';
+        const prev = cell('button', 'Previous'),
+          next = cell('button', 'Next'),
+          count = cell('span', '');
+        const scroller = document.createElement('div');
+        scroller.className = 'scroll';
+        const t = document.createElement('table');
+        const head = t.createTHead().insertRow();
+        headers.forEach((h) => head.append(cell('th', h)));
+        const body = t.createTBody();
+        controls.append(prev, next, count);
+        scroller.append(t);
+        section.append(controls, scroller);
+        let page = 0,
+          rows = [];
+        function draw() {
+          const first = page * 50;
+          body.replaceChildren();
+          for (const values of rows.slice(first, first + 50)) {
+            const row = body.insertRow();
+            for (const [i, v] of values.entries()) {
+              const td = cell('td', v);
+              if (i === 0 && id === 'catalog') {
+                const a = cell('a', v);
+                a.href = '#calls';
+                a.onclick = () => {
+                  $('query').value = v;
+                  render();
+                };
+                td.replaceChildren(a);
+              }
+              row.append(td);
+            }
+          }
+          count.textContent = rows.length
+            ? first +
+              1 +
+              '–' +
+              Math.min(first + 50, rows.length) +
+              ' of ' +
+              rows.length.toLocaleString()
+            : '0 rows';
+          prev.disabled = !page;
+          next.disabled = first + 50 >= rows.length;
+        }
+        prev.onclick = () => {
+          page--;
+          draw();
+        };
+        next.onclick = () => {
+          page++;
+          draw();
+        };
+        return (values) => {
+          rows = values;
+          page = 0;
+          draw();
+        };
+      }
+      const limits = table('limits', [
+        'Endpoint',
+        'Run (UTC)',
+        'Samples',
+        'Outcomes',
+        'Median ms',
+        'Reference ms',
+        'Limit ms',
+        'Verdict',
+      ]);
+      const cover = table('catalog', [
+        'Endpoint',
+        'Catalog calls',
+        'Other dispatch spans',
+        'Catalog outcomes',
+        'Inventory note',
+      ]);
+      const timing = table('operations', [
+        'Operation',
+        'Samples',
+        'p50 ms',
+        'p95 ms',
+        'Limit ms',
+        'Limit check',
+        'Run (UTC)',
+      ]);
+      const events = table('calls', [
+        'Operation',
+        'Started (UTC)',
+        'Duration ms',
+        'Outcome',
+        'HTTP',
+        'Service',
+        'Trace ID',
+        'Span ID',
+        'Parent ID',
+        'Caller',
+        'Run (UTC)',
+      ]);
+      const sites = table('sites', [
+        'Operation',
+        'Caller',
+        'Service',
+        'Calls',
+        'Run (UTC)',
+      ]);
+      const history = table('history', [
+        'Started (UTC)',
+        'Workload',
+        'Profile',
+        'Run verdict',
+        'Evidence notes',
+        'Revision',
+        'Run ID',
+      ]);
+      const ms = (x) => (x == null ? null : x.toFixed(4));
+      function render() {
+        const run = $('run').value,
+          query = $('query').value.trim().toLowerCase();
+        const entry = inventory.find((i) => i[0].toLowerCase() === query);
+        const terms = entry
+          ? [
+              entry[0],
+              entry[1],
+              entry[2],
+              entry[2].replace(/^rca\.server\./, 'rca.client.'),
+              entry[2].replace(/^rca\.executor\./, 'rca.channel.'),
+            ]
+              .filter(Boolean)
+              .map((s) => s.toLowerCase())
+          : [query];
+        const matches = (...items) =>
+          items.some((i) =>
+            entry
+              ? terms.includes(String(i ?? '').toLowerCase())
+              : String(i ?? '')
+                  .toLowerCase()
+                  .includes(query)
+          );
+        const selected = calls.filter((c) => !run || run === c[0]),
+          byName = new Map();
+        for (const c of selected) {
+          if (!byName.has(c[1])) byName.set(c[1], []);
+          byName.get(c[1]).push(c);
+        }
+        cover(
+          inventory
+            .filter(([name, probe, prod]) => matches(name, prod))
+            .map(([name, probe, prod, note]) => {
+              const probes = (byName.get(probe) || []).filter((c) =>
+                  catalogRuns.has(c[0])
+                ),
+                other = (byName.get(prod) || []).filter(
+                  (c) => !catalogRuns.has(c[0])
+                );
+              const outcomes = new Map();
+              for (const c of probes) {
+                const k = c[4] ?? 'unrecorded';
+                outcomes.set(k, (outcomes.get(k) || 0) + 1);
+              }
+              return [
+                name,
+                probes.length,
+                other.length,
+                [...outcomes].map(([k, n]) => n + ' ' + k).join(', ') || '—',
+                note ||
+                  (!other.length && !probes.length ? 'No matching span' : ''),
+              ];
+            })
+        );
+        limits(
+          checks
+            .filter(([r, n]) => (!run || r === run) && matches(n))
+            .map(([r, n, s, o, m, b, l, v]) => [
+              n,
+              labels.get(r),
+              s,
+              JSON.parse(o)
+                .map(([k, c]) => c + ' ' + k)
+                .join(', '),
+              ms(m),
+              ms(b),
+              ms(l),
+              v,
+            ])
+        );
+        timing(
+          operations
+            .filter((o) => (!run || run === o[0]) && matches(o[1]))
+            .sort(
+              (a, b) =>
+                a[1].localeCompare(b[1]) ||
+                labels.get(b[0]).localeCompare(labels.get(a[0]))
+            )
+            .map(([r, n, s, p, q, b]) => [
+              n,
+              s,
+              ms(p),
+              ms(q),
+              ms(b),
+              b == null
+                ? 'Unbudgeted'
+                : s < (data.requirements[r] ?? 1)
+                  ? 'Insufficient samples'
+                  : q > b
+                    ? 'Exceeded'
+                    : 'Within limit',
+              labels.get(r),
+            ])
+        );
+        events(
+          selected
+            .filter((c) => matches(c[1], c[6], c[7], c[10]))
+            .map(
+              ([
+                r,
+                n,
+                start,
+                elapsed,
+                out,
+                status,
+                service,
+                trace,
+                span,
+                parent,
+                file,
+                line,
+              ]) => [
+                n,
+                new Date(Math.floor(start / 1000))
+                  .toISOString()
+                  .replace('Z', '') +
+                  String(start % 1000).padStart(3, '0') +
+                  'Z',
+                ms(elapsed / 1e6),
+                out,
+                status,
+                service,
+                trace,
+                span,
+                parent,
+                file ? file + (line ? ':' + line : '') : null,
+                labels.get(r),
+              ]
+            )
+        );
+        const locations = new Map();
+        for (const c of selected) {
+          if (!c[10] || !matches(c[1], c[6], c[10])) continue;
+          const key = JSON.stringify([
+            c[1],
+            c[10] + (c[11] ? ':' + c[11] : ''),
+            c[6],
+            labels.get(c[0]),
+          ]);
+          locations.set(key, (locations.get(key) || 0) + 1);
+        }
+        sites(
+          [...locations].map(([k, count]) => {
+            const [n, site, svc, r] = JSON.parse(k);
+            return [n, site, svc, count, r];
+          })
+        );
+        history(
+          runs
+            .filter((r) => !run || run === r[0])
+            .map(([id, start, p, s, rev, ok]) => [
+              start,
+              s,
+              p,
+              ok == null ? 'Unfinished' : ok ? 'Passed' : 'Failed',
+              data.notes[id],
+              rev,
+              id,
+            ])
+        );
+      }
+      const catalogRuns = new Set(
+        runs.filter((r) => r[3] === 'rca-api-catalog-v1').map((r) => r[0])
+      );
+      $('run').onchange = render;
+      $('query').oninput = render;
+      render();
+    })().catch(
+      (e) =>
+        (document.getElementById('summary').textContent =
+          'Could not read the report. ' + e.message)
+    );
+  </script>
+</html>

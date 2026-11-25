@@ -53,6 +53,24 @@ fn skill(base: &std::path::Path, dir: &str, name: &str, description: &str) {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn configured_opencode_models_are_available_with_the_cli_default_in_the_paired_catalog() {
+    // Given a host that advertises two usable OpenCode models and has a duplicate and malformed entry
+    let env = Env::new(&[("RCA_OPENCODE_MODELS", " minimax/MiniMax-M3, min i/invalid, minimax/MiniMax-M3, minimax/MiniMax-M3.1-Flash, unknown/ ")]);
+    let service = service(&env, Options::default());
+    let port = service.listen().await;
+    let token = service.mint("model picker").await;
+    let mut client = Agent::open(port, &token).await;
+
+    // When a paired client lists OpenCode models
+    let answer = client.ask("models.list", json!({"driver": "opencode"})).await;
+    let choices = answer["result"]["models"].as_array().unwrap();
+
+    // Then the CLI default stays available and the two explicit selections keep their provider IDs
+    let ids: Vec<_> = choices.iter().map(|choice| (choice["id"].as_str().unwrap(), choice["is_default"].as_bool().unwrap())).collect();
+    assert_eq!(ids, [("default", true), ("minimax/MiniMax-M3", false), ("minimax/MiniMax-M3.1-Flash", false)]);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_skills_on_the_executor_and_others_on_the_service_when_listed_then_only_the_executors_come_back_and_its_home_is_named_below_a_tilde() {
     // Given the executor's repository and home holding skills, and the service's own home and working directory holding others
     let env = Env::new(&[]);

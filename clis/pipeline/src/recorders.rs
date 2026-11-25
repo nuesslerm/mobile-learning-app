@@ -4,7 +4,7 @@
 use regex::Regex;
 use std::path::{Path, PathBuf};
 
-const SKIP: [&str; 8] = ["target", "node_modules", "references", ".git", ".nx", ".agents", "dist", ".expo"];
+const SKIP: [&str; 9] = ["target", "node_modules", "references", ".git", ".nx", ".agents", ".context", "dist", ".expo"];
 const SCRIPTS: [&str; 5] = ["mjs", "ts", "js", "py", "cjs"];
 const FIXTURE_DIRS: [&str; 5] = ["fixtures", "goldens", "golden", "vectors", "cassettes"];
 /// The harness's own sources record through its machinery: they are not hand-rolled recorders.

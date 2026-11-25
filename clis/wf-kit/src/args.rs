@@ -234,6 +234,7 @@ pub(crate) fn lift_leading_options(rest: Vec<String>) -> Vec<String> {
 pub(crate) struct Program {
     /// `--json` was given before the command.
     pub json: bool,
+    pub performance: bool,
     /// `--help` or `--version` if asked for, then the command and everything after it, verbatim.
     pub rest: Vec<String>,
 }
@@ -245,6 +246,7 @@ pub(crate) fn split_program(args: &[String]) -> Result<Program, String> {
     let matches = base()
         .bin_name("wf")
         .allow_external_subcommands(true)
+        .arg(Arg::new("performance").long("performance").action(ArgAction::SetTrue))
         .external_subcommand_value_parser(clap::value_parser!(String))
         .arg(json_flag())
         .arg(frontend_option())
@@ -262,7 +264,7 @@ pub(crate) fn split_program(args: &[String]) -> Result<Program, String> {
         rest.push(command.to_string());
         rest.extend(words.get_many::<String>("").into_iter().flatten().cloned());
     }
-    Ok(Program { json: matches.get_flag("json"), rest })
+    Ok(Program { json: matches.get_flag("json"), performance: matches.get_flag("performance"), rest })
 }
 
 /// The common shape without positionals: a stray word is clap's error.

@@ -48,8 +48,7 @@ fn read_json(path: &Path) -> serde_json::Value {
 
 
 
-/// The published update as one JSON line, also written under `store` beside its source maps (so a stack from the device maps
-/// back to file:line) as the group's summary and, with `pointer`, as the branch's latest update the e2e tests load.
+/// Update pointers hold metadata only. Source maps go to a separate sealed archive when configured.
 fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, store: Option<&Path>, pointer: bool, memory: serde_json::Value) -> serde_json::Value {
     let commit = std::process::Command::new("git").args(["rev-parse", "HEAD"]).current_dir(dist).output().ok().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
     let updates = read_json(&dist.join("eas-update.json"));
@@ -65,7 +64,7 @@ fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, sto
     let mut summary = serde_json::json!({ "published": true, "branch": branch, "initialRoute": route, "commit": commit, "group": group, "platform": platform, "platforms": platforms,
         "env": export["env"], "hosts": export["hosts"], "memory": memory,
         "timing": { "exportS": export["exportS"], "uploadS": export["uploadS"], "servedS": null } });
-    let Some(group) = group else {
+    let Some(group) = group.filter(|id| wf_bucket::eas_maps::valid_id(id)) else {
         summary["maps"] = serde_json::json!({ "error": "eas update printed no group id (dist/eas-update.json)" });
         return summary;
     };
@@ -76,16 +75,18 @@ fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, sto
     summary["timing"]["servedS"] = summary["served"]["s"].clone();
     let mut maps = Vec::new();
     collect_maps(dist, dist, &mut maps);
+    summary["maps"] = match map_archive_dir() {
+        Some(dir) => match seal_maps(dist, &dir, &group, &updates, &maps) {
+            Ok(stored) => serde_json::json!({ "stored": stored }),
+            Err(error) => serde_json::json!({ "error": error }),
+        },
+        None => serde_json::json!({ "found": maps.len() }),
+    };
     let Some(store) = store else {
-        summary["maps"] = serde_json::json!({ "found": maps.len() });
         summary["pointers"] = serde_json::json!({});
         return summary;
     };
     let group_dir = store.join(&group);
-    summary["maps"] = match copy_maps(dist, &group_dir, &maps) {
-        Ok(()) => serde_json::json!({ "stored": maps.len(), "base": group_dir.display().to_string(), "files": maps }),
-        Err(e) => serde_json::json!({ "error": e, "found": maps.len() }),
-    };
     let mut targets = vec![group_dir.join("summary.json")];
     if pointer {
         targets.push(store.join(latest_file(branch)));
@@ -113,12 +114,33 @@ fn write_file(path: &Path, body: &[u8]) -> Result<(), String> {
     std::fs::write(&tmp, body).and_then(|()| std::fs::rename(&tmp, path)).map_err(|e| format!("{}: {e}", path.display()))
 }
 
-fn copy_maps(dist: &Path, group_dir: &Path, maps: &[String]) -> Result<(), String> {
-    for rel in maps {
+fn map_archive_dir() -> Option<std::path::PathBuf> {
+    std::env::var_os("WF_EAS_MAPS_DIR").filter(|dir| !dir.is_empty()).map(Into::into)
+}
+
+fn seal_maps(dist: &Path, dir: &Path, group: &str, updates: &serde_json::Value, maps: &[String]) -> Result<usize, String> {
+    let key = wf_bucket::eas_maps::key()?;
+    let updates = updates.as_array().ok_or("EAS publish returned no update records")?;
+    let mut seen = std::collections::HashSet::new();
+    for update in updates {
+        if update["group"].as_str() != Some(group) {
+            return Err("EAS publish returned records from different update groups".into());
+        }
+        let platform = update["platform"].as_str().ok_or("EAS update has no platform")?;
+        if !matches!(platform, "ios" | "android") || !seen.insert(platform) {
+            return Err(format!("invalid or duplicate platform {platform} in EAS publish"));
+        }
+        let id = update["id"].as_str().ok_or("EAS update has no id")?;
+        let prefix = format!("_expo/static/js/{platform}/");
+        let mut candidates = maps.iter().filter(|rel| rel.starts_with(&prefix));
+        let rel = candidates.next().ok_or_else(|| format!("no source map for {platform}"))?;
+        if candidates.next().is_some() {
+            return Err(format!("multiple source maps for the {platform} update"));
+        }
         let body = std::fs::read(dist.join(rel)).map_err(|e| format!("{rel}: {e}"))?;
-        write_file(&group_dir.join(rel), &body)?;
+        wf_bucket::eas_maps::write(dir, &key, group, platform, id, &body)?;
     }
-    Ok(())
+    Ok(updates.len())
 }
 
 fn collect_maps(root: &Path, dir: &Path, out: &mut Vec<String>) {
@@ -196,6 +218,11 @@ pub(crate) fn run(args: &[String]) -> Option<i32> {
         let memory = serde_json::json!({ "peakRssMb": children_peak_rss_mb(), "vm": vm });
         let summary = summarize(&root.join("frontend").join(frontend).join("dist"), &branch, route, platform, store.as_deref(), pointer, memory);
         println!("{summary}");
+        if map_archive_dir().is_some() && summary["maps"]["stored"].as_u64().unwrap_or(0) == 0 {
+            let why = summary["maps"]["error"].as_str().unwrap_or("no source maps stored");
+            wf_kit::wf_err!("wf: the update is published, but its source maps could not be sealed: {why}");
+            return Some(1);
+        }
         if pointer && summary["pointers"]["latest"].is_null() {
             let why = summary["pointers"]["error"].as_str().or_else(|| summary["maps"]["error"].as_str()).unwrap_or("not stored");
             wf_kit::wf_err!("wf: the update is published, but {} was not written: {why}", latest_file(&branch));

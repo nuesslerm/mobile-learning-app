@@ -1,4 +1,5 @@
 import { Logger } from '@lib/logging';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -18,11 +19,15 @@ type EditorPreferencesState = EditorPreferences & {
   setWhitespace: (whitespace: boolean) => void;
 };
 
+const deviceDefaults = Platform.OS === 'ios'
+  ? { ...DEFAULT_EDITOR_PREFERENCES, fontSize: 16 as const }
+  : DEFAULT_EDITOR_PREFERENCES;
+
 /** The editor's font size, tab size, wrap and whitespace, per device and never per problem, kept across launches; a stored field that is not a listed value falls back to its default alone. */
 export const useEditorPreferencesStore = create<EditorPreferencesState>()(
   persist(
     (set) => ({
-      ...DEFAULT_EDITOR_PREFERENCES,
+      ...deviceDefaults,
       setFontSize: (fontSize) => {
         Logger.info('leetcode.editor_prefs.set', { field: 'fontSize', value: fontSize });
         set({ fontSize });

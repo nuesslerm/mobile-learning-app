@@ -11,14 +11,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { ScrollViewInstance, ScrollViewProps } from 'react-native';
+import type { ScrollViewInstance, ScrollViewProps, TextStyle, ViewStyle } from 'react-native';
 import { Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useKeyboardFrame } from '../../lib/keyboard/useKeyboardFrame';
 import { useOpenSheetStore } from '../../lib/openSheetStore';
 import { XStack, YStack } from '../../primitives';
-import { Icon } from '../../ui/icon';
+import { Icon, type IconProps } from '../../ui/icon';
 import { Text } from '../../ui/text';
 
 import { KeyboardToolbarPortal } from './portal';
@@ -270,22 +270,30 @@ export type KeyboardToolbarRailProps = {
    * `${testID}Leading`, so a swipe along the rail that starts at the region's edge never starts on the slot.
    */
   leading?: ReactNode;
+  density?: 'default' | 'compact';
+  style?: ViewStyle;
+  contentContainerStyle?: ScrollViewProps['contentContainerStyle'];
 };
 
 const RAIL_CONTENT = { paddingHorizontal: 8, paddingVertical: 6, gap: 6 } as const;
+const COMPACT_RAIL_CONTENT = { flexGrow: 1, paddingHorizontal: 6, paddingVertical: 3, gap: 4 } as const;
 const SCROLL_REGION = { flex: 1 } as const;
 
 export function KeyboardToolbarRail({
   children,
   testID,
   leading,
+  density = 'default',
+  style,
+  contentContainerStyle,
 }: KeyboardToolbarRailProps) {
+  const padding = density === 'compact' ? COMPACT_RAIL_CONTENT : RAIL_CONTENT;
   const keys = (regionTestID?: string) => (
     <ScrollView
       horizontal
       keyboardShouldPersistTaps="always"
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={RAIL_CONTENT}
+      contentContainerStyle={contentContainerStyle ? [padding, contentContainerStyle] : padding}
       {...(regionTestID ? { testID: regionTestID, style: SCROLL_REGION } : {})}
     >
       {children}
@@ -298,13 +306,14 @@ export function KeyboardToolbarRail({
         borderTopWidth={1}
         borderColor="$borderColor"
         testID={testID}
+        style={style}
       >
         {keys()}
       </YStack>
     );
   }
   return (
-    <YStack bg="$color2" borderTopWidth={1} borderColor="$borderColor">
+    <YStack bg="$color2" borderTopWidth={1} borderColor="$borderColor" style={style}>
       <XStack>
         <XStack testID={`${testID}Leading`} items="stretch">
           {leading}
@@ -316,13 +325,20 @@ export function KeyboardToolbarRail({
 }
 
 export type KeyboardToolbarButtonProps = {
-  label: string;
+  label?: string;
   accessibilityLabel: string;
   onPress: () => void;
   testID: string;
   icon?: LucideIcon;
   disabled?: boolean;
   tone?: 'default' | 'accent' | 'success' | 'danger';
+  density?: 'default' | 'compact';
+  stretch?: boolean;
+  style?: ViewStyle;
+  labelStyle?: TextStyle;
+  iconColor?: string;
+  iconSize?: number;
+  systemSymbol?: IconProps['systemSymbol'];
 };
 
 const TONE_COLOR = {
@@ -340,6 +356,13 @@ export function KeyboardToolbarButton({
   icon,
   disabled = false,
   tone = 'default',
+  density = 'default',
+  stretch,
+  style,
+  labelStyle,
+  iconColor,
+  iconSize = 16,
+  systemSymbol,
 }: KeyboardToolbarButtonProps) {
   return (
     <XStack
@@ -347,20 +370,21 @@ export function KeyboardToolbarButton({
       role="button"
       aria-label={accessibilityLabel}
       items="center"
+      flex={stretch ? 1 : undefined}
       gap="$1.5"
-      px="$2.5"
-      height={38}
+      px={density === 'compact' ? "$2" : "$2.5"}
+      height={density === 'compact' ? 36 : 38}
+      justify="center"
       rounded="$3"
       bg="$color3"
       opacity={disabled ? 0.4 : 1}
       pressStyle={{ bg: '$color5' }}
       cursor={disabled ? 'default' : 'pointer'}
+      style={style}
       onPress={disabled ? undefined : onPress}
     >
-      {icon ? <Icon as={icon} size={16} color={TONE_COLOR[tone]} /> : null}
-      <Text variant="small" color={TONE_COLOR[tone]}>
-        {label}
-      </Text>
+      {icon ? <Icon as={icon} size={iconSize} color={iconColor ?? TONE_COLOR[tone]} systemSymbol={systemSymbol} /> : null}
+      {label ? <Text variant="small" color={TONE_COLOR[tone]} style={labelStyle}>{label}</Text> : null}
     </XStack>
   );
 }

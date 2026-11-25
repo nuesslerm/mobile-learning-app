@@ -26,7 +26,7 @@ export function countHeaderControls(
     (sum, group) => sum + group.length,
     0
   );
-  return { left: spec.onBack ? 1 : 0, right: grouped + (spec.busy ? 1 : 0) };
+  return { left: Number(!!spec.onBack) + Number(!!spec.leadingStatus), right: grouped + (spec.busy ? 1 : 0) };
 }
 
 function flank(count: number): number {
@@ -84,7 +84,7 @@ export function buildScreenHeaderOptions({
   if (!nativeHeaderActive(env))
     return { header: () => renderers.classic(spec) };
 
-  const items = buildNativeHeaderItems(spec, renderers);
+  const items = buildNativeHeaderItems(spec, renderers, scheme);
   const maxWidth = titleMaxWidth(windowWidth, countHeaderControls(spec));
   const transparent = spec.transparent === true;
   return {
@@ -97,11 +97,11 @@ export function buildScreenHeaderOptions({
     headerShadowVisible: false,
     ...(transparent
       ? {}
-      : { headerStyle: { backgroundColor: theme.background } }),
+      : { headerStyle: { backgroundColor: spec.nativeBackgroundColor ?? theme.background } }),
     headerTintColor: theme.tint,
     headerUserInterfaceStyle: scheme,
     title: spec.title,
-    headerTitle: () =>
+    headerTitle: spec.nativeTitle === 'hidden' ? '' : () =>
       renderers.title({ title: spec.title, subtitle: spec.subtitle, maxWidth }),
     unstable_headerLeftItems: () => items.left,
     unstable_headerRightItems: () => items.right,
@@ -114,6 +114,17 @@ export function headerSignature(spec: ScreenHeaderSpec): string {
     id: spec.testID,
     title: spec.title,
     subtitle: spec.subtitle,
+    nativeTitle: spec.nativeTitle,
+    nativeBackgroundColor: spec.nativeBackgroundColor,
+    nativeGlassMenuGroups: spec.nativeGlassMenuGroups,
+    hideNativeControlBackgrounds: spec.hideNativeControlBackgrounds,
+    leadingStatus: spec.leadingStatus ? {
+      id: spec.leadingStatus.testID,
+      label: spec.leadingStatus.label,
+      icon: spec.leadingStatus.icon.displayName,
+      sfSymbol: spec.leadingStatus.sfSymbol,
+      menu: spec.leadingStatus.menu ? menuSignature(spec.leadingStatus.menu.items) : undefined,
+    } : undefined,
     back: spec.onBack !== undefined,
     backLabel: spec.backAccessibilityLabel,
     busy: spec.busy === true,

@@ -146,6 +146,13 @@ describe('buildScreenHeaderOptions', () => {
     expect(r.classic).not.toHaveBeenCalled();
   });
 
+  it('Given a canvas background, When the native bar is built, Then it extends the canvas and updates its signature', () => {
+    const spec = editorSpec();
+    const onCanvas = { ...spec, nativeBackgroundColor: '#000000' };
+    expect(options(NATIVE, onCanvas).headerStyle).toEqual({ backgroundColor: '#000000' });
+    expect(headerSignature(onCanvas)).not.toBe(headerSignature(spec));
+  });
+
   it('Given transparent true on the native bar, When options are built, Then the bar is transparent with a top edge effect and no background', () => {
     const built = options(NATIVE, { ...editorSpec(), transparent: true });
 

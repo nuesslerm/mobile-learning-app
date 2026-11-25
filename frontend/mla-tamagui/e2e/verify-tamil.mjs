@@ -19,7 +19,7 @@ import { fail, withServedApp } from './lib/servedApp.mjs';
 const SURFACE = '[data-testid="TamilPracticeCanvasSurface"]';
 
 await withServedApp(
-  { port: 8226, name: 'tamil-verify', path: 'tamil' },
+  { port: 8226, name: 'tamil-verify', path: 'tamil/alphabet' },
   async ({ container, name, evalInApp, tapInApp, goto }) => {
     const list = await evalInApp(`(() => {
       const q = (id) => appDoc.querySelector('[data-testid="' + id + '"]');
@@ -332,21 +332,11 @@ await withServedApp(
       const box = surface ? surface.getBoundingClientRect() : null;
       const screen = q('TamilWriteScreen');
       const screenBox = screen ? screen.getBoundingClientRect() : null;
-      const check = q('TamilWriteCheck');
+      const check = q('TamilWriteDone');
       const checkBox = check ? check.getBoundingClientRect() : null;
-      // A plain check, not a regex: a backslash class inside this template
-      // literal collapses before it ever reaches the page.
-      const steps = [...appDoc.querySelectorAll('[data-testid^="TamilWriteStep"]')]
-        .filter((el) => {
-          const id = el.getAttribute('data-testid') || '';
-          const tail = id.slice('TamilWriteStep'.length);
-          return tail.length > 0 && !Number.isNaN(Number(tail));
-        })
-        .map((el) => el.textContent);
       const glyph = q('TamilWriteCanvasGuideGlyph');
       const glyphBox = glyph ? glyph.getBoundingClientRect() : null;
       return {
-        steps,
         padHeight: box ? Math.round(box.height) : 0,
         padWidth: box ? Math.round(box.width) : 0,
         // The template is the font glyph, not a traced outline: crisp, and
@@ -372,10 +362,6 @@ await withServedApp(
     })()`);
 
     const before = await bigPad();
-    if (before.steps.length !== 2) {
-      fail(`அ should be taught in two steps, got ${before.steps.length}: ${JSON.stringify(before)}`);
-      return;
-    }
     if (before.strayRouteHeader) {
       fail(`expo-router drew its own header above the screen's: ${JSON.stringify(before)}`);
       return;
@@ -435,25 +421,25 @@ await withServedApp(
     }
     const writeShot = await container.screenshot({ name });
     console.log(
-      `ok: write large — ${before.steps.length} steps, ${before.padWidth}x${before.padHeight} pad, ` +
+      `ok: write large — ${before.padWidth}x${before.padHeight} pad, ` +
         `template ${before.templateHeight}px, fits on screen (overflow ${before.overflow}), ` +
         `2 strokes anywhere on it (${writeShot?.path ?? 'no shot'})`
     );
 
     // The ink is in the pad's pixels and the template is sized to the pad, so a
     // verdict that shrinks the pad leaves the writing off its template (G2).
-    // Any verdict will do, an unreachable marker's included.
-    await container.tap({ name, ref: '[data-testid="TamilWriteCheck"]' });
+    // A local self-check should leave that layout stable.
+    await container.tap({ name, ref: '[data-testid="TamilWriteDone"]' });
     let verdict = null;
     for (let i = 0; i < 60 && !verdict; i += 1) {
       await new Promise((r) => setTimeout(r, 500));
       verdict = await evalInApp(`(() => {
-        const badge = appDoc.querySelector('[data-testid="TamilWriteVerdictBadge"]');
+        const badge = appDoc.querySelector('[data-testid="TamilWriteVerdict"]');
         return badge ? badge.textContent : null;
       })()`);
     }
-    if (!verdict) {
-      fail('Check showed no verdict');
+    if (verdict !== 'Practice complete') {
+      fail('Local self-check showed no completion');
       return;
     }
     const checked = await bigPad();

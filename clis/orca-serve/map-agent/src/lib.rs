@@ -101,7 +101,7 @@ pub const NATIVE_CHAT_UNSUBSCRIBE: &str = "nativeChat.unsubscribe";
 pub const NATIVE_CHAT_SUBSCRIBE: &str = "nativeChat.subscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, agent_api_catalog::SESSIONS_LIST, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, agent_api_attachments::STAGE, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, agent_api_catalog::SPEECH_STATUS, agent_api_catalog::SPEECH_TRANSCRIBE, orca_map_hosted::AUTH_DISCOVER];
+pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, agent_api_catalog::SESSIONS_LIST, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_EDIT_HOLD, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, agent_api_attachments::STAGE, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, agent_api_catalog::SPEECH_STATUS, agent_api_catalog::SPEECH_TRANSCRIBE, orca_map_hosted::AUTH_DISCOVER];
 
 const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE, kind: Kind::Unary },
@@ -182,12 +182,13 @@ pub fn body_fingerprint(session: &str, text: &str) -> String {
     queued::fingerprint(session, &queued::body_of(text))
 }
 
-/// The agent rows; it holds the uploads in flight, so one value serves every connection.
+/// The agent rows share in-flight requests and launch reservations across connections.
 #[derive(Default)]
 pub struct AgentArea {
     uploads: attach::Uploads,
     clips: clipboard::Clips,
     dictations: speech::Dictations,
+    launches: std::sync::Mutex<()>,
 }
 
 impl Area for AgentArea {
@@ -204,7 +205,7 @@ impl Area for AgentArea {
     }
 
     fn capabilities(&self) -> &'static [&'static str] {
-        &[status_stream::STRUCTURED, status_stream::STATUS_FEED, interrupted::CONTINUE, interrupted::CONTINUE_PHONE]
+        &[status_stream::STRUCTURED, status_stream::STATUS_FEED, interrupted::CONTINUE, interrupted::CONTINUE_PHONE, queued::MESSAGES, queued::REORDER, queued::EDIT, launch::ROUTING, launch::REPLAY_REQUIRED, launch::REGISTERED_AGENTS, session::PERMISSION_MODES, skills::WORKSPACE_DISCOVERY]
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
@@ -265,8 +266,14 @@ impl Area for AgentArea {
             SKILLS_DISCOVER => skills::discover(agent, params),
             AI_VAULT_LIST_SESSIONS => vault::list_sessions(agent, params),
             AI_VAULT_PREPARE_SESSION_RESUME => vault::prepare_resume(params),
-            AGENT_LAUNCH => launch::launch(agent, params),
-            AGENT_LAUNCH_REPLAY => launch::replay(agent, params),
+            AGENT_LAUNCH | AGENT_LAUNCH_REPLAY => {
+                let _guard = self.launches.lock().map_err(|_| Failure::internal("Launch reservation unavailable"))?;
+                if method == AGENT_LAUNCH {
+                    launch::launch(agent, params)
+                } else {
+                    launch::replay(agent, params)
+                }
+            }
             NATIVE_CHAT_READ_SESSION => session::read_session(agent, params),
             // With a subscription id, that one native-chat stream of this connection; without, all of them.
             NATIVE_CHAT_UNSUBSCRIBE => {

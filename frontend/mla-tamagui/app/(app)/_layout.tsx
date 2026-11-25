@@ -4,6 +4,7 @@ import type { ViewStyle } from 'react-native';
 import { Platform, useWindowDimensions } from 'react-native';
 
 import { AppDrawerContent } from '@/app-shell/AppDrawerContent';
+import { useResolvedScheme } from '@/app-shell/NativeChromeBridge';
 
 /**
  * The app's only navigation shell.
@@ -17,13 +18,14 @@ import { AppDrawerContent } from '@/app-shell/AppDrawerContent';
  */
 export default function AppLayout() {
   const { width } = useWindowDimensions();
+  const scheme = useResolvedScheme();
   const drawerWidth: ViewStyle['width'] =
     Platform.OS === 'web'
-      ? ('min(78%, 320px)' as ViewStyle['width'])
-      : Math.min(width * 0.78, 320);
+      ? ('min(75%, 360px)' as ViewStyle['width'])
+      : Math.min(width * 0.75, 360);
 
   return (
-    <View flex={1} bg="$background" style={{ zIndex: 0 }}>
+    <View flex={1} bg={Platform.OS === 'ios' && scheme === 'dark' ? '#121212' : '$background'} style={{ zIndex: 0 }}>
       <Drawer
         drawerContent={(props) => <AppDrawerContent {...props} />}
         screenOptions={{
@@ -32,6 +34,7 @@ export default function AppLayout() {
           drawerStyle: { width: drawerWidth },
           sceneStyle: { backgroundColor: 'transparent' },
           overlayColor: 'transparent',
+          keyboardDismissMode: 'on-drag',
           swipeEdgeWidth: 40,
         }}
       >

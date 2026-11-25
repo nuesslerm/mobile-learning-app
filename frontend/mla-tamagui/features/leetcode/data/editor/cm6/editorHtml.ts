@@ -4,7 +4,7 @@ import { CM6_BUNDLE_JS } from './cm6Bundle';
  * Static HTML template for the CodeMirror 6 WebView.
  * All configuration is delivered via postMessage after the WebView signals 'ready'.
  */
-export function buildEditorHtml(options: { debug?: boolean } = {}): string {
+export function buildEditorHtml(options: { debug?: boolean; profileInput?: boolean } = {}): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -60,12 +60,17 @@ export function buildEditorHtml(options: { debug?: boolean } = {}): string {
   })();
 </script>
 ${options.debug ? '<script>window.__EDITOR_DEBUG__ = true;</script>\n' : ''}<script>window.__cm6T0 = performance.now();</script>
-<script>${CM6_BUNDLE_JS}</script>
+${options.profileInput ? '<script>window.__EDITOR_PROFILE_INPUT__ = true;</script>\n' : ''}<script>${CM6_BUNDLE_JS}</script>
 <script>window.__cm6EvalMs = Math.round(performance.now() - window.__cm6T0);</script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready', evalMs: window.__cm6EvalMs }));
+      var config = window.__editorInitialConfig;
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready', evalMs: window.__cm6EvalMs, initializedOnPage: !!config }));
+      if (config) {
+        delete window.__editorInitialConfig;
+        window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'init', config: config }) }));
+      }
     }
   });
 </script>

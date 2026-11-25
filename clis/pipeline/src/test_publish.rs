@@ -164,6 +164,7 @@ fn trace_runs(dir: &Path, files: &[(String, u64)]) -> Vec<Value> {
 fn add_run_facts(bundle: &mut Value, report: &Value) {
     bundle["args"] = report["args"].clone();
     bundle["screen"] = report["screen"].clone();
+    if !report["nativeDevice"].is_null() { bundle["nativeDevice"] = report["nativeDevice"].clone(); }
     bundle["speed"] = report["speed"].clone();
     bundle["warnings"] = json!(report["warnings"].as_array().map_or(0, Vec::len));
     bundle["timingSummary"] = report["timing"].clone();

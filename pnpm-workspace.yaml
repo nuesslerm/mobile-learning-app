@@ -18,7 +18,6 @@ packages:
   - libraries/hook-runtime
   - frontend/libraries/logging
   - frontend/libraries/remote-chat-agent-contracts
-  - frontend/libraries/rn-agentation
   - frontend/libraries/tamagui-design-system
   - frontend/libraries/voice-edit-dsl
   - frontend/libraries/webview-rpc
@@ -103,6 +102,7 @@ overrides:
   '@react-types/switch': 3.5.17
 
 patchedDependencies:
+  react-native-webview@14.0.1: patches/react-native-webview@14.0.1.patch
   react-native-css-interop@0.2.5: patches/react-native-css-interop@0.2.5.patch
   # lucide-react-native's exports map stops at `.` and `./icons`, both of which
   # are barrels. Metro does not tree-shake them, so importing one icon pulled all
@@ -122,6 +122,7 @@ patchedDependencies:
   react-native-svg@15.16.0: patches/react-native-svg@15.16.0.patch
   '@gluestack-ui/core@5.0.15': patches/@gluestack-ui__core@5.0.15.patch
   '@gorhom/bottom-sheet@5.2.14': patches/@gorhom__bottom-sheet@5.2.14.patch
+  react-native-drawer-layout@4.2.13: patches/react-native-drawer-layout@4.2.13.patch
 
 # ---------------------------------------------------------------------------
 # Hoisting. THIS is where pnpm 11 reads it -- `.npmrc` is not consulted for

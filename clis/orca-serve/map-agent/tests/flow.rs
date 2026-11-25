@@ -10,8 +10,8 @@ use orca_map_workspace::testing::Workspaces;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
-use std::sync::Arc;
+use std::collections::{BTreeSet, VecDeque};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const EVENTS: &str = include_str!("../../../../libraries/agent-api/agent-api-agent/tests/fixtures/thread-events.jsonl");
@@ -415,6 +415,63 @@ fn given_launches_when_sent_then_a_chat_starts_in_an_existing_workspace_with_the
 }
 
 #[test]
+fn a_reserved_mobile_launch_creates_an_opencode_chat_once_and_replays_the_receipt() {
+    // Given an existing workspace and the session ID reserved by the mobile launch.
+    let mut rig = Rig::new();
+    let launch = json!({
+        "agent": "opencode",
+        "operationId": "1730000000000-native",
+        "target": {"kind": "existing", "worktree": "id:main::"},
+        "sessionId": "opencode_reserved",
+        "paneKey": "ignored-by-the-chat-launch",
+        "prompt": {"text": "read workspace", "delivery": "submit"},
+    });
+
+    // When the phone repeats the durable launch after losing the first reply.
+    let first = rig.ok("agent.launchReplay", launch.clone());
+    let again = rig.ok("agent.launchReplay", launch.clone());
+
+    // Then it gets one structured tab, one first turn and the same receipt.
+    assert_eq!(first, again);
+    assert_eq!(first["outcome"]["kind"], "structured");
+    assert_eq!(first["outcome"]["sessionId"], "opencode_reserved");
+    let tabs = orca_map_workspace::layout::kept(rig.agent.as_ref(), "main").unwrap();
+    assert_eq!(tabs.len(), 1);
+    assert_eq!(tabs[0]["id"], first["outcome"]["tabId"]);
+    assert_eq!(tabs[0]["agent"], "opencode");
+    assert_eq!(first["prompt"]["outcome"], "journaled");
+    assert_eq!(sent(&rig, "thread.create").len(), 1);
+    assert_eq!(sent(&rig, "turn.start").len(), 1);
+    let mut other = launch;
+    other["sessionId"] = "opencode_different".into();
+    assert_eq!(rig.err("agent.launchReplay", other).1, "agent_session_operation_conflict");
+}
+
+#[test]
+fn an_interrupted_mobile_launch_keeps_its_reservation_and_never_restarts_the_first_turn() {
+    // Given a service that loses its answer when the first turn is sent.
+    let mut rig = Rig::new();
+    rig.agent.reply("turn.start", |_| Err(orca_core::AgentError::Failed("lost connection".into())));
+    let launch = json!({
+        "agent": "opencode",
+        "operationId": "1730000000000-unconfirmed",
+        "target": {"kind": "existing", "worktree": "id:main::"},
+        "sessionId": "opencode_unconfirmed",
+        "prompt": {"text": "read workspace", "delivery": "submit"},
+    });
+
+    // When the phone starts and retries the launch.
+    let first = rig.err("agent.launchReplay", launch.clone());
+    let again = rig.err("agent.launchReplay", launch);
+
+    // Then both answers preserve the uncertainty, with one chat and one start request.
+    assert_eq!(first.0, "agent_session_operation_unknown");
+    assert_eq!(first, again);
+    assert_eq!(sent(&rig, "thread.create").len(), 1);
+    assert_eq!(sent(&rig, "turn.start").len(), 1);
+}
+
+#[test]
 fn given_a_session_when_held_released_and_read_as_a_native_chat_then_hold_needs_the_session_and_the_chat_is_its_messages_paged_by_offset() {
     // Given the recorded thread
     let mut rig = Rig::new();
@@ -543,6 +600,26 @@ fn given_a_queued_prompt_when_updated_then_it_is_saved_only_against_the_fingerpr
 fn given_a_queued_prompt_when_an_edit_lease_is_acquired_renewed_and_released_then_the_phone_gets_the_host_s_statuses() {
     // Given three queued prompts
     let (mut rig, ids) = queued_rig();
+    let item = ids[0].clone();
+    let responses = Mutex::new(VecDeque::from([
+        ("acquire", "e1", "held"),
+        ("acquire", "e2", "changed"),
+        ("renew", "e1", "held"),
+        ("renew", "e2", "expired"),
+        ("release", "e2", "released"),
+        ("renew", "e1", "held"),
+        ("release", "e1", "released"),
+        ("renew", "e1", "expired"),
+    ]));
+    rig.agent.reply("queue.editHold", move |params| {
+        let (action, edit, status) = responses.lock().unwrap().pop_front().expect("unexpected queue.editHold request");
+        let mut expected = json!({"thread": "claude_q", "item": item, "edit": edit, "action": action});
+        if action == "acquire" {
+            expected["expected_prompt"] = "one".into();
+        }
+        assert_eq!(*params, expected);
+        Ok(json!({"status": status, "prompt": "one", "lease_duration_ms": 30000}))
+    });
     let hold = |rig: &mut Rig, action: &str, edit: &str, id: &str, fp: Option<&str>| {
         let mut p = json!({"sessionId": "claude_q", "messageId": id, "editId": edit, "action": action});
         if let Some(f) = fp {
@@ -784,6 +861,22 @@ fn given_an_uploaded_image_when_read_as_attachment_or_chat_image_then_the_previe
 }
 
 #[test]
+fn given_an_uploaded_image_when_chat_references_the_staged_copy_then_its_preview_comes_from_the_attachment_store() {
+    let mut rig = Rig::new();
+    rig.idle("claude_a");
+    let png = bytes_of(5000);
+    let stored = rig.upload("claude_a", "shot.PNG", &png);
+    let id = stored["path"].as_str().unwrap().split('/').nth(3).unwrap();
+    let staged = agent_api_attachments::staged_path(id, "shot.PNG");
+    for path in [staged.clone(), format!("/srv/main/{staged}")] {
+        let preview = rig.ok("files.readChatImage", json!({"worktree": "id:main::", "path": path}));
+        assert_eq!(preview, json!({"content": STANDARD.encode(&png), "isBinary": true, "isImage": true, "mimeType": "image/png"}));
+    }
+    let wrong = format!("/srv/main/.rca/attachments/{id}/other.png");
+    assert_eq!(rig.err("files.readChatImage", json!({"worktree": "id:main::", "path": wrong})).1, "not_an_image");
+}
+
+#[test]
 fn given_an_image_too_large_for_one_reply_when_previewed_then_it_is_file_too_large_and_a_missing_attachment_is_not_an_image() {
     // Given an uploaded png larger than one reply carries
     let mut rig = Rig::new();
@@ -894,6 +987,7 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("skills.discover", json!({"worktreeId": "feat"}));
     rig.ok("aiVault.listSessions", json!({}));
     let (mut q, ids) = queued_rig();
+    q.agent.reply("queue.editHold", |_| Ok(json!({"status": "released"})));
     let fp = body_fingerprint("claude_q", "one");
     q.ok("agentSession.queuedMessageUpdate", mutation("claude_q", "e1", json!({"messageId": ids[0], "expectedBodyFingerprint": fp, "text": "uno"})));
     q.ok("agentSession.queuedMessageMove", mutation("claude_q", "e2", json!({"messageId": ids[2], "beforeMessageId": ids[0]})));
@@ -929,6 +1023,31 @@ fn catalog_models(rig: &Rig, driver: &str) -> Vec<Value> {
 
 fn default_id(models: &[Value]) -> Value {
     models.iter().find(|m| m["is_default"] == true).unwrap()["id"].clone()
+}
+
+#[test]
+fn a_permission_pick_applies_to_direct_and_queued_turns_until_the_next_pick() {
+    // Given a Codex chat with the default permissions.
+    let mut rig = Rig::new();
+    rig.agent.request("thread.create", json!({"thread": "codex_policy", "workspace": "main", "driver": "codex"})).unwrap();
+    let options = |rig: &mut Rig| rig.ok("agentSession.options", json!({"sessionId": "codex_policy"}))["current"]["permissionMode"].clone();
+    assert_eq!(options(&mut rig), "full-access");
+    let pick = |rig: &mut Rig, op: &str, value: &str| rig.ok("agentSession.setOption", json!({"envelope": env("codex_policy", op, "fp"), "key": "permissionMode", "value": value}));
+
+    // When the phone picks Ask, sends directly, queues a follow-up and switches back.
+    assert_eq!(pick(&mut rig, "p1", "ask")["value"]["options"]["permissionMode"], "ask");
+    assert_eq!(options(&mut rig), "ask");
+    rig.ok("agentSession.send", json!({"envelope": env("codex_policy", "s1", "fp"), "body": body("first")}));
+    rig.ok("agentSession.send", json!({"envelope": env("codex_policy", "s2", "fp"), "body": body("queued"), "delivery": "queue-if-active"}));
+    assert_eq!(pick(&mut rig, "p2", "full-access")["value"]["options"]["permissionMode"], "full-access");
+    rig.threads.finish("codex_policy", "completed");
+    rig.ok("agentSession.send", json!({"envelope": env("codex_policy", "s3", "fp"), "body": body("next")}));
+
+    // Then the queued request retains its original mode and later sends use the new pick.
+    let starts: Vec<_> = sent(&rig, "turn.start").into_iter().map(|p| p["runtime_mode"].clone()).collect();
+    assert_eq!(starts, [json!("approval-required"), json!("full-access")]);
+    assert_eq!(sent(&rig, "queue.add")[0]["runtime_mode"], "approval-required");
+    assert_eq!(options(&mut rig), "full-access");
 }
 
 #[test]
@@ -1362,8 +1481,21 @@ fn given_chats_when_a_capable_client_subscribes_to_the_status_feed_then_it_gets_
 fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_structured_capabilities_it_serves() {
     // Given the agent area
     let area = AgentArea::default();
-    // When its capabilities are read, Then it names both
-    assert_eq!(orca_core::Area::capabilities(&area), ["agent-session.structured.v1", "agent-session.status-feed.v1", "agent-session.continue-interrupted.v1", "agent-session.continue-interrupted.phone.v1"]);
+    // When its capabilities are read, Then it names the session and queue features
+    assert_eq!(orca_core::Area::capabilities(&area), [
+        "agent-session.structured.v1",
+        "agent-session.status-feed.v1",
+        "agent-session.continue-interrupted.v1",
+        "agent-session.continue-interrupted.phone.v1",
+        "agent-session.queued-messages.v2",
+        "agent-session.queued-message-reorder.v1",
+        "agent-session.queued-message-edit.v1",
+        "agent.launch.v2",
+        "agent.launch.replay-required.v1",
+        "agent-session.structured.registered-agents.v1",
+        "agent-session.permission-modes.v1",
+        "skills.discover-workspace.v1",
+    ]);
 }
 
 /// A chat with two finished turns ("one" then "two"), nothing open, and the ids of the two user messages.

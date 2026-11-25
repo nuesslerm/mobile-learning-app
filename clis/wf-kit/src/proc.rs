@@ -10,7 +10,13 @@ pub struct Out {
     pub timed_out: bool,
 }
 
+#[track_caller]
 pub fn capture(program: &str, args: &[String], cwd: Option<&Path>, timeout: Option<Duration>) -> Out {
+    let span = match program {
+        "gh" => Some(crate::performance::external("gh")), "oci" => Some(crate::performance::external("oci")),
+        "bws" => Some(crate::performance::external("bws")), "curl" => Some(crate::performance::external("curl")),
+        _ => None,
+    };
     let mut cmd = Command::new(program);
     cmd.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     if let Some(c) = cwd {
@@ -18,7 +24,10 @@ pub fn capture(program: &str, args: &[String], cwd: Option<&Path>, timeout: Opti
     }
     let mut child = match cmd.spawn() {
         Ok(c) => c,
-        Err(e) => return Out { code: 1, stdout: String::new(), stderr: e.to_string(), timed_out: false },
+        Err(e) => {
+            if let Some(span) = span.as_ref() { span.record("api.outcome", "error"); }
+            return Out { code: 1, stdout: String::new(), stderr: e.to_string(), timed_out: false };
+        }
     };
     let (mut out_pipe, mut err_pipe) = (child.stdout.take(), child.stderr.take());
     let t_out = std::thread::spawn(move || {
@@ -53,7 +62,11 @@ pub fn capture(program: &str, args: &[String], cwd: Option<&Path>, timeout: Opti
     };
     let stdout = String::from_utf8_lossy(&t_out.join().unwrap_or_default()).into_owned();
     let stderr = String::from_utf8_lossy(&t_err.join().unwrap_or_default()).into_owned();
-    Out { code: status.and_then(|s| s.code()).unwrap_or(1), stdout, stderr, timed_out }
+    let code = status.and_then(|s| s.code()).unwrap_or(1);
+    if let Some(span) = span {
+        span.record("api.outcome", if timed_out { "timeout" } else if code == 0 { "ok" } else { "error" });
+    }
+    Out { code, stdout, stderr, timed_out }
 }
 
 pub fn git_out(root: &Path, args: &[&str]) -> Option<String> {

@@ -1,6 +1,6 @@
 import { View } from '@lib/tamagui-design-system';
 import { useCallback, useEffect, useReducer, useState } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
+import { Platform, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 import { useTheme } from '@lib/tamagui-design-system/primitives';
@@ -17,12 +17,15 @@ import {
 } from '../domain/strokes';
 
 import { GuideGlyph } from './GuideGlyph';
+import { traceGuideValue } from './traceGuideValue';
 
 export type TracingCanvasProps = {
   /** The letter shown faintly underneath, for the finger to follow. */
   glyph: string;
   /** Strokes to render. The parent owns them, so it can refuse one. */
   strokes: readonly Stroke[];
+  pen?: { color: string; width: number };
+  strokePens?: readonly { color: string; width: number }[];
   /** A finished stroke. The parent decides whether to keep it. */
   onStroke: (stroke: Stroke) => void;
   onSizeChange?: (size: CanvasSize) => void;
@@ -88,6 +91,8 @@ function strokeReducer(state: StrokeState, action: StrokeAction): StrokeState {
 export function TracingCanvasSvg({
   glyph,
   strokes,
+  pen,
+  strokePens,
   onStroke,
   onSizeChange,
   showGuide = true,
@@ -178,6 +183,11 @@ export function TracingCanvasSvg({
         <View
           flex={1}
           testID={`${testID}Surface`}
+          {...(Platform.OS === 'ios' && process.env.EXPO_PUBLIC_NATIVE_SUITE === '1' ? {
+            accessible: true,
+            accessibilityLabel: 'Tracing surface',
+            accessibilityValue: { text: traceGuideValue(activePath) },
+          } : {})}
           data-active-guide={
             activePath.length > 1 ? pointsToPath(activePath) : ''
           }
@@ -245,8 +255,8 @@ export function TracingCanvasSvg({
               <Path
                 key={index}
                 d={pointsToSmoothPath(stroke)}
-                stroke={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                stroke={strokePens?.[index]?.color ?? inkColor}
+                strokeWidth={strokePens?.[index]?.width ?? STROKE_WIDTH}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
@@ -255,8 +265,8 @@ export function TracingCanvasSvg({
             {current ? (
               <Path
                 d={pointsToSmoothPath(current)}
-                stroke={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                stroke={pen?.color ?? inkColor}
+                strokeWidth={pen?.width ?? STROKE_WIDTH}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"

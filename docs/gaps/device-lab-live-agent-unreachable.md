@@ -3,7 +3,6 @@ status: blocked
 area: device-lab
 paths:
   - "frontend/mla-tamagui/lib/device-lab/**"
-  - "frontend/mla-tamagui/features/tamil-writing/data/httpWritingCheck.ts"
   - "frontend/mla-tamagui/features/leetcode/data/voiceEditTransport.ts"
   - "docs/plans/device-lab/**"
   - "backend/remote-chat-agent/**"
@@ -21,7 +20,9 @@ links:
 
 As of 2026-10-19 the agent is back on the tailnet and G1 and G2 have passed against it; what still fails is narrower and listed under "Re-checked 2026-10-19".
 
-## What is broken
+Tamil handwriting now uses local stroke guidance and self-check. The G2 marker findings below record the earlier implementation.
+
+## What was broken
 
 Gate G1 (voice edit) and the marker steps of G2 need the deployed remote-chat-agent. From the cloud sandbox:
 - `remote-chat-agent-prod` is missing from `wf vm net device list` and from `tailscale status` (10 peers, none of them the agent).

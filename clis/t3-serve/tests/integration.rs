@@ -30,3 +30,7 @@ mod terminal_pty;
 mod thread_surface;
 #[path = "integration/voice.rs"]
 mod voice;
+#[path = "integration/performance.rs"]
+mod performance;
+#[path = "integration/catalog.rs"]
+mod catalog;

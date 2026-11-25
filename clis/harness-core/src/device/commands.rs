@@ -195,7 +195,11 @@ impl Run<'_> {
         match self.cmd.name {
             "open_link" => {
                 let link = self.str("link").unwrap_or_default();
-                dev.open_link(link)?;
+                if self.args.get("relaunch") == Some(&Value::Bool(true)) {
+                    dev.relaunch_link(link)?;
+                } else {
+                    dev.open_link(link)?;
+                }
                 Ok(json!({ "link": link }))
             }
             "tap_on" => {
@@ -220,7 +224,11 @@ impl Run<'_> {
                 let text = self.str("text").unwrap_or_default();
                 self.keyboard_must_be(true)?;
                 let t0 = Instant::now();
-                dev.input_text(text)?;
+                if self.args.get("replace") == Some(&Value::Bool(true)) {
+                    dev.replace_text(text)?;
+                } else {
+                    dev.input_text(text)?;
+                }
                 Ok(json!({ "typed": text, "ms": ms(t0.elapsed()) }))
             }
             "press_key" => {

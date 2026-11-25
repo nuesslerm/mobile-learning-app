@@ -1,35 +1,16 @@
-/**
- * Host adapter for `@lib/logging` — the app's ONLY logger wiring.
- *
- * Imported for its side effect, and it must be the first import in
- * `app/_layout.tsx`. `Logger.*` resolves its root lazily and returns a no-op
- * when `configureLogger` has not run, so a missing or late import makes every
- * call in the app AND in the design system silently vanish — an absence that
- * looks exactly like the app being quiet. App #1 carries the same warning.
- *
- *   Logger -> PipelineTransport -> [appendToLiveTail] -> the debug sheet
- *                                -> [appendToBetterStack] -> BetterStack (info and up), when the build carries its ingest pair
- *   console -> installConsoleCapture -> the debug sheet only
- *
- * The forwarder is on only when EXPO_PUBLIC_BETTERSTACK_TOKEN and
- * EXPO_PUBLIC_BETTERSTACK_HOST are both baked in (CI's EAS Update step does it);
- * a local or flow-test run without them posts nothing. No sqlite/idb persistence.
- */
+// Import first in app/_layout.tsx so the host is configured before any Logger call.
 import { Logger, configureLogger } from '@lib/logging';
-import { installConsoleCapture } from '@lib/logging/install';
-import { liveTail } from '@lib/logging/liveTail';
 import {
   ConsoleEchoTransport,
   PipelineTransport,
   appendToBetterStack,
-  appendToLiveTail,
   toStoreLevel,
-  type Stage,
 } from '@lib/logging/pipeline';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { appLogFields } from '../app-shell/runId';
-import { LogLayer, type LogLayerTransportParams } from 'loglayer';
+import { LogLayer, type LogLayerTransport, type LogLayerTransportParams } from 'loglayer';
+import { Platform } from 'react-native';
 
 type AppLogEntry = {
   level: string;
@@ -39,15 +20,9 @@ type AppLogEntry = {
   ts: number;
 };
 
-// Snapshot console before installConsoleCapture patches it, so the echo
-// transport writes to the real console rather than recursing into the capture.
-const originalConsole = {
-  log: console.log.bind(console),
-  info: console.info.bind(console),
-  warn: console.warn.bind(console),
-  error: console.error.bind(console),
-  debug: console.debug.bind(console),
-};
+if (__DEV__ && Platform.OS !== 'web') {
+  (require('@buoy-gg/console') as typeof import('@buoy-gg/console')).installConsoleCapture();
+}
 
 function stringify(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -80,47 +55,37 @@ function serialize(p: LogLayerTransportParams): AppLogEntry {
 const betterStackToken = process.env.EXPO_PUBLIC_BETTERSTACK_TOKEN;
 const betterStackHost = process.env.EXPO_PUBLIC_BETTERSTACK_HOST;
 
-const stages: Stage<AppLogEntry>[] = [appendToLiveTail() as Stage<AppLogEntry>];
+const manifest = Updates.manifest;
+const metadata = manifest && 'metadata' in manifest ? manifest.metadata : undefined;
+const updateGroup = metadata && 'updateGroup' in metadata && typeof metadata.updateGroup === 'string'
+  ? metadata.updateGroup
+  : undefined;
+
+const transports: LogLayerTransport[] = [new ConsoleEchoTransport({ console })];
 if (betterStackToken && betterStackHost) {
-  stages.push(
-    appendToBetterStack({
-      host: betterStackHost,
-      token: betterStackToken,
-      // debug lines every 2 s from every device would spend the ingest quota, and a 429 drops a batch
-      minLevel: 'info',
-      fields: Object.assign(appLogFields, {
-        app: 'mla-tamagui',
-        platform: process.env.EXPO_OS,
-        version: Constants.expoConfig?.version,
-        updateId: Updates.updateId ?? undefined,
-        runtimeVersion: Updates.runtimeVersion ?? undefined,
-        // the other fields are equal on the phone and every CI emulator; this one tells their launches apart
-        sessionId: Constants.sessionId,
-      }),
-    })
-  );
+  const forward = appendToBetterStack({
+    host: betterStackHost,
+    token: betterStackToken,
+    // debug lines every 2 s from every device would spend the ingest quota, and a 429 drops a batch
+    minLevel: 'info',
+    fields: Object.assign(appLogFields, {
+      app: 'mla-tamagui',
+      platform: process.env.EXPO_OS,
+      version: Constants.expoConfig?.version,
+      updateId: Updates.updateId ?? undefined,
+      updateGroup,
+      embeddedUpdate: Updates.isEmbeddedLaunch,
+      nativeBuildVersion: Constants.platform?.ios?.buildNumber ?? Constants.platform?.android?.versionCode,
+      runtimeVersion: Updates.runtimeVersion ?? undefined,
+      // the other fields are equal on the phone and every CI emulator; this one tells their launches apart
+      sessionId: Constants.sessionId,
+    }),
+  });
+  transports.push(new PipelineTransport<AppLogEntry>({ serialize, stages: [forward] }));
 }
 
-const rootLogLayer = new LogLayer({
-  transport: [
-    new PipelineTransport<AppLogEntry>({ serialize, stages }),
-    new ConsoleEchoTransport({ console: originalConsole }),
-  ],
-});
+const rootLogLayer = new LogLayer({ transport: transports });
 rootLogLayer.setLevel('debug');
-
 configureLogger({ root: () => rootLogLayer });
 
-// Route console.* into the same tail, so a stray console call from a
-// dependency is visible rather than invisible.
-installConsoleCapture({ target: liveTail });
-
-// One line at boot proves the chain end to end: if the debug sheet is empty,
-// the wiring is broken rather than the app being quiet.
 Logger.info('app.boot', { source: 'AppShell' });
-
-// Dev only: the debug sheet's tail for a page script. A driven run reads the same lines off the console
-// (ConsoleEchoTransport): `wf browser get-logs --level info`.
-if (__DEV__ && typeof globalThis !== 'undefined') {
-  (globalThis as { __liveTail?: typeof liveTail }).__liveTail = liveTail;
-}

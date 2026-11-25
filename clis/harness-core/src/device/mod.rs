@@ -77,10 +77,11 @@ pub enum Key {
     Up,
     Down,
     CtrlEnd,
+    SelectAll,
 }
 
 impl Key {
-    pub const ALL: [Key; 8] = [Key::Enter, Key::Backspace, Key::Tab, Key::Left, Key::Right, Key::Up, Key::Down, Key::CtrlEnd];
+    pub const ALL: [Key; 9] = [Key::Enter, Key::Backspace, Key::Tab, Key::Left, Key::Right, Key::Up, Key::Down, Key::CtrlEnd, Key::SelectAll];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -92,6 +93,7 @@ impl Key {
             Key::Up => "Remote Dpad Up",
             Key::Down => "Remote Dpad Down",
             Key::CtrlEnd => "Ctrl+End",
+            Key::SelectAll => "Select all",
         }
     }
 
@@ -110,6 +112,7 @@ impl Key {
             Key::Up => "up",
             Key::Down => "down",
             Key::CtrlEnd => "ctrl-end",
+            Key::SelectAll => "select-all",
         }
     }
 }
@@ -160,6 +163,9 @@ pub trait Device {
         Ok(())
     }
     fn open_link(&self, link: &str) -> Result<(), String>;
+    fn relaunch_link(&self, _link: &str) -> Result<(), String> {
+        Err("stopping the app requires a native device".into())
+    }
     /// A tap at a point in tap units.
     fn tap_at(&self, x: f64, y: f64) -> Result<(), String>;
     /// A tap inside the element's on-screen part; returns the point tapped.
@@ -167,6 +173,10 @@ pub trait Device {
     fn swipe(&self, from: (f64, f64), to: (f64, f64), duration_ms: u64) -> Result<(), String>;
     /// Types at the caret of the focused field (the dispatcher refuses it while the keyboard is down, as press_key).
     fn input_text(&self, text: &str) -> Result<(), String>;
+    fn replace_text(&self, text: &str) -> Result<(), String> {
+        self.press_key(Key::SelectAll)?;
+        self.input_text(text)
+    }
     fn press_key(&self, key: Key) -> Result<(), String>;
     /// The system Back key (Android; the dispatcher refuses it while the keyboard is up).
     fn back(&self) -> Result<(), String>;

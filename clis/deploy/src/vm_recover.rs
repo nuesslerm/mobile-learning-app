@@ -110,6 +110,7 @@ fn unhealthy_apps(apps: &[&str]) -> Vec<String> {
 }
 
 fn oci(args: &[&str]) -> Result<Value, Fail> {
+    let _span = wf_kit::performance::external("oci");
     let out = Command::new("oci")
         .args(args)
         .stdin(Stdio::null())

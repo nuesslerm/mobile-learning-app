@@ -58,6 +58,7 @@ impl Goldens {
         let scale = img.width as f64 / full.width.max(1) as f64;
         let px = |v: i64| (v.max(0) as f64 * scale).round() as usize;
         let tol = Tolerance {
+            exact: false,
             threshold: opts.threshold.unwrap_or(golden::THRESHOLD),
             max_ratio: opts.tolerance.unwrap_or(golden::MAX_RATIO),
             ignore: opts.ignore.iter().map(|&(l, t, r, b)| (px(l), px(t), px(r), px(b))).collect(),

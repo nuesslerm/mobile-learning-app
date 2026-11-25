@@ -1,9 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-
-import { ThreadScreen } from '../ui/ThreadScreen';
+import { CodingAgentThread } from '../ui/MobileThreadScreen';
 
 export default function CodingAgentThreadRoute() {
-  const params = useLocalSearchParams<{ threadId: string }>();
-
-  return <ThreadScreen threadId={params.threadId} />;
+  const { threadId, paired } = useLocalSearchParams<{ threadId: string; paired?: string }>();
+  return <CodingAgentThread key={(threadId ?? '') + (paired ?? '')} id={threadId} />;
 }

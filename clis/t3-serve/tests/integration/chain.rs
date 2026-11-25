@@ -4,6 +4,8 @@ use crate::rig::*;
 use crate::support::mimic_t3;
 use crate::support::*;
 use exec_testkit::script::{Script, Turn};
+use exec_testkit::tap::Seen;
+use std::time::{Duration, Instant};
 use t3_contracts::history::Cursor;
 
 pub(crate) fn said(text: &str) -> String {
@@ -39,12 +41,26 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
         chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         assert_eq!(success(&phone.call(case, &chain, &["rpc:server.probe"], "server.probe", json!({}))), &json!({}));
-        phone.stream(case, &chain, &["rpc:subscribeServerConfig"], "subscribeServerConfig", json!({}));
+        let (_, config) = phone.stream(case, &chain, &["rpc:subscribeServerConfig"], "subscribeServerConfig", json!({}));
+        let expected_instances = json!({
+            "opencode": {"driver": "opencode", "enabled": true},
+            "claudeAgent": {"driver": "claudeAgent", "enabled": true},
+            "codex": {"driver": "codex", "enabled": true},
+        });
+        assert_eq!(config[0]["config"]["settings"]["providerInstances"], expected_instances);
+        let config = phone.call(case, &chain, &["rpc:server.getConfig"], "server.getConfig", json!({}));
+        assert_eq!(success(&config)["settings"]["providerInstances"], expected_instances);
         phone.stream(case, &chain, &["rpc:subscribeServerLifecycle"], "subscribeServerLifecycle", json!({}));
         phone.seed(case, &chain);
         let (_, shell) = phone.stream(case, &chain, &["rpc:orchestration.subscribeShell"], "orchestration.subscribeShell", json!({}));
         assert_eq!((shell[0]["snapshot"]["projects"][0]["id"].as_str(), shell[0]["snapshot"]["threads"][0]["id"].as_str()), (Some("p1"), Some("t1")));
+        let before_watch = chain.tap.mark();
         let (thread_stream, _) = phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !chain.tap.since(before_watch).iter().any(|hit| matches!(hit, Seen::Agent { method, ok: true, .. } if method == "thread.subscribe")) {
+            assert!(Instant::now() < deadline, "thread event watcher did not subscribe: {}", chain.evidence());
+            std::thread::sleep(Duration::from_millis(5));
+        }
         // When the phone sends a message and the run it starts ends
         let projection = phone.message(case, &chain, "t1", "c-m1", "make a note");
         // Then the file is in the repository, written by the CLI running at the workspace host, and not in the directory the service runs from
@@ -64,8 +80,15 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
         // And the thread stream the phone had open carried the run from its creation to its end, and the projection read on its own says the same
         let events: Vec<String> = phone.drain_watch().iter().filter(|f| f["requestId"] == thread_stream && f["_tag"] == "Chunk").flat_map(|f| f["values"].as_array().unwrap().clone()).filter(|v| v["kind"] == "event").map(|v| v["event"]["type"].as_str().unwrap().to_string()).collect();
         assert!(events.contains(&"run.created".to_string()) && events.last().is_some_and(|e| e == "run.updated"), "{events:?}");
-        let again = phone.call(case, &chain, &["rpc:orchestration.getThreadProjection"], "orchestration.getThreadProjection", json!({"threadId": "t1"}));
-        assert_eq!(success(&again)["runs"][0]["status"], "completed");
+        // When the phone closes its sockets and opens the thread on a new connection, both messages are in the snapshot.
+        drop(phone);
+        let mut reopened = Phone::connect(case, &chain);
+        let (_, frames) = reopened.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
+        let snapshot = &frames[0]["projection"];
+        assert_eq!(snapshot["messages"], projection["messages"]);
+        assert_eq!(snapshot["runs"].as_array().unwrap().len(), 1);
+        assert_eq!(snapshot["runs"][0]["status"], "completed");
+        assert_eq!(chain.direct().events("t1", "turn.started").len(), 1);
     });
 }
 
@@ -207,5 +230,130 @@ fn the_imported_session_of_the_real_server_replays_through_mimic_against_t3_serv
         // Then every masked answer equals the recorded one, apart from the divergences the allowlist names
         let found = mimic_t3::differences(&verdict);
         assert!(found.is_empty(), "{} differences:\n{}\n{}", found.len(), found.join("\n"), chain.evidence());
+    });
+}
+
+#[test]
+#[ignore = "requires RCA_NATIVE_FIXTURE_DIR and a connected native client"]
+fn native_startup_queue_fixture() {
+    exec_testkit::case!(SUITE, |case| {
+        let output = std::env::var("RCA_NATIVE_FIXTURE_DIR").unwrap();
+        let output = std::path::Path::new(&output);
+        let chain = Chain::start();
+        let first = Turn::replaying(&[]).then_sleeping(30_000).then_line(&said("RCAFIXTURE_FIRST_REPLY"));
+        let second = Turn::replaying(&[said("RCAFIXTURE_SECOND_REPLY")]);
+        chain.cli.script("claude", &Script::of(vec![first, second]).printing_version("2.2.0"));
+        let mut probe = Phone::connect(case, &chain);
+        probe.seed(case, &chain);
+        let config = json!({"address": format!("http://{}", chain.addr), "pairingCode": chain.pair_with(&[]), "thread": "t1"});
+        std::fs::write(output.join("session.local"), config.to_string()).unwrap();
+        let mut direct = chain.direct();
+        let until = Instant::now() + Duration::from_secs(900);
+        let mut queued_before_first_finished = false;
+        while Instant::now() < until {
+            let projection = success(&probe.calls.call("orchestration.getThreadProjection", json!({"threadId": "t1"}))).clone();
+            let runs = projection["runs"].as_array().unwrap();
+            if runs.len() == 2 && runs[0]["status"] == "running" && runs[1]["status"] == "queued" {
+                queued_before_first_finished = true;
+            }
+            if runs.len() > 2 {
+                panic!("duplicate runs: {runs:?}");
+            }
+            if runs.len() == 2 && runs.iter().all(|run| run["status"] == "completed") {
+                assert!(queued_before_first_finished, "did not observe a queued follow-up during the first run");
+                let listed = direct.call("agent.threads", "thread.list", json!({})).expect("RCA lists the fixture thread");
+                let threads = listed["threads"].as_array().expect("thread array");
+                assert_eq!(threads.len(), 1);
+                let thread = threads[0]["id"].as_str().expect("RCA thread ID");
+                let starts = direct.events(thread, "turn.started");
+                let finishes = direct.events(thread, "turn.finished");
+                assert_eq!((starts.len(), finishes.len()), (2, 2));
+                let turns = starts.iter().map(|event| event["turn"].clone()).collect::<Vec<_>>();
+                let finished_turns = finishes.iter().map(|event| event["turn"].clone()).collect::<Vec<_>>();
+                assert_eq!(turns, finished_turns);
+                assert_ne!(turns[0], turns[1]);
+                let receipt = json!({"queuedDuringFirstRun": queued_before_first_finished, "turns": turns, "completedTurns": finished_turns});
+                std::fs::write(output.join("queue-receipt.json"), receipt.to_string()).unwrap();
+                while Instant::now() < until && !output.join("close-fixture").exists() {
+                    std::thread::sleep(Duration::from_millis(200));
+                }
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        panic!("native fixture timed out: {}", chain.evidence());
+    });
+}
+
+#[test]
+#[ignore = "requires RCA_NATIVE_FIXTURE_DIR and a connected native client"]
+fn native_held_queue_reorder_fixture() {
+    exec_testkit::case!(SUITE, |case| {
+        let output = std::path::PathBuf::from(std::env::var("RCA_NATIVE_FIXTURE_DIR").unwrap());
+        let chain = Chain::start();
+        chain.cli.script("claude", &Script::of(vec![
+            stays(),
+            Turn::replaying(&[]).then_sleeping(1_500).then_line(&said("RCAFIXTURE_QUEUE_FIRST_REPLY")),
+            Turn::replaying(&[said("RCAFIXTURE_QUEUE_SECOND_REPLY")]),
+        ]).printing_version("2.2.0"));
+        let mut probe = Phone::connect(case, &chain);
+        probe.seed(case, &chain);
+        let dispatch = |id: &str, text: &str, mode: &str| {
+            json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "mobile", "commandId": id, "messageId": id, "threadId": "t1", "text": text, "dispatchMode": {"type": mode}})
+        };
+        success(&probe.calls.call("orchestration.dispatchCommand", dispatch("start", "hold the fixture", "start_immediately")));
+        let run = probe.run_of("t1");
+        let mut direct = chain.direct();
+        direct.wait_event("t1", "turn.started");
+        let deadline = Instant::now() + Duration::from_secs(15);
+        for (index, (id, prompt)) in [("a", "RCAFIXTURE_MOVE_ALPHA"), ("b", "RCAFIXTURE_MOVE_BRAVO")].into_iter().enumerate() {
+            success(&probe.calls.call("orchestration.dispatchCommand", dispatch(id, prompt, "queue_after_active")));
+            loop {
+                let queue = direct.call("agent.queue", "queue.list", json!({"thread": "t1"})).unwrap();
+                if queue["items"].as_array().unwrap().len() > index {
+                    break;
+                }
+                assert!(Instant::now() < deadline, "fixture queue did not load item {id}");
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
+        let queue = direct.call("agent.queue", "queue.list", json!({"thread": "t1"})).unwrap();
+        let initial = queue["items"].as_array().unwrap().iter().map(|item| item["item"].clone()).collect::<Vec<_>>();
+        success(&probe.calls.call("orchestration.forceStopThread", json!({"threadId": "t1", "runId": run})));
+        assert_eq!(direct.events("t1", "turn.started").len(), 1);
+        let config = json!({"address": format!("http://{}", chain.addr), "pairingCode": chain.pair_with(&[]), "thread": "t1"});
+        std::fs::write(output.join("session.local"), config.to_string()).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(480);
+        let mut held_order = Vec::new();
+        loop {
+            assert!(Instant::now() < deadline, "native reorder fixture timed out");
+            if held_order.is_empty() {
+                let rows = direct.call("agent.queue", "queue.list", json!({"thread": "t1"})).unwrap();
+                let items = rows["items"].as_array().unwrap().iter().map(|item| item["item"].clone()).collect::<Vec<_>>();
+                if items == [initial[1].clone(), initial[0].clone()] {
+                    assert_eq!(direct.events("t1", "turn.started").len(), 1, "reordering must keep the queue held");
+                    held_order = items;
+                    std::fs::write(output.join("held-reordered.json"), json!({"original": initial, "reorderedWhileHeld": held_order}).to_string()).unwrap();
+                }
+            }
+            let finished = direct.events("t1", "turn.finished");
+            if finished.len() >= 3 {
+                assert_eq!(held_order.len(), 2);
+                let starts = direct.events("t1", "turn.started");
+                let turn_ids = |events: Vec<Value>| events.into_iter().map(|event| event["turn"].clone()).collect::<Vec<_>>();
+                let started = turn_ids(starts);
+                let finished = turn_ids(finished);
+                assert_eq!(started.len(), 3);
+                assert_eq!(started, finished);
+                assert_eq!(started[1..], held_order);
+                let receipt = json!({"originalOrder": initial, "orderWhileHeld": held_order, "started": started, "finished": finished});
+                std::fs::write(output.join("reorder-resume-receipt.json"), receipt.to_string()).unwrap();
+                while Instant::now() < deadline && !output.join("close-fixture").exists() {
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
     });
 }

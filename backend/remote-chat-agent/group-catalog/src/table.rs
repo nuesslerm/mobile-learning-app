@@ -1,6 +1,18 @@
 //! The drivers' models and modes: the one place that knows them. A driver whose models the CLI decides (opencode) lists one entry that
 //! stands for the CLI's own default.
 use agent_api_catalog::{Choice, Model, ModelsResult};
+use std::collections::HashSet;
+
+pub(crate) fn configured_opencode_models(raw: Option<&str>) -> Vec<Model> {
+    let mut seen = HashSet::new();
+    raw.unwrap_or_default().split(',').map(str::trim).filter_map(|id| {
+        let (provider, name) = id.split_once('/')?;
+        if provider.is_empty() || name.is_empty() || id.contains(char::is_whitespace) || !seen.insert(id) {
+            return None;
+        }
+        Some(model(id, name, None, false))
+    }).collect()
+}
 
 fn choice(value: &str, label: &str, description: &str) -> Choice {
     Choice { value: value.into(), label: label.into(), description: Some(description.into()) }

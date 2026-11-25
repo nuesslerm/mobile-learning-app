@@ -41,6 +41,7 @@ pub fn rows<'a>(ids: &[&'a str]) -> Vec<&'a str> {
 }
 
 pub struct Chain {
+    _exec: RcaExec,
     pub tap: Tap,
     pub service: RcaService,
     pub addr: SocketAddr,
@@ -55,7 +56,6 @@ pub struct Chain {
     _base: tempfile::TempDir,
     /// The executor's own home: its user-level skills are read from here.
     pub home: tempfile::TempDir,
-    _exec: RcaExec,
     /// The bundle directory `start_recorded` made, kept on disk while the chain runs.
     _bundle: Option<tempfile::TempDir>,
 }
@@ -144,8 +144,7 @@ impl Chain {
 
 impl Drop for Chain {
     fn drop(&mut self) {
-        let _ = self.server.kill();
-        let _ = self.server.wait();
+        exec_testkit::stop_fixture(&mut self.server, "-USR1");
     }
 }
 

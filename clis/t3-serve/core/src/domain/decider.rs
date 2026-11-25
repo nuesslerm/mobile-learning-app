@@ -2,7 +2,7 @@
 //! recorded shape), so folding an event is a merge. Run steps (what a provider turn reports) are decided here too.
 use super::command::{Command, Family, ACCEPTED_ONLY};
 use super::state::{is_archived, State};
-use crate::ports::{AgentEventKind, EventDraft, Finish, Millis};
+use crate::ports::{AgentEventKind, EventDraft, Finish, Millis, RuntimeRequestEvent, RuntimeResponse};
 use serde_json::{json, Map, Value};
 use t3_contracts::rows::{project_defaults, thread_defaults, thread_event_row};
 use t3_contracts::runs;
@@ -167,7 +167,7 @@ fn fork_or_merge(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision, St
             ("id", target.into()),
             ("title", title.into()),
             ("lineage", json!({"parentThreadId": source, "relationshipToParent": "fork", "rootThreadId": root})),
-            ("forkedFrom", json!({"threadId": source})),
+            ("forkedFrom", Value::Null),
             ("createdAt", at.clone().into()),
         ],
     );
@@ -414,6 +414,14 @@ pub fn queued_runs(state: &State, thread: &str) -> Vec<Value> {
     queued
 }
 
+pub fn queue_hold_events(state: &State, thread: &str, held: bool, now: Millis) -> Vec<EventDraft> {
+    queued_runs(state, thread).into_iter().filter(|run| run["queueHeld"].as_bool().unwrap_or(false) != held).map(|mut run| {
+        run["queueHeld"] = held.into();
+        run["updatedAt"] = iso(now).into();
+        draft("run.updated", Some(thread), None, now, run)
+    }).collect()
+}
+
 /// Whether the provider has begun the run's turn: it has shown something of its own, which a hung or not yet answering turn has not.
 pub fn provider_turn_running(state: &State, thread: &str, run: &str) -> bool {
     state.entities.get(thread).is_some_and(|e| e.turn_items.iter().any(|i| i["runId"] == run && !matches!(i["type"].as_str(), Some("user_message" | "run_interrupt_request" | "run_interrupt_result"))))
@@ -481,37 +489,94 @@ fn dispatch_mode(cmd: &Command) -> &str {
     }
 }
 
+pub(crate) fn may_steer(cmd: &Command) -> bool {
+    cmd.kind == "message.dispatch" && (dispatch_mode(cmd) == "steer_active"
+        || (dispatch_mode(cmd) == "start_immediately" && matches!(cmd.str("deliveryIntent"), Some("auto" | "steer"))))
+}
+
+pub(crate) fn direct_steer(state: &State, thread: &str, cmd: &Command) -> Result<Option<(String, String)>, String> {
+    let explicit = dispatch_mode(cmd) == "steer_active";
+    let automatic = !explicit && cmd.str("deliveryIntent") == Some("auto");
+    let Some(active) = active_run(state, thread) else {
+        return if explicit { Err(format!("thread {thread} has no active run")) } else { Ok(None) };
+    };
+    let run = active["id"].as_str().ok_or("Active run has no id")?;
+    if explicit && cmd.body["dispatchMode"]["targetRunId"] != run {
+        return Err(format!("Run {run} is the active run of thread {thread}."));
+    }
+    if !provider_turn_running(state, thread, run) {
+        return if automatic { Ok(None) } else { Err(format!("No running provider turn found for active run {run}.")) };
+    }
+    let (prompt, attachments) = dispatch_content(cmd)?;
+    if !attachments.is_empty() {
+        return if automatic { Ok(None) } else { Err("Attachments can only be sent in a new or queued turn.".into()) };
+    }
+    if cmd.body.get("modelSelection").is_some_and(|model| {
+        ["instanceId", "model"].iter().any(|key| model[*key].as_str().is_some_and(|v| active["modelSelection"][*key] != v))
+    }) {
+        return if automatic { Ok(None) } else { Err("Changing models needs a new or queued turn.".into()) };
+    }
+    Ok(Some((run.to_string(), prompt.to_string())))
+}
+
+fn dispatch_content(cmd: &Command) -> Result<(&str, Vec<Value>), String> {
+    let message = cmd.body.get("message").filter(|m| m.is_object());
+    let text = message.and_then(|m| m["text"].as_str()).or_else(|| cmd.str("text")).or_else(|| cmd.str("content")).filter(|t| !t.is_empty()).ok_or("message.dispatch needs the message text")?;
+    let attachments = message_attachments(message.or(Some(&Value::Object(cmd.body.clone()))))?;
+    Ok((text, attachments))
+}
+
+fn dispatched_user_message(thread: &str, run: &str, cmd: &Command, text: &str, attachments: &[Value], ctx: &Ctx) -> Value {
+    let input = cmd.body.get("message").filter(|m| m.is_object());
+    let id = input.and_then(|m| m["messageId"].as_str()).or_else(|| cmd.str("messageId")).map(str::to_string).unwrap_or_else(|| (ctx.new_id)());
+    let at = iso(ctx.now);
+    let mut message = json!({
+        "id": id, "threadId": thread, "runId": run, "nodeId": runs::node_id(run), "role": "user", "streaming": false,
+        "text": text, "attachments": attachments, "createdBy": cmd.str("createdBy").unwrap_or("user"),
+        "creationSource": cmd.str("creationSource").unwrap_or("web"), "createdAt": at, "updatedAt": at,
+    });
+    if let Some(context) = input.and_then(|m| m.get("context")).or_else(|| cmd.body.get("context")).and_then(composer_context) {
+        message["context"] = context;
+    }
+    message
+}
+
 fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ctx: &Ctx) -> Result<Decision, String> {
     let thread = shell["id"].as_str().unwrap_or("");
     if is_archived(shell) {
         return Err(format!("thread {thread} is archived"));
     }
-    let mode = dispatch_mode(cmd);
+    let requested = dispatch_mode(cmd);
+    if requested == "steer_active" {
+        return record_steer(state, thread, cmd, ctx);
+    }
+    let active = active_run(state, thread);
+    let mode = if requested == "start_immediately" && cmd.str("deliveryIntent") == Some("auto") && active.is_some() {
+        "queue_after_active"
+    } else {
+        requested
+    };
     if !["start_immediately", "queue_after_active", "defer_start"].contains(&mode) {
         return Err(format!("dispatch mode {mode} is not supported by this server"));
     }
-    let active = active_run(state, thread).is_some();
+    let active = active.is_some();
     if active && mode != "queue_after_active" {
         return Err(format!("thread {thread} already has an active run"));
     }
-    let message = cmd.body.get("message").filter(|m| m.is_object());
-    let text = message.and_then(|m| m["text"].as_str()).or_else(|| cmd.str("text")).or_else(|| cmd.str("content")).filter(|t| !t.is_empty()).ok_or("message.dispatch needs the message text")?;
-    let attachments = message_attachments(message.or(Some(&Value::Object(cmd.body.clone()))))?;
-    let message_id = message.and_then(|m| m["messageId"].as_str()).or_else(|| cmd.str("messageId")).map(str::to_string).unwrap_or_else(|| (ctx.new_id)());
+    let (text, attachments) = dispatch_content(cmd)?;
     let existing = state.entities.get(thread).map(|e| e.runs.as_slice()).unwrap_or(&[]);
     let ordinal = existing.len() as u64 + 1;
     let run_id = runs::run_id(thread, ordinal);
     let at = iso(ctx.now);
     let instance = shell["providerInstanceId"].as_str().unwrap_or("opencode").to_string();
     let model = shell["modelSelection"]["model"].as_str().map(str::to_string);
-    let (created_by, source) = (cmd.str("createdBy").unwrap_or("user"), cmd.str("creationSource").unwrap_or("web"));
-    let message_entity = json!({"attachments": attachments, "createdAt": at, "createdBy": created_by, "creationSource": source, "id": message_id, "nodeId": runs::node_id(&run_id), "role": "user", "runId": run_id, "streaming": false, "text": text, "threadId": thread, "updatedAt": at});
+    let message_entity = dispatched_user_message(thread, &run_id, cmd, text, &attachments, ctx);
     let (native, session) = existing.first().map_or_else(|| ((ctx.new_id)(), (ctx.new_id)()), |first| (first["nativeThreadId"].clone().as_str().unwrap_or("").to_string(), first["sessionUuid"].as_str().unwrap_or("").to_string()));
     let queued = active;
     let preparing = mode == "defer_start";
     let rank = existing.iter().filter_map(|r| r["queueRank"].as_f64()).fold(0.0, f64::max) + 1.0;
     let run = json!({
-        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": if queued { "queued" } else if preparing { "preparing" } else { "running" }, "userMessageId": message_id, "stopRequested": false, "error": null,
+        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": if queued { "queued" } else if preparing { "preparing" } else { "running" }, "userMessageId": message_entity["id"], "stopRequested": false, "error": null,
         "providerInstanceId": instance, "modelSelection": shell["modelSelection"], "requestedAt": at, "startedAt": if queued || preparing { Value::Null } else { at.clone().into() }, "completedAt": null,
         "nativeThreadId": native, "sessionUuid": session, "queueRank": if queued { json!(rank) } else { Value::Null }, "updatedAt": at,
     });
@@ -522,10 +587,10 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
         run["workspacePreparation"] = strategy.clone();
     }
     let t = Some(thread);
-    let mut drafts = vec![draft("message.updated", t, None, ctx.now, message_entity)];
+    let mut drafts = Vec::new();
     if !queued {
         let pt = thread_provider_thread(state, thread, &instance, &run_id);
-        let mut item = user_item(thread, &run, &pt, &message_id, text, &attachments, created_by, source, "turn_start", &at);
+        let mut item = user_item(thread, &run, &pt, &message_entity, "turn_start", &at);
         let earlier = state.entities.get(thread).and_then(|e| e.turn_items.iter().find(|i| i["id"] == item["id"])).map(|i| i["ordinal"].clone());
         if let Some(ordinal) = &earlier {
             item["ordinal"] = ordinal.clone();
@@ -538,6 +603,7 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
             drafts.push(draft("turn-item.updated", t, None, ctx.now, row));
         }
     }
+    drafts.insert(0, draft("message.updated", t, None, ctx.now, message_entity));
     drafts.push(draft("run.created", t, None, ctx.now, run));
     let launch = Launch {
         thread_id: thread.to_string(),
@@ -560,14 +626,42 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
     Ok(Decision { drafts, effect })
 }
 
-#[allow(clippy::too_many_arguments)]
-fn user_item(thread: &str, run: &Value, provider_thread: &str, message: &str, text: &str, attachments: &[Value], created_by: &str, source: &str, intent: &str, at: &str) -> Value {
+fn record_steer(state: &State, thread: &str, cmd: &Command, ctx: &Ctx) -> Result<Decision, String> {
+    let run_id = cmd.body["dispatchMode"]["targetRunId"].as_str().ok_or("Steer needs a target run")?;
+    let run = run_named(state, thread, run_id).ok_or("The target run does not exist")?;
+    let (text, attachments) = dispatch_content(cmd)?;
+    let message = dispatched_user_message(thread, run_id, cmd, text, &attachments, ctx);
+    let at = iso(ctx.now);
+    let provider = thread_provider_thread(state, thread, run["providerInstanceId"].as_str().unwrap_or(""), run_id);
+    let mut item = user_item(thread, &run, &provider, &message, "steer", &at);
+    item["ordinal"] = runs::item_ordinal(run["ordinal"].as_u64().unwrap_or(0), items_of(state, thread, run_id) + 1).into();
+    let drafts = vec![
+        draft("message.updated", Some(thread), None, ctx.now, message),
+        draft("turn-item.updated", Some(thread), None, ctx.now, item),
+    ];
+    Ok(Decision { drafts, effect: None })
+}
+
+fn composer_context(value: &Value) -> Option<Value> {
+    let records = value["records"].as_array()?;
+    // Guest attribution is assigned by the host.
+    (value["version"] == 1 && records.len() <= 200).then(|| json!({"version": 1, "records": records}))
+}
+
+fn user_item(thread: &str, run: &Value, provider_thread: &str, message: &Value, intent: &str, at: &str) -> Value {
     let run_id = run["id"].as_str().unwrap_or("");
-    json!({
-        "attachments": attachments, "completedAt": at, "createdBy": created_by, "creationSource": source, "id": runs::message_item_id(message), "inputIntent": intent, "messageId": message,
+    let message_id = message["id"].as_str().unwrap_or("");
+    let attachments = message["attachments"].as_array().map(Vec::as_slice).unwrap_or_default();
+    let mut item = json!({
+        "attachments": attachments, "completedAt": at, "createdBy": message["createdBy"].as_str().unwrap_or("user"), "creationSource": message["creationSource"].as_str().unwrap_or("web"),
+        "id": runs::message_item_id(message_id), "inputIntent": intent, "messageId": message_id,
         "nativeItemRef": null, "nodeId": runs::node_id(run_id), "ordinal": runs::item_ordinal(run["ordinal"].as_u64().unwrap_or(0), 1), "parentItemId": null, "providerThreadId": provider_thread,
-        "providerTurnId": null, "runId": run_id, "startedAt": at, "status": "completed", "text": text, "threadId": thread, "title": null, "type": "user_message", "updatedAt": at,
-    })
+        "providerTurnId": null, "runId": run_id, "startedAt": at, "status": "completed", "text": message["text"].as_str().unwrap_or(""), "threadId": thread, "title": null, "type": "user_message", "updatedAt": at,
+    });
+    if let Some(context) = message.get("context") {
+        item["context"] = context.clone();
+    }
+    item
 }
 
 /// The title the workspace row of a preparing run carries; it is also how the row is found again.
@@ -684,8 +778,7 @@ fn start_queued(state: &State, thread: &str, run: &Value, held: Option<bool>, ct
     }
     let instance = run["providerInstanceId"].as_str().unwrap_or("");
     let pt = thread_provider_thread(state, thread, instance, run_id);
-    let attachments = message["attachments"].as_array().cloned().unwrap_or_default();
-    let item = user_item(thread, run, &pt, message["id"].as_str().unwrap_or(""), message["text"].as_str().unwrap_or(""), &attachments, message["createdBy"].as_str().unwrap_or("user"), message["creationSource"].as_str().unwrap_or("web"), "queued_turn", &at);
+    let item = user_item(thread, run, &pt, &message, "queued_turn", &at);
     vec![draft("turn-item.updated", Some(thread), None, ctx.now, item), draft("run.updated", Some(thread), None, ctx.now, started)]
 }
 
@@ -727,7 +820,10 @@ fn queue_command(state: &State, thread: &str, cmd: &Command, ctx: &Ctx) -> Resul
             order.retain(|r| r["id"] != run["id"]);
             let at_index = cmd.str("beforeRunId").and_then(|before| order.iter().position(|r| r["id"] == before)).unwrap_or(order.len());
             order.insert(at_index, run.clone());
-            let drafts = order.into_iter().enumerate().filter(|(i, r)| r["queueRank"].as_f64() != Some(*i as f64 + 1.0)).map(|(i, r)| changed(r, vec![("queueRank", json!(i as f64 + 1.0))])).collect();
+            if order.iter().enumerate().all(|(i, r)| r["queueRank"].as_f64() == Some(i as f64 + 1.0)) {
+                return Ok(Decision { drafts: vec![], effect: None });
+            }
+            let drafts = order.into_iter().enumerate().map(|(i, r)| changed(r, vec![("queueRank", json!(i + 1))])).collect();
             Ok(Decision { drafts, effect: None })
         }
         _ => {
@@ -861,12 +957,20 @@ pub enum RunStep {
     ToolStarted { id: String, name: String, input: Value },
     ToolOutput { id: String, data: String },
     ToolFinished { id: String, ok: bool },
+    Request(RuntimeRequestEvent),
     /// The turn logged a failure; the first one is the run's error.
     Failure(String),
     Finished(Outcome),
 }
 
 impl RunStep {
+    pub fn is_detached_receipt(&self) -> bool {
+        match self {
+            RunStep::ToolStarted { id, .. } | RunStep::ToolOutput { id, .. } | RunStep::ToolFinished { id, .. } => id.starts_with(DETACHED_TASK_CALL_PREFIX),
+            _ => false,
+        }
+    }
+
     /// The step an agent event stands for; none for what t3 shows nothing of (the user's own message is the dispatch's).
     pub fn of(kind: &AgentEventKind) -> Option<RunStep> {
         Some(match kind {
@@ -875,6 +979,7 @@ impl RunStep {
             AgentEventKind::ToolStarted { id, name, input } => RunStep::ToolStarted { id: id.clone(), name: name.clone(), input: input.clone() },
             AgentEventKind::ToolOutput { id, data } => RunStep::ToolOutput { id: id.clone(), data: data.clone() },
             AgentEventKind::ToolFinished { id, ok } => RunStep::ToolFinished { id: id.clone(), ok: *ok },
+            AgentEventKind::Request(request) => RunStep::Request(request.clone()),
             AgentEventKind::Failure(message) => RunStep::Failure(message.clone()),
             AgentEventKind::TurnFinished(Finish::Completed) => RunStep::Finished(Outcome::Completed),
             AgentEventKind::TurnFinished(Finish::Interrupted) => RunStep::Finished(Outcome::Interrupted),
@@ -888,7 +993,53 @@ impl RunStep {
 /// The error of a failed turn that logged none.
 pub const TURN_FAILED: &str = "the turn failed";
 
-/// The events one report of a turn stands for. A turn that already ended records nothing more.
+fn approval_kind(tool: &str) -> &'static str {
+    match tool.to_ascii_lowercase().as_str() {
+        "bash" | "command" | "exec_command" | "run_command" | "shell" => "command",
+        "read" | "read_file" => "file-read",
+        "edit" | "write" | "write_file" | "apply_patch" => "file-change",
+        _ => "permission",
+    }
+}
+
+pub(super) const DETACHED_TASK_CALL_PREFIX: &str = "claude-task:";
+
+pub fn observe_run(state: &State, thread: &str, run_id: &str, text: &str, ctx: &Ctx) -> Vec<EventDraft> {
+    let Some(shell) = state.threads.get(thread) else { return vec![] };
+    if active_run(state, thread).is_some() || run_named(state, thread, run_id).is_some() {
+        return vec![];
+    }
+    let existing = state.entities.get(thread).map(|entities| entities.runs.as_slice()).unwrap_or(&[]);
+    let ordinal = existing.len() as u64 + 1;
+    let at = iso(ctx.now);
+    let instance = shell["providerInstanceId"].as_str().unwrap_or("opencode");
+    let message_id = format!("{run_id}:user-message");
+    let (native, session) = existing.first().map_or_else(
+        || (json!((ctx.new_id)()), json!((ctx.new_id)())),
+        |first| (first["nativeThreadId"].clone(), first["sessionUuid"].clone()),
+    );
+    let run = json!({
+        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": "running",
+        "userMessageId": message_id, "stopRequested": false, "error": null,
+        "providerInstanceId": instance, "modelSelection": shell["modelSelection"], "requestedAt": at,
+        "startedAt": at, "completedAt": null, "nativeThreadId": native, "sessionUuid": session,
+        "queueRank": null, "updatedAt": at,
+    });
+    let message = json!({
+        "id": message_id, "threadId": thread, "runId": run_id, "nodeId": runs::node_id(run_id),
+        "role": "user", "streaming": false, "text": text, "attachments": [],
+        "createdBy": "user", "creationSource": "server", "createdAt": at, "updatedAt": at,
+    });
+    let provider_thread = thread_provider_thread(state, thread, instance, run_id);
+    let item = user_item(thread, &run, &provider_thread, &message, "turn_start", &at);
+    vec![
+        draft("message.updated", Some(thread), None, ctx.now, message),
+        draft("turn-item.updated", Some(thread), None, ctx.now, item),
+        draft("run.created", Some(thread), None, ctx.now, run),
+    ]
+}
+
+/// The events one report of a turn stands for. An ended turn can still record its detached task receipt.
 pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep, ctx: &Ctx) -> Vec<EventDraft> {
     let entities = state.entities.get(thread);
     let Some(run) = entities.and_then(|e| e.runs.iter().find(|r| r["id"] == run_id)).cloned() else {
@@ -897,7 +1048,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
     if run["status"] == "queued" {
         return if matches!(step, RunStep::Started) { start_queued(state, thread, &run, None, ctx) } else { vec![] };
     }
-    if run["status"] != "running" || matches!(step, RunStep::Started) {
+    if (run["status"] != "running" && !step.is_detached_receipt()) || matches!(step, RunStep::Started) {
         return vec![];
     }
     let at = iso(ctx.now);
@@ -928,6 +1079,45 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
     let printed = |id: &str| existing(&format!("{run_id}:tool:{id}")).and_then(|o| o["output"].as_str().map(str::to_string));
     let attempt_id = runs::attempt_id(run_id);
     let provider_turn = entities.and_then(|e| e.provider_turns.iter().find(|turn| turn["runAttemptId"] == attempt_id));
+    let provider_turn_id = format!("provider-turn:run:{}", runs::enc(run_id));
+    let request_item_id = |id: &str| format!("{run_id}:request:{id}");
+    let open_request = |id: &str, kind: &str, item_type: &str, fields: Value| {
+        let session = state.threads.get(thread).zip(entities).and_then(|(shell, entities)| {
+            state.run_rows(shell, thread, &entities.runs).provider_sessions.into_iter().next()
+        });
+        let Some(session) = session else { return vec![] };
+        let mut card = item(request_item_id(id), item_type, "waiting", fields);
+        card["requestId"] = json!(id);
+        card["providerTurnId"] = json!(provider_turn_id);
+        card["providerThreadId"] = json!(thread_provider_thread(state, thread, instance.as_str().unwrap_or(""), run_id));
+        let request = json!({
+            "id": id, "nodeId": runs::node_id(run_id), "providerTurnId": provider_turn_id,
+            "nativeRequestRef": null, "kind": kind, "status": "pending",
+            "responseCapability": {"type": "live", "providerSessionId": session["id"]},
+            "createdAt": at, "resolvedAt": null,
+        });
+        vec![draft("turn-item.updated", t, None, ctx.now, card), draft("runtime-request.updated", t, None, ctx.now, request)]
+    };
+    let pending = || entities.into_iter().flat_map(|e| &e.runtime_requests).filter(|r| r["status"] == "pending" && r["nodeId"] == runs::node_id(run_id));
+    let close_request = |old: &Value, response: &RuntimeResponse| {
+        let mut request = old.clone();
+        let id = old["id"].as_str().unwrap_or_default();
+        let cancelled = matches!(response, RuntimeResponse::Dismissed);
+        request["status"] = json!(if cancelled { "cancelled" } else { "resolved" });
+        request["resolvedAt"] = json!(at);
+        match response {
+            RuntimeResponse::Approval(decision) => request["decision"] = json!(decision),
+            RuntimeResponse::Answer(answer) => request["answers"] = json!({(id): answer}),
+            RuntimeResponse::Dismissed => {}
+        }
+        let mut events = vec![draft("runtime-request.updated", t, None, ctx.now, request)];
+        if let Some(mut card) = existing(&request_item_id(id)) {
+            card["status"] = json!(if cancelled { "cancelled" } else { "completed" });
+            card["updatedAt"] = json!(at);
+            events.push(draft("turn-item.updated", t, None, ctx.now, card));
+        }
+        events
+    };
     let mut events = match step {
         RunStep::Started => vec![],
         RunStep::Text(delta) => vec![draft("turn-item.updated", t, None, ctx.now, item(assistant_id.clone(), "assistant_message", "streaming", json!({"text": grown(&assistant_id, delta), "messageId": message_id})))],
@@ -938,6 +1128,18 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
         RunStep::ToolStarted { id, name, input } => vec![draft("turn-item.updated", t, None, ctx.now, item(format!("{run_id}:tool:{id}"), "command_execution", "running", json!({"name": name, "input": input, "output": null})))],
         RunStep::ToolOutput { id, data } => tool(id, "running", json!(format!("{}{data}", printed(id).unwrap_or_default()))).into_iter().collect(),
         RunStep::ToolFinished { id, ok } => tool(id, if *ok { "completed" } else { "failed" }, json!(printed(id).unwrap_or_default())).into_iter().collect(),
+        RunStep::Request(RuntimeRequestEvent::Approval { id, tool, args }) => {
+            let kind = approval_kind(tool);
+            let prompt = args["command"].as_str().map(str::to_string).unwrap_or_else(|| format!("{tool} {args}"));
+            open_request(id, kind, "approval_request", json!({"requestKind": kind, "prompt": prompt}))
+        }
+        RunStep::Request(RuntimeRequestEvent::Question { id, prompt, options }) => {
+            let prompt = if prompt.trim().is_empty() { "Input requested" } else { prompt.trim() };
+            let choices: Vec<_> = options.iter().filter(|option| !option.trim().is_empty())
+                .map(|option| json!({"label": option.trim(), "description": option.trim(), "value": option})).collect();
+            open_request(id, "user_input", "user_input_request", json!({"questions": [{"id": id, "header": "Question", "question": prompt, "options": choices, "allowCustomAnswer": choices.is_empty()}]}))
+        }
+        RunStep::Request(RuntimeRequestEvent::Closed { id, response }) => pending().find(|request| request["id"] == id.as_str()).map_or_else(Vec::new, |request| close_request(request, response)),
         RunStep::Failure(_) if existing(&error_id).is_some() => vec![],
         RunStep::Failure(message) => vec![error(message)],
         RunStep::Finished(outcome) => {
@@ -947,7 +1149,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
                 Outcome::Interrupted => ("interrupted", Value::Null),
                 Outcome::Failed(m) | Outcome::OpenFailed(m) => ("failed", json!(logged.clone().unwrap_or_else(|| m.clone()))),
             };
-            let mut out = vec![];
+            let mut out: Vec<_> = pending().flat_map(|request| close_request(request, &RuntimeResponse::Dismissed)).collect();
             if let Some(streaming) = existing(&assistant_id) {
                 let text = streaming["text"].clone();
                 out.push(draft("turn-item.updated", t, None, ctx.now, item(assistant_id, "assistant_message", "completed", json!({"text": text, "messageId": message_id}))));
@@ -982,7 +1184,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
             out
         }
     };
-    if provider_turn.is_none() && matches!(step, RunStep::Text(_) | RunStep::Reasoning(_) | RunStep::ToolStarted { .. }) {
+    if provider_turn.is_none() && matches!(step, RunStep::Text(_) | RunStep::Reasoning(_) | RunStep::ToolStarted { .. } | RunStep::Request(RuntimeRequestEvent::Approval { .. } | RuntimeRequestEvent::Question { .. })) {
         if let Some((shell, entities)) = state.threads.get(thread).zip(entities).filter(|(_, entities)| entities.provider_turns.is_empty()) {
             let rows = state.run_rows(shell, thread, &entities.runs);
             events.extend(rows.provider_sessions.into_iter().map(|row| draft("provider-session.attached", t, None, ctx.now, row)));
@@ -990,7 +1192,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
         }
         let provider_thread = thread_provider_thread(state, thread, instance.as_str().unwrap_or(""), run_id);
         let turn = json!({
-            "id": format!("provider-turn:run:{}", runs::enc(run_id)),
+            "id": provider_turn_id,
             "providerThreadId": provider_thread,
             "nodeId": runs::node_id(run_id),
             "runAttemptId": attempt_id,

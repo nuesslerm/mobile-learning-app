@@ -87,17 +87,28 @@ pub fn serve(bind: impl ToSocketAddrs, shared: Shared) -> io::Result<Running> {
 }
 
 fn handle(mut stream: TcpStream, shared: &Shared, stop: &AtomicBool) {
+    // macOS can inherit O_NONBLOCK from the listener before the peer has sent its headers.
+    if stream.set_nonblocking(false).is_err() { return; }
     let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
-    let Some(head) = http::read_head(&mut stream) else { return };
+    let Some(head) = http::read_head(&mut stream) else {
+        tracing::info_span!("orca.http.invalid", api.outcome = "invalid").in_scope(|| ());
+        return;
+    };
     let upgrading = head.header("upgrade").is_some_and(|v| v.eq_ignore_ascii_case("websocket"));
+    let route = match (head.method.as_str(), head.path.as_str(), upgrading) {
+        ("GET", _, true) => "upgrade",
+        ("GET", "/health", false) => "health",
+        _ => "unknown",
+    };
+    let span = tracing::info_span!("orca.http", otel.name = %format!("orca.http.{route}"), http.response.status_code = tracing::field::Empty).entered();
     match (head.method.as_str(), head.path.as_str(), upgrading) {
         ("GET", "/health", false) => http::respond(&mut stream, 200, &http::health()),
-        ("GET", _, true) => upgrade(stream, &head, shared, stop),
+        ("GET", _, true) => upgrade(stream, &head, shared, stop, span),
         _ => http::respond(&mut stream, 404, &json!({"code": "not_found", "message": "No such route."})),
     }
 }
 
-fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBool) {
+fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBool, span: tracing::span::EnteredSpan) {
     let Some(key) = head.header("sec-websocket-key") else {
         return http::respond(&mut stream, 400, &json!({"code": "bad_request", "message": "A WebSocket upgrade is required."}));
     };
@@ -106,6 +117,8 @@ fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBoo
     if stream.write_all(reply.as_bytes()).and_then(|()| stream.flush()).is_err() {
         return;
     }
+    span.record("http.response.status_code", 101);
+    drop(span);
     let _ = stream.set_nodelay(true);
     let _ = stream.set_read_timeout(Some(Duration::from_millis(20)));
     let mut ws = WebSocket::from_raw_socket(stream, Role::Server, Some(WebSocketConfig::default().max_message_size(Some(MAX_FRAME)).max_frame_size(Some(MAX_FRAME))));
@@ -223,14 +236,19 @@ impl Socket {
     }
 
     fn on_text(&mut self, text: &str) -> Step {
-        match self.stage {
-            Stage::Hello => self.hello(text),
-            Stage::Auth(_) => self.auth(text),
-            Stage::Ready { .. } => self.request(text),
-        }
+        let operation = match self.stage {
+            Stage::Hello => "orca.transport.hello",
+            Stage::Auth(_) => "orca.transport.auth",
+            Stage::Ready { .. } => return self.request(text),
+        };
+        let span = tracing::info_span!("orca.transport", otel.name = operation, api.outcome = tracing::field::Empty).entered();
+        let result = if matches!(self.stage, Stage::Hello) { self.hello(text) } else { self.auth(text) };
+        span.record("api.outcome", if result.is_ok() { "ok" } else { "refused" });
+        result
     }
 
     fn on_binary(&mut self, bytes: &[u8]) -> Step {
+        let _span = tracing::info_span!("orca.transport.binary").entered();
         let (keyed, failures) = match &mut self.stage {
             Stage::Ready { keyed, failures, .. } => (keyed, failures),
             Stage::Auth(keyed) => {

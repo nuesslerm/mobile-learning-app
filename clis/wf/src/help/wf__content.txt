@@ -1,0 +1,6 @@
+Usage: wf content import-tamil <deck.apkg> [--check]
+
+Generate the bundled offline Tamil course from the approved Anki deck.
+Use --check to compare the checked-in curriculum and Tamil audio byte for byte.
+Prints JSON with notes, topics, tamilAudio and audioBytes.
+Requires Python 3.11 or newer.

@@ -11,7 +11,7 @@ beforeEach(() => useBlockViewSettingStore.setState({ blockView: DEFAULT_BLOCK_VI
 describe('the block view setting on the problem list', () => {
   it('given the list, when the person taps On, then the tap is logged, the setting is on, and it stays on after a second tap', async () => {
     await forgetLoggedLines();
-    await app.render('/');
+    await app.render('/blind75');
     expect(screen.getByTestId('LeetcodeListBlockViewRow')).toBeTruthy();
     expect(useBlockViewSettingStore.getState().blockView).toBe(false);
 
@@ -26,7 +26,7 @@ describe('the block view setting on the problem list', () => {
 
   it('given the block view on, when the person taps Off, then the setting is off again', async () => {
     useBlockViewSettingStore.setState({ blockView: true });
-    await app.render('/');
+    await app.render('/blind75');
 
     await userEvent.click(screen.getByTestId('LeetcodeListBlockViewOff'));
 
@@ -34,7 +34,7 @@ describe('the block view setting on the problem list', () => {
   });
 
   it('given the list, when it is shown, then the row reads Off as the choice made and is labelled as experimental', async () => {
-    await app.render('/');
+    await app.render('/blind75');
 
     expect(screen.getByTestId('LeetcodeListBlockViewOff').getAttribute('aria-checked')).toBe('true');
     expect(screen.getByTestId('LeetcodeListBlockViewOn').getAttribute('aria-checked')).toBe('false');

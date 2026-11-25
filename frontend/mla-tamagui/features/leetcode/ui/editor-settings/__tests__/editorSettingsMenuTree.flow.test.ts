@@ -79,31 +79,34 @@ describe('editorSettingsMenu', () => {
     ]);
   });
 
-  it('Given the defaults, When the toggles are read, Then each is checked as its preference says and keeps the menu open', () => {
+  it('Given the defaults, When the toggles are read, Then each is checked as its preference says and dismisses the menu', () => {
     const rows = rootRows();
 
-    expect(action(find(rows, EDITOR_SETTINGS_IDS.whitespace))).toMatchObject({ checked: false, keepOpen: true });
-    expect(action(find(rows, EDITOR_SETTINGS_IDS.wrap))).toMatchObject({ checked: true, keepOpen: true });
+    const whitespace = action(find(rows, EDITOR_SETTINGS_IDS.whitespace));
+    const wrap = action(find(rows, EDITOR_SETTINGS_IDS.wrap));
+    expect([whitespace.checked, wrap.checked]).toEqual([false, true]);
+    expect(whitespace.keepOpen).toBeFalsy();
+    expect(wrap.keepOpen).toBeFalsy();
   });
 
-  it('Given the defaults, When the Font size and Tabs submenus are read, Then every option keeps the menu open and only the current one is checked', () => {
+  it('Given the defaults, When the Font size and Tabs submenus are read, Then every option dismisses the menu and only the current one is checked', () => {
     const rows = rootRows();
     const font = submenu(find(rows, EDITOR_SETTINGS_IDS.fontSize));
     const tabs = submenu(find(rows, EDITOR_SETTINGS_IDS.tabSize));
 
     expect(font.items.map((option) => [option.testID, action(option).label, action(option).checked, action(option).keepOpen])).toEqual([
-      ['EditorSettingsFontSize-12', '12px', false, true],
-      ['EditorSettingsFontSize-13', '13px', false, true],
-      ['EditorSettingsFontSize-14', '14px', true, true],
-      ['EditorSettingsFontSize-15', '15px', false, true],
-      ['EditorSettingsFontSize-16', '16px', false, true],
-      ['EditorSettingsFontSize-18', '18px', false, true],
-      ['EditorSettingsFontSize-20', '20px', false, true],
+      ['EditorSettingsFontSize-12', '12px', false, undefined],
+      ['EditorSettingsFontSize-13', '13px', false, undefined],
+      ['EditorSettingsFontSize-14', '14px', true, undefined],
+      ['EditorSettingsFontSize-15', '15px', false, undefined],
+      ['EditorSettingsFontSize-16', '16px', false, undefined],
+      ['EditorSettingsFontSize-18', '18px', false, undefined],
+      ['EditorSettingsFontSize-20', '20px', false, undefined],
     ]);
     expect(tabs.items.map((option) => [option.testID, action(option).label, action(option).checked, action(option).keepOpen])).toEqual([
-      ['EditorSettingsTabs-2', '2', false, true],
-      ['EditorSettingsTabs-4', '4', true, true],
-      ['EditorSettingsTabs-8', '8', false, true],
+      ['EditorSettingsTabs-2', '2', false, undefined],
+      ['EditorSettingsTabs-4', '4', true, undefined],
+      ['EditorSettingsTabs-8', '8', false, undefined],
     ]);
   });
 
@@ -140,8 +143,8 @@ describe('editorSettingsMenu', () => {
     expect(rows.map((row) => (row as MenuActionNode).sfSymbol)).toEqual([
       'textformat.size',
       'space',
-      'arrow.turn.down.left',
-      'increase.indent',
+      'decrease.indent',
+      'text.alignright',
       'keyboard',
       'wand.and.sparkles',
     ]);

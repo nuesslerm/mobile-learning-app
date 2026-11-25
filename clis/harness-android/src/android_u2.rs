@@ -148,9 +148,29 @@ fn rpc_once(serial: &str, method: &str, params: Value, timeout: Duration) -> Res
     out
 }
 
+// The bundled UIAutomator HTTP server can decode request bytes as Latin-1.
+// JSON Unicode escapes keep selectors and editable text intact on those devices.
+fn rpc_body(value: &Value) -> String {
+    use std::fmt::Write;
+    let json = value.to_string();
+    if json.is_ascii() { return json; }
+    let mut body = String::with_capacity(json.len());
+    for ch in json.chars() {
+        if ch.is_ascii() {
+            body.push(ch);
+        } else {
+            for code in ch.encode_utf16(&mut [0; 2]) {
+                write!(body, "\\u{code:04x}").expect("writing to a String");
+            }
+        }
+    }
+    body
+}
+
 fn rpc_untimed(serial: &str, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
     let body = json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
-    let post = |url: &str| Request::post(&format!("{url}/jsonrpc/0")).direct().timeout(timeout).json(&body).send();
+    let post = |url: &str| Request::post(&format!("{url}/jsonrpc/0")).direct().timeout(timeout)
+        .header("Content-Type", "application/json; charset=utf-8").body(rpc_body(&body)).send();
     let r = match post(&base(serial)?) {
         Ok(r) => r,
         Err(_) => {
@@ -181,6 +201,10 @@ fn with(mut s: Value, mask: u64, field: &str, value: Value) -> Value {
     s["mask"] = json!(s["mask"].as_u64().unwrap_or(0) | mask);
     s[field] = value;
     s
+}
+
+fn system_window(sel: &Sel) -> bool {
+    sel.id.as_ref().is_some_and(|id| id.source().starts_with("com.android.systemui:id/"))
 }
 
 /// The UiSelectors for a selector, the text before the accessibility label. Every given field must hold, and the server's Java
@@ -218,6 +242,21 @@ pub(crate) fn revived(serial: &str) -> Result<bool, String> {
     Ok(true)
 }
 
+/// adb input text has no Unicode key map. UIAutomator can fill an empty focused native field.
+pub(crate) fn set_focused_text(serial: &str, text: &str, replace: bool) -> Result<(), String> {
+    const FOCUSED: u64 = 0x020000;
+    let field = json!({"mask": CLASS_NAME | FOCUSED, "className": "android.widget.EditText", "focused": true, "childOrSibling": [], "childOrSiblingSelector": []});
+    if !replace {
+        let info = rpc_once(serial, "objInfo", json!([field]), Duration::from_secs(5))?;
+        if info["text"].as_str().is_some_and(|s| !s.is_empty() && s != info["hintText"].as_str().unwrap_or("")) {
+            return Err("Unicode entry requires an empty focused field or replace=true".into());
+        }
+    }
+    let result = rpc_once(serial, "setText", json!([field, text]), Duration::from_secs(5))?;
+    if result == false { return Err("Android did not accept Unicode input".into()); }
+    Ok(())
+}
+
 /// The element a selector names, a miss checked against a dead server: see `look`.
 pub(crate) fn locate(serial: &str, sel: &Sel) -> Result<Option<Node>, String> {
     let first = look(serial, sel)?;
@@ -230,6 +269,10 @@ pub(crate) fn locate(serial: &str, sel: &Sel) -> Result<Option<Node>, String> {
 /// One look: every visible match in tree order (`objInfoOfAllInstances`), the text's before the label's, and of those
 /// Maestro's deepest. A web view's text is the EditText inside it (the code editor's buffer).
 pub(crate) fn look(serial: &str, sel: &Sel) -> Result<Option<Node>, String> {
+    // UiSelector searches the active app. The system's IME dismiss control lives in a separate window.
+    if system_window(sel) {
+        return Ok(crate::android_input::find_in(&hierarchy(serial)?, sel));
+    }
     for (v, s) in selectors(sel).into_iter().enumerate() {
         let all = match rpc(serial, "objInfoOfAllInstances", json!([s]), Duration::from_secs(20)) {
             Ok(all) => all,
@@ -393,6 +436,9 @@ fn simplify(path: &[(f64, f64)], tolerance: f64) -> Vec<(f64, f64)> {
 /// tap miss (the Run Local button moved 87 px under one on 18 Oct). `at` is the (selector, instance) a lookup took, so the
 /// tap lands on that match. False when nothing matches.
 pub(crate) fn click_target(serial: &str, sel: &Sel, at: Option<(usize, usize)>) -> Result<bool, String> {
+    if system_window(sel) {
+        return Ok(false);
+    }
     let all = selectors(sel);
     let picked: Vec<Value> = match at {
         Some((v, k)) if v < all.len() => vec![instance(&all[v], k)],
@@ -453,5 +499,22 @@ mod tests {
             assert_eq!((paced[0], paced[n - 1], paced[n - 2]), (path[0], path[path.len() - 1], path[path.len() - 1]), "starts on its first point and rests on its last");
         }
         assert!(pace(&[(150.0, 250.0)]).len() == 1, "a tap stays a tap");
+    }
+}
+
+
+#[cfg(test)]
+mod unicode_rpc {
+    use super::*;
+
+    #[test]
+    fn non_ascii_labels_and_inputs_survive_the_android_server_decoder() {
+        // Given Tamil text, punctuation and a supplementary-plane character in an RPC payload
+        let request = json!(["காதல்", "1 missed · 0 skipped", "🎴", "\"", "\\"]);
+        // When UIAutomator decodes the JSON bytes using a single-byte character set
+        let bytes = rpc_body(&request);
+        assert!(bytes.is_ascii());
+        // Then its selector and input values are identical to the learner's text
+        assert_eq!(serde_json::from_str::<Value>(&bytes).unwrap(), request);
     }
 }

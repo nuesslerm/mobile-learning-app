@@ -1,0 +1,513 @@
+{
+ "insert-interval": {
+  "url": "https://neetcode.io/problems/insert-new-interval?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=A8NUOmlwOlM",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Linear Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def insert(self, intervals: List[List[int]], newInterval: List[int]) -> List[List[int]]:\n        n = len(intervals)\n        i = 0\n        res = []\n\n        while i < n and intervals[i][1] < newInterval[0]:\n            res.append(intervals[i])\n            i += 1\n\n        while i < n and newInterval[1] >= intervals[i][0]:\n            newInterval[0] = min(newInterval[0], intervals[i][0])\n            newInterval[1] = max(newInterval[1], intervals[i][1])\n            i += 1\n        res.append(newInterval)\n\n        while i < n:\n            res.append(intervals[i])\n            i += 1\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Binary Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def insert(self, intervals: List[List[int]], newInterval: List[int]) -> List[List[int]]:\n        if not intervals:\n            return [newInterval]\n\n        n = len(intervals)\n        target = newInterval[0]\n        left, right = 0, n - 1\n\n        while left <= right:\n            mid = (left + right) // 2\n            if intervals[mid][0] < target:\n                left = mid + 1\n            else:\n                right = mid - 1\n\n        intervals.insert(left, newInterval)\n\n        res = []\n        for interval in intervals:\n            if not res or res[-1][1] < interval[0]:\n                res.append(interval)\n            else:\n                res[-1][1] = max(res[-1][1], interval[1])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def insert(self, intervals: List[List[int]], newInterval: List[int]) -> List[List[int]]:\n        res = []\n\n        for i in range(len(intervals)):\n            if newInterval[1] < intervals[i][0]:\n                res.append(newInterval)\n                return res + intervals[i:]\n            elif newInterval[0] > intervals[i][1]:\n                res.append(intervals[i])\n            else:\n                newInterval = [\n                    min(newInterval[0], intervals[i][0]),\n                    max(newInterval[1], intervals[i][1]),\n                ]\n        res.append(newInterval)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output list."
+   }
+  ]
+ },
+ "merge-intervals": {
+  "url": "https://neetcode.io/problems/merge-intervals?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=44H3cEC2fFM",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def merge(self, intervals: List[List[int]]) -> List[List[int]]:\n        intervals.sort(key=lambda pair: pair[0])\n        output = [intervals[0]]\n\n        for start, end in intervals:\n            lastEnd = output[-1][1]\n\n            if start <= lastEnd:\n                output[-1][1] = max(lastEnd, end)\n            else:\n                output.append([start, end])\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) or O(n) space depending on the sorting algorithm.\nO(n) for the output list."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sweep Line Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def merge(self, intervals: List[List[int]]) -> List[List[int]]:\n        mp = defaultdict(int)\n        for start, end in intervals:\n            mp[start] += 1\n            mp[end] -= 1\n\n        res = []\n        interval = []\n        have = 0\n        for i in sorted(mp):\n            if not interval:\n                interval.append(i)\n            have += mp[i]\n            if have == 0:\n                interval.append(i)\n                res.append(interval)\n                interval = []\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def merge(self, intervals: List[List[int]]) -> List[List[int]]:\n        max_val = max(interval[0] for interval in intervals)\n\n        mp = [0] * (max_val + 1)\n        for start, end in intervals:\n            mp[start] = max(end + 1, mp[start])\n\n        res = []\n        have = -1\n        interval_start = -1\n        for i in range(len(mp)):\n            if mp[i] != 0:\n                if interval_start == -1:\n                    interval_start = i\n                have = max(mp[i] - 1, have)\n            if have == i:\n                res.append([interval_start, have])\n                have = -1\n                interval_start = -1\n\n        if interval_start != -1:\n            res.append([interval_start, have])\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array and m is the maximum start value among all the intervals."
+   }
+  ]
+ },
+ "non-overlapping-intervals": {
+  "url": "https://neetcode.io/problems/non-overlapping-intervals?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=nONCGxWoUfM",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:\n        intervals.sort()\n\n        def dfs(i, prev):\n            if i == len(intervals):\n                return 0\n            res = dfs(i + 1, prev)\n            if prev == -1 or intervals[prev][1] <= intervals[i][0]:\n                res = max(res, 1 + dfs(i + 1, i))\n            return res\n\n        return len(intervals) - dfs(0, -1)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:\n        intervals.sort(key = lambda x: x[1])\n        n = len(intervals)\n        memo = {}\n\n        def dfs(i):\n            if i in memo:\n                return memo[i]\n\n            res = 1\n            for j in range(i + 1, n):\n                if intervals[i][1] <= intervals[j][0]:\n                    res = max(res, 1 + dfs(j))\n            memo[i] = res\n            return res\n\n        return n - dfs(0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:\n        intervals.sort(key=lambda x: x[1])\n        n = len(intervals)\n        dp = [0] * n\n\n        for i in range(n):\n            dp[i] = 1\n            for j in range(i):\n                if intervals[j][1] <= intervals[i][0]:\n                    dp[i] = max(dp[i], 1 + dp[j])\n\n        max_non_overlapping = max(dp)\n        return n - max_non_overlapping"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Binary Search)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:\n        intervals.sort(key=lambda x: x[1])\n        n = len(intervals)\n        dp = [0] * n\n        dp[0] = 1\n\n        def bs(r, target):\n            l = 0\n            while l < r:\n                m = (l + r) >> 1\n                if intervals[m][1] <= target:\n                    l = m + 1\n                else:\n                    r = m\n            return l\n\n        for i in range(1, n):\n            idx = bs(i, intervals[i][0])\n            if idx == 0:\n                dp[i] = dp[i - 1]\n            else:\n                dp[i] = max(dp[i - 1], 1 + dp[idx - 1])\n        return n - dp[n - 1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "5. Greedy (Sort By Start)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:\n        intervals.sort()\n        res = 0\n        prevEnd = intervals[0][1]\n\n        for start, end in intervals[1:]:\n            if start >= prevEnd:\n                prevEnd = end\n            else:\n                res += 1\n                prevEnd = min(end, prevEnd)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "6. Greedy (Sort By End)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:\n        intervals.sort(key = lambda pair: pair[1])\n        prevEnd = intervals[0][1]\n        res = 0\n\n        for i in range(1, len(intervals)):\n            if prevEnd > intervals[i][0]:\n                res += 1\n            else:\n                prevEnd = intervals[i][1]\n\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   }
+  ]
+ },
+ "meeting-rooms": {
+  "url": "https://neetcode.io/problems/meeting-schedule?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=PaJxqZVPhbg",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\nDefinition of Interval:\nclass Interval(object):\n    def __init__(self, start, end):\n        self.start = start\n        self.end = end\n\"\"\"\n\nclass Solution:\n    def canAttendMeetings(self, intervals: List[Interval]) -> bool:\n        n = len(intervals)\n        for i in range(n):\n            A = intervals[i]\n            for j in range(i + 1, n):\n                B = intervals[j]\n                if min(A.end, B.end) > max(A.start, B.start):\n                    return False\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\nDefinition of Interval:\nclass Interval(object):\n    def __init__(self, start, end):\n        self.start = start\n        self.end = end\n\"\"\"\n\nclass Solution:\n    def canAttendMeetings(self, intervals: List[Interval]) -> bool:\n        intervals.sort(key=lambda i: i.start)\n\n        for i in range(1, len(intervals)):\n            i1 = intervals[i - 1]\n            i2 = intervals[i]\n\n            if i1.end > i2.start:\n                return False\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   }
+  ]
+ },
+ "meeting-rooms-ii": {
+  "url": "https://neetcode.io/problems/meeting-schedule-ii?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=FdzJmTCVyJU",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Min Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\nDefinition of Interval:\nclass Interval(object):\n    def __init__(self, start, end):\n        self.start = start\n        self.end = end\n\"\"\"\n\nclass Solution:\n    def minMeetingRooms(self, intervals: List[Interval]) -> int:\n        intervals.sort(key=lambda x: x.start)\n        min_heap = []\n\n        for interval in intervals:\n            if min_heap and min_heap[0] <= interval.start:\n                heapq.heappop(min_heap)\n            heapq.heappush(min_heap, interval.end)\n\n        return len(min_heap)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sweep Line Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\nDefinition of Interval:\nclass Interval(object):\n    def __init__(self, start, end):\n        self.start = start\n        self.end = end\n\"\"\"\n\nclass Solution:\n    def minMeetingRooms(self, intervals: List[Interval]) -> int:\n        mp = defaultdict(int)\n        for i in intervals:\n            mp[i.start] += 1\n            mp[i.end] -= 1\n        prev = 0\n        res = 0\n        for i in sorted(mp.keys()):\n            prev += mp[i]\n            res = max(res, prev)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Two Pointers"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\nDefinition of Interval:\nclass Interval(object):\n    def __init__(self, start, end):\n        self.start = start\n        self.end = end\n\"\"\"\n\nclass Solution:\n    def minMeetingRooms(self, intervals: List[Interval]) -> int:\n        start = sorted([i.start for i in intervals])\n        end = sorted([i.end for i in intervals])\n\n        res = count = 0\n        s = e = 0\n        while s < len(intervals):\n            if start[s] < end[e]:\n                s += 1\n                count += 1\n            else:\n                e += 1\n                count -= 1\n            res = max(res, count)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\nDefinition of Interval:\nclass Interval(object):\n    def __init__(self, start, end):\n        self.start = start\n        self.end = end\n\"\"\"\n\nclass Solution:\n    def minMeetingRooms(self, intervals: List[Interval]) -> int:\n        time = []\n        for i in intervals:\n            time.append((i.start, 1))\n            time.append((i.end, -1))\n\n        time.sort(key=lambda x: (x[0], x[1]))\n\n        res = count = 0\n        for t in time:\n            count += t[1]\n            res = max(res, count)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "minimum-interval-to-include-each-query": {
+  "url": "https://neetcode.io/problems/minimum-interval-including-query?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=5hQ5WWW5awQ",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minInterval(self, intervals: List[List[int]], queries: List[int]) -> List[int]:\n        n = len(intervals)\n        res = []\n        for q in queries:\n            cur = -1\n            for l, r in intervals:\n                if l <= q <= r:\n                    if cur == -1 or (r - l + 1) < cur:\n                        cur = r - l + 1\n            res.append(cur)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(m) space for the output array."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the array queries and n is the length of the array intervals."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sweep Line Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minInterval(self, intervals: List[List[int]], queries: List[int]) -> List[int]:\n        events = []\n        # Create events for intervals\n        for idx, (start, end) in enumerate(intervals):\n            events.append((start, 0, end - start + 1, idx))\n            events.append((end, 2, end - start + 1, idx))\n\n        # Create events for queries\n        for i, q in enumerate(queries):\n            events.append((q, 1, i))\n\n        # Sort by time and type (end before query)\n        events.sort(key=lambda x: (x[0], x[1]))\n\n        # Min heap storing [size, index]\n        sizes = []\n        ans = [-1] * len(queries)\n        inactive = [False] * len(intervals)\n\n        for time, type, *rest in events:\n            if type == 0:  # Interval start\n                interval_size, idx = rest\n                heapq.heappush(sizes, (interval_size, idx))\n            elif type == 2: #Interval end\n                idx = rest[1]\n                inactive[idx] = True\n            else: # Query\n                query_idx = rest[0]\n                while sizes and inactive[sizes[0][1]]:\n                    heapq.heappop(sizes)\n                if sizes:\n                    ans[query_idx] = sizes[0][0]\n\n        return ans"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O((n + m) log (n + m))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n + m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the array queries and n is the length of the array intervals."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Min Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minInterval(self, intervals: List[List[int]], queries: List[int]) -> List[int]:\n        intervals.sort()\n        minHeap = []\n        res = {}\n        i = 0\n        for q in sorted(queries):\n            while i < len(intervals) and intervals[i][0] <= q:\n                l, r = intervals[i]\n                heapq.heappush(minHeap, (r - l + 1, r))\n                i += 1\n\n            while minHeap and minHeap[0][1] < q:\n                heapq.heappop(minHeap)\n            res[q] = minHeap[0][0] if minHeap else -1\n        return [res[q] for q in queries]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n + m log m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n + m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the array queries and n is the length of the array intervals."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Min Segment Tree (Lazy Propagation)"
+   },
+   {
+    "kind": "pre",
+    "text": "class SegmentTree:\n    def __init__(self, N):\n        self.n = N\n        self.tree = [float('inf')] * (4 * N)\n        self.lazy = [float('inf')] * (4 * N)\n\n    def propagate(self, treeidx, lo, hi):\n        if self.lazy[treeidx] != float('inf'):\n            self.tree[treeidx] = min(self.tree[treeidx], self.lazy[treeidx])\n            if lo != hi:\n                self.lazy[2 * treeidx + 1] = min(self.lazy[2 * treeidx + 1], self.lazy[treeidx])\n                self.lazy[2 * treeidx + 2] = min(self.lazy[2 * treeidx + 2], self.lazy[treeidx])\n            self.lazy[treeidx] = float('inf')\n\n    def update(self, treeidx, lo, hi, left, right, val):\n        self.propagate(treeidx, lo, hi)\n        if lo > right or hi < left:\n            return\n        if lo >= left and hi <= right:\n            self.lazy[treeidx] = min(self.lazy[treeidx], val)\n            self.propagate(treeidx, lo, hi)\n            return\n        mid = (lo + hi) // 2\n        self.update(2 * treeidx + 1, lo, mid, left, right, val)\n        self.update(2 * treeidx + 2, mid + 1, hi, left, right, val)\n        self.tree[treeidx] = min(self.tree[2 * treeidx + 1], self.tree[2 * treeidx + 2])\n\n    def query(self, treeidx, lo, hi, idx):\n        self.propagate(treeidx, lo, hi)\n        if lo == hi:\n            return self.tree[treeidx]\n        mid = (lo + hi) // 2\n        if idx <= mid:\n            return self.query(2 * treeidx + 1, lo, mid, idx)\n        else:\n            return self.query(2 * treeidx + 2, mid + 1, hi, idx)\n\n    def update_range(self, left, right, val):\n        self.update(0, 0, self.n - 1, left, right, val)\n\n    def query_point(self, idx):\n        return self.query(0, 0, self.n - 1, idx)\n\nclass Solution:\n    def minInterval(self, intervals: List[List[int]], queries: List[int]) -> List[int]:\n        points = []\n        for interval in intervals:\n            points.append(interval[0])\n            points.append(interval[1])\n        for q in queries:\n            points.append(q)\n\n        # Compress the coordinates\n        points = sorted(set(points))\n        compress = {points[i]: i for i in range(len(points))}\n\n        # Lazy Segment Tree\n        segTree = SegmentTree(len(points))\n\n        for interval in intervals:\n            start = compress[interval[0]]\n            end = compress[interval[1]]\n            length = interval[1] - interval[0] + 1\n            segTree.update_range(start, end, length)\n\n        ans = []\n        for q in queries:\n            idx = compress[q]\n\n            # query for minSize\n            res = segTree.query_point(idx)\n            ans.append(res if res != float('inf') else -1)\n        return ans"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O((n + m)log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(k) extra space.\nO(m) space for the output array."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the array queries, n is the length of the array intervals and k is the number of unique points."
+   }
+  ]
+ }
+}

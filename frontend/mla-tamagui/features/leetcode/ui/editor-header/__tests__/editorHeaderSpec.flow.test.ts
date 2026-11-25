@@ -1,7 +1,9 @@
+import type { MenuActionNode } from '@lib/tamagui-design-system';
 import { describe, expect, it, vi } from 'vitest';
 
 import { editorSettingsMenu } from '../../editor-settings/editorSettingsMenu';
 import { DEFAULT_EDITOR_PREFERENCES } from '../../../domain/editor-settings/editorPreferences';
+import { editorLanguageMenu } from '../editorLanguageMenu';
 import { editorHeaderSpec, type EditorHeaderInput } from '../editorHeaderSpec';
 
 function inputs(patch: Partial<EditorHeaderInput> = {}): EditorHeaderInput {
@@ -57,7 +59,47 @@ describe('the editor header spec', () => {
     expect(login).toMatchObject({ label: 'Log out', detail: 'flow-user' });
   });
 
+  it('given the native workspace has edits, when the header is built, then Undo and the language stay visible and problem actions move under the save status', () => {
+    const onUndo = vi.fn();
+    const input = inputs({
+      onUndo,
+      nativeWorkspace: { saveStatus: 'unsaved', backgroundColor: '#000000', language: { ...settingsMenu(), testID: 'ProblemEditorLanguageMenu' } },
+    });
+
+    const spec = editorHeaderSpec(input);
+
+    expect(spec.nativeTitle).toBe('hidden');
+    expect(spec.leadingStatus).toMatchObject({ label: 'Unsaved', menu: { accessibilityLabel: 'Problem actions' } });
+    expect(spec.leadingStatus?.menu?.items.map((item) => item.kind === 'section' ? item.title : item.label)).toEqual(['Problem description', 'Version history', 'Login']);
+    expect(spec.groups?.map((group) => group.map((member) => member.testID))).toEqual([['ProblemEditorUndo'], ['ProblemEditorLanguageMenu', 'EditorSettingsButton']]);
+    const undo = spec.groups?.[0]?.[0];
+    if (undo && 'onPress' in undo) undo.onPress();
+    expect(onUndo).toHaveBeenCalledOnce();
+  });
+
   it('given no run in flight, when built, then busy is false', () => {
     expect(editorHeaderSpec(inputs({ settings: settingsMenu() })).busy).toBe(false);
+  });
+});
+
+describe('the editor language menu', () => {
+  it('given the available runners, when the menu actions are pressed, then it lists the problem languages in order and explains unavailable languages', () => {
+    const onChange = vi.fn();
+    const onUnavailable = vi.fn();
+    const menu = editorLanguageMenu('python3', ['python3', 'javascript'], onChange, onUnavailable);
+    const rows = menu.items.filter((row): row is MenuActionNode => row.kind === undefined || row.kind === 'action');
+
+    expect(menu.label).toBe('Python3');
+    expect(rows.map((row) => row.label)).toEqual([
+      'C++', 'Java', 'Python3', 'Python', 'JavaScript', 'TypeScript', 'C#', 'C', 'Go', 'Kotlin', 'Swift', 'Rust',
+      'Ruby', 'PHP', 'Dart', 'Scala', 'Elixir', 'Erlang', 'Racket',
+    ]);
+    expect(rows.filter((row) => row.checked).map((row) => row.label)).toEqual(['Python3']);
+    for (const row of rows) row.onPress();
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('javascript');
+    expect(onUnavailable.mock.calls.flat()).toEqual([
+      'C++', 'Java', 'Python', 'TypeScript', 'C#', 'C', 'Go', 'Kotlin', 'Swift', 'Rust',
+      'Ruby', 'PHP', 'Dart', 'Scala', 'Elixir', 'Erlang', 'Racket',
+    ]);
   });
 });

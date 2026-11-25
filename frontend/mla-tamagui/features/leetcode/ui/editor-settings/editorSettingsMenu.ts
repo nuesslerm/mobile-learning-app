@@ -26,6 +26,8 @@ import {
   type SettingsRow,
 } from '../../domain/editor-settings/settingsMenu';
 
+import lineWrapMenuIcon from './line-wrap-menu-icon.json';
+
 export const EDITOR_SETTINGS_IDS = {
   button: 'EditorSettingsButton',
   viewSection: 'EditorSettingsViewSection',
@@ -47,13 +49,17 @@ const GLYPHS = {
   button: { icon: SlidersHorizontal, sfSymbol: 'slider.horizontal.3' },
   fontSize: { icon: CaseSensitive, sfSymbol: 'textformat.size' },
   whitespace: { icon: Space, sfSymbol: 'space' },
-  wrap: { icon: WrapText, sfSymbol: 'arrow.turn.down.left' },
-  tabSize: { icon: IndentIncrease, sfSymbol: 'increase.indent' },
+  wrap: {
+    icon: WrapText,
+    sfSymbol: 'decrease.indent',
+    iosMenuImage: lineWrapMenuIcon,
+  },
+  tabSize: { icon: IndentIncrease, sfSymbol: 'text.alignright' },
   symbolBar: { icon: Keyboard, sfSymbol: 'keyboard' },
   format: { icon: Wand2, sfSymbol: 'wand.and.sparkles' },
 } as const satisfies Record<
   Exclude<keyof typeof EDITOR_SETTINGS_IDS, 'viewSection' | 'toolsSection'>,
-  { icon: unknown; sfSymbol: SfSymbolName }
+  { icon: unknown; sfSymbol: SfSymbolName; iosMenuImage?: MenuActionNode['iosMenuImage'] }
 >;
 
 export type EditorSettingsHandlers = {
@@ -80,7 +86,6 @@ function optionNodes<T extends number>(
         testID: `${EDITOR_SETTINGS_IDS[row.id]}-${value}`,
         label: option.label,
         checked: option.checked,
-        keepOpen: true,
         onPress: () => pick(value),
       },
     ];
@@ -106,7 +111,6 @@ function toNode(row: SettingsRow, handlers: EditorSettingsHandlers): MenuNode {
         label: row.label,
         ...GLYPHS[row.id],
         checked: row.checked,
-        keepOpen: true,
         onPress: () =>
           (row.id === 'wrap' ? handlers.onWrap : handlers.onWhitespace)(
             !row.checked

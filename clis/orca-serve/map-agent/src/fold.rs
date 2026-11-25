@@ -1,6 +1,7 @@
 //! rca's neutral thread events folded into the phone's journal render items. Pure: events in, items out.
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 
 /// The head of a tool output the phone is sent; the whole item comes from `agentSession.item`.
 const HEAD_BYTES: usize = 8 * 1024;
@@ -30,9 +31,26 @@ impl Item {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Handoff {
+    pub item: String,
+    pub turn: Option<String>,
+    pub sequence: u64,
+    pub prompt: String,
+}
+
+impl Handoff {
+    pub fn render(&self, session: &str) -> Value {
+        let mut value = crate::queued::handoff(session, &self.item, &self.prompt);
+        value["submittedSequence"] = self.sequence.into();
+        value
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Folded {
     pub items: Vec<Item>,
+    pub(crate) handoffs: Vec<Handoff>,
     /// The `seq` of the newest rollback of the log: a rollback drops turns from the journal, so it opens a new epoch.
     pub epoch_seq: u64,
     pub last_seq: u64,
@@ -87,12 +105,52 @@ pub fn approval_options() -> Value {
 /// Folds `events` (the `event` objects of `thread.history`, oldest first) into items.
 pub fn fold(events: &[Value]) -> Folded {
     let mut out = Folded::default();
+    let mut queued = HashMap::<&str, &str>::new();
     let mut tool_outputs: Vec<(String, String)> = Vec::new();
     for e in events {
         let seq = e["seq"].as_u64().unwrap_or(0);
         let turn = e["turn"].as_str().map(str::to_string);
         out.last_seq = out.last_seq.max(seq);
         match e["type"].as_str().unwrap_or_default() {
+            "queue.added" => {
+                if let (Some(id), Some(prompt)) =
+                    (e["item"]["item"].as_str(), e["item"]["prompt"].as_str())
+                {
+                    queued.insert(id, prompt);
+                }
+            }
+            "queue.edited" => {
+                if let (Some(id), Some(prompt)) = (e["item"].as_str(), e["prompt"].as_str()) {
+                    queued.insert(id, prompt);
+                }
+            }
+            "queue.deleted" => {
+                if let Some(id) = e["item"].as_str() {
+                    queued.remove(id);
+                }
+            }
+            "queue.started" | "turn.steered" => {
+                if let Some(id) = e["item"].as_str() {
+                    let prompt = queued.remove(id).or_else(|| e["prompt"].as_str());
+                    if let Some(prompt) = prompt {
+                        out.handoffs.push(Handoff {
+                            item: id.into(),
+                            turn: turn.clone(),
+                            sequence: seq,
+                            prompt: prompt.into(),
+                        });
+                    }
+                }
+                if let Some(prompt) = e["prompt"].as_str() {
+                    out.items.push(Item {
+                        id: format!("i{seq}"),
+                        turn,
+                        sequence: seq,
+                        revision: seq,
+                        body: crate::queued::body_of(prompt),
+                    });
+                }
+            }
             "turn.started" => {
                 out.running_turn = turn.clone();
                 let id = format!("turn:{}", turn.clone().unwrap_or_default());
@@ -100,6 +158,7 @@ pub fn fold(events: &[Value]) -> Folded {
             }
             "thread.rolled_back" => {
                 let dropped: Vec<&str> = e["dropped"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+                out.handoffs.retain(|i| !i.turn.as_deref().is_some_and(|t| dropped.contains(&t)));
                 out.items.retain(|i| !i.turn.as_deref().is_some_and(|t| dropped.contains(&t)));
                 if out.running_turn.as_deref().is_some_and(|t| dropped.contains(&t)) {
                     out.running_turn = None;
@@ -123,10 +182,13 @@ pub fn fold(events: &[Value]) -> Folded {
             kind @ ("message.delta" | "reasoning.delta") => {
                 let role = if kind == "reasoning.delta" { "reasoning" } else { e["role"].as_str().unwrap_or("assistant") };
                 let text = e["text"].as_str().unwrap_or_default();
+                let images = || e["attachments"].as_array().into_iter().flatten().filter_map(crate::attach::image_block);
                 match out.items.last_mut() {
                     Some(i) if i.turn == turn && i.body["kind"] == "message" && i.body["role"] == role => {
                         let joined = format!("{}{text}", i.body["blocks"][0]["text"].as_str().unwrap_or_default());
-                        i.body["blocks"] = json!([text_block(&joined)]);
+                        let blocks = i.body["blocks"].as_array_mut().expect("message blocks");
+                        blocks[0] = text_block(&joined);
+                        blocks.extend(images());
                         i.revision = seq;
                     }
                     _ => {
@@ -138,7 +200,8 @@ pub fn fold(events: &[Value]) -> Folded {
                                 t.body["userItemId"] = id.clone().into();
                             }
                         }
-                        out.items.push(Item { id, turn, sequence: seq, revision: seq, body: json!({"kind": "message", "role": role, "blocks": [text_block(text)]}) });
+                        let blocks = std::iter::once(text_block(text)).chain(images()).collect::<Vec<_>>();
+                        out.items.push(Item { id, turn, sequence: seq, revision: seq, body: json!({"kind": "message", "role": role, "blocks": blocks}) });
                     }
                 }
             }

@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 struct Rig {
+    agent: Arc<ScriptedAgent>,
     files: Workspaces,
     terminals: Terminals,
     conn: Connection,
@@ -25,7 +26,7 @@ impl Rig {
         terminals.terminal("main", "t1", true).terminal("feat", "t2", true).terminal("feat", "gone", false);
         terminals.install(&agent);
         let host = Host::new("rt".into(), vec![Box::new(TerminalArea), Box::new(orca_map_workspace::WorkspaceArea::default())], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { files, terminals, conn: host.connection("dev", "tok", vec![]), n: 0 }
+        Rig { agent, files, terminals, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 
     fn call(&mut self, method: &str, params: Value) -> Value {
@@ -301,6 +302,28 @@ fn given_an_open_tabs_stream_when_a_tab_appears_then_the_phone_gets_a_snapshot_t
 }
 
 #[test]
+fn given_two_tab_streams_for_a_picker_worktree_when_one_is_unsubscribed_then_only_that_stream_ends() {
+    let mut rig = Rig::new();
+    let worktree = "id:main::/srv/wt/feat";
+    let first = rig.frames("session.tabs.subscribe", json!({"worktree": worktree}));
+    let second = rig.frames("session.tabs.subscribe", json!({"worktree": worktree}));
+    assert_eq!(first[0]["result"]["type"], "snapshot");
+    assert_eq!(second[0]["result"]["type"], "snapshot");
+
+    let ended = rig.frames("session.tabs.unsubscribe", json!({"worktree": worktree, "subscriptionId": first[0]["id"]}));
+    assert_eq!(ended[0]["result"], json!({"unsubscribed": true}));
+    assert_eq!(ended.len(), 2);
+    assert_eq!(ended[1]["id"], first[0]["id"]);
+    assert_eq!(ended[1]["result"], json!({"type": "end"}));
+
+    rig.ok("session.tabs.createTerminal", json!({"worktree": worktree}));
+    let updates = rig.stream_events();
+    assert_eq!(updates.len(), 1);
+    assert_eq!(updates[0]["type"], "updated");
+    assert_eq!(tabs_of(&updates[0]).len(), 3);
+}
+
+#[test]
 fn given_a_terminal_that_printed_colored_lines_when_it_is_read_then_the_tail_is_plain_lines_limited_and_a_cursor_returns_only_what_followed() {
     let mut rig = Rig::new();
     // Given a terminal that printed three lines with colors and a title sequence
@@ -481,4 +504,14 @@ fn given_opened_files_when_the_tabs_are_listed_activated_and_closed_then_the_kep
     assert!(rig.terminals.exists("feat", "t2"));
     let after = rig.ok("session.tabs.list", feat);
     assert_eq!(tabs_of(&after), [("gone".to_string(), false), ("t2".to_string(), true), ("diff:staged:a.ts".to_string(), false), ("file:a.ts".to_string(), false)]);
+}
+
+#[test]
+fn given_an_expo_chat_when_orca_opens_its_workspace_then_the_same_thread_is_a_tab() {
+    let mut rig = Rig::new();
+    rig.agent.set_state("mobile.thread.workspace", "external", json!("feat"));
+    rig.agent.reply("thread.list", |_| Ok(json!({"threads":[{"id":"external","title":"From Expo","driver":"codex","workspace":"feat"}]})));
+    let tabs = rig.ok("session.tabs.list", json!({"worktree":"path:/srv/wt/feat"}));
+    let tab = tabs["tabs"].as_array().unwrap().iter().find(|tab| tab["id"] == "external").unwrap();
+    assert_eq!((&tab["type"], &tab["sessionId"]), (&json!("agent-session"), &json!("external")));
 }

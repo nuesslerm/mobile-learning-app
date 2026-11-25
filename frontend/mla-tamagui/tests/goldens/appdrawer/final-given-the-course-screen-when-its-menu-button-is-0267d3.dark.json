@@ -8,7 +8,7 @@
     "height": 852
   },
   "screen": {
-    "width": 378,
+    "width": 393,
     "height": 1704,
     "page_height": 3218
   },
@@ -28,6 +28,9 @@
       "DrawerItemSettingsLabel",
       "DrawerItemDashboards",
       "DrawerItemDashboardsLabel",
+      "AppDrawerFooter",
+      "AppDrawerAccount",
+      "AppDrawerCodingAgent",
       "TamilCourseScreen",
       "TamilCourseHeader",
       "TamilCourseScroll",
@@ -64,15 +67,15 @@
       "TamilCourseCompactCount",
       "TamilCourseCompactCountText"
     ],
-    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n251 LETTERS\n0 MASTERED\nதமிழ் எழுத்து\nTrace every letter until your hand knows it. ✍️\nCourse progress\n0%\nWrite it large · letters and words\nWrite from memory\nஉயிர் · Vowels\nஉ\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nNEW\n0/6\nஉ\nஉயிர் எழுத்து II\nVowels: எ to ஔ\nNEW\n0/6\nமெய் · Consonants\nவ\nவல்லினம்\nHard consonants\nNEW\n0/6\nம\nம"
+    "text": "Learning workspace\nLeetCode Library\nDesign system\nCoding agent\nTamil\nSettings\nDashboards\nCoding agent\n251 LETTERS\n0 MASTERED\nதமிழ் எழுத்து\nTrace every letter until your hand knows it. ✍️\nCourse progress\n0%\nWrite it large · letters and words\nWrite from memory\nஉயிர் · Vowels\nஉ\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nNEW\n0/6\nஉ\nஉயிர் எழுத்து II\nVowels: எ to ஔ\nNEW\n0/6\nமெய் · Consonants\nவ\nவல்லினம்\nHard consonant"
   },
   "timings": {
-    "render_ms": 492
+    "render_ms": 511
   },
   "name": "appdrawer/final-given-the-course-screen-when-its-menu-button-is-0267d3.dark",
   "image": {
     "width": 360,
-    "height": 1623
+    "height": 1561
   },
   "tolerance": {
     "threshold": 0.1,

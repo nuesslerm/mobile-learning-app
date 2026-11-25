@@ -105,7 +105,7 @@ fn turning(events: Vec<ThreadEvent>) -> Rca {
             let mut frames = vec![answer(request, json!({"topic": "thread/t1", "after_seq": after, "last_seq": BEFORE}))];
             if started.load(std::sync::atomic::Ordering::SeqCst) {
                 // A late event of an earlier turn comes first: the log has it, and it is not this turn's
-                let log = std::iter::once(event("u8", BEFORE + 1, ThreadEvent::MessageDelta { role: Role::Assistant, text: "from the last turn".into() })).chain(events.iter().enumerate().map(|(i, e)| event(TURN, BEFORE + 2 + i as u64, e.clone())));
+                let log = std::iter::once(event("u8", BEFORE + 1, ThreadEvent::message_delta(Role::Assistant, "from the last turn".into()))).chain(events.iter().enumerate().map(|(i, e)| event(TURN, BEFORE + 2 + i as u64, e.clone())));
                 frames.extend(log.filter(|frame| frame["event"]["seq"].as_u64().unwrap() > after));
             }
             frames
@@ -143,7 +143,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
     let args = json!({"command": "ls"});
     let events = vec![
         ThreadEvent::TurnStarted {},
-        ThreadEvent::MessageDelta { role: Role::User, text: "say hi".into() },
+        ThreadEvent::message_delta(Role::User, "say hi".into()),
         ThreadEvent::ReasoningDelta { text: "look first".into() },
         ThreadEvent::ToolStarted { call: "c1".into(), tool: "run_command".into(), args: args.clone() },
         ThreadEvent::ToolOutput { call: "c1".into(), stream: OutputStream::Stdout, data: "a.txt\n".into() },
@@ -151,7 +151,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
         ThreadEvent::ToolFinished { call: "c1".into(), ok: true, result: json!({"exit_code": 0}) },
         ThreadEvent::FileChanged { path: "a.txt".into(), op: agent_api_agent::FileOp::Edit },
         ThreadEvent::Usage(Default::default()),
-        ThreadEvent::MessageDelta { role: Role::Assistant, text: "Done: a.txt".into() },
+        ThreadEvent::message_delta(Role::Assistant, "Done: a.txt".into()),
         ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None },
     ];
     let count = events.len() + 1;
@@ -198,7 +198,7 @@ fn the_events_of_the_contracts_two_recorded_turns_each_read_as_what_t3_shows_and
     // When each is read as t3 does
     let read: Vec<AgentEvent> = recorded.iter().map(|e| agent_event(e).unwrap_or_else(|e| panic!("{}", e.message()))).collect();
     // Then each keeps its number and turn, those t3 shows nothing of are `Other` and no other is
-    let unshown = ["file.changed", "approval.requested", "input.requested", "plan.updated", "usage"];
+    let unshown = ["file.changed", "plan.updated", "usage"];
     for (wire, got) in recorded.iter().zip(&read) {
         assert_eq!((wire.seq, &wire.turn), (got.seq, &got.turn));
         assert_eq!(got.kind == AgentEventKind::Other, unshown.contains(&wire.kind.as_str()), "{}", wire.kind);
@@ -213,8 +213,8 @@ fn the_events_of_the_contracts_two_recorded_turns_each_read_as_what_t3_shows_and
     let mut stranger = recorded[0].clone();
     stranger.kind = "item.completed".into();
     assert!(agent_event(&stranger).unwrap_err().message().contains("item.completed is not a thread event"));
-    // And every kind the queue, request and lifecycle groups write on the thread's topic is read as no change of the turn, never as a failure
-    for kind in agent_api_agent::queue::events::KINDS.iter().chain(&agent_api_agent::requests::events::KINDS).chain(&agent_api_agent::lifecycle::events::KINDS) {
+    // And every kind the queue and lifecycle groups write on the thread's topic is read as no change of the turn, never as a failure
+    for kind in agent_api_agent::queue::events::KINDS.iter().chain(&agent_api_agent::lifecycle::events::KINDS) {
         let mut own = recorded[0].clone();
         own.kind = (*kind).into();
         assert_eq!(agent_event(&own).unwrap().kind, AgentEventKind::Other, "{kind}");
@@ -396,7 +396,7 @@ fn every_op() -> Vec<Op> {
         Op::QueueMove { thread: t(), item: "q1".into(), before: Some("q2".into()) },
         Op::QueueDelete { thread: t(), item: "q1".into() },
         Op::QueueResume { thread: t(), item: None },
-        Op::TurnSteer { thread: t(), turn: Some(TURN.into()), item: Some("q1".into()) },
+        Op::TurnSteer { thread: t(), turn: Some(TURN.into()), item: Some("q1".into()), prompt: None },
         Op::ThreadArchive { thread: t(), archived: true },
         Op::ThreadDelete { thread: t(), only_if_unused: true },
         Op::ThreadFork { thread: t(), fork: "f1".into(), turn: None, title: None },

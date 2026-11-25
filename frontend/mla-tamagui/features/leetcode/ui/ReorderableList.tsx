@@ -3,7 +3,7 @@ import { Icon, View } from '@lib/tamagui-design-system';
 import { GripVertical } from '@lib/tamagui-design-system/icons';
 import type { LucideIcon } from 'lucide-react-native';
 import * as React from 'react';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { useWindowDimensions, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -36,6 +36,8 @@ type Positions = Record<string, number>;
 
 export type ReorderActivation = 'long-press' | 'immediate';
 
+type LiftedRowStyle = { backgroundColor: string; left?: number; right?: number };
+
 type ReorderableListProps<T> = {
   data: T[];
   keyExtractor: (item: T) => string;
@@ -51,6 +53,9 @@ type ReorderableListProps<T> = {
   activation?: ReorderActivation;
   /** The glyph on the handle (the grip by default). */
   handleIcon?: LucideIcon;
+  handleIconColor?: ComponentProps<typeof Icon>['color'];
+  handleSystemSymbol?: ComponentProps<typeof Icon>['systemSymbol'];
+  liftedRowStyle?: LiftedRowStyle;
 };
 
 // App #1 pulls this from its theme's motion config. One spring config used
@@ -121,6 +126,9 @@ function Row<T>({
   scrollToY,
   activation,
   handleIcon,
+  handleIconColor,
+  handleSystemSymbol,
+  liftedRowStyle,
   onCommit,
   renderItem,
 }: {
@@ -134,6 +142,9 @@ function Row<T>({
   scrollToY: ((y: number) => void) | undefined;
   activation: ReorderActivation;
   handleIcon: LucideIcon;
+  handleIconColor?: ComponentProps<typeof Icon>['color'];
+  handleSystemSymbol?: ComponentProps<typeof Icon>['systemSymbol'];
+  liftedRowStyle?: LiftedRowStyle;
   onCommit: () => void;
   renderItem: (item: T, handle: ReactNode) => ReactNode;
 }) {
@@ -212,20 +223,25 @@ function Row<T>({
   const style = useAnimatedStyle(
     () => ({
       position: 'absolute',
-      left: 0,
-      right: 0,
+      left: isActive.value ? liftedRowStyle?.left ?? 0 : 0,
+      right: isActive.value ? liftedRowStyle?.right ?? 0 : 0,
       top: top.value,
       height: rowHeight,
       zIndex: isActive.value ? 10 : 0,
       elevation: isActive.value ? 8 : 0,
+      backgroundColor: isActive.value ? liftedRowStyle?.backgroundColor : undefined,
+      shadowColor: liftedRowStyle ? '#000' : undefined,
+      shadowOpacity: isActive.value && liftedRowStyle ? 0.3 : 0,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
     }),
-    [rowHeight]
+    [rowHeight, liftedRowStyle]
   );
 
   const handle = (
     <GestureDetector gesture={pan}>
       <View style={HANDLE_STYLE} testID="ReorderableListHandle">
-        <Icon as={handleIcon} size={22} color="$color11" />
+        <Icon as={handleIcon} size={22} color={handleIconColor ?? "$color11"} systemSymbol={handleSystemSymbol} />
       </View>
     </GestureDetector>
   );
@@ -247,6 +263,9 @@ export function ReorderableList<T>({
   scrollToY,
   activation = 'long-press',
   handleIcon = GripVertical,
+  handleIconColor,
+  handleSystemSymbol,
+  liftedRowStyle,
 }: ReorderableListProps<T>) {
   const { height: windowHeight } = useWindowDimensions();
   const ownScrollOffset = useSharedValue(0);
@@ -292,6 +311,9 @@ export function ReorderableList<T>({
             scrollToY={scrollToY}
             activation={activation}
             handleIcon={handleIcon}
+            handleIconColor={handleIconColor}
+            handleSystemSymbol={handleSystemSymbol}
+            liftedRowStyle={liftedRowStyle}
             onCommit={commit}
             renderItem={renderItem}
           />

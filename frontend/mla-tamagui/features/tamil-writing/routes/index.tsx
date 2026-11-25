@@ -1,5 +1,5 @@
-import { TamilCourseScreen } from '../ui/TamilCourseScreen';
+import { TamilLibraryScreen } from '../ui/library/TamilLibraryScreen';
 
 export default function TamilCourseRoute() {
-  return <TamilCourseScreen />;
+  return <TamilLibraryScreen />;
 }

@@ -13,6 +13,7 @@ pub struct Entities {
     pub messages: Vec<Value>,
     pub turn_items: Vec<Value>,
     pub provider_turns: Vec<Value>,
+    pub runtime_requests: Vec<Value>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -61,6 +62,11 @@ fn run_wire(value: &Value) -> Value {
     for field in ["providerThreadId", "checkpointId", "contextHandoffId"] {
         fields.entry(field).or_insert(Value::Null);
     }
+    if value["status"] == "queued" {
+        if let Some(rank) = value["queueRank"].as_f64() {
+            fields.insert("queuePosition".into(), json!(rank as u64));
+        }
+    }
     run
 }
 
@@ -104,7 +110,12 @@ pub(crate) fn turn_item_wire(value: &Value) -> Value {
         }
         Some("command_execution") => {
             let input = &value["input"];
-            if !input.is_string() {
+            let detached_receipt = value["id"].as_str().and_then(|id| id.split_once(":tool:")).is_some_and(|(_, call)| call.starts_with(super::decider::DETACHED_TASK_CALL_PREFIX));
+            if detached_receipt {
+                // The mobile command card displays its input. The receipt has no command to show.
+                let summary = value["output"].as_str().filter(|summary| !summary.is_empty()).unwrap_or("Background task");
+                fields.insert("input".into(), json!(summary));
+            } else if !input.is_string() {
                 let command = input["command"].as_str().map(str::to_string)
                     .unwrap_or_else(|| if input.is_null() { String::new() } else { input.to_string() });
                 fields.insert("input".into(), json!(command));
@@ -146,6 +157,14 @@ fn merge(into: &mut Map<String, Value>, patch: &Value) {
         for (k, v) in patch {
             into.insert(k.clone(), v.clone());
         }
+    }
+}
+
+fn shell_field(key: &str, value: &Value) -> Value {
+    if key == "forkedFrom" && value.is_object() && value.get("type").is_none() {
+        Value::Null
+    } else {
+        value.clone()
     }
 }
 
@@ -205,7 +224,7 @@ impl State {
                     let mut shell = thread_defaults();
                     for (k, v) in e.payload.as_object().into_iter().flatten() {
                         if shell.contains_key(k) {
-                            shell.insert(k.clone(), v.clone());
+                            shell.insert(k.clone(), shell_field(k, v));
                         }
                     }
                     self.threads.insert(id.clone(), shell);
@@ -232,7 +251,10 @@ impl State {
                     }
                     for (k, v) in e.payload.as_object().into_iter().flatten() {
                         if k != "id" && shell.contains_key(k) {
-                            applied.shell_changed |= shell.insert(k.clone(), v.clone()).as_ref() != Some(v);
+                            let normalized = shell_field(k, v);
+                            let changed = shell.get(k) != Some(&normalized);
+                            shell.insert(k.clone(), normalized);
+                            applied.shell_changed |= changed;
                         }
                     }
                     if let Some(id) = &e.thread_id {
@@ -282,6 +304,19 @@ impl State {
             "provider-turn.updated" => {
                 if let Some(id) = &e.thread_id {
                     upsert(&mut self.entities.entry(id.clone()).or_default().provider_turns, &e.payload);
+                }
+            }
+            "runtime-request.updated" => {
+                if let Some(id) = &e.thread_id {
+                    let entities = self.entities.entry(id.clone()).or_default();
+                    upsert(&mut entities.runtime_requests, &e.payload);
+                    if let Some(shell) = self.threads.get_mut(id) {
+                        let pending = entities.runtime_requests.iter().find(|request| request["status"] == "pending");
+                        shell.insert("pendingRuntimeRequest".into(), pending.map_or(Value::Null, |r| {
+                            json!({"id": r["id"], "kind": r["kind"], "createdAt": r["createdAt"]})
+                        }));
+                        applied.shell_changed = true;
+                    }
                 }
             }
             "message.updated" => {
@@ -391,7 +426,7 @@ impl State {
             ("providerSessions", Value::Array(rows.provider_sessions)),
             ("providerThreads", Value::Array(rows.provider_threads)),
             ("providerTurns", json!(entities.provider_turns)),
-            ("runtimeRequests", none()),
+            ("runtimeRequests", json!(entities.runtime_requests)),
             ("messages", Value::Array(entities.messages.iter().map(message_wire).collect())),
             ("plans", none()),
             ("visibleTurnItems", Value::Array(projected_rows(id, &items))),

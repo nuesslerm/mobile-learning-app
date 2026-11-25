@@ -8,6 +8,7 @@ import { WebView } from 'react-native-webview';
 import { afterAll } from 'vitest';
 
 import { buildEditorHtml } from '../../editorHtml';
+import type { FromEditorMessage } from '../../../../../domain/ports';
 
 export const INIT = {
   type: 'init',
@@ -38,7 +39,7 @@ afterAll(async () => {
   }
 });
 
-export async function mountPage(options: { init: boolean; language?: string }) {
+export async function mountPage(options: { init: boolean; language?: string; contrastCanvas?: boolean; profileInput?: boolean }) {
   // the flow config aliases react-native-webview to the app's web twin, whose handle injects scripts into the iframe
   const ref = createRef<{ injectJavaScript(script: string): void }>();
   const host = createWebViewHostTransport(() => ref.current);
@@ -56,7 +57,16 @@ export async function mountPage(options: { init: boolean; language?: string }) {
   const errors: unknown[] = [];
   const crossed: string[] = [];
   const readyMessages: unknown[] = [];
-  const sendInit = () => ref.current?.injectJavaScript(deliverScript(JSON.stringify({ ...INIT, config: { ...INIT.config, language: options.language ?? INIT.config.language } })));
+  const inputTimings: Extract<FromEditorMessage, { type: 'inputTiming' }>[] = [];
+  const changes: Extract<FromEditorMessage, { type: 'contentChanged' }>[] = [];
+  const sendInit = () => ref.current?.injectJavaScript(deliverScript(JSON.stringify({
+    ...INIT,
+    config: {
+      ...INIT.config,
+      language: options.language ?? INIT.config.language,
+      ...(options.contrastCanvas ? { isDark: true, surface: 'canvas', syntaxPalette: 'contrast' } : {}),
+    },
+  })));
   let announced = false;
   const container = document.body.appendChild(document.createElement('div'));
   const root = createRoot(container);
@@ -66,7 +76,7 @@ export async function mountPage(options: { init: boolean; language?: string }) {
       <FlowProviders>
         <WebView
           ref={ref as never}
-          source={{ html: buildEditorHtml({ debug: true }) }}
+          source={{ html: buildEditorHtml({ debug: true, profileInput: options.profileInput }) }}
           onMessage={(event: { nativeEvent: { data: string } }) => {
             const raw = event.nativeEvent.data;
             const decoded = decode(raw);
@@ -83,10 +93,17 @@ export async function mountPage(options: { init: boolean; language?: string }) {
               if (type) crossed.push(type);
             }
             host.receive(raw);
-            if (decoded.type === 'foreign' && (JSON.parse(raw) as { type?: string }).type === 'ready') readyMessages.push(JSON.parse(raw));
-            if (decoded.type === 'foreign' && (JSON.parse(raw) as { type?: string }).type === 'ready' && !announced) {
-              announced = true;
-              if (options.init) sendInit();
+            if (decoded.type === 'foreign') {
+              const message = JSON.parse(raw) as FromEditorMessage;
+              if (message.type === 'contentChanged') changes.push(message);
+              if (message.type === 'inputTiming') inputTimings.push(message);
+              if (message.type === 'ready') {
+                readyMessages.push(message);
+                if (!announced) {
+                  announced = true;
+                  if (options.init) sendInit();
+                }
+              }
             }
           }}
         />
@@ -98,6 +115,6 @@ export async function mountPage(options: { init: boolean; language?: string }) {
   await waitFor(() => {
     if (!announced) throw new Error('the page has not announced itself');
   });
-  return { engine, rpc, sendInit, frame, crossed, errors, faults, readyMessages };
+  return { engine, rpc, sendInit, frame, crossed, errors, faults, readyMessages, changes, inputTimings };
 }
 

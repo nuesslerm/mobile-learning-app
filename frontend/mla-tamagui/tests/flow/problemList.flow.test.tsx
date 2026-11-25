@@ -23,7 +23,7 @@ import { app } from './app';
 
 describe('ProblemListScreen flow (blind75 catalog)', () => {
   it('given the blind75 catalog, when the list renders, then the catalog renders rows with problem titles', async () => {
-    await app.render('/');
+    await app.render('/blind75');
 
     await waitFor(() => {
       expect(screen.getByTestId('LeetcodeListScreen')).toBeTruthy();
@@ -39,7 +39,7 @@ describe('ProblemListScreen flow (blind75 catalog)', () => {
   });
 
   it('given the catalog, when the list renders, then the hero chip counts every problem in it', async () => {
-    await app.render('/');
+    await app.render('/blind75');
 
     await waitFor(() => {
       expect(screen.getByTestId('LeetcodeListHeroCountText').textContent).toBe(
@@ -50,7 +50,7 @@ describe('ProblemListScreen flow (blind75 catalog)', () => {
 
   it('given a problem row from the blind75 catalog, when tapped, then the app pushes the problem route with the problem id', async () => {
     const router = routerHarness();
-    await app.render('/');
+    await app.render('/blind75');
 
     await waitFor(() => {
       const items = screen.getAllByTestId('LeetcodeListItem');

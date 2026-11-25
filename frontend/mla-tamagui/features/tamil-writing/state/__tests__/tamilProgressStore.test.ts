@@ -55,6 +55,14 @@ describe('useTamilProgressStore', () => {
     expect(progress.attempts).toBe(3);
   });
 
+  it('Given a retried attempt, When it is recorded again, Then mastery changes once', () => {
+    const { recordAttempt } = useTamilProgressStore.getState();
+    recordAttempt('uyir-a', 'got-it', 'attempt-1');
+    recordAttempt('uyir-a', 'got-it', 'attempt-1');
+    expect(useTamilProgressStore.getState().characters['uyir-a']?.attempts).toBe(1);
+    expect(useTamilProgressStore.getState().masteryOf('uyir-a')).toBe(1);
+  });
+
   it('Given an empty character id, When an attempt is recorded, Then nothing is written', () => {
     useTamilProgressStore.getState().recordAttempt('', 'got-it');
 

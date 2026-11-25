@@ -1,0 +1,145 @@
+name: iOS simulator learner suites
+on:
+  workflow_call:
+    inputs:
+      update_branch:
+        type: string
+        default: e2e-ios
+      sample:
+        type: number
+        default: 1
+      plan:
+        type: string
+        required: true
+      fresh:
+        type: boolean
+        required: true
+    secrets:
+      BWS_CI_DEPLOY_ACCESS_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    name: iOS simulator sample ${{ inputs.sample }}
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+      WF_NATIVE_RUNTIME: xcode-27-iphone17-ios27.0-expo58.0.7
+      WF_IOS_XCTEST_DRIVER: '1'
+      WF_NATIVE_SAMPLE: ${{ inputs.sample }}
+      WF_E2E_SHA: ${{ github.sha }}
+      WF_EAS_UPDATE_BRANCH: ${{ inputs.update_branch }}
+      WF_EAS_UPDATE_RESULT: success
+      WF_TEST_PUBLISH: '1'
+      E2E_LEETCODE_BEARER: e2e-loopback-bearer
+      WF_SITE: ci
+      NX_DAEMON: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.22.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build Darwin wf
+        run: |
+          cargo build --locked --manifest-path clis/Cargo.toml --profile deploy -p wf
+          echo "$PWD/clis/target/deploy" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ios-pointer
+          path: ${{ runner.temp }}/ios-pointer
+      - name: Read the platform plan and update
+        env:
+          PLAN: ${{ inputs.plan }}
+        run: |
+          printf '%s\n' "$PLAN" > "$RUNNER_TEMP/plan.json"
+          echo "WF_EAS_POINTER_DIR=$RUNNER_TEMP/ios-pointer" >> "$GITHUB_ENV"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .nx/cache
+          key: native-ios-nx-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: native-ios-nx-${{ runner.arch }}-
+      - name: Check for cached journeys
+        id: pick
+        env:
+          FRESH: ${{ inputs.fresh }}
+        run: |
+          flags=()
+          if [[ "$FRESH" == true ]]; then flags+=(--fresh); fi
+          wf test run --stage ios-e2e-tests --plan "$RUNNER_TEMP/plan.json" --probe "${flags[@]}" > "$RUNNER_TEMP/probe.json"
+          echo "run=$(jq -er '.ran | length' "$RUNNER_TEMP/probe.json")" >> "$GITHUB_OUTPUT"
+      - name: Install simulator harness
+        if: steps.pick.outputs.run != '0'
+        run: |
+          brew tap facebook/fb
+          brew trust --formula facebook/fb/idb-companion
+          brew install facebook/fb/idb-companion ffmpeg python@3.11
+          "$(brew --prefix python@3.11)/bin/python3.11" -m venv "$RUNNER_TEMP/idb"
+          "$RUNNER_TEMP/idb/bin/pip" install fb-idb==1.1.7
+          echo "$RUNNER_TEMP/idb/bin" >> "$GITHUB_PATH"
+      - name: Build the native keyboard input harness
+        if: steps.pick.outputs.run != '0'
+        run: |
+          runner=$(wf test prepare-ios --build-input | jq -er .xctestrun)
+          echo "WF_IOS_INPUT_RUNNER=$runner" >> "$GITHUB_ENV"
+      - name: Start the LeetCode backend
+        if: steps.pick.outputs.run != '0'
+        run: wf test backends up --only leetcode-backend --leetcode-port 8789 --wait 240
+      - name: Install vault client for publishing evidence
+        run: |
+          release=bws-v2.1.0
+          curl -fsSL "https://github.com/bitwarden/sdk-sm/releases/download/$release/bws-aarch64-apple-darwin-2.1.0.zip" -o "$RUNNER_TEMP/bws.zip"
+          unzip -o "$RUNNER_TEMP/bws.zip" -d "$RUNNER_TEMP/bws"
+          echo "$RUNNER_TEMP/bws" >> "$GITHUB_PATH"
+      - name: Boot the pinned simulator
+        if: steps.pick.outputs.run != '0'
+        run: |
+          wf test prepare-ios | tee "$RUNNER_TEMP/ios-device.json"
+          echo "WF_IOS_UDID=$(jq -er .udid "$RUNNER_TEMP/ios-device.json")" >> "$GITHUB_ENV"
+          echo "WF_NATIVE_DEVICE_INFO=$(jq -c . "$RUNNER_TEMP/ios-device.json")" >> "$GITHUB_ENV"
+          jq . "$RUNNER_TEMP/ios-device.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open the update on the ready simulator
+        if: steps.pick.outputs.run != '0'
+        run: |
+          manifest="$WF_EAS_POINTER_DIR/latest-$WF_EAS_UPDATE_BRANCH.json"
+          url=$(jq -er '.served.url | sub("^https://"; "exp://")' "$manifest")
+          wf ios test e2e/support/native-ready.lua --device "$WF_IOS_UDID" --env "base=$url/--" --test-output-dir "$RUNNER_TEMP/ios-preflight"
+      - name: Bundle startup diagnostics
+        if: ${{ !cancelled() && steps.pick.outputs.run != '0' }}
+        run: |
+          if [[ -f "$RUNNER_TEMP/ios-preflight/report.json" ]]; then
+            wf test publish "$RUNNER_TEMP/ios-preflight"
+          fi
+      - name: Run learner journeys
+        env:
+          FRESH: ${{ inputs.fresh }}
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+        run: |
+          flags=()
+          if [[ "$FRESH" == true ]]; then flags+=(--fresh); fi
+          wf test run --stage ios-e2e-tests --plan "$RUNNER_TEMP/plan.json" --out "$RUNNER_TEMP/e2e-runs" "${flags[@]}"
+      - name: Close XCTest automation
+        if: always() && env.WF_IOS_UDID != ''
+        run: wf test prepare-ios --stop-automation "$WF_IOS_UDID"
+      - name: Upload simulator evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-ios-e2e-sample-${{ inputs.sample }}
+          path: |
+            ${{ runner.temp }}/wf-xcui-*.log
+            ${{ runner.temp }}/ios-device.json
+            ${{ runner.temp }}/ios-preflight
+            ${{ runner.temp }}/test-runs
+            ${{ runner.temp }}/e2e-runs/**/summary.json
+            ${{ runner.temp }}/e2e-runs/**/run.log
+            ${{ runner.temp }}/e2e-runs/**/rec/wait-timeout-*.hierarchy.json
+          retention-days: 10

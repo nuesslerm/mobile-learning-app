@@ -55,6 +55,7 @@ export const problemSchema = z.object({
   paramTypes: z.record(z.string(), nodeTypeSchema),
   returnType: nodeTypeSchema.nullable(),
   testCases: z.array(testCaseSchema).nullable(),
+  sampleCaseCount: z.number().int().positive().optional(),
   hints: z.array(z.string()),
   topics: z.array(z.string()),
   diagram: z.string().optional(),

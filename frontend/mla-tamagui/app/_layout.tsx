@@ -6,7 +6,7 @@ import '../lib/logger';
 // Second, so a throw while the imports below evaluate is still logged as app.crash.
 import '../app-shell/crashHandlerBoot';
 
-import { AgentationProvider } from '@lib/rn-agentation';
+import { appConfig } from '@lib/app-config';
 import {
   resolveActiveThemeName,
   useHeaderHeightStore,
@@ -14,33 +14,22 @@ import {
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
-import { Stack, ThemeProvider } from 'expo-router';
+import { Stack, ThemeProvider, useGlobalSearchParams, usePathname, useRootNavigationState, useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { Platform, useColorScheme } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
-import { DeviceRunnerRoot } from '@/features/leetcode';
+import { DeviceRunnerRoot, editorPageSource, PreparedEditorPages } from '@/features/leetcode';
 
-import { AgentationMarkerLog } from '../app-shell/AgentationMarkerLog';
 import {
   NativeChromeBridge,
   useNavigationTheme,
 } from '../app-shell/NativeChromeBridge';
+import { NavigationTouchBoundary } from '../app-shell/NavigationTouchBoundary';
 import { RouteLogger } from '../app-shell/RouteLogger';
-
-// Module scope keeps the options object identity stable across renders. The
-// web driver resolves nodes from the document, so no inspectedRef is needed
-// here (the old app passed one because it drove native node handles).
-const AGENTATION_OPTIONS = {
-  documentTreeDriverOptions: {
-    // The debug sheet sits above app content in the DOM, so excluding it keeps
-    // findDeepestAtPoint resolving to the element underneath.
-    ignoredSelectors: ['#rn-agentation-debug-sheet'],
-  },
-};
 
 // A require, not an import: production inlines the flag and Platform.OS, so a flagless or native build (the CI's EAS
 // Update bakes the flag in for its seed) folds this branch away and the lab's web-only Alert never reaches the bundle.
@@ -75,6 +64,27 @@ const BuoyRouterStore = FloatingDevTools
   : null;
 const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
 
+function BuoyDevTools() {
+  const { visualCapture } = useGlobalSearchParams<{ visualCapture?: string }>();
+  return FloatingDevTools
+    ? <FloatingDevTools hidden={visualCapture === '1'} zustandStores={buoyStores} />
+    : null;
+}
+
+// On a bare Expo Go update link SDK 58 resolves an empty path and skips +native-intent.
+function NativePreviewLaunch({ route }: { route: NonNullable<typeof appConfig.initialRoute> }) {
+  const pathname = usePathname();
+  const navigation = useRootNavigationState();
+  const router = useRouter();
+  const handled = useRef(false);
+  useEffect(() => {
+    if (!navigation?.key || handled.current) return;
+    handled.current = true;
+    if (pathname === '/') router.replace(route);
+  }, [navigation?.key, pathname, route, router]);
+  return null;
+}
+
 function HeaderClearToaster() {
   const headerHeight = useHeaderHeightStore((state) => state.height);
   return (
@@ -99,7 +109,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationTouchBoundary>
         {/* defaultTheme is required, not cosmetic: without it Tamagui throws
             "Can't find Tamagui configuration" when a theme resolves late. */}
         <TamaguiProvider config={tamaguiConfig} defaultTheme={themeName}>
@@ -109,6 +119,7 @@ export default function RootLayout() {
                 is the only way into the problem description. Only the drawer
                 group hides its header, because its screens carry their own. */}
             <DeviceRunnerRoot>
+            <PreparedEditorPages getSource={editorPageSource}>
             <ThemeProvider value={navigationTheme}>
             <Stack>
               {/* `title` even though the header is hidden: a child route's
@@ -118,6 +129,10 @@ export default function RootLayout() {
               <Stack.Screen
                 name="(app)"
                 options={{ headerShown: false, title: 'Blind 75' }}
+              />
+              <Stack.Screen
+                name="settings"
+                options={{ headerShown: false, presentation: 'modal' }}
               />
               {/* The leetcode group is a Stack of its own and its screens draw their
                   headers there; left on, this Stack paints a second bar captioned
@@ -135,16 +150,12 @@ export default function RootLayout() {
               />
             </Stack>
             </ThemeProvider>
+            </PreparedEditorPages>
             </DeviceRunnerRoot>
             <NativeChromeBridge />
             <RouteLogger />
-            {/* AgentationMarkerLog calls useAgentation, which throws
-                  outright when no provider is above it -- and a throw here
-                  takes the whole tree down, so every route renders blank
-                  rather than just losing the marker log. */}
-            <AgentationProvider options={AGENTATION_OPTIONS}>
-              <AgentationMarkerLog />
-            </AgentationProvider>
+            {Platform.OS !== 'web' && appConfig.initialRoute && appConfig.initialRoute !== '/' &&
+              <NativePreviewLaunch route={appConfig.initialRoute} />}
             {/* Defaults, deliberately -- including `fullWindowOverlay`, which
                 sonner sets true and which renders the toasts into a separate
                 iOS UIWindow above every presented view controller. That is the
@@ -156,10 +167,10 @@ export default function RootLayout() {
                   list -- not the stacked pile sonner is known for. Opt in. */}
             <HeaderClearToaster />
             {BuoyRouterStore && <BuoyRouterStore />}
-            {FloatingDevTools && <FloatingDevTools zustandStores={buoyStores} />}
+            {FloatingDevTools && <BuoyDevTools />}
           </Theme>
         </TamaguiProvider>
-      </GestureHandlerRootView>
+      </NavigationTouchBoundary>
     </SafeAreaProvider>
   );
 }

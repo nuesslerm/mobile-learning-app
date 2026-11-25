@@ -10,7 +10,7 @@ export type Selection = { readonly ranges: readonly SelRange[]; readonly main: n
 
 export const LANGUAGE_NAMES = ['python', 'javascript', 'cpp'] as const; // the languages the API can name: an engine offers some of them
 export type Language = (typeof LANGUAGE_NAMES)[number];
-export type Palette = { readonly dark: boolean; readonly cursor: string; readonly selection: string; readonly background: string; readonly gutter: string; readonly border: string };
+export type Palette = { readonly dark: boolean; readonly cursor: string; readonly selection: string; readonly background: string; readonly gutter: string; readonly border: string; readonly syntax?: 'default' | 'contrast' };
 export type CompletionEntry = { readonly label: string; readonly type?: string; readonly detail?: string; readonly boost?: number }; // a name the editor may offer: a word of a problem's signature
 export type CompletionConfig = { readonly enabled: boolean; readonly entries: readonly CompletionEntry[] };
 export type EditorConfig = { readonly language: Language; readonly wrap: boolean; readonly whitespace: boolean; readonly tabSize: number; readonly fontSize: number; readonly lineHeight: number; readonly palette: Palette; readonly completion?: CompletionConfig };

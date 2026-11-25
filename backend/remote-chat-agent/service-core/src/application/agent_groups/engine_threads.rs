@@ -249,7 +249,7 @@ mod tests {
     }
 
     fn say(threads: &EngineThreads, thread: &str, turn: &str, text: &str) -> u64 {
-        threads.record(thread, Some(turn), ThreadEvent::MessageDelta { role: Role::Assistant, text: text.into() }).unwrap()
+        threads.record(thread, Some(turn), ThreadEvent::message_delta(Role::Assistant, text.into())).unwrap()
     }
 
     #[tokio::test]

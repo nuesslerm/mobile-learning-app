@@ -1,5 +1,1 @@
-import { ThreadListScreen } from '../ui/ThreadListScreen';
-
-export default function CodingAgentThreadListRoute() {
-  return <ThreadListScreen />;
-}
+export { CodingAgentHome as default } from '../ui/MobileWorkspacesScreen';

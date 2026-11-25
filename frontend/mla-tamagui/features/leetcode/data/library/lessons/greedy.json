@@ -1,0 +1,700 @@
+{
+ "maximum-subarray": {
+  "url": "https://neetcode.io/problems/maximum-subarray?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=5WZl3MMT0Eg",
+  "prerequisites": [
+   {
+    "title": "Kadane's Algorithm Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/0"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSubArray(self, nums: List[int]) -> int:\n        n, res = len(nums), nums[0]\n        for i in range(n):\n            cur = 0\n            for j in range(i, n):\n                cur += nums[j]\n                res = max(res, cur)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSubArray(self, nums: List[int]) -> int:\n        def dfs(i, flag):\n            if i == len(nums):\n                return 0 if flag else -1e6\n            if flag:\n                return max(0, nums[i] + dfs(i + 1, True))\n            return max(dfs(i + 1, False), nums[i] + dfs(i + 1, True))\n        return dfs(0, False)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSubArray(self, nums: List[int]) -> int:\n        memo = [[None] * 2 for _ in range(len(nums) + 1)]\n\n        def dfs(i, flag):\n            if i == len(nums):\n                return 0 if flag else -1e6\n            if memo[i][flag] is not None:\n                return memo[i][flag]\n            if flag:\n                memo[i][flag] = max(0, nums[i] + dfs(i + 1, True))\n            else:\n                memo[i][flag] = max(dfs(i + 1, False),\n                                    nums[i] + dfs(i + 1, True))\n            return memo[i][flag]\n\n        return dfs(0, False)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSubArray(self, nums: List[int]) -> int:\n        n = len(nums)\n        dp = [[0] * 2 for _ in range(n)]\n        dp[n - 1][1] = dp[n - 1][0] = nums[n - 1]\n        for i in range(n - 2, -1, -1):\n            dp[i][1] = max(nums[i], nums[i] + dp[i + 1][1])\n            dp[i][0] = max(dp[i + 1][0], dp[i][1])\n\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSubArray(self, nums):\n        dp = [*nums]\n        for i in range(1, len(nums)):\n            dp[i] = max(nums[i], nums[i] + dp[i - 1])\n        return max(dp)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "6. Kadane's Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSubArray(self, nums: List[int]) -> int:\n        maxSub, curSum = nums[0], 0\n        for num in nums:\n            if curSum < 0:\n                curSum = 0\n            curSum += num\n            maxSub = max(maxSub, curSum)\n        return maxSub"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "7. Divide & Conquer"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSubArray(self, nums: List[int]) -> int:\n        def dfs(l, r):\n            if l > r:\n                return float(\"-inf\")\n\n            m = (l + r) >> 1\n            leftSum = rightSum = curSum = 0\n            for i in range(m - 1, l - 1, -1):\n                curSum += nums[i]\n                leftSum = max(leftSum, curSum)\n\n            curSum = 0\n            for i in range(m + 1, r + 1):\n                curSum += nums[i]\n                rightSum = max(rightSum, curSum)\n\n            return (max(dfs(l, m - 1),\n                        dfs(m + 1, r),\n                        leftSum + nums[m] + rightSum))\n\n        return dfs(0, len(nums) - 1)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(log n)"
+   }
+  ]
+ },
+ "jump-game": {
+  "url": "https://neetcode.io/problems/jump-game?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=Yan0cv2cLy8",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canJump(self, nums: List[int]) -> bool:\n        def dfs(i):\n            if i == len(nums) - 1:\n                return True\n            end = min(len(nums) - 1, i + nums[i])\n            for j in range(i + 1, end + 1):\n                if dfs(j):\n                    return True\n            return False\n\n        return dfs(0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n!)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canJump(self, nums: List[int]) -> bool:\n        memo = {}\n\n        def dfs(i):\n            if i in memo:\n                return memo[i]\n            if i == len(nums) - 1:\n                return True\n            if nums[i] == 0:\n                return False\n\n            end = min(len(nums), i + nums[i] + 1)\n            for j in range(i + 1, end):\n                if dfs(j):\n                    memo[i] = True\n                    return True\n            memo[i] = False\n            return False\n\n        return dfs(0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canJump(self, nums: List[int]) -> bool:\n        n = len(nums)\n        dp = [False] * n\n        dp[-1] = True\n\n        for i in range(n - 2, -1, -1):\n            end = min(n, i + nums[i] + 1)\n            for j in range(i + 1, end):\n                if dp[j]:\n                    dp[i] = True\n                    break\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canJump(self, nums: List[int]) -> bool:\n        goal = len(nums) - 1\n\n        for i in range(len(nums) - 2, -1, -1):\n            if i + nums[i] >= goal:\n                goal = i\n        return goal == 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "jump-game-ii": {
+  "url": "https://neetcode.io/problems/jump-game-ii?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=dJ7sWiOoK7g",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def jump(self, nums: List[int]) -> int:\n        def dfs(i):\n            if i == len(nums) - 1:\n                return 0\n            if nums[i] == 0:\n                return float('inf')\n\n            end = min(len(nums) - 1, i + nums[i])\n            res = float('inf')\n            for j in range(i + 1, end + 1):\n                res = min(res, 1 + dfs(j))\n            return res\n\n        return dfs(0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n!)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def jump(self, nums: List[int]) -> int:\n        memo = {}\n\n        def dfs(i):\n            if i in memo:\n                return memo[i]\n            if i == len(nums) - 1:\n                return 0\n            if nums[i] == 0:\n                return 1000000\n\n            res = 1000000\n            end = min(len(nums), i + nums[i] + 1)\n            for j in range(i + 1, end):\n                res = min(res, 1 + dfs(j))\n            memo[i] = res\n            return res\n\n        return dfs(0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def jump(self, nums: List[int]) -> int:\n        n = len(nums)\n        dp = [1000000] * n\n        dp[-1] = 0\n\n        for i in range(n - 2, -1, -1):\n            end = min(n, i + nums[i] + 1)\n            for j in range(i + 1, end):\n                dp[i] = min(dp[i], 1 + dp[j])\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Breadth First Search (Greedy)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def jump(self, nums: List[int]) -> int:\n        res = 0\n        l = r = 0\n\n        while r < len(nums) - 1:\n            farthest = 0\n            for i in range(l, r + 1):\n                farthest = max(farthest, i + nums[i])\n            l = r + 1\n            r = farthest\n            res += 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "gas-station": {
+  "url": "https://neetcode.io/problems/gas-station?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=lJwbPZGo05A",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canCompleteCircuit(self, gas: List[int], cost: List[int]) -> int:\n        n = len(gas)\n\n        for i in range(n):\n            tank = gas[i] - cost[i]\n            if tank < 0:\n                continue\n\n            j = (i + 1) % n\n            while j != i:\n                tank += gas[j]\n                tank -= cost[j]\n                if tank < 0:\n                    break\n                j += 1\n                j %= n\n\n            if j == i:\n                return i\n        return -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Two Pointers"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canCompleteCircuit(self, gas: List[int], cost: List[int]) -> int:\n        n = len(gas)\n        start, end = n - 1, 0\n        tank = gas[start] - cost[start]\n        while start > end:\n            if tank < 0:\n                start -= 1\n                tank += gas[start] - cost[start]\n            else:\n                tank += gas[end] - cost[end]\n                end += 1\n        return start if tank >= 0 else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canCompleteCircuit(self, gas: List[int], cost: List[int]) -> int:\n        if sum(gas) < sum(cost):\n            return -1\n\n        total = 0\n        res = 0\n        for i in range(len(gas)):\n            total += (gas[i] - cost[i])\n\n            if total < 0:\n                total = 0\n                res = i + 1\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "hand-of-straights": {
+  "url": "https://neetcode.io/problems/hand-of-straights?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=amnrMCVd2YI",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   },
+   {
+    "title": "Heapify Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/25"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isNStraightHand(self, hand, groupSize):\n        if len(hand) % groupSize:\n            return False\n\n        count = Counter(hand)\n        hand.sort()\n        for num in hand:\n            if count[num]:\n                for i in range(num, num + groupSize):\n                    if not count[i]:\n                        return False\n                    count[i] -= 1\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isNStraightHand(self, hand: List[int], groupSize: int) -> bool:\n        if len(hand) % groupSize:\n            return False\n\n        count = {}\n        for n in hand:\n            count[n] = 1 + count.get(n, 0)\n\n        minH = list(count.keys())\n        heapq.heapify(minH)\n        while minH:\n            first = minH[0]\n            for i in range(first, first + groupSize):\n                if i not in count:\n                    return False\n                count[i] -= 1\n                if count[i] == 0:\n                    if i != minH[0]:\n                        return False\n                    heapq.heappop(minH)\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Ordered Map"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isNStraightHand(self, hand, groupSize):\n        if len(hand) % groupSize != 0:\n            return False\n\n        count = Counter(hand)\n        q = deque()\n        last_num, open_groups = -1, 0\n\n        for num in sorted(count):\n            if ((open_groups > 0 and num > last_num + 1) or\n                open_groups > count[num]\n            ):\n                return False\n\n            q.append(count[num] - open_groups)\n            last_num = num\n            open_groups = count[num]\n\n            if len(q) == groupSize:\n                open_groups -= q.popleft()\n\n        return open_groups == 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Hash Map"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isNStraightHand(self, hand: List[int], groupSize: int) -> bool:\n        if len(hand) % groupSize != 0:\n            return False\n\n        count = Counter(hand)\n        for num in hand:\n            start = num\n            while count[start - 1]:\n                start -= 1\n            while start <= num:\n                while count[start]:\n                    for i in range(start, start + groupSize):\n                        if not count[i]:\n                            return False\n                        count[i] -= 1\n                start += 1\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "merge-triplets-to-form-target-triplet": {
+  "url": "https://neetcode.io/problems/merge-triplets-to-form-target?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=kShkQLQZ9K4",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def mergeTriplets(self, triplets: List[List[int]], target: List[int]) -> bool:\n        good = set()\n\n        for t in triplets:\n            if t[0] > target[0] or t[1] > target[1] or t[2] > target[2]:\n                continue\n            for i, v in enumerate(t):\n                if v == target[i]:\n                    good.add(i)\n        return len(good) == 3"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Greedy (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def mergeTriplets(self, triplets: List[List[int]], target: List[int]) -> bool:\n        x = y = z = False\n        for t in triplets:\n            x |= (t[0] == target[0] and t[1] <= target[1] and t[2] <= target[2])\n            y |= (t[0] <= target[0] and t[1] == target[1] and t[2] <= target[2])\n            z |= (t[0] <= target[0] and t[1] <= target[1] and t[2] == target[2])\n            if x and y and z:\n                return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "partition-labels": {
+  "url": "https://neetcode.io/problems/partition-labels?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=B7m8UmZE-vw",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Two Pointers (Greedy)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def partitionLabels(self, s: str) -> List[int]:\n        lastIndex = {}\n        for i, c in enumerate(s):\n            lastIndex[c] = i\n\n        res = []\n        size = end = 0\n        for i, c in enumerate(s):\n            size += 1\n            end = max(end, lastIndex[c])\n\n            if i == end:\n                res.append(size)\n                size = 0\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string s and m is the number of unique characters in the string s."
+   }
+  ]
+ },
+ "valid-parenthesis-string": {
+  "url": "https://neetcode.io/problems/valid-parenthesis-string?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=QhPdNS143Qg",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkValidString(self, s: str) -> bool:\n\n        def dfs(i, open):\n            if open < 0:\n                return False\n            if i == len(s):\n                return open == 0\n\n            if s[i] == '(':\n                return dfs(i + 1, open + 1)\n            elif s[i] == ')':\n                return dfs(i + 1, open - 1)\n            else:\n                return (dfs(i + 1, open) or\n                        dfs(i + 1, open + 1) or\n                        dfs(i + 1, open - 1))\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(3 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkValidString(self, s: str) -> bool:\n        n = len(s)\n        memo = [[None] * (n + 1) for _ in range(n + 1)]\n\n        def dfs(i, open):\n            if open < 0:\n                return False\n            if i == n:\n                return open == 0\n            if memo[i][open] is not None:\n                return memo[i][open]\n\n            if s[i] == '(':\n                result = dfs(i + 1, open + 1)\n            elif s[i] == ')':\n                result = dfs(i + 1, open - 1)\n            else:\n                result = (dfs(i + 1, open) or\n                          dfs(i + 1, open + 1) or\n                          dfs(i + 1, open - 1))\n\n            memo[i][open] = result\n            return result\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkValidString(self, s: str) -> bool:\n        n = len(s)\n        dp = [[False] * (n + 1) for _ in range(n + 1)]\n        dp[n][0] = True\n\n        for i in range(n - 1, -1, -1):\n            for open in range(n):\n                res = False\n                if s[i] == '*':\n                    res |= dp[i + 1][open + 1]\n                    if open > 0:\n                        res |= dp[i + 1][open - 1]\n                    res |= dp[i + 1][open]\n                else:\n                    if s[i] == '(':\n                        res |= dp[i + 1][open + 1]\n                    elif open > 0:\n                        res |= dp[i + 1][open - 1]\n                dp[i][open] = res\n\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkValidString(self, s: str) -> bool:\n        n = len(s)\n        dp = [False] * (n + 1)\n        dp[0] = True\n\n        for i in range(n - 1, -1, -1):\n            new_dp = [False] * (n + 1)\n            for open in range(n):\n                if s[i] == '*':\n                    new_dp[open] = (dp[open + 1] or\n                                    (open > 0 and dp[open - 1]) or\n                                    dp[open])\n                elif s[i] == '(':\n                    new_dp[open] = dp[open + 1]\n                elif open > 0:\n                    new_dp[open] = dp[open - 1]\n            dp = new_dp\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "5. Stack"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkValidString(self, s: str) -> bool:\n        left = []\n        star = []\n        for i, ch in enumerate(s):\n            if ch == '(':\n                left.append(i)\n            elif ch == '*':\n                star.append(i)\n            else:\n                if not left and not star:\n                    return False\n                if left:\n                    left.pop()\n                else:\n                    star.pop()\n\n        while left and star:\n            if left.pop() > star.pop():\n                return False\n        return not left"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "6. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkValidString(self, s: str) -> bool:\n        leftMin, leftMax = 0, 0\n\n        for c in s:\n            if c == \"(\":\n                leftMin, leftMax = leftMin + 1, leftMax + 1\n            elif c == \")\":\n                leftMin, leftMax = leftMin - 1, leftMax - 1\n            else:\n                leftMin, leftMax = leftMin - 1, leftMax + 1\n            if leftMax < 0:\n                return False\n            if leftMin < 0:\n                leftMin = 0\n        return leftMin == 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ }
+}

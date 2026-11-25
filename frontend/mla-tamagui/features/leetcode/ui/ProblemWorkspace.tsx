@@ -6,7 +6,7 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 import React from 'react';
-import { PanResponder, ScrollView } from 'react-native';
+import { PanResponder, Platform, ScrollView } from 'react-native';
 
 import { PlanTab, type PlanEditor } from '../plan';
 import { useBlockViewSettingStore } from '../state/blockViewSettingStore';
@@ -18,6 +18,8 @@ const SWIPE_ACTIVATE_DX = 20;
 const SWIPE_THRESHOLD_PX = 60;
 
 // What the plan tab holds until the editor beside it has handed over its own: realising is held back, so these are never called.
+const nativePanel = Platform.OS === 'web' ? {} : { role: undefined, tabIndex: undefined, accessible: false };
+
 const NO_EDITOR: PlanEditor = {
   language: 'python',
   basis: async () => null,
@@ -34,7 +36,7 @@ export function ProblemWorkspace({ id, seed, lang }: { id?: string; seed?: strin
     <TabbedWorkspace id={id} seed={seed} lang={lang} plan={aiEdit} blocks={blockView} />
   ) : (
     <View flex={1} bg="$background">
-      <ProblemEditorScreen id={id} seed={seed} lang={lang} />
+      <ProblemEditorScreen id={id} seed={seed} lang={lang} underlapNativeHeader />
     </View>
   );
 }
@@ -103,15 +105,19 @@ function TabbedWorkspace({ id, seed, lang, plan, blocks }: { id?: string; seed?:
             </TabsTrigger>
           ) : null}
         </TabsList>
-        <TabsContent
+        <TabsContent {...nativePanel}
           value="code"
           forceMount
-          display={tab === 'code' ? 'flex' : 'none'}
+          display={tab === 'code' || Platform.OS !== 'web' ? 'flex' : 'none'}
+          {...(Platform.OS !== 'web' && tab !== 'code' ? {
+            position: 'absolute', width: '100%', height: '100%', opacity: 0, pointerEvents: 'none',
+            accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants',
+          } as const : {})}
         >
           <ProblemEditorScreen id={id} seed={seed} lang={lang} onWorkspaceApi={setApi} active={tab === 'code'} onConsoleOpenChange={handleConsoleOpenChange} onBlocksSource={setBlocksSource} />
         </TabsContent>
         {plan ? (
-        <TabsContent
+        <TabsContent {...nativePanel}
           value="plan"
           forceMount
           display={tab === 'plan' ? 'flex' : 'none'}
@@ -123,7 +129,7 @@ function TabbedWorkspace({ id, seed, lang, plan, blocks }: { id?: string; seed?:
         </TabsContent>
         ) : null}
         {blocks ? (
-          <TabsContent value="blocks" display={tab === 'blocks' ? 'flex' : 'none'}>
+          <TabsContent {...nativePanel} value="blocks" display={tab === 'blocks' ? 'flex' : 'none'}>
             {tab === 'blocks' && blocksSource ? (
               <ScrollView testID="ProblemWorkspaceBlocks">
                 <BlockView {...blocksSource} />

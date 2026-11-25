@@ -6,6 +6,8 @@ import type {
 } from 'expo-router';
 import type { ReactElement } from 'react';
 
+import type { GlassMenuGroupRenderer } from './glass-menu-group';
+
 import {
   isActionNode,
   type HeaderMenuSpec,
@@ -16,6 +18,7 @@ import {
   headerGroups,
   isMenuSpec,
   type HeaderActionSpec,
+  type HeaderStatusSpec,
   type ScreenHeaderSpec,
 } from './header-spec';
 
@@ -25,6 +28,8 @@ export const GROUP_SPACING = 8;
 export type NativeHeaderFactories = {
   /** The spinner on its own piece of glass; a bar item is sized by its element, so the size is passed in. */
   busy: (size: number) => ReactElement;
+  status?: (status: HeaderStatusSpec) => ReactElement;
+  menuGroup?: GlassMenuGroupRenderer;
 };
 
 export type NativeHeaderItems = {
@@ -137,9 +142,12 @@ function toButton(
  */
 export function buildNativeHeaderItems(
   spec: ScreenHeaderSpec,
-  factories: NativeHeaderFactories
+  factories: NativeHeaderFactories,
+  scheme: 'light' | 'dark' = 'light'
 ): NativeHeaderItems {
   const left: NativeStackHeaderItem[] = [];
+  const hideBackground = spec.hideNativeControlBackgrounds === true;
+  const background = hideBackground ? { hidesSharedBackground: true } : {};
   if (spec.onBack) {
     const label = spec.backAccessibilityLabel ?? 'Go back';
     left.push({
@@ -148,24 +156,35 @@ export function buildNativeHeaderItems(
       icon: symbol(BACK_SYMBOL),
       accessibilityLabel: label,
       sharesBackground: false,
+      ...background,
       onPress: spec.onBack,
     });
   }
 
+  if (spec.leadingStatus && factories.status) {
+    left.push({ type: 'custom', element: factories.status(spec.leadingStatus), hidesSharedBackground: true });
+  }
   const right: NativeStackHeaderItem[] = [];
   const separate = () => {
     if (right.length > 0)
       right.push({ type: 'spacing', spacing: GROUP_SPACING });
   };
   if (spec.busy)
-    right.push({ type: 'custom', element: factories.busy(BUSY_ITEM_SIZE) });
+    right.push({ type: 'custom', element: factories.busy(BUSY_ITEM_SIZE), ...background });
   for (const group of headerGroups(spec)) {
     separate();
     const shared = group.length > 1;
-    for (const member of group)
-      right.push(
-        isMenuSpec(member) ? toMenu(member, shared) : toButton(member, shared)
-      );
+    const capsule = spec.nativeGlassMenuGroups && shared && group.every(isMenuSpec)
+      ? factories.menuGroup?.(group, scheme, hideBackground)
+      : undefined;
+    if (capsule) {
+      right.push({ type: 'custom', element: capsule, hidesSharedBackground: true });
+      continue;
+    }
+    for (const member of group) {
+      const item = isMenuSpec(member) ? toMenu(member, shared) : toButton(member, shared);
+      right.push({ ...item, ...background });
+    }
   }
   return { left, right };
 }

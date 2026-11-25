@@ -1,0 +1,98 @@
+{
+  "schema": "rca-mobile-parity/1",
+  "apps": {
+    "t3": "com.t3tools.t3code",
+    "orca": "com.stably.orca.mobile"
+  },
+  "providers": ["claude", "codex", "opencode"],
+  "cases": [
+    {
+      "id": "fresh-chat-launch",
+      "priority": 0,
+      "given": "The paired T3 app can reopen an existing chat and its workspace list contains a saved fork from an earlier adapter.",
+      "when": ["Submit a new chat from the current checkout with a unique reply marker.", "Reconnect the adapter with pending work in the app outbox.", "Start another native chat from a new worktree based on origin/dev."],
+      "then": ["The workspace list decodes and finishes synchronization without reading the event store on resume.", "The pending request launches once and the new worktree request launches once.", "The simple reply in each chat contains its marker and the fork retains its parent."],
+      "fixture": "legacy fork record, a shell replay cursor and unique reply markers"
+    },
+    {
+      "id": "reconnect",
+      "priority": 0,
+      "given": "A paired app shows a test thread with an active scripted turn, a pending approval and two queued prompts.",
+      "when": ["Background and reopen the app.", "Repeat with the adapter connection interrupted and restored while the RCA host stays up.", "Resolve the approval and release the turn."],
+      "then": ["The same thread and approval reappear.", "The original turn completes once and each queued prompt starts once in order.", "Message IDs and tool output match before and after reconnect."],
+      "fixture": "scripted turn with a release gate and unique run markers"
+    },
+    {
+      "id": "queue-lifecycle",
+      "priority": 0,
+      "given": "A scripted turn can wait independently at provider startup and after its worker starts.",
+      "when": ["Attempt a follow-up while the app shows the parent as Pending.", "Once the worker starts, queue A and B from the composer.", "Stop the active turn, edit A to A2, move it behind B and resume."],
+      "then": ["The startup follow-up is queued once. A disabled or rejected action preserves the draft and is recorded as a separate outcome.", "Both cards are visible while waiting. The native order matches the RCA queue IDs.", "RCA sees no start while held and exactly one start each for B and A2, in that order.", "Each assistant reply contains its own marker."],
+      "fixture": "scripted stop-aware turn and two distinct text markers"
+    },
+    {
+      "id": "approve-deny-question",
+      "priority": 0,
+      "given": "The provider fixture emits a command approval and a structured question with stable request IDs.",
+      "when": ["Approve a harmless marker command.", "Deny a second marker command.", "Reopen the app while the question is pending and select the second option.", "Hold approval A visible by pausing the app adapter. Deny A through RCA, wait for a new approval B on the next turn, tap the cached A action and resume the adapter."],
+      "then": ["Only the approved command produces output.", "The denial and choice reach their original request IDs exactly once.", "The stale tap creates no second answer to A and leaves B pending. After reconnect, the app clears A and reports separately whether it shows B."],
+      "fixture": "scripted provider prompts, stdout marker and approval and question receipts"
+    },
+    {
+      "id": "photo-picker",
+      "priority": 0,
+      "given": "The simulator photo library contains blue-orange and green-purple PNG fixtures in a known order.",
+      "when": ["Attach both with the app's Photos control.", "Send a prompt requesting the colors in attachment order.", "Terminate the app, launch it and reopen the same thread."],
+      "then": ["Two chips appear before send and two previews appear after reopen.", "The original bytes or decoded pixels match in order, and the readback hashes match the stored attachments.", "A vision-capable provider reports the four expected colors in order. The app restores the complete original reply."],
+      "fixture": "two small generated PNGs and their SHA-256 digests"
+    },
+    {
+      "id": "model-switch",
+      "priority": 1,
+      "given": "The credentialed provider catalog lists two supported models and identifies its default.",
+      "when": ["Send on the displayed default without opening the model picker.", "Select the alternate and send again in the same thread.", "Queue a turn on the alternate, switch back, and release the queue."],
+      "then": ["The provider uses the displayed default on the first turn.", "The second turn uses the alternate.", "The queued turn keeps the model chosen when it was queued."],
+      "fixture": "two available provider models and effective model receipts"
+    },
+    {
+      "id": "skill-load",
+      "priority": 1,
+      "given": "A workspace skill includes a unique marker that the prompt does not disclose.",
+      "when": ["Open a thread for the intended provider and verify the effective RCA driver.", "Open slash autocomplete, select the fixture skill, and send a read-only task that requires it."],
+      "then": ["The skill appears in autocomplete.", "A successful skill tool call or expanded provider input proves the fixture was loaded.", "The native reply includes the undisclosed marker. Record provider completion separately if the app timed out."],
+      "fixture": "test-only SKILL.md and a unique marker"
+    },
+    {
+      "id": "child-and-background",
+      "priority": 1,
+      "given": "A real provider supports a native child agent and a bounded background command in the test worktree.",
+      "when": ["Launch the child and background command through the native composer.", "For a detached command, wait for the parent turn to finish and reopen the thread before releasing the worker.", "Repeat with a fresh child or command and cancel where the app exposes cancellation."],
+      "then": ["The child reports the fixture's line count and the command's actual stdout reaches the parent.", "A detached completion receipt appears once on the original turn and survives reopen. The queue stays unchanged and no new turn starts.", "The app restores activity and final status.", "A cancelled fixture PID exits and emits no completion marker."],
+      "fixture": "read-only line-count file and stoppable bounded background job"
+    },
+    {
+      "id": "history-reopen",
+      "priority": 1,
+      "given": "A seeded thread has more messages than two adapter history pages and a marker for each ordinal.",
+      "when": ["Open it from the picker three times warm and once after terminating the app.", "Scroll back across two page boundaries."],
+      "then": ["Measure from the tap to the first expected message, recording warm and cold times individually.", "Messages appear in ordinal order without duplicates or gaps at page boundaries."],
+      "fixture": "seeded history with monotonic ordinals and a known page size"
+    },
+    {
+      "id": "worktree-retirement",
+      "priority": 1,
+      "given": "One test repo has two clean disposable worktrees with distinct branches, committed marker files and scoped threads.",
+      "when": ["Open each from the picker and return to the first.", "Retire the second using the runbook's cleanup procedure.", "Refresh the picker and reopen the first."],
+      "then": ["Each branch, file, tab and message marker stays scoped to its worktree.", "The retired checkout disappears from RCA and the picker.", "The surviving checkout and both branch refs remain."],
+      "fixture": "two clean worktrees and distinct branch, file and thread markers"
+    },
+    {
+      "id": "linux-host-phone",
+      "priority": 1,
+      "given": "Both Linux adapters are up and a test iPhone can reach them over Wi-Fi and cellular.",
+      "when": ["Pair both apps with one-time links.", "Reopen a seeded thread, run a read-only turn, and switch networks while it runs."],
+      "then": ["The Linux host receives exactly one operation per send.", "The physical app restores the same thread and displays the final marker on the other network."],
+      "fixture": "deployed Linux host and a physical iPhone with both paths"
+    }
+  ]
+}

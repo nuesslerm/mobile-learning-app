@@ -62,6 +62,7 @@ frontend/libraries/*/dist/
 frontend/libraries/*/dist/**
 frontend/*/dist/
 backend/*/target*/
+/target/leetcode-backend-build/
 clis/telemetry/target/
 clis/mimic/script/target/
 clis/mimic/core/target/
@@ -203,3 +204,4 @@ repomix-output.md
 # the runner's kept checkout still holds the record older e2e jobs tee'd here (they write it under RUNNER_TEMP now)
 /e2e-tests.jsonl
 .superpowers/
+/.performance/

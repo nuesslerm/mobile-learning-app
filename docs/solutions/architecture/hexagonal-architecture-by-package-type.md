@@ -116,7 +116,7 @@ Ask in order; the first yes decides. A declarative file a tool reads → 16. Onl
 | 9 | Presentation feature | delivery only | `@feature/settings` | settings holds (the dev-tools feature dissolved into the app shell: its DI wiring was dead) |
 | 10 | Contracts package | core only | `@app/remote-chat-agent-contracts`, `@cli/harness-contracts` | partly; unchecked. `@cli/harness-contracts` has no zod and holds a device registry and geometry functions (`tooling/browser-harness/contracts/src/index.ts:209-444`). `@app/remote-chat-agent-contracts` (coding-agent) has one consumer; the leetcode-contracts library folded into `features/leetcode/domain` |
 | 11 | Pure library | core only | `@lib/gesture-geometry`, `@lib/voice-edit-dsl`, `@lib/lint-rules`, `@lib/app-di`; `@lib/app-config` (target) | holds, except app-config, which reads env at import; unchecked |
-| 12 | Hexagonal library | full hexagon, folders | `@lib/logging`, `@lib/rn-agentation` | partly |
+| 12 | Hexagonal library | full hexagon, folders | `@lib/logging` | partly |
 | 13 | Component library | delivery only | `@lib/tamagui-design-system` | holds; unchecked |
 | 14 | Test harness | delivery only | `@lib/flow-test-harness` | ships leetcode's doubles |
 | 15 | Glue | none | `scripts/postinstall.mjs`, `scripts/prepare.mjs`, `tooling/nx`, container scripts, `.agents/setup.sh`, the agent hook shims (`.agents/hooks`, `.opencode/plugin`), `.conductor/archive-workspace.sh`, the budget-guard function, the rca stt sidecar | `scripts/` still holds hook steps |
@@ -212,9 +212,9 @@ A flat `src/` with a barrel; no ports, adapters or DI; imports only relative mod
 
 ### 12. Hexagonal library
 
-- Core (types, rules, functions or hooks taking ports as parameters), ports named after the need (`LogPersistence`, `DocumentTreeDriver`, `KeyValueStorage`; no port for a device service with one call site, such as rn-agentation's clipboard), adapters (the only files that import Expo modules or AsyncStorage, or touch `fetch`, `window` or `process.env`; platform forks live here), testing exported as `./testing`. The host app is the composition root. Existing folder names map to roles in each library's dependency-cruiser config.
+- Core (types, rules, functions or hooks taking ports as parameters), ports named after the need (`KeyValueStorage`; no port for a device service with one call site), adapters (the only files that import Expo modules or AsyncStorage, or touch `fetch`, `window` or `process.env`; platform forks live here), testing exported as `./testing`. The host app is the composition root. Existing folder names map to roles in each library's dependency-cruiser config.
 - Between packages: no library imports `frontend/mla-tamagui`; a hexagonal library may import `@lib/logging` only, plus the libraries it names in its depcruise `libraries` option (`@lib/code-editor-api` names `webview-rpc`, and only its adapters and testing ring import it); the layout check allows the type-level edge, the preset narrows it to the named package.
-- Today: `@lib/logging` and `@lib/rn-agentation` already have ports; no library has a layer check, and six frontend libraries have no `lint` script.
+- Today: `@lib/logging` already has ports; no library has a layer check, and six frontend libraries have no `lint` script.
 
 ### 13. Component library
 

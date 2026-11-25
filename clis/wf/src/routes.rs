@@ -20,17 +20,20 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[
     ("test", test),
     ("ci", pipeline::ci),
     ("android", wf_harness::android::run),
+    ("ios", wf_harness::ios::run),
     ("browser", wf_harness::browser::run),
     ("vm", deploy::run_vm),
     ("secret", secret),
     ("repo", repo),
     ("bench", wf_bench::run),
     ("knowledge", knowledge::run),
+    ("content", content),
     ("agent-config", agent_config_sync::verb::run),
     ("rca", rca::rca),
     ("cache", wf_bucket::cache::run),
     ("bucket", wf_bucket::bucket_run),
     ("lib", wf_lib::run),
+    ("rca-serve", external::mobile),
     ("t3", external::t3),
     ("exec", external::exec),
     ("mimic", external::mimic),
@@ -41,6 +44,27 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[
     ("mcp-guard", mcp_guard),
     ("build-sha", build_sha),
 ];
+
+fn content(args: &[String]) -> Option<i32> {
+    let [verb, deck, options @ ..] = args else { return None; };
+    if verb != "import-tamil" || options.iter().any(|option| option != "--check") {
+        return None;
+    }
+    let root = wf_kit::root::repo_root();
+    let status = std::process::Command::new("python3")
+        .arg(root.join("clis/anki-content/import_tamil.py"))
+        .arg(deck)
+        .arg(root.join("frontend/mla-tamagui/features/tamil-writing/data/lessons"))
+        .args(options)
+        .status();
+    Some(match status {
+        Ok(status) => status.code().unwrap_or(1),
+        Err(error) => {
+            eprintln!("{}", serde_json::json!({ "error": error.to_string() }));
+            1
+        }
+    })
+}
 
 /// The commit this binary was built from (the build passes it in), printed by `wf --version`.
 fn build_sha(_: &[String]) -> Option<i32> {
@@ -130,7 +154,8 @@ fn test(rest: &[String]) -> Option<i32> {
         }
         Some("drift" | "backends") => return pipeline::run_test(rest),
         Some("publish") => return pipeline::run_test(rest),
-        Some("goldens") => return wf_harness::run_test(rest),
+        Some("goldens" | "ios-visual" | "prepare-ios") => return wf_harness::run_test(rest),
+        Some("run") if rest.get(1).is_some_and(|a| a == "--performance") => return wf_kit::performance::integration(&rest[1..]),
         Some("run") if rest.iter().any(|a| a == "--stage") => return pipeline::run_test(rest),
         Some("run") => return Some(e2e_run::run(&rest[1..])),
         Some("record") => {

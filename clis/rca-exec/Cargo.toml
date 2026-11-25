@@ -23,6 +23,7 @@ path = "src/bin/rca-exec.rs"
 test = false
 
 [dependencies]
+tracing = "0.1"
 wf-kit = { path = "../wf-kit" }
 exec-proto = { path = "../../libraries/agent-api/exec-proto" }
 exec-fs = { path = "../../libraries/agent-api/exec-fs" }
@@ -39,6 +40,7 @@ libc = "0.2"
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]
+telemetry = { version = "0.1", registry = "mla", features = ["service"] }
 exec-proto = { path = "../../libraries/agent-api/exec-proto", features = ["testing"] }
 exec-fs = { path = "../../libraries/agent-api/exec-fs", features = ["testing"] }
 exec-proc = { path = "../../libraries/agent-api/exec-proc", features = ["testing"] }

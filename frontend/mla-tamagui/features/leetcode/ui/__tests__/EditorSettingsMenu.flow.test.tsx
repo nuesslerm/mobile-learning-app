@@ -24,7 +24,7 @@ import { useToolbarConfigStore } from '../../state/toolbarConfigStore';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 
 // The editor settings menu on the editor route through the in-place panel (the twin of the native menu):
-// every entry applies to the live page, toggles keep the menu open, Format Code confirms, Symbol Bar opens its sheet.
+// every entry applies to the live page, selecting a preference dismisses the menu, Format Code confirms, Symbol Bar opens its sheet.
 
 const ACCEPTED: RunResponse = {
   source: 'backend-run',
@@ -98,7 +98,7 @@ describe('the editor settings menu on the editor route', () => {
     expect(screen.getByTestId('ProblemEditorMenuHistory')).toBeTruthy();
   });
 
-  it('given the root menu, when Font size then 16px is pressed, then the menu returns to the root and the page reports 16 with line height 24', async () => {
+  it('given the root menu, when Font size then 16px is pressed, then the menu closes and the page reports 16 with line height 24', async () => {
     const { editor } = await openEditor();
     await openSettings();
 
@@ -106,22 +106,23 @@ describe('the editor settings menu on the editor route', () => {
     await press('EditorSettingsFontSize-16');
 
     await eventually(async () => expect(await editor.config()).toMatchObject({ fontSize: 16, lineHeight: 24 }));
-    expect(screen.getByTestId('EditorSettingsWrap')).toBeTruthy();
-    expect(screen.queryByTestId('EditorSettingsFontSize-16')).toBeNull();
+    expect(screen.queryByTestId('EditorSettingsButtonContent')).toBeNull();
+    await openSettings();
     await press('EditorSettingsFontSize');
     expect(checked('EditorSettingsFontSize-16')).toBe('true');
     expect(checked('EditorSettingsFontSize-14')).toBe('false');
   });
 
-  it('given Line wrap on, when it is pressed, then the menu stays open, the check flips and the page wraps no more', async () => {
+  it('given Line wrap on, when it is pressed, then the menu closes, the check flips and the page wraps no more', async () => {
     const { editor } = await openEditor();
     await openSettings();
     expect(checked('EditorSettingsWrap')).toBe('true');
 
     await press('EditorSettingsWrap');
 
-    expect(screen.getByTestId('EditorSettingsButtonContent')).toBeTruthy();
-    await eventually(() => expect(checked('EditorSettingsWrap')).toBe('false'));
+    expect(screen.queryByTestId('EditorSettingsButtonContent')).toBeNull();
+    await openSettings();
+    expect(checked('EditorSettingsWrap')).toBe('false');
     await eventually(async () => expect((await editor.config()).wrap).toBe(false));
   });
 
@@ -133,7 +134,9 @@ describe('the editor settings menu on the editor route', () => {
     await press('EditorSettingsWhitespace');
 
     await eventually(() => expect(editor.whitespaceMarks()).toBeGreaterThan(0));
-    await eventually(() => expect(checked('EditorSettingsWhitespace')).toBe('true'));
+    expect(screen.queryByTestId('EditorSettingsButtonContent')).toBeNull();
+    await openSettings();
+    expect(checked('EditorSettingsWhitespace')).toBe('true');
   });
 
   it('given Tabs 2 picked, when Enter is pressed after a line that ends in a colon, then the page indents two spaces', async () => {
@@ -144,6 +147,7 @@ describe('the editor settings menu on the editor route', () => {
 
     await press('EditorSettingsTabs');
     await press('EditorSettingsTabs-2');
+    expect(screen.queryByTestId('EditorSettingsButtonContent')).toBeNull();
     await eventually(async () => expect((await editor.config()).tabSize).toBe(2));
     await editor.press('Enter');
 
@@ -155,6 +159,7 @@ describe('the editor settings menu on the editor route', () => {
     await openSettings();
     await press('EditorSettingsFontSize');
     await press('EditorSettingsFontSize-18');
+    await openSettings();
     await press('EditorSettingsWhitespace');
     await eventually(async () => expect(await editor.config()).toMatchObject({ fontSize: 18, whitespace: true }));
 

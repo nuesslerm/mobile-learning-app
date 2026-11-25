@@ -1,3 +1,4 @@
+import { backOrReplace, useRouteNavigation } from './useRouteAction';
 // The problem editor screen: the code editor, its keyboard rails and the console (action bar, dock, Testcase and Run Result sheet).
 import { Logger } from '@lib/logging';
 import { toast } from 'sonner-native';
@@ -11,13 +12,16 @@ import {
   Spinner,
   Text,
   useKeyboardFrame,
+  useNativeStackHeaderHeight,
+  useNativeHeaderStore,
+  usePresetThemeStore,
   View,
 } from '@lib/tamagui-design-system';
 import type { EditAlternative } from '@lib/voice-edit-dsl';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Mic, Pencil } from '@lib/tamagui-design-system/icons';
 import React from 'react';
-import { BackHandler, Platform, Pressable, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { BackHandler, Platform, Pressable, TextInput, useColorScheme, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { useLeetCodePorts } from '../state/ports';
@@ -30,12 +34,12 @@ import type { EditOutcome, EditTarget } from '../domain/editor/voiceEditPlan';
 import { useErrorJump } from '../state/run/useErrorJump';
 import type { PlanEditor } from '../plan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
+import { lineHeightFor } from '../domain/editor-settings/editorPreferences';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
 import { type Selection } from '../domain/editor/types';
 import type { BlocksSource } from './blocks/BlockView';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
-import { ProblemCatalog } from '../domain/problemCatalog';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceApply } from '../state/useVoiceApply';
 import { useVoiceEdit } from '../state/useVoiceEdit';
@@ -55,12 +59,17 @@ import {
 } from './LanguagePicker';
 import { VoiceRecordingToolbar } from './VoiceRecordingToolbar';
 import { VoiceReviewSheet } from './VoiceReviewSheet';
+import { useEditorAppearance } from './editor/useEditorAppearance';
+import { editorLanguageMenu } from './editor-header/editorLanguageMenu';
 import { editorHeaderSpec } from './editor-header/editorHeaderSpec';
 import { editorSettingsMenu } from './editor-settings/editorSettingsMenu';
 import { SymbolBarSheet } from './editor-settings/SymbolBarSheet';
+import { railStyleMenu } from './editor-settings/railStyleMenu';
+import { useSymbolBarStore } from '../state/editor/symbolBarStore';
+import { useCodeDrafts, type CodeDraftSession } from '../state/editor/useCodeDrafts';
 import { useEditorPreferencesStore } from '../state/editor/editorPreferencesStore';
 import { useConsole } from '../state/console/useConsole';
-import { consoleInset, editorZoneMinHeight } from '../domain/console/layout';
+import { EDITOR_ZONE_MIN_HEIGHT } from '../domain/console/layout';
 import { ConsoleActionBar } from './console/ConsoleActionBar';
 import { ConsoleDock } from './console/ConsoleDock';
 import { ConsoleFooter } from './console/ConsoleFooter';
@@ -77,59 +86,82 @@ function pickStarterCode(
 }
 
 const VOICE_ERROR_AUTO_DISMISS_MS = 8_000;
+const MAX_EDITOR_HEADER_UNDERLAP = 12;
+const iosCanvas = Platform.OS === 'ios';
 
 const subscribeNever = () => () => undefined;
 // False while the web export's prerendered page hydrates (it has no problem yet), true from the next render on and always on a phone.
 const useHydrated = () => React.useSyncExternalStore(subscribeNever, () => true, () => false);
 
-export function ProblemEditorScreen({
+type EditorScreenProps = {
+  id?: string;
+  seed?: string;
+  lang?: EditorLanguage;
+  onWorkspaceApi?: (api: PlanEditor) => void;
+  active?: boolean;
+  underlapNativeHeader?: boolean;
+  onConsoleOpenChange?: (open: boolean) => void;
+  onBlocksSource?: (source: BlocksSource) => void;
+};
+
+export function ProblemEditorScreen(props: EditorScreenProps) {
+  const draftProblemId = Platform.OS !== 'web' && props.seed === undefined ? props.id : undefined;
+  const { session, loading } = useCodeDrafts(draftProblemId, EDITOR_LANGUAGES);
+  if (loading) {
+    return <YStack flex={1} items="center" justify="center" bg="$background"><Spinner /></YStack>;
+  }
+  return <ProblemEditorContent {...props} drafts={session} />;
+}
+
+function ProblemEditorContent({
   id,
   seed,
   lang: initialLang,
   onWorkspaceApi,
   active = true,
+  underlapNativeHeader = false,
   onConsoleOpenChange,
   onBlocksSource,
-}: {
-  id?: string;
-  /** Dev bundles only: the code the editor opens on, so a device-lab job can start mid-problem. */
-  seed?: string;
-  /** Dev bundles only: the language the editor opens in. */
-  lang?: EditorLanguage;
-  onWorkspaceApi?: (api: PlanEditor) => void;
-  /** False while another workspace tab is shown: the console is closed then. */
-  active?: boolean;
-  onConsoleOpenChange?: (open: boolean) => void;
-  /** What the Blocks tab reads the code through: the editor handle, its language and whether its page has hydrated. */
-  onBlocksSource?: (source: BlocksSource) => void;
-}) {
-  const problem = React.useMemo(
-    () => (id ? ProblemCatalog.getById(id) : undefined),
-    [id]
-  );
+  drafts,
+}: EditorScreenProps & { drafts?: CodeDraftSession }) {
+  const { leave, pushRoute } = useRouteNavigation();
+  const { gateway, runner, libraryContent } = useLeetCodePorts();
+  const problem = React.useMemo(() => id ? libraryContent.problem(id) : undefined, [id, libraryContent]);
 
   const [lang, setLang] = React.useState<EditorLanguage>(initialLang ?? 'python3');
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
   const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
   const [editorReady, setEditorReady] = React.useState(false);
+  useFocusEffect(React.useCallback(() => {
+    if (editorReady) runner.warmUp?.(lang);
+  }, [editorReady, lang, runner]));
+  const [canUndo, setCanUndo] = React.useState(false);
   // the suggestions follow the language: the problem's own names from its starter, and the language's keywords
   const completion = React.useMemo(
     () => ({ enabled: autocomplete, entries: problem ? completionEntriesFor(problem, editorLanguage) : [] }),
     [autocomplete, problem, editorLanguage]
   );
   const [editorText, setEditorText] = React.useState(
-    () => seed || pickStarterCode(problem?.starterCode, lang)
+    () => drafts?.read(lang) ?? (seed || pickStarterCode(problem?.starterCode, lang))
   );
   const [editorSelection, setEditorSelection] = React.useState<Selection>({
     start: 0,
     end: 0,
   });
 
+  const startupInput = React.useRef<React.ComponentRef<typeof TextInput>>(null);
+  const startupLanguage = React.useRef<EditorLanguage | null>(null);
+  const startupSelection = React.useRef<Selection>({ start: 0, end: 0 });
+  // The native input owns its buffer until blur. An echo from the warming page must never replace a newer keystroke.
+  const [startupBuffer, setStartupBuffer] = React.useState<string | null>(null);
   const editorRef = React.useRef<EditorInputHandle>(null);
+  const editorFocusedRef = React.useRef(false);
+  const refocusAfterConsole = React.useRef(false);
   // The editor's focus lives in a WebView that React Native does not track, so Keyboard.dismiss() and the scroll view's
   // tap-away reach nothing; the editor is told to blur itself.
   const dismissEditorKeyboard = React.useCallback(() => {
     Logger.debug('editor_v2.keyboard_dismiss', { problemId: problem?.id });
+    startupInput.current?.blur();
     editorRef.current?.blur();
   }, [problem?.id]);
   // the buffer and the language as they are now, for a run that finishes after the person has gone on typing
@@ -137,7 +169,6 @@ export function ProblemEditorScreen({
   React.useEffect(() => {
     latestBufferRef.current = { text: editorText, lang };
   }, [editorText, lang]);
-  const { gateway, runner } = useLeetCodePorts();
   const aiEdit = useLeetCodeFlag('aiEdit');
   const scrollRef = React.useRef<ScrollViewInstance>(null);
   const errorJump = useErrorJump(editorRef);
@@ -147,7 +178,7 @@ export function ProblemEditorScreen({
   }, []);
   const consoleRuntime = {
     runner,
-    editor: () => editorRef.current,
+    editor: () => startupBuffer === null ? editorRef.current : null,
     latest: () => latestBufferRef.current,
     dismissKeyboard: dismissEditorKeyboard,
     errorJump,
@@ -160,6 +191,11 @@ export function ProblemEditorScreen({
   const consolePendingRef = React.useRef(false);
   consolePendingRef.current = consolePending !== null;
   const keyboard = useKeyboardFrame();
+  const nativeEditorHeader = useNativeHeaderStore((state) => state.enabled) && iosCanvas;
+  const measuredHeaderHeight = useNativeStackHeaderHeight();
+  const nativeHeaderBottom = nativeEditorHeader && underlapNativeHeader && measuredHeaderHeight
+    ? measuredHeaderHeight
+    : undefined;
   const [rootHeight, setRootHeight] = React.useState(0);
   React.useEffect(() => {
     onConsoleOpenChange?.(consoleOpen);
@@ -176,9 +212,16 @@ export function ProblemEditorScreen({
     return () => subscription.remove();
   }, [consoleOpen, closeConsole]);
   const handleOpenConsole = React.useCallback(() => {
+    refocusAfterConsole.current = iosCanvas && keyboard.visible && editorFocusedRef.current;
     dismissEditorKeyboard();
     openConsole('testcase');
-  }, [dismissEditorKeyboard, openConsole]);
+  }, [dismissEditorKeyboard, keyboard.visible, openConsole]);
+  const handleConsoleClosed = React.useCallback(() => {
+    closeConsole('sheet');
+    if (!refocusAfterConsole.current) return;
+    refocusAfterConsole.current = false;
+    requestAnimationFrame(() => editorRef.current?.focus());
+  }, [closeConsole]);
   const handleResetCases = React.useCallback(() => {
     resetCases();
     toast('Testcases reset');
@@ -192,6 +235,7 @@ export function ProblemEditorScreen({
     onSubmit: () => void runConsole('submit'),
     pending: consolePending !== null,
     noCases: hydrated && !consoleState.hasBundled,
+    noSelectedCase: hydrated && !consoleState.selected,
   };
   const [diffMode, setDiffMode] = React.useState(false);
   // whether a voice or plan edit has left a mark: the editor holds the mark and the range, the screen only the toggle
@@ -232,13 +276,14 @@ export function ProblemEditorScreen({
     readBasis: editorTarget.basis,
   });
 
-  // "Dirty" is measured against the starter code for the CURRENT language, not
-  // against a saved copy -- there is no saved copy. Switching language resets
-  // the buffer to that language's starter, so the comparison stays honest.
-  const isDirty = React.useMemo(
-    () => editorText !== pickStarterCode(problem?.starterCode, lang),
-    [editorText, problem?.starterCode, lang]
-  );
+  const isDirty = editorText !== pickStarterCode(problem?.starterCode, lang);
+  const saveDraft = drafts?.save;
+  const readDraft = drafts?.read;
+  const draftStatus = drafts?.status(lang);
+  const updateCode = React.useCallback((code: string, language: EditorLanguage = lang) => {
+    setEditorText(code);
+    saveDraft?.(language, code === pickStarterCode(problem?.starterCode, language) ? null : code);
+  }, [lang, problem?.starterCode, saveDraft]);
   const requestUnsavedChanges = useUnsavedChangesRequestStore((s) => s.request);
   const [languageSheetOpen, setLanguageSheetOpen] = React.useState(false);
 
@@ -259,22 +304,24 @@ export function ProblemEditorScreen({
         to: nextLang,
         problemId: problem?.id,
       });
-      // A language switch discards the whole buffer for the new language's
-      // starter code. That was silent data loss before this snapshot.
+      startupLanguage.current = null;
+      startupInput.current?.blur();
+      setStartupBuffer(null);
       snapshot('language-switch');
+      setCanUndo(false);
       setLang(nextLang);
-      setEditorText(pickStarterCode(problem?.starterCode, nextLang));
+      setEditorText(readDraft?.(nextLang) ?? pickStarterCode(problem?.starterCode, nextLang));
       clearConsoleResult();
       runner.warmUp?.(nextLang);
     },
-    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearConsoleResult, runner]
+    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearConsoleResult, runner, readDraft]
   );
 
   const handleFormat = React.useCallback(async () => {
     try {
       const formatted = await gateway.format({ lang, code: editorText });
       snapshot('format');
-      setEditorText(formatted);
+      updateCode(formatted);
       Logger.info('editor_v2.format.result', {
         length: formatted.length,
         problemId: problem?.id,
@@ -291,12 +338,12 @@ export function ProblemEditorScreen({
           err instanceof Error ? err.message : 'The formatter did not respond.',
       });
     }
-  }, [editorText, gateway, problem, lang, snapshot]);
+  }, [editorText, gateway, problem, lang, snapshot, updateCode]);
 
   const handleEditorChange = React.useCallback((next: string) => {
-    setEditorText(next);
+    updateCode(next);
     onConsoleCodeChanged(next);
-  }, [onConsoleCodeChanged]);
+  }, [onConsoleCodeChanged, updateCode]);
 
   // React follows the page's contentChanged for the text, and the editor marks what the edit changed as it applies it; the screen only shows the toggle.
   const showEdit = React.useCallback((outcome: EditOutcome) => {
@@ -404,28 +451,30 @@ export function ProblemEditorScreen({
   const handleResetCode = React.useCallback(() => {
     if (!problem) return;
     Logger.info('editor_v2.reset_code.request', { problemId: problem.id });
-    useResetCodeRequestStore.getState().request({
-      problemId: problem.id,
-      onConfirm: () => {
-        Logger.info('editor_v2.reset_code.confirm', {
-          problemId: problem.id,
-        });
-        // Reset is the most destructive path in the screen and used to be
-        // genuinely irreversible -- the dialog said so. Snapshot first.
-        snapshot('reset');
-        setEditorText(pickStarterCode(problem.starterCode, lang));
-        clearConsoleResult();
-        // The edit mark belongs to the code that was just discarded.
-        setHasEdit(false);
-        setDiffMode(false);
-        editorRef.current?.clearEditMark();
-      },
-      onCancel: () => {
-        Logger.info('editor_v2.reset_code.cancel', { problemId: problem.id });
-      },
+    leave(() => {
+      useResetCodeRequestStore.getState().request({
+        problemId: problem.id,
+        onConfirm: () => {
+          Logger.info('editor_v2.reset_code.confirm', {
+            problemId: problem.id,
+          });
+          // Reset is the most destructive path in the screen and used to be
+          // genuinely irreversible -- the dialog said so. Snapshot first.
+          snapshot('reset');
+          updateCode(pickStarterCode(problem.starterCode, lang));
+          clearConsoleResult();
+          // The edit mark belongs to the code that was just discarded.
+          setHasEdit(false);
+          setDiffMode(false);
+          editorRef.current?.clearEditMark();
+        },
+        onCancel: () => {
+          Logger.info('editor_v2.reset_code.cancel', { problemId: problem.id });
+        },
+      });
+      router.push(`/leetcode/${problem.id}/reset-code`);
     });
-    router.push(`/leetcode/${problem.id}/reset-code`);
-  }, [problem, lang, snapshot, clearConsoleResult]);
+  }, [problem, lang, snapshot, clearConsoleResult, updateCode, leave]);
 
   const fontSize = useEditorPreferencesStore((s) => s.fontSize);
   const tabSize = useEditorPreferencesStore((s) => s.tabSize);
@@ -435,9 +484,9 @@ export function ProblemEditorScreen({
   const setTabSize = useEditorPreferencesStore((s) => s.setTabSize);
   const setWrap = useEditorPreferencesStore((s) => s.setWrap);
   const setWhitespace = useEditorPreferencesStore((s) => s.setWhitespace);
+  const railStyle = useSymbolBarStore((state) => state.railStyle);
+  const setRailStyle = useSymbolBarStore((state) => state.setRailStyle);
   const [symbolBarOpen, setSymbolBarOpen] = React.useState(false);
-  // Whether the editor held the caret when the sheet opened: Done gives the keyboard back only then.
-  const editorFocusedRef = React.useRef(false);
   const refocusAfterSheetRef = React.useRef(false);
   const handleSymbolBarOpen = React.useCallback(() => {
     Logger.info('editor_v2.symbol_bar.open', { problemId: problem?.id });
@@ -445,40 +494,45 @@ export function ProblemEditorScreen({
     dismissEditorKeyboard();
     setSymbolBarOpen(true);
   }, [dismissEditorKeyboard, problem?.id]);
-  const handleSymbolBarOpenChange = React.useCallback((open: boolean) => {
-    setSymbolBarOpen(open);
-    if (open || !refocusAfterSheetRef.current) return;
+  const restoreAfterSymbolBar = React.useCallback(() => {
+    if (!refocusAfterSheetRef.current) return;
     refocusAfterSheetRef.current = false;
     editorRef.current?.focus();
   }, []);
+  const handleSymbolBarOpenChange = React.useCallback((open: boolean) => {
+    setSymbolBarOpen(open);
+    if (!open && !iosCanvas) restoreAfterSymbolBar();
+  }, [restoreAfterSymbolBar]);
 
   const handleBack = () => {
     Logger.info('editor.back', {
       problemId: problem?.id,
       dirty: isDirty,
     });
-    if (!isDirty) {
-      router.back();
+    const fallback = id ? `/leetcode/${id}/problem` as const : '/';
+    if (!isDirty || draftStatus === 'saved') {
+      leave(() => backOrReplace(fallback));
       return;
     }
-    requestUnsavedChanges({
-      problemId: problem?.id ?? '',
-      onDiscard: () => {
-        // Snapshot BEFORE leaving: the buffer is useState seeded
-        // from starter code and persisted nowhere, so without this
-        // "discard" would be irreversible.
-        snapshot('navigate-away');
-        router.back();
-      },
-      onCancel: () => {},
+    leave(() => {
+      const hasPreviousScreen = router.canGoBack();
+      requestUnsavedChanges({
+        problemId: problem?.id ?? '',
+        onDiscard: () => {
+          snapshot('navigate-away');
+          if (hasPreviousScreen) router.back();
+          else router.replace(fallback);
+        },
+        onCancel: () => {},
+      });
+      router.push(`/leetcode/${id ?? ''}/unsaved`);
     });
-    router.push(`/leetcode/${id ?? ''}/unsaved`);
   };
 
   const handleInfo = () => {
     Logger.info('editor_v2.info_tap', { problemId: problem?.id });
     dismissEditorKeyboard();
-    if (problem) router.push(`/leetcode/${problem.id}/description`);
+    if (problem) pushRoute(`/leetcode/${problem.id}/description`);
   };
 
   const handleHistory = () => {
@@ -488,18 +542,20 @@ export function ProblemEditorScreen({
     // Register the restore target BEFORE pushing: the sheet
     // is its own route, so it shares no React tree with this
     // screen and cannot reach setEditorText directly.
-    useCodeHistoryRequestStore.getState().request({
-      problemId: problem.id,
-      onRestore: (code, language) => {
-        snapshot('reset');
-        setEditorText(code);
-        editorRef.current?.setTextAndSelection(code, { start: code.length, end: code.length });
-        if (language !== lang) {
-          setLang(language as EditorLanguage);
-        }
-      },
+    leave(() => {
+      useCodeHistoryRequestStore.getState().request({
+        problemId: problem.id,
+        onRestore: (code, language) => {
+          snapshot('reset');
+          updateCode(code, language as EditorLanguage);
+          editorRef.current?.setTextAndSelection(code, { start: code.length, end: code.length });
+          if (language !== lang) {
+            setLang(language as EditorLanguage);
+          }
+        },
+      });
+      router.push(`/leetcode/${problem.id}/history`);
     });
-    router.push(`/leetcode/${problem.id}/history`);
   };
 
   const handleLogin = () => {
@@ -509,7 +565,7 @@ export function ProblemEditorScreen({
       return;
     }
     Logger.info('editor_v2.login_tap', { problemId: problem?.id });
-    router.push('/leetcode/login');
+    pushRoute('/leetcode/login');
   };
 
   // Off by default, the code stays wired: see domain/featureFlags.ts.
@@ -546,6 +602,14 @@ export function ProblemEditorScreen({
     </>
   );
 
+  const { backgroundColor, palette } = useEditorAppearance(iosCanvas);
+  // Keep the middle of the first editable line below the native bar's touch region.
+  const underlap = Math.min(MAX_EDITOR_HEADER_UNDERLAP, Math.floor((lineHeightFor(fontSize) - 1) / 2));
+  const appThemeMode = usePresetThemeStore((state) => state.themeMode);
+  const systemScheme = useColorScheme();
+  const appScheme = appThemeMode === 'system' ? systemScheme ?? 'light' : appThemeMode;
+  const canvasBackground = iosCanvas && appScheme === palette.appearance ? backgroundColor : undefined;
+  const darkCanvas = iosCanvas && appScheme === 'dark' && palette.appearance === 'dark';
   const headerSpec = editorHeaderSpec({
     title: problem?.title ?? 'Problem',
     subtitle: problemSubtitle,
@@ -553,6 +617,14 @@ export function ProblemEditorScreen({
     isLoggedIn,
     username,
     busy: consolePending !== null,
+    nativeWorkspace: nativeEditorHeader ? {
+      saveStatus: draftStatus ?? (isDirty ? 'unsaved' : 'saved'),
+      backgroundColor: canvasBackground,
+      railStyle: railStyleMenu(railStyle, setRailStyle),
+      language: editorLanguageMenu(lang, availableLanguages, handleLanguageChange, (label) => {
+        toast(`${label} is unavailable in this editor`);
+      }),
+    } : undefined,
     settings: editorSettingsMenu(
           { fontSize, tabSize, wrap, whitespace },
           {
@@ -566,10 +638,11 @@ export function ProblemEditorScreen({
               void handleFormat();
             },
           },
-          languageLabel(lang)
+          nativeEditorHeader ? undefined : languageLabel(lang)
         ),
     onBack: handleBack,
     onInfo: handleInfo,
+    onUndo: iosCanvas && canUndo ? () => editorRef.current?.undo() : undefined,
     onHistory: handleHistory,
     onLogin: handleLogin,
     onResetCode: handleResetCode,
@@ -579,10 +652,11 @@ export function ProblemEditorScreen({
     <View
       flex={1}
       bg="$background"
+      style={{ backgroundColor: canvasBackground }}
       testID="ProblemEditorScreen"
       onLayout={(event: LayoutChangeEvent) => setRootHeight(Math.round(event.nativeEvent.layout.height))}
     >
-      <ScreenHeader {...headerSpec} glass placement="navigator" />
+      <ScreenHeader {...headerSpec} glass transparent={nativeHeaderBottom !== undefined} placement="navigator" />
       <KeyboardToolbarTarget
         testID="ProblemEditorToolbarTarget"
         toolbarTestID="EditorHelperRails"
@@ -596,10 +670,12 @@ export function ProblemEditorScreen({
               Logger.info('editor_v2.toolbar_configure', {
                 problemId: problem?.id,
               });
-              router.push('/leetcode/toolbar');
+              pushRoute('/leetcode/toolbar');
             }}
             onDismissKeyboard={dismissEditorKeyboard}
-            topRow={<ConsoleActionBar {...consoleActions} />}
+            compactSymbols={iosCanvas && !aiEdit}
+            symbolBarBackground={darkCanvas ? canvasBackground : undefined}
+            topRow={<ConsoleActionBar {...consoleActions} canvas={darkCanvas} backgroundColor={darkCanvas ? canvasBackground : undefined} />}
           />
         )}
       >
@@ -607,7 +683,10 @@ export function ProblemEditorScreen({
           ref={scrollRef}
           testID="ProblemEditorScroll"
           keyboardShouldPersistTaps="handled"
-          {...(consoleOpen && rootHeight > 0 ? { bottomInset: consoleInset(rootHeight) } : {})}
+          {...(nativeHeaderBottom === undefined ? {} : {
+            contentInsetAdjustmentBehavior: 'never' as const,
+            contentContainerStyle: { paddingTop: Math.max(0, nativeHeaderBottom - underlap) },
+          })}
         >
           {/* A tap on the page outside the editor lowers its keyboard. The editor sits beside that Pressable and not
               inside it: a view that claims the touch responder above the WebView makes Android cancel the WebView's
@@ -618,29 +697,51 @@ export function ProblemEditorScreen({
                 visible area. */}
             <YStack
               flex={1}
-              minH={editorZoneMinHeight(consoleOpen)}
-              px="$3"
-              py="$2"
+              minH={EDITOR_ZONE_MIN_HEIGHT}
+              px={iosCanvas ? 0 : "$3"}
+              py={iosCanvas ? 0 : "$2"}
               testID="ProblemEditorEditorZone"
             >
               <EditorInput
+                documentKey={iosCanvas ? lang : undefined}
                 ref={editorRef}
                 testID="ProblemEditorInput"
+                appearance={iosCanvas ? 'canvas' : 'panel'}
                 language={editorLanguage}
                 completion={completion}
-                value={editorText}
-                onChangeText={handleEditorChange}
+                value={startupBuffer ?? editorText}
+                onChangeText={(next) => { if (!startupInput.current?.isFocused()) handleEditorChange(next); }}
                 onSelectionChange={setEditorSelection}
+                onUndoAvailabilityChange={iosCanvas ? setCanUndo : undefined}
                 onFocusChange={(focused) => {
                   editorFocusedRef.current = focused;
                   if (focused) closeConsole('editor-focus');
                 }}
-                onHydratedChange={(hydrated) => {
-                  setEditorReady(hydrated);
-                  // the page may have been dropped while idle: bring it back while the person reads the problem, not at Run
-                  if (hydrated) runner.warmUp?.(lang);
-                }}
+                documentReady={editorReady}
+                onHydratedChange={setEditorReady}
               />
+              {iosCanvas && (!editorReady || startupBuffer !== null) && (
+                <XStack position="absolute" t={0} l={0} r={0} b={0} style={{ backgroundColor }}>
+                  <Text accessible={false} width={36} pr={6} text="right" style={{ color: palette.defaultText }}
+                    opacity={0.55} fontFamily="$mono" fontSize={fontSize} lineHeight={lineHeightFor(fontSize)}>
+                    {editorText.split('\n', 40).map((_, index) => index + 1).join('\n')}
+                  </Text>
+                  <TextInput ref={startupInput} testID="ProblemEditorStartupInput" accessibilityLabel="Code editor" multiline
+                    autoCapitalize="none" autoCorrect={false} spellCheck={false} value={editorText}
+                    onFocus={() => { startupLanguage.current = lang; setStartupBuffer(editorText); }}
+                    onEndEditing={({ nativeEvent }) => {
+                      if (startupLanguage.current !== lang) return;
+                      startupLanguage.current = null;
+                      handleEditorChange(nativeEvent.text);
+                      editorRef.current?.setTextAndSelection(nativeEvent.text, startupSelection.current, false);
+                      setStartupBuffer(null);
+                    }}
+                    onChangeText={handleEditorChange}
+                    onSelectionChange={({ nativeEvent }) => { startupSelection.current = nativeEvent.selection; }}
+                    style={{ flex: 1, padding: 0, paddingHorizontal: 6, fontFamily: 'Menlo', fontSize, lineHeight: lineHeightFor(fontSize),
+                      color: palette.defaultText, textAlignVertical: 'top' }} />
+                </XStack>
+              )}
             </YStack>
 
             <Pressable
@@ -655,14 +756,14 @@ export function ProblemEditorScreen({
               pt="$2"
               testID="ProblemEditorDiffRow"
             >
-              <LanguagePicker
+              {!nativeEditorHeader ? <LanguagePicker
                 value={lang}
                 onOpen={() => setLanguageSheetOpen(true)}
                 // exactly one: the page the web export prerenders has no problem yet (no languages), and a trigger disabled there
                 // would not match the enabled one a problem with two languages hydrates into
                 disabled={availableLanguages.length === 1}
                 testID="ProblemEditorLanguagePicker"
-              />
+              /> : null}
               {hasEdit ? (
                 <DiffToggle
                   enabled={diffMode}
@@ -676,16 +777,21 @@ export function ProblemEditorScreen({
             </Pressable>
           </YStack>
         </KeyboardToolbarAwareScrollView>
-        {!consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} /> : null}
+        {!keyboard.visible ? (
+          <ConsoleDock {...consoleActions} canvas={darkCanvas} backgroundColor={canvasBackground} covered={consoleOpen} />
+        ) : null}
       </KeyboardToolbarTarget>
       {problem ? (
         <ConsoleSheet
           problem={problem}
           console={consoleState}
+          colorScheme={appScheme}
           fieldError={consoleState.fieldError}
           result={<RunResult outcome={consoleState.outcome} actions={{ onShowLine: () => void consoleState.showLine(), canOpenCase: (label) => consoleState.caseIdOf(label) !== null, onOpenCase: consoleState.openCase }} />}
-          footer={<ConsoleFooter {...consoleActions} />}
-          onSheetClosed={() => closeConsole('sheet')}
+          footer={<ConsoleFooter {...consoleActions} canvas={darkCanvas} />}
+          onSheetClosed={handleConsoleClosed}
+          editorHeightBelowNativeHeader={nativeEditorHeader && nativeHeaderBottom === undefined ? rootHeight : undefined}
+          nativeHeaderBottom={nativeHeaderBottom}
         />
       ) : null}
       <LanguageSheet
@@ -696,7 +802,12 @@ export function ProblemEditorScreen({
         languages={availableLanguages}
         testID="ProblemEditorLanguagePicker"
       />
-      <SymbolBarSheet open={symbolBarOpen} onOpenChange={handleSymbolBarOpenChange} />
+      <SymbolBarSheet
+        open={symbolBarOpen}
+        onOpenChange={handleSymbolBarOpenChange}
+        onDismiss={restoreAfterSymbolBar}
+        showRailStyle={!nativeEditorHeader}
+      />
       {consolePending ? <PendingOverlay /> : null}
       {voiceEdit.state.phase === 'planning' ? (
         <XStack

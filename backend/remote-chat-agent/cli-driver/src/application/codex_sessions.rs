@@ -8,7 +8,7 @@ use crate::domain::{Driver, ExecEvent, TurnRequest, Verdict};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -33,6 +33,8 @@ struct Thread {
     translator: Translator,
     /// An interrupt was asked for before the server named the turn.
     stop_asked: bool,
+    cleanup_on_stop: bool,
+    commands: HashSet<String>,
 }
 
 struct Waiting {
@@ -153,7 +155,7 @@ impl CodexSessions {
                 (id, true)
             }
         };
-        locked(&server.inner).threads.entry(codex.clone()).or_insert_with(|| Thread { rca: req.thread_id.clone(), tx: None, turn: None, translator: Translator::default(), stop_asked: false });
+        locked(&server.inner).threads.entry(codex.clone()).or_insert_with(|| Thread { rca: req.thread_id.clone(), tx: None, turn: None, translator: Translator::default(), stop_asked: false, cleanup_on_stop: false, commands: HashSet::new() });
         locked(&self.shared.live).insert(req.thread_id.clone(), Live { server: Arc::clone(server), codex: codex.clone() });
         Ok((codex, fresh))
     }
@@ -276,7 +278,7 @@ impl Server {
         }
     }
 
-    async fn on_line(&self, text: &str) {
+    async fn on_line(self: &Arc<Self>, text: &str) {
         match codex::parse(text) {
             Inbound::Response { id, outcome } => {
                 if let Some(waiting) = self.inner().pending.remove(&id) {
@@ -289,14 +291,14 @@ impl Server {
         }
     }
 
-    async fn on_notification(&self, method: &str, params: &Value) {
+    async fn on_notification(self: &Arc<Self>, method: &str, params: &Value) {
         if method == "serverRequest/resolved" {
             let resolved = &params["requestId"];
             self.inner().asks.retain(|_, w| &w.rpc != resolved);
             return;
         }
         let Some(thread) = params["threadId"].as_str() else { return };
-        let (tx, events, stop) = {
+        let (tx, events, stop, cleanup) = {
             let mut inner = self.inner();
             let Some(t) = inner.threads.get_mut(thread) else { return };
             // What a turn that is over says late belongs to no turn
@@ -307,8 +309,12 @@ impl Server {
                 }
             }
             let Some(tx) = t.tx.clone() else { return };
+            if method == "item/started" && params["item"]["type"] == "commandExecution" {
+                t.commands.extend(params["item"]["id"].as_str().map(str::to_string));
+            }
             let mut events = Vec::new();
             let mut stop = None;
+            let mut cleanup = None;
             for step in t.translator.notification(method, params) {
                 match step {
                     Step::Event(e) => events.push(e),
@@ -318,11 +324,16 @@ impl Server {
                             stop = Some(id);
                         }
                     }
-                    Step::Ended(_) => {
+                    Step::Ended(status) => {
+                        let commands = std::mem::take(&mut t.commands);
+                        if status == "interrupted" && t.cleanup_on_stop && !commands.is_empty() {
+                            cleanup = Some(commands);
+                        }
                         events.push(ExecEvent::Done);
                         t.tx = None;
                         t.turn = None;
                         t.stop_asked = false;
+                        t.cleanup_on_stop = false;
                     }
                 }
             }
@@ -330,10 +341,14 @@ impl Server {
                 inner.asks.retain(|_, w| w.thread != thread);
                 inner.last_active = Some(Instant::now());
             }
-            (tx, events, stop)
+            (tx, events, stop, cleanup)
         };
         if let Some(turn) = stop {
             self.send_interrupt(thread, &turn);
+        }
+        if let Some(commands) = cleanup {
+            let (server, thread) = (Arc::clone(self), thread.to_string());
+            tokio::spawn(async move { server.terminate_commands(&thread, commands).await });
         }
         for event in events {
             if tx.send(event).await.is_err() {
@@ -344,6 +359,30 @@ impl Server {
                 }
                 break;
             }
+        }
+    }
+
+    async fn terminate_commands(&self, thread: &str, mut commands: HashSet<String>) {
+        let mut cursors = HashSet::new();
+        let mut cursor = None::<String>;
+        let mut processes = Vec::new();
+        loop {
+            let Ok(page) = self.request(|id| codex::background_terminals(id, thread, cursor.as_deref())).await else { break };
+            let Some(terminals) = page["data"].as_array() else { break };
+            for terminal in terminals {
+                let (Some(item), Some(process)) = (terminal["itemId"].as_str(), terminal["processId"].as_str()) else { continue };
+                if commands.remove(item) {
+                    processes.push(process.to_string());
+                }
+            }
+            let Some(next) = page["nextCursor"].as_str() else { break };
+            if commands.is_empty() || !cursors.insert(next.to_string()) {
+                break;
+            }
+            cursor = Some(next.to_string());
+        }
+        for process in processes {
+            let _ = self.request(|id| codex::terminate_background_terminal(id, thread, &process)).await;
         }
     }
 
@@ -401,6 +440,8 @@ impl SessionDriver for CodexSessions {
             thread.tx = Some(tx.clone());
             thread.turn = None;
             thread.stop_asked = false;
+            thread.cleanup_on_stop = false;
+            thread.commands.clear();
             thread.translator.reset();
             inner.last_active = Some(Instant::now());
         }
@@ -443,6 +484,7 @@ impl SessionDriver for CodexSessions {
         let turn = {
             let mut inner = server.inner();
             let Some(t) = inner.threads.get_mut(&codex).filter(|t| t.tx.is_some()) else { return false };
+            t.cleanup_on_stop = true;
             if t.turn.is_none() {
                 t.stop_asked = true;
             }
@@ -636,6 +678,39 @@ mod tests {
         assert_eq!((linker.starts(), linker.kills()), (1, 0));
         // And the thread can run again on it
         assert_eq!(drain(sessions.turn("w1", linker.as_ref(), &request("t1", "hello", Some("th-1"))).await.unwrap()).await.last(), Some(&ExecEvent::Done));
+    }
+
+    #[tokio::test]
+    async fn given_an_interrupted_turn_with_a_terminal_when_it_ends_then_only_that_turns_terminal_is_terminated() {
+        // Given the workspace has an older detached terminal and a running command in the current turn.
+        let sessions = CodexSessions::default();
+        let linker = ScriptedLinker::reacting(|_, m| {
+            let id = &m["id"];
+            match m["method"].as_str() {
+                Some("initialize") => vec![reply(id, json!({}))],
+                Some("thread/start") => vec![reply(id, json!({"thread":{"id":"th-1"}}))],
+                Some("turn/start") => vec![
+                    reply(id, json!({"turn":{"id":"u-1"}})),
+                    started("th-1", "u-1"),
+                    crate::testing::note("item/started", json!({"threadId":"th-1","turnId":"u-1","item":{"type":"commandExecution","id":"current","command":"test worker","cwd":"/w"}})),
+                ],
+                Some("turn/interrupt") => vec![reply(id, json!({})), crate::testing::finish("th-1", "u-1", "interrupted")],
+                Some("thread/backgroundTerminals/list") => vec![reply(id, json!({"data":[{"processId":"1","itemId":"older"},{"processId":"2","itemId":"current"}],"nextCursor":null}))],
+                Some("thread/backgroundTerminals/terminate") => vec![reply(id, json!({"terminated":true}))],
+                _ => vec![],
+            }
+        });
+        let mut events = sessions.turn("w1", linker.as_ref(), &request("t1", "hold", None)).await.unwrap();
+        assert!(matches!(events.recv().await, Some(ExecEvent::Session(_))));
+        assert!(matches!(events.recv().await, Some(ExecEvent::ToolStarted { .. })));
+        // When the user stops the turn.
+        assert!(sessions.interrupt("t1"));
+        assert_eq!(drain(events).await, [ExecEvent::Done]);
+        // Then the termination is scoped to the current turn's tool item.
+        until("the current terminal is terminated", || !linker.received_of("thread/backgroundTerminals/terminate").is_empty()).await;
+        let requests = linker.received_of("thread/backgroundTerminals/terminate");
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].1["params"], json!({"threadId":"th-1","processId":"2"}));
     }
 
     #[tokio::test]

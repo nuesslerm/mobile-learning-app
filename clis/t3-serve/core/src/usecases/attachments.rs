@@ -151,10 +151,19 @@ impl Service {
         Ok(json!({"attachmentId": id, "relativeUrl": format!("{UPLOAD_PREFIX}/{token}"), "expiresAt": expires_at}))
     }
 
-    /// `attachments.delete`: an upload that was never attached to a message is dropped, and anything else is left alone, as the pin does.
+    /// `attachments.delete` cleans up draft uploads. A submitted message keeps its RCA blob under the upload ID.
     pub fn attachment_delete(&self, payload: &Value) -> Result<(), QueryFailure> {
         let id = text(payload, "attachmentId", 256)?;
         if !id.starts_with(PENDING) {
+            return Ok(());
+        }
+        let attached = self.engine().read(|state| {
+            state.entities.values().flat_map(|entity| &entity.messages)
+                .filter_map(|message| message["attachments"].as_array())
+                .flatten()
+                .any(|attachment| attachment["id"] == id)
+        });
+        if attached {
             return Ok(());
         }
         self.attachment_op("attachment.delete", json!({"id": id})).map(drop).map_err(|e| QueryFailure::Error(wire::host_error(&e.message())))

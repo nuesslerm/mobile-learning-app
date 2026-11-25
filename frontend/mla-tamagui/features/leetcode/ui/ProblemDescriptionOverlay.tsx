@@ -1,26 +1,26 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback } from 'react';
 
 import { ProblemDescriptionSheet } from './ProblemDescriptionSheet';
-import { ProblemCatalog } from '../domain/problemCatalog';
-import { dismissOverlayRoute } from './dismissOverlayRoute';
+import { useLeetCodePorts } from '../state/ports';
+import { useDismissOverlayRoute } from './dismissOverlayRoute';
 
 export function ProblemDescriptionOverlay() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const problem = id ? ProblemCatalog.getById(id) : undefined;
+  const dismiss = useDismissOverlayRoute(id);
+  const { libraryContent } = useLeetCodePorts();
+  const problem = id ? libraryContent.problem(id) : undefined;
 
-  useEffect(() => {
-    if (!problem) dismissOverlayRoute(id);
-  }, [problem, id]);
+  useFocusEffect(useCallback(() => {
+    if (!problem) dismiss();
+  }, [problem, dismiss]));
 
   if (!problem) return null;
 
   return (
     <ProblemDescriptionSheet
       problem={problem}
-      onClose={() => {
-        dismissOverlayRoute(id);
-      }}
+      onClose={dismiss}
     />
   );
 }

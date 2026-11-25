@@ -14,7 +14,6 @@ import {
   TextField,
   View,
 } from '@lib/tamagui-design-system';
-import { Stack } from 'expo-router';
 import { CircleMinus, Plus } from '@lib/tamagui-design-system/icons';
 import { useCallback, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 // gesture-handler's ScrollView, not react-native's: its ref resolves to a real
@@ -230,7 +229,6 @@ export function ToolbarConfigScreen(): React.ReactElement {
 
   return (
     <GestureHandlerRootView style={FILL}>
-      <Stack.Screen options={{ title: 'Toolbar' }} />
       <View flex={1} bg="$background" testID="ToolbarConfigScreen">
         <ScrollView
           ref={scrollViewRef}

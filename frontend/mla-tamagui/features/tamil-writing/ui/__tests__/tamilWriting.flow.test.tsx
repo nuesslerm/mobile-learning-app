@@ -1,6 +1,5 @@
 import {
   act,
-  expectWarning,
   fireEvent,
   routerHarness,
   screen,
@@ -10,8 +9,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { app } from '../../../../tests/flow/app';
-import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
-import { createHttpWritingCheck } from '../../testing';
 import { useTamilProgressStore } from '../../state/tamilProgressStore';
 
 describe('Tamil writing course flow', () => {
@@ -20,7 +17,7 @@ describe('Tamil writing course flow', () => {
   });
 
   it('given the course catalogue, when the list renders, then every lesson gets a row with its Tamil title', async () => {
-    await app.render('/tamil');
+    await app.render('/tamil/alphabet');
 
     await waitFor(() => {
       expect(screen.getByTestId('TamilCourseScreen')).toBeTruthy();
@@ -44,7 +41,7 @@ describe('Tamil writing course flow', () => {
 
   it('given a lesson row, when tapped, then the app pushes that lesson route', async () => {
     const router = routerHarness();
-    await app.render('/tamil');
+    await app.render('/tamil/alphabet');
 
     await waitFor(() => {
       expect(screen.getAllByTestId('TamilLessonRow').length).toBeGreaterThan(0);
@@ -205,120 +202,36 @@ describe('Tamil writing course flow', () => {
     expect(screen.queryByTestId('TamilReviewAnswerGlyph')).toBeNull();
   });
 
-  it('given the write-large screen, when it renders, then the instructions and the template are there', async () => {
+  it('Given a guided character, When its pad opens, Then it shows a clean glyph and lets the learner opt into guidance', async () => {
     await app.render('/tamil/write/uyir-a');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('TamilWriteScreen')).toBeTruthy();
-    });
+    await waitFor(() => screen.getByTestId('TamilWriteCanvasGuideGlyph'));
+    expect(screen.queryByText('Check strokes')).toBeNull();
+    expect(screen.getByTestId('TamilWriteDone').getAttribute('aria-disabled')).toBe('true');
 
-    // அ is written in two strokes, so it is taught in two.
-    expect(screen.getByTestId('TamilWriteStep1').textContent).toContain('top-left loop');
-    expect(screen.getByTestId('TamilWriteStep2').textContent).toContain('vertical stem');
-    expect(screen.queryByTestId('TamilWriteStep3')).toBeNull();
-    expect(screen.getByTestId('TamilWriteCanvasSurface')).toBeTruthy();
-
-    // Nothing written yet, so there is nothing to mark.
-    const check = screen.getByTestId('TamilWriteCheck');
-    expect(check.getAttribute('aria-disabled') ?? check.getAttribute('disabled')).toBeTruthy();
+    await userEvent.click(screen.getByLabelText('Toggle stroke guide'));
+    await waitFor(() => screen.getByText('Check strokes'));
   });
 
-  it('given a word to write, when its pad renders, then the template is printed in the font the marker reads', async () => {
+  it('Given a word to write, When its pad renders, Then it shows the bundled-font model', async () => {
     await app.render('/tamil/write/word-uyir-i');
 
-    // The marker compares the ink with இலை drawn in Noto Sans Tamil; a browser's own Tamil font draws ை as another shape.
-    const guide = await waitFor(() => screen.getByTestId('TamilWriteCanvasGuideGlyph'));
-    expect(guide.textContent).toBe('இலை');
-    expect(guide.className).toContain('font_tamil');
+    const glyph = await waitFor(() => screen.getByTestId('TamilWriteCanvasGuideGlyph'));
+    expect(glyph.textContent).toBe('இலை');
+    expect(glyph.className).toContain('font_tamil');
   });
 
-  it('given a combination, when it renders, then the consonant steps carry the sign line', async () => {
-    await app.render('/tamil/write/uyirmei-m-oo');
-
-    await waitFor(() => {
-      expect(screen.getByTestId('TamilWriteScreen')).toBeTruthy();
-    });
-
-    // ம's two steps, then what the ோ sign adds as a third.
-    expect(screen.getByTestId('TamilWriteStep1').textContent).toContain('square cup');
-    expect(screen.getByTestId('TamilWriteStep3').textContent).toContain('ே');
-  });
-
-  it('given a marker that answers 502 once, when the learner checks their writing and then checks again, then the card names the failure and nothing is recorded until the verdict, and the log tells the two outcomes apart', async () => {
-    // Given the marker behind a gateway: one 502 page, then a verdict
-    await forgetLoggedLines();
-    expectWarning(/tamil\.write\.check_failed/);
-    const answers = [
-      new Response('<html>Bad Gateway</html>', { status: 502 }),
-      new Response(JSON.stringify({ ok: true, score: 87, summary: 'Reads as அ.', fix: 'Longer bar.' }), { status: 200 }),
-    ];
-    const marker = createHttpWritingCheck('http://marker.test', (async () => answers.shift() ?? Response.error()) as typeof fetch);
-    await app.render('/tamil/write/uyir-a', { overrides: { tamilWriting: { writingCheck: marker } } });
+  it('Given a pure consonant pad with ink, When the learner self-checks, Then local mastery records the attempt once', async () => {
+    await app.render('/tamil/write/mei-m');
     const surface = await waitFor(() => screen.getByTestId('TamilWriteCanvasSurface'));
     fireEvent.pointerDown(surface, { clientX: 10, clientY: 10, pointerId: 1 });
     fireEvent.pointerMove(surface, { clientX: 40, clientY: 40, pointerId: 1 });
     fireEvent.pointerUp(surface, { clientX: 40, clientY: 40, pointerId: 1 });
     await waitFor(() => expect(screen.getByTestId('TamilWriteHint').textContent).toBe('1 stroke'));
 
-    // When the first check meets the 502
-    await userEvent.click(screen.getByTestId('TamilWriteCheck'));
-
-    // Then the card says the marker was not reached, the ink stays and no attempt is recorded
-    await waitFor(() =>
-      expect(screen.getByTestId('TamilWriteVerdictSummary').textContent).toContain('Could not reach the marker')
-    );
-    expect(screen.getByTestId('TamilWriteHint').textContent).toBe('1 stroke');
-    expect(useTamilProgressStore.getState().totalAttempts).toBe(0);
-
-    // When the learner checks again and the marker answers
-    await userEvent.click(screen.getByTestId('TamilWriteCheck'));
-
-    // Then the verdict shows and the letter is recorded
-    await waitFor(() => expect(screen.getByTestId('TamilWriteVerdictBadge').textContent).toContain('LOOKS RIGHT'));
-    expect(useTamilProgressStore.getState().masteryOf('uyir-a')).toBe(1);
-
-    // And the session holds each call's start, the failure with its status and duration, and the outcome with ok, score and duration
-    const lines = (await loggedLines()).filter((line) => line.text.includes('tamil.write.check'));
-    expect(lines.map((line) => [line.level, line.text.split(' ')[0]])).toEqual([
-      ['info', 'tamil.write.check'],
-      ['error', 'tamil.write.check_failed'],
-      ['info', 'tamil.write.check'],
-      ['info', 'tamil.write.checked'],
-    ]);
-    expect(lines[1]?.context).toMatchObject({ subjectId: 'uyir-a', status: 502 });
-    expect(typeof lines[1]?.context?.ms).toBe('number');
-    expect(lines[3]?.context).toMatchObject({ subjectId: 'uyir-a', ok: true, score: 87 });
-    expect(typeof lines[3]?.context?.ms).toBe('number');
-    // The writing and the marker's words about it stay on the phone
-    expect(JSON.stringify(lines)).not.toMatch(/<svg|Reads as|Longer bar/);
-  });
-
-  it('given a line and a single tap on the pad, when the learner checks their writing, then the picture sent to the marker holds both the line and the dot', async () => {
-    // Given a marker that records what it is sent
-    let sent: { svg: string } | undefined;
-    const fetchDouble = (async (_url: string, init?: RequestInit) => {
-      sent = JSON.parse(String(init?.body));
-      return new Response(JSON.stringify({ ok: true, score: 90, summary: 'Reads as ம்.', fix: '' }), { status: 200 });
-    }) as unknown as typeof fetch;
-    const marker = createHttpWritingCheck('http://marker.test', fetchDouble);
-    await app.render('/tamil/write/uyir-a', { overrides: { tamilWriting: { writingCheck: marker } } });
-    const surface = await waitFor(() => screen.getByTestId('TamilWriteCanvasSurface'));
-    fireEvent.pointerDown(surface, { clientX: 10, clientY: 60, pointerId: 1 });
-    fireEvent.pointerMove(surface, { clientX: 90, clientY: 60, pointerId: 1 });
-    fireEvent.pointerUp(surface, { clientX: 90, clientY: 60, pointerId: 1 });
-
-    // And a tap that never moves, the pulli of ம்
-    fireEvent.pointerDown(surface, { clientX: 50, clientY: 20, pointerId: 2 });
-    fireEvent.pointerUp(surface, { clientX: 50, clientY: 20, pointerId: 2 });
-    await waitFor(() => expect(screen.getByTestId('TamilWriteHint').textContent).toBe('2 strokes'));
-
-    // When the learner checks their writing
-    await userEvent.click(screen.getByTestId('TamilWriteCheck'));
-
-    // Then the marker was sent the line as a path and the tap as a dot
-    await waitFor(() => expect(sent).toBeDefined());
-    expect(sent?.svg).toContain('<path');
-    expect(sent?.svg).toContain('<circle');
+    await userEvent.click(screen.getByTestId('TamilWriteDone'));
+    await waitFor(() => expect(screen.getByTestId('TamilWriteVerdict').textContent).toBe('Practice complete'));
+    expect(useTamilProgressStore.getState().characters['mei-m']?.attempts).toBe(1);
   });
 
   it('given ink on one write pad, when a link opens another subject on the same screen, then its pad starts empty', async () => {
@@ -358,7 +271,7 @@ describe('Tamil writing course flow', () => {
     fireEvent.pointerUp(surface, { clientX: 40, clientY: 40, pointerId: 1 });
 
     await waitFor(() => {
-      expect(screen.getByTestId('TamilWriteCheck')).toBeTruthy();
+      expect(screen.getByTestId('TamilWriteDone')).toBeTruthy();
     });
     const reported = errors.mock.calls.map((call) => String(call[0]));
     errors.mockRestore();

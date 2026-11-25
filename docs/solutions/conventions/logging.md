@@ -26,16 +26,13 @@ module: repo-wide
 
 - **No `console.*`** (oxlint `no-console`). Import `Logger` from `@lib/logging`
   and call it directly; there is no per-module logger to create.
-- **Nothing about the call site is passed by hand.** The `@lib/logging/babel`
-  plugin (in the app's Babel preset) rewrites every `Logger.<method>(...)` to
-  `Logger.withContext({ file, line, fn, fnPath, testID }).<method>(...)` at
-  compile time: the file, the line, the enclosing function or component, the
-  lexical chain of enclosing functions, and the `testID` in scope.
 - **Structured lines**: a static `domain.action` message, variables as fields:
   ```ts
   Logger.info('lecture.submit', { lectureId, ms });
   Logger.withError(err).error('api.fail', { endpoint });
   ```
+  Use an operation or request ID when several events describe the same action.
+  Include a UI test ID only when it identifies the subject of the event.
   An `Error` among the fields is serialised with its name, message and stack.
 - **Hot paths** (scroll, keystrokes, gestures) do not log per event; log the
   outcome once.
@@ -52,26 +49,41 @@ longer lint rules (owner, 20 Oct; `require-structured-log` never fired and went 
 
 ```
 Logger.*  ->  host LogLayer (configureLogger)  ->  scrubber plugin
-          ->  PipelineTransport: buffered batches -> stages (appendToLiveTail, appendToPersistence)
-          ->  ConsoleEchoTransport (the real console)
-console.* ->  installConsoleCapture -> live tail
+          ->  PipelineTransport: buffered batches -> appendToBetterStack
+          ->  ConsoleEchoTransport -> console -> Buoy in native development
 ```
 
 - `logger/`: `Logger`, `configureLogger`. Without `configureLogger` every call
   is a silent no-op, so the host's wiring module must be the first import.
-- `babel/`: the call-site injection plugin and preset.
-- `pipeline/`, `liveTail/`, `persistence/`, `install/`: the transport, the
-  in-memory tail the debug sheet reads, the storage contract with an in-memory
-  implementation, and console capture.
+- `pipeline/` contains the console transport and BetterStack forwarding.
 - `primitives/`: buffered sink, clock, secret redaction, and `withTraceparent`
   (the W3C `traceparent` header the voice-edit and web-bridge clients send, so
   backend spans join the app's trace).
 
-The app's wiring is `frontend/mla-tamagui/lib/logger.ts`: the live tail and
-the console echo, nothing forwarded off the device. A driven run reads the echoed
-lines with `wf browser get-logs --level info` (or `device:get_logs{level='info'}` in a
-test), the same on Android; in development a page script can also read the tail as
-`__liveTail.getEntries()`.
+The app configures the transport once in `frontend/mla-tamagui/lib/logger.ts`.
+BetterStack receives info and higher when the ingest pair is configured. Native
+development sends all levels to the console Buoy captures. Flow tests observe the same console methods in Vitest.
+The web harness can read the console with `wf browser get-logs --level info`.
+
+### Resolving exception stacks
+
+Find the `app.crash` or caught exception in BetterStack. The app records its
+update group, platform and platform-specific update ID when an EAS Update is
+running. Copy the raw `error.stack` to a file and use those three fields:
+
+```sh
+wf android stack <update-group> --platform ios --update-id <update-id> --file stack.txt
+```
+
+CI retains each update group's compressed, authenticated source maps for 30 days
+as a separate encrypted Actions artifact. The command downloads it with authenticated
+`gh` and decrypts it with `CI_DB_KEY` from the vault. It rejects an update ID
+that disagrees with the archived map. The Android run report uses the same lookup.
+
+For a locally exported bundle or an embedded native build, pass the exact source
+map with `--map <path>`. A manually archived update can also be read from the
+same `WF_EAS_MAPS_DIR` that was set when it was published. The app keeps the
+generated stack. File and line resolution happens off-device.
 
 ## Secret + PII scrubbing (automatic, on by default)
 
@@ -204,12 +216,11 @@ Each row's `raw` is the full JSON we sent (`dt`, `level`, `message`, `module`,
 
 1. Add `@lib/logging` as a workspace dependency.
 2. Build a `LogLayer` with the transports you want, e.g.
-   `new PipelineTransport({ serialize, stages: [appendToLiveTail()] })` and
+   `new PipelineTransport({ serialize, stages: [appendToBetterStack({ host, token })] })` and
    `new ConsoleEchoTransport({ console: hostConsole })`.
 3. Call `configureLogger({ root: () => layer })` once at start-up, before any
    other import logs.
-4. Add `@lib/logging/babel-preset` to the host's Babel config so call sites are
-   injected.
+4. Use the structured event conventions above.
 
 ## wf usage rows (`HEALTH_RPT.WF_USAGE`)
 

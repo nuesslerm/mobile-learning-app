@@ -11,6 +11,14 @@ export type HeaderActionSpec = {
   testID: string;
 };
 
+export type HeaderStatusSpec = {
+  label: string;
+  icon: LucideIcon;
+  sfSymbol?: SfSymbolName;
+  testID: string;
+  menu?: Pick<HeaderMenuSpec, 'accessibilityLabel' | 'items'>;
+};
+
 export type HeaderGroupItem = HeaderActionSpec | HeaderMenuSpec;
 
 /** Controls that share one piece of glass, in the order they appear. */
@@ -21,6 +29,8 @@ export type ScreenHeaderSpec = {
   title: string;
   /** Secondary line under the title. Keep it to context, not restatement. */
   subtitle?: string;
+  nativeTitle?: 'capsule' | 'hidden';
+  leadingStatus?: HeaderStatusSpec;
   onBack?: () => void;
   backAccessibilityLabel?: string;
   /** Today's one pill: the actions, then the menu last. Ignored when `groups` is given. */
@@ -32,6 +42,9 @@ export type ScreenHeaderSpec = {
   busy?: boolean;
   /** Native bar only: the content scrolls under the glass instead of starting below an opaque bar. Ignored by the classic header. */
   transparent?: boolean;
+  nativeBackgroundColor?: string;
+  nativeGlassMenuGroups?: boolean;
+  hideNativeControlBackgrounds?: boolean;
   testID: string;
 };
 

@@ -1,15 +1,15 @@
 ---
-title: device-lab G2 — Tamil letters and words drawn on the canvas, marked right
-verifies: On the device-lab render (the lab web export at iPhone 15 Pro size, live backends), an agent writes Tamil letters and words on the canvas with human touch strokes, and they pass the app's similarity checks — the local on-the-line score for traced letters and the live marker's LOOKS RIGHT for letters and words written over the template
+title: device-lab G2 — Tamil letters and words on the tracing canvas
+verifies: In the phone-sized web export, local guided tracing advances after a valid stroke, while free tracing for letters and words keeps the ink and records the learner’s self-check.
 tier: agent-driven
-packages: frontend/mla-tamagui, frontend/libraries/tamagui-design-system, frontend/libraries/gesture-geometry, backend/remote-chat-agent, clis/wf-harness
+packages: frontend/mla-tamagui, frontend/libraries/tamagui-design-system, frontend/libraries/gesture-geometry, clis/wf-harness
 maxAgeDays: 30
 ---
 
 # device-lab G2: Tamil letters and words, marked right
 
 Gate G2 of the device-lab spec ([`spec.md`](../plans/device-lab/spec.md) §7). An agent writes Tamil on the
-canvas the way a person does with a finger, and the app marks it right.
+canvas the way a person does with a finger, and the app offers guidance or a self-check.
 
 An agent runs it step by step through `wf browser`, on a commit that is already on `origin/dev`, and writes the run to `docs/runbooks/.results/device-lab-tamil-writing.json` (`runbook`, `sha`, `ranAt`, `verdict`, `evidence`).
 It needs the phase 3 driver work: human touch strokes (I13), `wf browser draw-strokes-on`, the
@@ -31,18 +31,7 @@ input log and `wf browser check-taps`.
 ## Setup
 
 ```bash
-wf browser tailnet-forward --host remote-chat-agent-prod --port 8787 --local-port 8787   # the live marker
-# While remote-chat-agent-prod is off the tailnet (docs/gaps/device-lab-live-agent-unreachable.md), run the
-# same marker from this checkout instead, with the vault's provider keys, as production does:
-#   (cd .agents/tmp/marker-ws && MINIMAX_API_KEY=$(wf secret get MINIMAX_API_KEY --backend bitwarden) \
-#     KIMI_API_KEY=$(wf secret get KIMI_API_KEY --backend bitwarden) \
-#     OPENCODE_API_KEY=$(wf secret get OPENCODE_GO_API_KEY --backend bitwarden) \
-#     OPENCODE_CONFIG="$PWD/../../../backend/remote-chat-agent/opencode-server/server-config.json" \
-#     opencode serve --hostname 127.0.0.1 --port 4096)
-#   (cd backend/remote-chat-agent && OPENCODE_SERVER_URL=http://127.0.0.1:4096 \
-#     pnpm exec tsx --env-file=.env.defaults src/index.ts)   # listens on 8787
-# Both run in the background; the export's agent URL is http://127.0.0.1:8787 either way.
-EXPO_PUBLIC_DEVICE_LAB=1 pnpm --filter mla-tamagui run export:web
+wf test prepare --web
 # Serve under the export's baseUrl (/mla-tamagui). Served at the root, a dynamic route such as
 # /tamil/uyir-1 renders "No lesson with id [lessonId]" (dry run, 2026-10-05).
 mkdir -p .agents/tmp/device-lab-serve && ln -sfn "$PWD/frontend/mla-tamagui/dist" .agents/tmp/device-lab-serve/mla-tamagui
@@ -66,21 +55,21 @@ wf browser start-recording .agents/tmp/device-lab-g2/g2.mp4
 | 5 | Steps 2–4 for every letter of `uyir-1`: அ ஆ இ ஈ உ ஊ | Six letters scored |
 | 6 | Navigate to `/mla-tamagui/tamil/uyirmei-k`; steps 2–3 for its first letter, க | Seven letters scored |
 
-### B. A letter written large (live marker)
+### B. A letter written large (local self-check)
 
 | # | Do | Expect |
 | --- | --- | --- |
 | 7 | Navigate to `/mla-tamagui/tamil/write/uyir-a`; screenshot | The large pad with the faint அ template |
 | 8 | `wf browser draw-strokes-on --id TamilWriteCanvasSurface --source template`; screenshot | Ink over the template |
-| 9 | `wf browser tap-on --id TamilWriteCheck`; `wf browser assert-visible --id TamilWriteVerdictBadge --timeout 30000`; screenshot | "LOOKS RIGHT · <score>". On "NOT YET", tap `TamilWriteClear` and write it once more |
+| 9 | `wf browser tap-on --id TamilWriteDone`; `wf browser assert-visible --id TamilWriteVerdict --timeout 30000`; screenshot | "Practice complete"; the ink stays visible |
 
-### C. Words (live marker)
+### C. Words (local self-check)
 
 | # | Do | Expect |
 | --- | --- | --- |
-| 10 | Steps 7–9 on `/mla-tamagui/tamil/write/word-uyir-a` | அம்மா: "LOOKS RIGHT · <score>" within two attempts |
-| 11 | Steps 7–9 on `/mla-tamagui/tamil/write/word-uyir-aa` | ஆடு: "LOOKS RIGHT · <score>" within two attempts |
-| 12 | Steps 7–9 on `/mla-tamagui/tamil/write/word-uyir-i` | இலை: "LOOKS RIGHT · <score>" within two attempts |
+| 10 | Steps 7–9 on `/mla-tamagui/tamil/write/word-uyir-a` | அம்மா: "Practice complete" |
+| 11 | Steps 7–9 on `/mla-tamagui/tamil/write/word-uyir-aa` | ஆடு: "Practice complete" |
+| 12 | Steps 7–9 on `/mla-tamagui/tamil/write/word-uyir-i` | இலை: "Practice complete" |
 
 ### D. Recording
 
@@ -95,8 +84,8 @@ wf browser start-recording .agents/tmp/device-lab-g2/g2.mp4
 1. **Traced letters.** Every stroke is accepted within two attempts, and all seven letters score at least
    80 % ON THE LINE. That is the floor `frontend/mla-tamagui/e2e/verify-tamil.mjs` holds exact walks to, so
    a human stroke that falls below it is a finding about the stroke model or the validator, not a pass.
-2. **Freehand letter.** அ written large is marked "LOOKS RIGHT".
-3. **Words.** அம்மா, ஆடு and இலை are each marked "LOOKS RIGHT" within two attempts.
+2. **Freehand letter.** அ written large shows "Practice complete" after self-check.
+3. **Words.** அம்மா, ஆடு and இலை each show "Practice complete" after self-check.
 4. **Input only.** The input log holds only touch strokes, taps and swipes; `check-taps` passes.
 
 The gate fails on any miss. Fix the app, the mock or the driver, then run it again; never relax a gate.

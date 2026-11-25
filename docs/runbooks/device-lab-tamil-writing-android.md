@@ -1,6 +1,6 @@
 ---
 title: device-lab G2 native — Tamil writing on redroid (Android)
-verifies: On a headless Android 14 (redroid, nested in agent-shell's dind on the VM) the installed lab APK is driven by touch input only. The seven traced letters score at least 80 percent, a freehand letter and three words are marked LOOKS RIGHT by the live marker.
+verifies: Touch-driven Tamil handwriting on Android, including local guided tracing and self-check on freehand pads.
 tier: agent-driven
 maxAgeDays: 30
 e2e: e2e/tamil-writing.lua
@@ -19,9 +19,8 @@ Result: `docs/runbooks/.results/device-lab-tamil-writing-android.json` (`platfor
 
 ## Setup
 
-1. APK: `eas build --platform android --profile android-apk-lab` (agent URL `http://100.91.40.14:8787` baked in, cleartext HTTP on for this profile only). Take the artifact URL.
+1. APK: `eas build --platform android --profile android-apk-lab`. Take the artifact URL.
 2. From `wf vm exec`: pull the current `wf-cli` image for the `wf` binary, boot `redroid/redroid:14.0.0_64only-latest` privileged in agent-shell's dind (`--cpus 1.5`, 720x1280 at 320 dpi), `adb connect` its bridge IP, `wf android adb install -r <apk>`.
-3. Probe the marker: `curl http://100.91.40.14:8787/health` returns 200 from the VM.
 The driver script is `.agents/tmp/tamil9.sh` (scratch; its steps are the table below).
 
 ## Steps
@@ -32,15 +31,15 @@ The driver script is `.agents/tmp/tamil9.sh` (scratch; its steps are the table b
 | 2 | Per stroke: `wf android draw-strokes-on --id TamilPracticeCanvasSurface --source guide`, swipe up, `assert-visible --id TamilPracticeStrokeScore` | The step advances; after the last stroke "NN% ON THE LINE", NN at least 80 |
 | 3 | `tap-on --id TamilPracticeNext` (the › sits above the card; scroll to the top first), repeat for the six letters of `uyir-1` | Six letters scored |
 | 4 | Force-stop, open `tamil/uyirmei-k`, steps 2 | Seventh letter scored |
-| 5 | Force-stop, open `tamil/write/uyir-a`, `draw-strokes-on --id TamilWriteCanvasSurface --source template`, `tap-on --id TamilWriteCheck`, `assert-visible --id TamilWriteVerdictBadge` | "LOOKS RIGHT · NN" (on NOT YET: `TamilWriteClear` and once more) |
-| 6 | Step 5 on `tamil/write/word-uyir-a`, `word-uyir-aa`, `word-uyir-i` | Each "LOOKS RIGHT" within two attempts |
+| 5 | Force-stop, open `tamil/write/uyir-a`, `draw-strokes-on --id TamilWriteCanvasSurface --source template`, `tap-on --id TamilWriteDone`, `assert-visible --id TamilWriteVerdict` | "Practice complete"; the ink stays visible |
+| 6 | Step 5 on `tamil/write/word-uyir-a`, `word-uyir-aa`, `word-uyir-i` | Each shows "Practice complete" |
 | 7 | `wf android stop-recording`; publish videos, screenshots, input log | One page |
 
 ## Gates
 
 1. Traced letters: all seven at least 80 percent ON THE LINE.
-2. Freehand letter: அ marked LOOKS RIGHT.
-3. Words: அம்மா, ஆடு, இலை each LOOKS RIGHT within two attempts.
+2. Freehand letter: அ shows "Practice complete" after self-check.
+3. Words: அம்மா, ஆடு, இலை each show "Practice complete" after self-check.
 4. Input only: the input log holds touch strokes, taps and swipes.
 
 ## Native differences from the browser run

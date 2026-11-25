@@ -2200,6 +2200,7 @@
         {
           "id": "merge-two-sorted-lists",
           "leetcodeId": 21,
+          "sampleCaseCount": 3,
           "title": "Merge Two Sorted Lists",
           "difficulty": "easy",
           "category": "Linked List",

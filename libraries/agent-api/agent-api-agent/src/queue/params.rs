@@ -141,6 +141,38 @@ impl DeleteParams {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EditHoldAction {
+    Acquire,
+    Renew,
+    Release,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EditHoldParams {
+    pub thread: String,
+    pub item: String,
+    pub edit: String,
+    pub action: EditHoldAction,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_prompt: Option<String>,
+}
+
+impl EditHoldParams {
+    pub fn parse(params: &Value) -> Result<Self, ParamError> {
+        let parsed: Self = read(params)?;
+        required("thread", &parsed.thread)?;
+        required("item", &parsed.item)?;
+        required("edit", &parsed.edit)?;
+        if parsed.action == EditHoldAction::Acquire && parsed.expected_prompt.is_none() {
+            return Err(ParamError("expected_prompt is required for acquire".into()));
+        }
+        Ok(parsed)
+    }
+}
+
 /// `queue.resume`: release a queue a forced stop held, so its first item starts when no turn runs. With `item`, that item is sent now: it goes
 /// first and starts at once, which is only allowed while no turn runs.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

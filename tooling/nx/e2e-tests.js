@@ -20,7 +20,8 @@ const HARNESS = {
     'clis/harness-core/src/golden.rs',
     'clis/harness-core/src/pixelmatch.rs',
   ],
-  android: ['clis/harness-android/src/*.rs', 'clis/harness-android/src/*.json', 'clis/harness-android/assets/**'],
+  android: ['e2e/support/native-ready.lua', 'clis/wf-harness/ios_simulator.py', '.github/workflows/e2e-tests.yml', 'clis/harness-android/src/*.rs', 'clis/harness-android/src/*.json', 'clis/harness-android/assets/**'],
+  ios: ['e2e/support/native-ready.lua', 'clis/wf-harness/ios_simulator.py', 'clis/wf-harness/src/ios*', 'clis/wf-harness/src/ios/**', '.github/workflows/ios-e2e-tests.yml'],
   browser: [
     'clis/harness-browser/src/*.rs',
     'clis/harness-browser/src/*.js',
@@ -79,6 +80,14 @@ function project(root, file, fields) {
         : []),
       ...[...HARNESS.shared, ...(HARNESS[platform] ?? [])].map((glob) => ({ fileset: `{workspaceRoot}/${glob}` })),
       // the feature code it drives and what that code imports: libraries, and npm packages at their locked (patched) version
+      ...(platform === 'ios' || platform === 'android' ? [
+        { fileset: '{workspaceRoot}/clis/pipeline/src/e2e_run.rs' },
+        { fileset: '{workspaceRoot}/clis/pipeline/src/device_run.rs' },
+        { fileset: '{workspaceRoot}/e2e/support/native-learner.lua' },
+        ...(test === 'leetcode-native' ? [{ fileset: '{workspaceRoot}/e2e/support/native-editor.lua' }] : []),
+        { env: 'WF_NATIVE_RUNTIME' },
+        { env: 'WF_E2E_SHA' },
+      ] : []),
       '^production',
       // the app shell every screen runs in: the app's own routes, layouts and components, not the features or libraries
       { input: 'production', projects: ['mla-tamagui'] },

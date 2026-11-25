@@ -1,6 +1,7 @@
 import { Icon, Text, View } from '@lib/tamagui-design-system';
 import {
   DrawerContentScrollView,
+  useDrawerProgress,
   useDrawerStatus,
   type DrawerContentComponentProps,
 } from 'expo-router/drawer';
@@ -14,10 +15,15 @@ import {
   Cpu,
 } from '@lib/tamagui-design-system/icons';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
-import { Platform } from 'react-native';
+import { useEffect } from 'react';
+import { Keyboard, Platform, Pressable, StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useResolvedScheme } from './NativeChromeBridge';
 
 const DESTINATIONS = [
-  { label: 'Blind 75', href: '/', icon: Code, testID: 'DrawerItemHome' },
+  { label: 'LeetCode Library', href: '/', icon: Code, testID: 'DrawerItemHome' },
   {
     label: 'Design system',
     href: '/showcase',
@@ -31,7 +37,7 @@ const DESTINATIONS = [
     testID: 'DrawerItemCodingAgent',
   },
   {
-    label: 'Tamil writing',
+    label: 'Tamil',
     href: '/tamil',
     icon: PenLine,
     testID: 'DrawerItemTamil',
@@ -53,10 +59,28 @@ const DESTINATIONS = [
 export function AppDrawerContent(props: DrawerContentComponentProps) {
   const pathname = usePathname();
   const open = useDrawerStatus() === 'open';
+  const progress = useDrawerProgress();
+
+  const dark = useResolvedScheme() === 'dark';
+  const surfaceStyle = useAnimatedStyle(() => {
+    const shade = Math.floor(14 + 4 * progress.value + 0.05);
+    return { backgroundColor: `rgb(${shade}, ${shade}, ${shade})` };
+  });
+  useEffect(() => {
+    if (open) Keyboard.dismiss();
+  }, [open]);
+
+  const openCodingAgent = () => {
+    props.navigation.closeDrawer();
+    if (pathname !== '/coding-agent') router.push('/coding-agent');
+  };
 
   return (
     <View flex={1} bg="$background" testID="AppDrawer" aria-hidden={!open}>
-      <DrawerContentScrollView {...props}>
+      {dark && Platform.OS === 'ios' && (
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, surfaceStyle]} />
+      )}
+      <DrawerContentScrollView {...props} style={styles.scroll}>
         <YStack px="$3" pt="$3" pb="$5">
           <Text variant="h3" role="heading" testID="AppDrawerTitle">
             Learning workspace
@@ -68,7 +92,7 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
               pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
             const selection = Platform.OS === 'web'
               ? { 'aria-current': selected ? ('page' as const) : undefined }
-              : { accessibilityState: { selected } };
+              : { 'aria-selected': selected };
 
             return (
               <XStack
@@ -98,6 +122,51 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
           })}
         </YStack>
       </DrawerContentScrollView>
+      <DrawerFooter
+        dark={dark}
+        open={open}
+        onCodingAgent={openCodingAgent}
+      />
     </View>
   );
 }
+
+function DrawerFooter({
+  dark,
+  open,
+  onCodingAgent,
+}: {
+  dark: boolean;
+  open: boolean;
+  onCodingAgent: () => void;
+}) {
+  const { bottom } = useSafeAreaInsets();
+  return (
+    <View
+      testID="AppDrawerFooter"
+      flexDirection="row"
+      items="center"
+      justify="flex-end"
+      px={28}
+      pt={8}
+      pb={Math.max(28, bottom - 5)}
+    >
+      <Pressable
+        testID="AppDrawerCodingAgent"
+        accessibilityRole="button"
+        accessibilityLabel="Open Coding agent"
+        tabIndex={open ? 0 : -1}
+        onPress={onCodingAgent}
+        style={[styles.shortcut, { backgroundColor: dark ? '#FAFAFA' : '#24242A' }]}
+      >
+        <Icon as={Bot} size={16} color={dark ? '#222222' : '#FAFAFA'} />
+        <Text color={dark ? '#222222' : '#FAFAFA'} fontSize={13} numberOfLines={1}>Coding agent</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  scroll: { flex: 1 },
+  shortcut: { width: 122, height: 48, borderRadius: 24, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+});

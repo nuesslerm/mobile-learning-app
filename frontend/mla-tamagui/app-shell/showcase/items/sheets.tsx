@@ -16,7 +16,6 @@ import {
 } from '@lib/tamagui-design-system/ui/sheet';
 import {
   BottomSheet as ExpoBottomSheet,
-  Button as ExpoButton,
   Column,
   RNHostView,
   Row,
@@ -27,6 +26,7 @@ import {
 import { useState } from 'react';
 import { Platform } from 'react-native';
 
+import { ExpoButton } from './ExpoButton';
 import { Compare, ExpoHost } from '../Compare';
 import { Overlay } from '../overlayHost';
 import {

@@ -1,259 +1,180 @@
 import { Logger } from '@lib/logging';
-import { Badge, Button, IconButton, ScreenHeader, Text, View } from '@lib/tamagui-design-system';
-import { ChevronRight, Eye, RotateCcw, Trash2 } from '@lib/tamagui-design-system/icons';
+import { CompactIconButton, FloatingSurface, ScreenHeader, useCompactColors } from '@lib/tamagui-design-system';
+import { ChevronLeft, ChevronRight, Eye, Play, RotateCcw, Trash2 } from '@lib/tamagui-design-system/icons';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { WritingCheckError, type WritingVerdict } from '../domain/ports';
-import { useTamilWritingPorts } from '../state/ports';
-import { strokesToSvg, type CanvasSize, type Stroke } from '../domain/strokes';
+import { characterPosition } from '../domain/handwriting/catalog';
+import { getStrokeGuide } from '../domain/strokeGuide';
+import { assessStroke } from '../domain/strokeValidation';
+import type { CanvasSize, Stroke } from '../domain/strokes';
 import { getWritingSubject, subjectPosition } from '../domain/tracks';
 import { useTamilProgressStore } from '../state/tamilProgressStore';
-
 import { TracingCanvas } from './TracingCanvas';
+import { backTo, CourseButton, CourseLayout, CourseMessage } from './library/CourseLayout';
 
-export type TamilWriteScreenProps = {
-  /** A character id, or a word id from `domain/tracks.ts`. */
-  subjectId: string;
-};
+const palette = [
+  { label: 'Blue', color: '#267ef2' }, { label: 'Red', color: '#eb4f59' }, { label: 'Green', color: '#24a977' },
+];
 
-/** The printed template's share of the pad's shorter side. */
-const TEMPLATE_SCALE = 0.82;
-/** A word is long; give it what fits. */
-const WORD_TEMPLATE_SCALE = 0.34;
-/** The verdict card with its two-line summary, measured in the lab render. */
-const VERDICT_HEIGHT = 60;
-
-/**
- * Write the letter -- or the word -- as large as you like, with the shape to
- * copy and the words that describe it. One screen, no scrolling: the header
- * stays put, the instructions take one card, the pad takes everything else,
- * and the controls sit at the bottom under the thumb.
- *
- * Deliberately not the stroke coach next door: no dot to start on, no arrow to
- * follow, no stroke refused for going the wrong way. The template is the font's
- * own glyph, so it is as crisp as the pad is large; the marking happens once,
- * at the end, on what was actually written.
- */
-export function TamilWriteScreen({ subjectId }: TamilWriteScreenProps) {
-  const insets = useSafeAreaInsets();
+export function TamilWriteScreen({ subjectId }: { subjectId: string }) {
+  const colors = useCompactColors();
+  const { bottom } = useSafeAreaInsets();
   const recordAttempt = useTamilProgressStore((state) => state.recordAttempt);
-  const { writingCheck } = useTamilWritingPorts();
-
-  const subject = useMemo(() => getWritingSubject(subjectId), [subjectId]);
-  const position = useMemo(() => subjectPosition(subjectId), [subjectId]);
-  const next = position ? position.track.subjects[position.index + 1] : undefined;
-
-  const [strokes, setStrokes] = useState<readonly Stroke[]>([]);
-  const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 0, height: 0 });
+  const subject = getWritingSubject(subjectId);
+  const position = characterPosition(subjectId);
+  const track = subjectPosition(subjectId);
+  const previous = position?.previous ?? (position ? undefined : track?.track.subjects[track.index - 1]);
+  const next = position?.next ?? (position ? undefined : track?.track.subjects[track.index + 1]);
+  const guide = getStrokeGuide(subjectId);
   const [showTemplate, setShowTemplate] = useState(true);
-  const [showSteps, setShowSteps] = useState(true);
-  const [verdict, setVerdict] = useState<WritingVerdict | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [mode, setMode] = useState<'none' | 'guide' | 'demo'>('none');
+  const [demoStep, setDemoStep] = useState(0);
+  const [width, setWidth] = useState(8);
+  const [color, setColor] = useState(palette[0].color);
+  const [ink, setInk] = useState<readonly { stroke: Stroke; color: string; width: number }[]>([]);
+  const saving = useRef(false);
+  const attempt = useRef<string>(undefined);
+  const [pending, setPending] = useState(false);
+  const [size, setSize] = useState<CanvasSize>({ width: 0, height: 0 });
+  const [feedback, setFeedback] = useState<string>();
+  const [saved, setSaved] = useState(false);
 
-  const clear = useCallback(() => {
-    setStrokes([]);
-    setVerdict(null);
-  }, []);
-
-  const check = useCallback(async () => {
-    if (!subject || strokes.length === 0) return;
-    setChecking(true);
-    setVerdict(null);
-    const startedAt = Date.now();
-    try {
-      const result = await writingCheck.check({
-        characterId: subject.id,
-        glyph: subject.glyph,
-        transliteration: subject.transliteration,
-        svg: strokesToSvg(strokes, canvasSize),
-      });
-      Logger.info('tamil.write.checked', {
-        subjectId: subject.id,
-        ok: result.ok,
-        score: result.score,
-        ms: Date.now() - startedAt,
-      });
-      setVerdict(result);
-      // A word marked right is every one of its letters written right.
-      for (const id of subject.characterIds) {
-        recordAttempt(id, result.ok ? 'got-it' : 'again');
-      }
-    } catch (error) {
-      // status 0: no response (network or the abort); null: not an HTTP failure (an unreadable 200)
-      Logger.withError(error).error('tamil.write.check_failed', {
-        subjectId: subject.id,
-        status: error instanceof WritingCheckError ? error.status : null,
-        ms: Date.now() - startedAt,
-      });
-      setVerdict({
-        ok: false,
-        score: 0,
-        summary: 'Could not reach the marker. Your writing is still on the pad.',
-      });
-    } finally {
-      setChecking(false);
-    }
-  }, [subject, canvasSize, recordAttempt, strokes, writingCheck]);
-
-  const missing = !subject;
   useEffect(() => {
-    if (missing) Logger.info('tamil.write.not_found', { subjectId });
-  }, [missing, subjectId]);
+    if (mode !== 'demo' || !guide) return;
+    const timer = setTimeout(() => {
+      if (demoStep + 1 < guide.strokes.length) setDemoStep(demoStep + 1);
+      else setMode('none');
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [demoStep, guide, mode]);
 
-  if (!subject) {
-    return (
-      <View flex={1} bg="$background" testID="TamilWriteMissing">
-        <ScreenHeader
-          glass
-          title="Nothing to write"
-          onBack={() => router.back()}
-          testID="TamilWriteMissingHeader"
-        />
-        <YStack p="$4">
-          <Text variant="muted" testID="TamilWriteMissingText">
-            No letter or word with that id.
-          </Text>
-        </YStack>
-      </View>
-    );
+  function open(id: string) {
+    router.replace({ pathname: '/tamil/write/[subjectId]', params: { subjectId: id } });
   }
 
-  const isWord = subject.kind === 'word';
+  function reset() {
+    attempt.current = undefined;
+    setInk([]);
+    setFeedback(undefined);
+    setSaved(false);
+  }
+
+  function check() {
+    if (!guide || mode !== 'guide') return;
+    if (ink.length !== guide.strokes.length) {
+      setFeedback(`Try the ${guide.strokes.length} guide strokes in order.`);
+      return;
+    }
+    const assessment = ink.map((mark, index) => assessStroke(mark.stroke, guide.strokes[index], size)).find((item) => !item.ok);
+    setFeedback(assessment?.message ?? 'Your strokes followed the guide.');
+  }
+
+  async function finish(outcome: 'got-it' | 'again') {
+    if (!subject || !ink.length || saved || saving.current) return;
+    saving.current = true;
+    setPending(true);
+    attempt.current ??= `${subject.id}-${Date.now()}`;
+    try {
+      if (subject.kind === 'letter') await Promise.resolve(recordAttempt(subject.id, outcome, attempt.current));
+      if (outcome === 'again') reset();
+      else {
+        setSaved(true);
+        setFeedback('Practice complete');
+      }
+    } catch (error) {
+      Logger.withError(error).error('tamil.writing.progress_save_failed');
+      setFeedback('Couldn’t save your progress. Try again.');
+    } finally {
+      saving.current = false;
+      setPending(false);
+    }
+  }
+
+  const reference = mode === 'demo' ? demoStep : Math.min(ink.length, (guide?.strokes.length ?? 1) - 1);
+  const activeGuide = mode !== 'none' ? guide?.strokes[reference] : undefined;
+  const completedGuides = mode !== 'none' ? guide?.strokes.slice(0, reference) : undefined;
+  const started = ink.length > 0;
+  const title = subject ? `${subject.glyph} · ${subject.transliteration}` : 'Nothing to write';
+  const back = () => backTo('/tamil/handwriting');
 
   return (
-    <View flex={1} bg="$background" testID="TamilWriteScreen">
-      <ScreenHeader
-        glass
-        title={`${subject.glyph} · ${subject.transliteration}`}
-        subtitle={subject.label}
-        onBack={() => router.back()}
-        testID="TamilWriteHeader"
-      />
-
-      <YStack flex={1} px="$3" pt="$2" pb={Math.max(insets.bottom, 12)} gap="$2">
-        {showSteps ? (
-          <YStack
-            bg="$color2"
-            rounded="$4"
-            px="$3"
-            py="$2"
-            gap="$1"
-            testID="TamilWriteStepsCard"
-          >
-            {subject.steps.map((step, index) => (
-              <XStack key={step} gap="$2" items="flex-start">
-                <Text variant="small" color="$color10" testID={`TamilWriteStepNumber${index + 1}`}>
-                  {index + 1}.
-                </Text>
-                <Text flex={1} variant="small" testID={`TamilWriteStep${index + 1}`}>
-                  {step}
-                </Text>
-              </XStack>
-            ))}
-          </YStack>
-        ) : null}
-
-        <TracingCanvas
-          glyph={subject.glyph}
-          strokes={strokes}
-          onStroke={(stroke) => setStrokes((current) => [...current, stroke])}
-          onSizeChange={setCanvasSize}
-          showGuide={showTemplate}
-          height="fill"
-          templateScale={isWord ? WORD_TEMPLATE_SCALE : TEMPLATE_SCALE}
-          testID="TamilWriteCanvas"
-        />
-
-        {/* Room for the verdict from the start: a pad that shrinks under the ink leaves it off the template. */}
-        <YStack minH={VERDICT_HEIGHT} justify="center">
-          {verdict ? (
-            <XStack
-              items="center"
-              gap="$2"
-              bg="$color2"
-              rounded="$4"
-              px="$3"
-              py="$2"
-              testID="TamilWriteVerdictCard"
-            >
-              <Badge variant={verdict.ok ? 'success' : 'warning'} testID="TamilWriteVerdictBadge">
-                {verdict.ok ? 'LOOKS RIGHT' : 'NOT YET'} · {verdict.score}
-              </Badge>
-              <Text flex={1} variant="small" numberOfLines={2} testID="TamilWriteVerdictSummary">
-                {verdict.fix ? `${verdict.summary} ${verdict.fix}` : verdict.summary}
-              </Text>
-            </XStack>
-          ) : null}
-        </YStack>
-
-        <XStack items="center" gap="$2">
-          <Text variant="small" color="$color10" flex={1} testID="TamilWriteHint">
-            {strokes.length === 0
-              ? 'Write it as large as you like.'
-              : `${strokes.length} stroke${strokes.length === 1 ? '' : 's'}`}
-          </Text>
-          <IconButton
-            icon={Eye}
-            variant={showTemplate ? 'secondary' : 'outline'}
-            aria-label={showTemplate ? 'Hide the template' : 'Show the template'}
-            testID="TamilWriteToggleTemplate"
-            onPress={() => setShowTemplate((visible) => !visible)}
-          />
-          <IconButton
-            icon={RotateCcw}
-            variant="outline"
-            aria-label="Undo last stroke"
-            testID="TamilWriteUndo"
-            onPress={() => setStrokes((current) => current.slice(0, -1))}
-          />
-          <IconButton
-            icon={Trash2}
-            variant="outline"
-            aria-label="Clear the pad"
-            testID="TamilWriteClear"
-            onPress={clear}
-          />
-        </XStack>
-
-        <XStack gap="$2">
-          <Button
-            flex={1}
-            variant="outline"
-            testID="TamilWriteToggleSteps"
-            pressLog="off"
-            onPress={() => setShowSteps((visible) => !visible)}
-          >
-            {showSteps ? 'Hide steps' : 'Show steps'}
-          </Button>
-          <Button
-            flex={2}
-            variant="default"
-            testID="TamilWriteCheck"
-            pressLog="off"
-            disabled={checking || strokes.length === 0}
-            onPress={() => {
-              void check();
-            }}
-          >
-            {checking ? 'Marking…' : 'Check my writing'}
-          </Button>
-          {next ? (
-            <IconButton
-              icon={ChevronRight}
-              variant="outline"
-              aria-label={`Next: ${next.glyph}`}
-              testID="TamilWriteNext"
-              onPress={() => {
-                Logger.info('tamil.write.next', { from: subject.id, to: next.id });
-                router.replace(`/tamil/write/${next.id}`);
-              }}
-            />
-          ) : null}
-        </XStack>
-      </YStack>
-    </View>
+    <CourseLayout title={title} onBack={back} testID={subject ? 'TamilWriteScreen' : 'TamilWriteMissing'}
+      header={<ScreenHeader glass title={title} subtitle={subject?.label} onBack={back}
+        testID={subject ? 'TamilWriteHeader' : 'TamilWriteMissingHeader'} />}>
+      {!subject ? <CourseMessage text="No letter or word with that id." /> : (
+        <View testID="TamilWriteControlsInset" style={[styles.content, { paddingBottom: Math.max(bottom, 12) }]}>
+          <TracingCanvas glyph={subject.glyph} strokes={ink.map((mark) => mark.stroke)} strokePens={ink}
+            pen={{ color, width }} onStroke={(stroke) => {
+              if (saving.current) return;
+              if (mode === 'demo') setMode('none');
+              attempt.current = undefined;
+              setInk((marks) => [...marks, { stroke, color, width }]);
+              setFeedback(undefined);
+              setSaved(false);
+            }} onSizeChange={setSize} showGuide={showTemplate}
+            completedGuides={completedGuides} activeGuide={activeGuide}
+            outline={mode !== 'none' ? guide?.contours : undefined}
+            templateScale={subject.kind === 'word' ? 0.34 : 0.82} height="fill" testID="TamilWriteCanvas" />
+          <FloatingSurface style={styles.controls}>
+            <View style={styles.row}>
+              <CompactIconButton icon={ChevronLeft} label="Previous character" disabled={!previous}
+                onPress={() => { if (previous) open(previous.id); }} />
+              {guide && <CompactIconButton icon={Play} label={mode === 'demo' ? 'Stop demo' : 'Play stroke demo'}
+                onPress={() => { setDemoStep(0); setMode(mode === 'demo' ? 'none' : 'demo'); }} />}
+              <CompactIconButton icon={Eye} label={showTemplate ? 'Hide template' : 'Show template'}
+                testID="TamilWriteTemplate" onPress={() => setShowTemplate(!showTemplate)} />
+              <CompactIconButton icon={RotateCcw} label="Undo last stroke" disabled={!started}
+                testID="TamilWriteUndo" onPress={() => { attempt.current = undefined; setInk((marks) => marks.slice(0, -1)); setFeedback(undefined); setSaved(false); }} />
+              <CompactIconButton icon={Trash2} label="Clear ink" disabled={!started} testID="TamilWriteClear" onPress={reset} />
+              <CompactIconButton icon={ChevronRight} label="Next character" disabled={!next}
+                onPress={() => { if (next) open(next.id); }} />
+            </View>
+            <View style={styles.row}>
+              {palette.map((item) => (
+                <Pressable key={item.label} accessibilityRole="button" accessibilityLabel={`${item.label} ink`}
+                  accessibilityState={{ selected: item.color === color }} onPress={() => setColor(item.color)}
+                  style={[styles.swatch, { backgroundColor: item.color, borderColor: item.color === color ? colors.foreground : colors.raised }]} />
+              ))}
+              <Pressable accessibilityRole="button" accessibilityLabel={`Pen width ${width}. Tap to change.`}
+                onPress={() => setWidth(width === 8 ? 12 : width === 12 ? 4 : 8)} style={styles.option}>
+                <Text style={{ color: colors.foreground }}>Pen {width}</Text>
+              </Pressable>
+              {guide && <Pressable accessibilityRole="button" accessibilityState={{ selected: mode === 'guide' }}
+                accessibilityLabel="Toggle stroke guide"
+                onPress={() => { setShowTemplate(true); setMode(mode === 'guide' ? 'none' : 'guide'); }} style={styles.option}>
+                <Text style={{ color: mode === 'guide' ? colors.gold : colors.foreground }}>Guide</Text>
+              </Pressable>}
+            </View>
+          </FloatingSurface>
+          <View style={styles.status}>
+            {feedback
+              ? <Text testID="TamilWriteVerdict" accessibilityLiveRegion="polite" style={[styles.label, { color: colors.foreground }]}>{feedback}</Text>
+              : <Text testID="TamilWriteHint" style={[styles.label, { color: colors.muted }]}>
+                  {mode === 'guide' && activeGuide ? activeGuide.hint
+                    : started ? `${ink.length} stroke${ink.length === 1 ? '' : 's'}` : 'Write it as large as you like.'}
+                </Text>}
+          </View>
+          <View style={styles.actions}>
+            <CourseButton label="Try again" disabled={!started || saved || pending} onPress={() => { void finish('again'); }} />
+            {mode === 'guide' && <CourseButton label="Check strokes" disabled={!started} onPress={check} />}
+            <CourseButton label="Done" testID="TamilWriteDone" disabled={!started || saved || pending} onPress={() => { void finish('got-it'); }} />
+          </View>
+        </View>
+      )}
+    </CourseLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { flex: 1, paddingHorizontal: 14, gap: 8 },
+  controls: { borderRadius: 21, padding: 5, gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly' },
+  swatch: { height: 32, width: 32, borderRadius: 16, borderWidth: 2 },
+  option: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
+  label: { fontSize: 13, textAlign: 'center' },
+  status: { height: 34, justifyContent: 'center' },
+  actions: { flexDirection: 'row', justifyContent: 'center', gap: 7 },
+});

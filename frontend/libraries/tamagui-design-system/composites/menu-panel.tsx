@@ -1,17 +1,24 @@
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import type { LucideIcon } from 'lucide-react-native';
-import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { createContext, useContext, useRef, useState, type ComponentRef, type ReactElement, type ReactNode } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text as RNText,
   useWindowDimensions,
   View,
+  type GestureResponderEvent,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 
 import { Check, ChevronDown, ChevronRight } from '../icons';
 import { useTheme } from '../primitives';
+import { GlassControlBackground, supportsGlassControl } from '../ui/glass-control-background';
 import { Icon } from '../ui/icon';
+import { MenuPanelPopover, supportsMenuPanelPopover } from './menu-panel-popover';
 
 import {
   menuNavigation,
@@ -34,6 +41,14 @@ export type MenuPanelProps = {
   /** Matches the control size of the sibling actions in the header pill. */
   size: number;
   testID: string;
+  trigger?: ReactNode;
+  triggerStyle?: StyleProp<ViewStyle>;
+  glassTrigger?: boolean;
+  placement?: 'above' | 'below' | 'beside' | 'overlap';
+  glass?: boolean;
+  openPath?: MenuPath;
+  panelWidth?: number;
+  panelRadius?: number;
 };
 
 const PANEL_WIDTH = 288;
@@ -48,6 +63,7 @@ type Colors = {
   muted: string;
   pressed: string;
   destructive: string;
+  popoverButton: string;
   scrim: string;
 };
 
@@ -154,20 +170,20 @@ function MenuRow({
 function ConfirmCard({
   node,
   colors,
+  popover,
   onConfirm,
 }: {
   node: MenuConfirmNode;
   colors: Colors;
+  popover: boolean;
   onConfirm: () => void;
 }) {
   return (
-    <View testID={`${node.testID}Card`} style={styles.confirm}>
-      <RNText style={[styles.confirmTitle, { color: colors.label }]}>
+    <View testID={`${node.testID}Card`} style={[styles.confirm, popover && styles.popoverConfirm]}>
+      <RNText style={[styles.confirmTitle, popover && styles.popoverConfirmTitle, { color: colors.label }]}>
         {node.title}
       </RNText>
-      <RNText style={[styles.confirmMessage, { color: colors.muted }]}>
-        {node.message}
-      </RNText>
+      {node.message ? <RNText style={[styles.confirmMessage, { color: colors.muted }]}>{node.message}</RNText> : null}
       <Pressable
         testID={`${node.testID}Confirm`}
         accessibilityRole="button"
@@ -175,10 +191,10 @@ function ConfirmCard({
         onPress={onConfirm}
         style={({ pressed: isPressed }) => [
           styles.confirmButton,
-          { backgroundColor: isPressed ? colors.pressed : colors.border },
+          { backgroundColor: isPressed ? colors.pressed : popover ? colors.popoverButton : colors.border },
         ]}
       >
-        <RNText style={[styles.confirmLabel, { color: colors.destructive }]}>
+        <RNText style={[styles.confirmLabel, popover && styles.popoverConfirmLabel, { color: colors.destructive }]}>
           {node.confirmLabel}
         </RNText>
       </Pressable>
@@ -192,18 +208,31 @@ function ConfirmCard({
  * in place under a header row that goes back, a pick inside a submenu returns to the root, and a confirm row becomes a one-button card.
  * A modal card under the trigger, mounted only while open (a portal cannot render on the server), so an outside tap closes it and nothing depends on a popover library's collision logic inside a header.
  */
+// A native modal can deliver a menu press outside the navigator's responder tree.
+export const MenuTouchCaptureContext = createContext<((event: GestureResponderEvent) => boolean) | undefined>(undefined);
+
 export function MenuPanel({
   icon,
   accessibilityLabel,
   items,
   size,
   testID,
+  trigger,
+  triggerStyle,
+  glassTrigger = true,
+  placement = 'below',
+  glass = false,
+  openPath = ROOT_PATH,
+  panelWidth = PANEL_WIDTH,
+  panelRadius = 20,
 }: MenuPanelProps) {
+  const captureTouch = useContext(MenuTouchCaptureContext);
   const [open, setOpen] = useState(false);
+  const [afterDismiss, setAfterDismiss] = useState<(() => void) | null>(null);
   const [path, setPath] = useState<MenuPath>(ROOT_PATH);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const triggerRef = useRef<ComponentRef<typeof Pressable>>(null);
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const theme = useTheme();
 
   const colors: Colors = {
@@ -213,19 +242,25 @@ export function MenuPanel({
     muted: theme.color11?.val ?? 'rgba(160,160,160,1)',
     pressed: theme.color5?.val ?? 'rgba(128,128,128,0.2)',
     destructive: theme.destructive?.val ?? '#ff453a',
+    popoverButton: 'rgba(128,128,128,0.28)',
     scrim: 'rgba(0,0,0,0.28)',
   };
 
   const view = resolveMenuView(items, path);
+  const nativePopover = (placement === 'above' || placement === 'beside') && glass && supportsMenuPanelPopover();
+  const nativeGlassTrigger = glassTrigger && supportsGlassControl();
 
   function go(action: MenuNavigationAction) {
     setPath((current) => menuNavigation(current, action));
   }
 
   function openPanel() {
-    triggerRef.current?.measureInWindow((x, y, width, height) => {
-      setAnchor(width > 0 ? { x, y, width, height } : null);
-    });
+    if (!nativePopover) {
+      triggerRef.current?.measureInWindow((x, y, width, height) => {
+        setAnchor(width > 0 ? { x, y, width, height } : null);
+      });
+    }
+    setPath(openPath);
     setOpen(true);
   }
 
@@ -241,6 +276,11 @@ export function MenuPanel({
       return;
     }
     // Close before acting: several of these navigate, and a panel still mounted over a replaced screen floats above the wrong route.
+    if (node.afterDismiss && Platform.OS === 'ios' && !nativePopover) {
+      setAfterDismiss(() => node.onPress);
+      closePanel();
+      return;
+    }
     closePanel();
     node.onPress();
   }
@@ -305,12 +345,13 @@ export function MenuPanel({
     });
   }
 
-  function renderView(): ReactNode {
+  function renderView(): ReactElement {
     if (view.kind === 'confirm') {
       return (
         <ConfirmCard
           node={view.node}
           colors={colors}
+          popover={nativePopover}
           onConfirm={() => {
             closePanel();
             view.node.onConfirm();
@@ -338,33 +379,61 @@ export function MenuPanel({
     );
   }
 
-  const width = Math.min(PANEL_WIDTH, windowWidth - 2 * EDGE);
+  const width = Math.min(panelWidth, windowWidth - 2 * EDGE);
+  const beside = placement === 'beside' && anchor && anchor.x + anchor.width + GAP * 2 + width + EDGE <= windowWidth;
+  const nativeGlass = glass && Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
   const right = anchor
-    ? Math.max(EDGE, windowWidth - (anchor.x + anchor.width))
+    ? Math.min(windowWidth - width - EDGE, Math.max(EDGE, windowWidth - (anchor.x + anchor.width)))
     : EDGE + 4;
-  const top = anchor ? anchor.y + anchor.height + GAP : FALLBACK_TOP;
+  const overlap = placement === 'overlap' && anchor;
+  const position = beside
+    ? { left: anchor.x + anchor.width + GAP * 2, bottom: Math.max(EDGE, windowHeight - anchor.y - anchor.height - 20) }
+    : {
+        right,
+        ...(placement === 'below'
+          ? { top: anchor ? anchor.y + anchor.height + GAP : FALLBACK_TOP }
+          : { bottom: overlap
+            ? Math.max(EDGE, windowHeight - overlap.y - overlap.height - GAP)
+            : anchor ? Math.max(EDGE, windowHeight - anchor.y + GAP) : FALLBACK_TOP }),
+      };
+
+  const buttonStyle = [
+    styles.trigger,
+    trigger ? { minWidth: size, height: size, paddingHorizontal: 4 } : { width: size, height: size },
+    triggerStyle,
+    nativeGlassTrigger && styles.glassTrigger,
+  ];
+
+  const triggerButton = (
+    <Pressable
+      ref={triggerRef}
+      testID={testID}
+      accessibilityRole="button"
+      aria-label={accessibilityLabel}
+      aria-expanded={open}
+      onPress={openPanel}
+      style={({ pressed: isPressed }) => [buttonStyle, isPressed && { backgroundColor: colors.pressed }]}
+    >
+      {nativeGlassTrigger ? <GlassControlBackground interactive /> : null}
+      {trigger ?? <Icon as={icon} size={19} />}
+    </Pressable>
+  );
+
+  if (nativePopover) {
+    return <MenuPanelPopover trigger={triggerButton} content={renderView()} width={width} open={open} placement={placement} onClose={closePanel} />;
+  }
 
   return (
     <>
-      <Pressable
-        ref={triggerRef}
-        testID={testID}
-        accessibilityRole="button"
-        aria-label={accessibilityLabel}
-        aria-expanded={open}
-        onPress={openPanel}
-        style={({ pressed: isPressed }) => [
-          styles.trigger,
-          { width: size, height: size },
-          isPressed && { backgroundColor: colors.pressed },
-        ]}
-      >
-        <Icon as={icon} size={19} />
-      </Pressable>
-      {open ? (
+      {triggerButton}
+      {open || afterDismiss ? (
         <Modal
-          visible
+          visible={open}
           transparent
+          onDismiss={() => {
+            setAfterDismiss(null);
+            afterDismiss?.();
+          }}
           animationType="none"
           onRequestClose={closePanel}
           statusBarTranslucent
@@ -373,21 +442,25 @@ export function MenuPanel({
             testID={`${testID}Backdrop`}
             accessibilityLabel="Close menu"
             onPress={closePanel}
-            style={[styles.backdrop, { backgroundColor: colors.scrim }]}
+            style={[styles.backdrop, { backgroundColor: nativeGlass ? "transparent" : colors.scrim }]}
           />
           <View
+            onStartShouldSetResponderCapture={captureTouch}
             testID={`${testID}Content`}
             style={[
               styles.card,
               {
                 width,
-                top,
-                right,
-                backgroundColor: colors.surface,
+                borderRadius: panelRadius,
+                ...position,
+                backgroundColor: nativeGlass ? 'transparent' : colors.surface,
                 borderColor: colors.border,
               },
             ]}
           >
+            {nativeGlass ? (
+              <GlassView pointerEvents="none" glassEffectStyle="regular" tintColor="rgba(20,20,22,0.45)" style={[styles.glassCard, { borderRadius: panelRadius }]} />
+            ) : null}
             {renderView()}
           </View>
         </Modal>
@@ -403,6 +476,7 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   backdrop: StyleSheet.absoluteFill,
+  glassTrigger: { backgroundColor: 'transparent', borderWidth: 0 },
   card: {
     position: 'absolute',
     borderRadius: 20,
@@ -414,6 +488,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 16,
   },
+  glassCard: { ...StyleSheet.absoluteFill, borderRadius: 20 },
   list: { paddingVertical: 6 },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
   row: {
@@ -448,4 +523,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   confirmLabel: { fontSize: 17, fontWeight: '600' },
+  popoverConfirm: { padding: 16, gap: 16 },
+  popoverConfirmTitle: { paddingHorizontal: 14, paddingTop: 8, maxWidth: 170, fontWeight: '400', lineHeight: 24 },
+  popoverConfirmLabel: { fontWeight: '500' },
 });

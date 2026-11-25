@@ -1,6 +1,8 @@
 {
   "name": "@feature/coding-agent",
-  "arch": { "type": "hexagonal-feature" },
+  "arch": {
+    "type": "hexagonal-feature"
+  },
   "version": "0.0.0",
   "private": true,
   "main": "src/index.tsx",
@@ -25,14 +27,16 @@
     "@lib/logging": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "expo-crypto": "~58.0.8",
+    "expo-secure-store": "~58.0.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@typescript/native": "catalog:",
-    "@lib/lint-rules": "workspace:*",
     "@lib/flow-test-harness": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@testing-library/react": "^16.3.3",
+    "@typescript/native": "catalog:",
     "dependency-cruiser": "^17.4.3",
     "jsdom": "^30.0.1",
     "oxlint": "catalog:",
@@ -43,7 +47,7 @@
   "peerDependencies": {
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "expo-router": "~6.0.23",
+    "expo-router": "~58.0.32",
     "prettier": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -51,7 +55,6 @@
     "react-native-css-interop": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "vite-plugin-babel": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependenciesMeta": {
@@ -65,9 +68,6 @@
       "optional": true
     },
     "expo-router": {
-      "optional": true
-    },
-    "vite-plugin-babel": {
       "optional": true
     },
     "@types/react": {

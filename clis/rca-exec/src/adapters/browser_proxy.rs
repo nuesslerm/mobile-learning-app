@@ -83,6 +83,7 @@ impl Egress {
 
     /// Resolves the name once, refuses it when any answer is blocked (or none came), and connects to an address of that one answer.
     pub fn open(&self, target: &Target) -> Result<TcpStream, String> {
+        let _span = tracing::info_span!("browser.proxy.connect").entered();
         let named = self.policy.names(target);
         if !named && self.policy.internal(target) {
             return Err(format!("{} is an internal name", target.host));

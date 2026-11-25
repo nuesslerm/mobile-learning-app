@@ -1,5 +1,5 @@
 import React, { useSyncExternalStore } from 'react';
-import { Text } from 'react-native';
+import { Platform, Text } from 'react-native';
 
 export type EditorTextSource = {
   get: () => string;
@@ -33,12 +33,12 @@ export function createEditorTextSource(initial: string): EditorTextSource {
  * accessibility event for a change of a view marked not important, so a reader's snapshot of it stays stale (8.4 s behind the
  * editor in three hosted units, while the recording showed the editor itself current). It is not focusable and 1 px large.
  */
-export function EditorTextMirror({ source }: { source: EditorTextSource }) {
+export function EditorTextMirror({ source, loading }: { source: EditorTextSource; loading?: boolean }) {
   const text = useSyncExternalStore(source.subscribe, source.get, source.get);
   return (
     <Text
-      testID="CodeEditorText"
-      accessible={false}
+      testID={loading ? "CodeEditorLoading" : "CodeEditorText"}
+      accessible={Platform.OS === 'ios'}
       importantForAccessibility="yes"
       pointerEvents="none"
       style={{ position: 'absolute', top: 0, left: 0, width: 1, height: 1, overflow: 'hidden', fontSize: 1, color: 'transparent' }}

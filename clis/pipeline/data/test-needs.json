@@ -85,7 +85,6 @@
   "@lib/hook-runtime": [],
   "@lib/lint-rules": [],
   "@lib/logging": [],
-  "@lib/rn-agentation": [],
   "@lib/service-kit": [
    "rust"
   ],

@@ -2,11 +2,11 @@
 //! subscriber's view agree. Commands are idempotent by `commandId`; a stream starts from a snapshot or, inside the gap, a replay.
 use crate::domain::auth::uuid_v4;
 use crate::domain::command::{Command, Family};
-use crate::domain::decider::{decide, decide_adopt, decide_run_step, Ctx, Effect, Rejection, RunStep};
+use crate::domain::decider::{decide, decide_adopt, decide_run_step, observe_run, queue_hold_events, Ctx, Effect, Rejection, RunStep};
 use crate::domain::state::{event_json, State};
 use crate::ports::{Clock, EventDraft, EventStore, Ids, StoreError, StoredEvent};
 use serde_json::{json, Map, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
@@ -40,6 +40,7 @@ pub struct Dispatched {
 struct Inner {
     state: State,
     subscribers: Vec<Sender<Arc<Published>>>,
+    shell_replay: VecDeque<(u64, Vec<Value>)>,
     /// Command ids refused for a missing thread, with the first refusal's message; the pin refuses a repeat with it (a restart forgets them).
     rejected: HashMap<String, String>,
 }
@@ -61,10 +62,19 @@ fn uuid(ids: &dyn Ids) -> String {
 impl Engine {
     pub fn open(store: Arc<dyn EventStore>, clock: Arc<dyn Clock>, ids: Arc<dyn Ids>) -> Result<Engine, StoreError> {
         let mut state = State::default();
-        for event in store.read_after(0)? {
-            state.apply(&event);
+        let events = store.read_after(0)?;
+        let replay_after = events.last().map_or(0, |event| event.sequence.saturating_sub(REPLAY_GAP));
+        let mut shell_replay = VecDeque::new();
+        for event in events {
+            let applied = state.apply(&event);
+            if event.sequence > replay_after {
+                let frames = state.shell_frames(&event, &applied);
+                if !frames.is_empty() {
+                    shell_replay.push_back((event.sequence, frames));
+                }
+            }
         }
-        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new(), rejected: HashMap::new() }) })
+        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new(), shell_replay, rejected: HashMap::new() }) })
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -91,6 +101,13 @@ impl Engine {
         for event in stored.iter() {
             let applied = inner.state.apply(event);
             let published = Arc::new(Published { event: event.clone(), shell: inner.state.shell_frames(event, &applied) });
+            if !published.shell.is_empty() {
+                inner.shell_replay.push_back((event.sequence, published.shell.clone()));
+            }
+            let cutoff = event.sequence.saturating_sub(REPLAY_GAP);
+            while inner.shell_replay.front().is_some_and(|(seq, _)| *seq <= cutoff) {
+                inner.shell_replay.pop_front();
+            }
             inner.subscribers.retain(|tx| tx.send(published.clone()).is_ok());
         }
         Ok(stored)
@@ -167,6 +184,17 @@ impl Engine {
         self.record_as(thread_id, run_id, step, &format!("agent:{thread_id}:{seq}"), true)
     }
 
+    pub fn observe_agent_run(&self, thread: &str, run: &str, text: &str) -> Result<bool, StoreError> {
+        let mut inner = self.lock();
+        let new_id = || uuid(self.ids.as_ref());
+        let drafts = observe_run(&inner.state, thread, run, text, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
+        if drafts.is_empty() {
+            return Ok(false);
+        }
+        self.commit(&mut inner, drafts, run, None)?;
+        Ok(true)
+    }
+
     fn record_as(&self, thread_id: &str, run_id: &str, step: &RunStep, command_id: &str, receipt: bool) -> Result<(), StoreError> {
         let mut inner = self.lock();
         if receipt && self.store.receipt(command_id)?.is_some() {
@@ -178,6 +206,15 @@ impl Engine {
             return Ok(());
         }
         self.commit(&mut inner, drafts, command_id, receipt.then_some((command_id, "agent.event"))).map(|_| ())
+    }
+
+    pub fn record_queue_hold(&self, thread: &str, held: bool) -> Result<(), StoreError> {
+        let mut inner = self.lock();
+        let drafts = queue_hold_events(&inner.state, thread, held, self.clock.now_ms());
+        if drafts.is_empty() {
+            return Ok(());
+        }
+        self.commit(&mut inner, drafts, &format!("queue-hold-{thread}"), None).map(|_| ())
     }
 
     /// A queued run the agent API did not accept ends cancelled, with its message taken back.
@@ -209,11 +246,12 @@ impl Engine {
         self.lock().state.entities.get(thread_id).is_some_and(|e| e.runs.iter().any(|r| r["id"] == run_id))
     }
 
-    /// Every thread with a run that is running, and that run.
-    pub fn running(&self) -> Vec<(String, String)> {
+    /// Threads with active or queued work whose updates may have arrived while T3 was down.
+    pub fn recoverable_threads(&self) -> Vec<String> {
         let inner = self.lock();
-        let running = |(thread, e): (&String, &crate::domain::state::Entities)| e.runs.iter().rev().find(|r| r["status"] == "running").and_then(|r| r["id"].as_str().map(|run| (thread.clone(), run.to_string())));
-        inner.state.entities.iter().filter_map(running).collect()
+        inner.state.entities.iter().filter(|(thread, entities)| {
+            inner.state.threads.contains_key(*thread) && entities.runs.iter().any(|r| matches!(r["status"].as_str(), Some("running" | "queued")))
+        }).map(|(thread, _)| thread.clone()).collect()
     }
 
     fn replayable(after: Option<u64>, last: u64) -> Option<u64> {
@@ -227,14 +265,7 @@ impl Engine {
         let Some(after) = Self::replayable(after, last) else {
             return Ok((vec![inner.state.shell_snapshot()], last));
         };
-        let mut scratch = State::default();
-        let mut frames = Vec::new();
-        for event in self.store.read_after(0).map_err(|e| e.0)? {
-            let applied = scratch.apply(&event);
-            if event.sequence > after {
-                frames.extend(scratch.shell_frames(&event, &applied));
-            }
-        }
+        let frames = inner.shell_replay.iter().filter(|(seq, _)| *seq > after).flat_map(|(_, frames)| frames.iter().cloned()).collect();
         Ok((frames, last))
     }
 

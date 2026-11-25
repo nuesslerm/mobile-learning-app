@@ -324,6 +324,10 @@ export function parseConfigPatch(params: unknown): Parsed<ConfigPatch> {
       if (typeof params.palette.dark !== 'boolean') return bad('palette.dark', 'dark is a boolean');
       palette.dark = params.palette.dark;
     }
+    if (params.palette.syntax !== undefined) {
+      if (params.palette.syntax !== 'default' && params.palette.syntax !== 'contrast') return bad('palette.syntax', 'syntax is default or contrast');
+      palette.syntax = params.palette.syntax;
+    }
     for (const key of PALETTE_KEYS) {
       const value = params.palette[key];
       if (value === undefined) continue;

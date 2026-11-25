@@ -45,7 +45,7 @@ impl Calls {
     /// The events one thing the CLI printed stands for, in the order they happened. `Done` and what ends a turn are the turn's own.
     pub fn events(&mut self, event: ExecEvent) -> Vec<ThreadEvent> {
         match event {
-            ExecEvent::Text(text) => vec![ThreadEvent::MessageDelta { role: Role::Assistant, text }],
+            ExecEvent::Text(text) => vec![ThreadEvent::message_delta(Role::Assistant, text)],
             ExecEvent::Reasoning(text) => vec![ThreadEvent::ReasoningDelta { text }],
             ExecEvent::ToolStarted { id, name, input } => {
                 let tool = action_of(&name).to_string();

@@ -5,10 +5,6 @@
 //   Logger.info('route.change', { to: '/home' });
 //   Logger.withError(err).error('api.fail', { endpoint });
 //
-// Nothing about where a line comes from is passed by hand: the
-// `@lib/logging/babel` plugin rewrites every `Logger.<method>(...)` call to
-// `Logger.withContext({ file, line, fn, fnPath, testID }).<method>(...)` at
-// compile time (src/babel/injectLoggerSource.ts).
 
 import type { ILogLayer } from 'loglayer';
 

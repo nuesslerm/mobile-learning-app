@@ -160,11 +160,15 @@ impl TurnTask {
 
     /// Follows the session's events into the log until the turn ends, records `interrupted`, `failed` or `completed`, and lets the thread's queue run its next
     /// prompt.
-    pub async fn follow(mut self, mut events: mpsc::Receiver<ExecEvent>) {
+    pub async fn follow(self, mut events: mpsc::Receiver<ExecEvent>) {
         let mut calls = Calls::default();
         let (mut failed, mut session) = (false, None);
         self.pump(&mut events, &mut calls, &mut failed, &mut session).await;
         self.keep_session(session.as_deref());
+        self.finish(failed);
+    }
+
+    pub(crate) fn finish(mut self, failed: bool) {
         let end = self.claim.finish();
         let reason = if end.interrupted { FinishReason::Interrupted } else if failed { FinishReason::Failed } else { FinishReason::Completed };
         // The executor is let go before the finish is recorded: whoever sees the thread idle may start a turn that binds it again

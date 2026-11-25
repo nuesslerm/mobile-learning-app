@@ -1,4 +1,4 @@
-Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens> [args]
+Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens|ios-visual|prepare-ios> [args]
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
 A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and
@@ -6,6 +6,17 @@ each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2
 with `wf test run --stage`.
 
 Actions:
+  prepare-ios [--device UDID]  verify the selected iPhone 17 simulator, iOS 27.0 and Expo Go 58.0.7. With no selector, provision a fresh hosted device.
+  prepare-ios --build-input   build the XCTest accessibility and keyboard helper and print its xctestrun path before timing journeys.
+  prepare-ios --stop-automation UDID   close the XCTest session for the selected simulator.
+  ios-visual <name> --device <udid> --expect <testID> [--update-goldens] [--out <dir>]
+                         capture the selected iOS simulator with idb and compare to docs/runbooks/goldens/ios/.
+                         Requires the testID on screen. Ignores the status bar and any --ignore left,top,right,bottom
+                         rectangles. Writes actual and, on a mismatch, expected and diff PNGs. Use --update-goldens to record an intentional baseline.
+                         With --reference <png>, always writes a diff and scores unmasked pixels. Use --exact and --max-diff-ratio 0.05
+                         for 95% exact agreement. --capture <png> replaces --device and --expect for a recorded frame.
+  run --performance [--db <file>] [--profile <name>] [--send] [--merge <file> | --catalog | --report <html>]
+                         Measure Orca and T3 integration workloads, or import CI history.
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
@@ -28,7 +39,7 @@ Actions:
                          this command starts (`wf cache --help`); --fresh never starts it. No nx in the workspace is
                          an error (pnpm install). Exit 0 only when everything passed
   run [test...]          run the named tests, --all, or those a change reaches (--changed [--base <ref>]), one after another
-                         in this process; [--platform android|browser] [--sha S] [--out DIR] [--serial S] [-- <test flags>]. A test whose header has
+                         in this process; [--platform android|ios|browser] [--sha S] [--out DIR] [--serial S] [--device iOS-UDID] [--case name] [-- <test flags>]. A test whose header has
                          `units: k=v; k=v k2=v2` runs once per unit, its pairs handed to the script as --env (keeps each run
                          short). An Android run takes the device lease and loads the EAS Update CI published on branch dev (`against: update`;
                          latest-dev.json from the run's eas-pointer dir, else eas/latest-dev.json in refs/wf/state; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold

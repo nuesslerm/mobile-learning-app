@@ -41,8 +41,10 @@ export type SheetProps = {
   /** Distance from the window's bottom edge for a floating sheet. Defaults to the safe area plus 8 points. */
   floatingBottomInset?: number;
   cornerRadius?: number;
+  bottomCornerRadius?: number;
   glassColorScheme?: GlassColorScheme;
   glassTintColor?: ColorValue;
+  glassOverlayColor?: ColorValue;
   /** Controls whether the sheet itself is a single accessibility element. */
   accessible?: boolean;
   /** Keep the bottom inset fixed. A form's scroll view handles the keyboard overlap. */
@@ -195,8 +197,10 @@ export function Sheet({
   floatingHorizontalInset = 12,
   floatingBottomInset,
   cornerRadius,
+  bottomCornerRadius,
   glassColorScheme,
   glassTintColor,
+  glassOverlayColor,
   accessible,
   keyboardOverlay = false,
   disableContentPanningGesture = false,
@@ -291,6 +295,10 @@ export function Sheet({
     ),
     [handleLabel, testID, indicatorColor, handleIndicatorStyle, handleClose]
   );
+  const bottomCorners = useMemo(() => bottomCornerRadius === undefined ? undefined : {
+    borderBottomLeftRadius: bottomCornerRadius,
+    borderBottomRightRadius: bottomCornerRadius,
+  }, [bottomCornerRadius]);
   const renderGlassBackground = useCallback(
     ({ style }: BottomSheetBackgroundProps) => (
       <GlassView
@@ -305,10 +313,15 @@ export function Sheet({
             borderTopLeftRadius: cornerRadius,
             borderTopRightRadius: cornerRadius,
           },
+          bottomCorners,
         ]}
-      />
+      >
+        {glassOverlayColor ? (
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: cornerRadius ?? 28, backgroundColor: glassOverlayColor }, bottomCorners]} />
+        ) : null}
+      </GlassView>
     ),
-    [cornerRadius, glassColorScheme, glassTintColor]
+    [bottomCorners, cornerRadius, glassColorScheme, glassTintColor, glassOverlayColor]
   );
   const renderDimBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => renderBackdrop(props, backdropOpacity),
@@ -351,6 +364,7 @@ export function Sheet({
         !useGlass && { backgroundColor: theme.color2?.val ?? '#fff' },
         floating && styles.floatingBackground,
         cornerRadius === undefined ? null : { borderRadius: cornerRadius },
+        bottomCorners,
       ]}
       handleIndicatorStyle={[
         { backgroundColor: floating ? 'rgba(127, 127, 127, 0.65)' : indicatorColor },
@@ -392,6 +406,7 @@ export type SheetHeaderProps = {
   /** Beside the title on the right, before the close control (a Done pill). */
   trailing?: ReactNode;
   testID: string;
+  style?: StyleProp<ViewStyle>;
 };
 
 /** A non-scrolling header pinned above the sheet's scrollable body. */
@@ -402,6 +417,7 @@ export function SheetHeader({
   leading,
   trailing,
   testID,
+  style,
 }: SheetHeaderProps) {
   const theme = useTheme();
   const border = theme.borderColor?.val ?? 'rgba(128,128,128,0.35)';
@@ -415,6 +431,7 @@ export function SheetHeader({
         styles.header,
         hasSlots && styles.headerWithSlots,
         { borderBottomColor: border },
+        style,
       ]}
     >
       {leading != null ? <View style={styles.slot}>{leading}</View> : null}

@@ -8,7 +8,7 @@ import { Appearance, Platform, useColorScheme } from 'react-native';
 
 import { chromeSchemeFor, navigationThemeFor } from './nativeChromeTheme';
 
-function useResolvedScheme(): 'light' | 'dark' {
+export function useResolvedScheme(): 'light' | 'dark' {
   const themeMode = usePresetThemeStore((state) => state.themeMode);
   const systemScheme = useColorScheme();
   if (themeMode === 'system') return systemScheme === 'dark' ? 'dark' : 'light';

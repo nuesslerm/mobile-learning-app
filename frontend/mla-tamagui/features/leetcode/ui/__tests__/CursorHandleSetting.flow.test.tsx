@@ -18,7 +18,7 @@ beforeEach(() => useCursorHandleSettingStore.setState({ cursorHandle: DEFAULT_CU
 describe('the cursor handle setting on the problem list', () => {
   it('given the list, when the person taps On, then the tap is logged, the setting is on, and it stays on after a second tap', async () => {
     await forgetLoggedLines();
-    await app.render('/');
+    await app.render('/blind75');
     expect(screen.getByTestId('LeetcodeListCursorHandleRow')).toBeTruthy();
     expect(useCursorHandleSettingStore.getState().cursorHandle).toBe(false);
 
@@ -33,7 +33,7 @@ describe('the cursor handle setting on the problem list', () => {
 
   it('given the handle on, when the person taps Off, then the setting is off again', async () => {
     useCursorHandleSettingStore.setState({ cursorHandle: true });
-    await app.render('/');
+    await app.render('/blind75');
 
     await userEvent.click(screen.getByTestId('LeetcodeListCursorHandleOff'));
 
@@ -41,7 +41,7 @@ describe('the cursor handle setting on the problem list', () => {
   });
 
   it('given the list, when it is shown, then the row reads Off as the choice made until the person turns the handle on', async () => {
-    await app.render('/');
+    await app.render('/blind75');
 
     expect(screen.getByTestId('LeetcodeListCursorHandleOff').getAttribute('aria-checked')).toBe('true');
     expect(screen.getByTestId('LeetcodeListCursorHandleOn').getAttribute('aria-checked')).toBe('false');

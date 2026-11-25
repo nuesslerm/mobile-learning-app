@@ -203,7 +203,7 @@ fn parse_dump(xml: &str) -> Vec<(Node, usize)> {
 }
 
 /// The element a selector names in a dump: of the visible matches in tree order, Maestro's deepest.
-fn find_in(xml: &str, sel: &Sel) -> Option<Node> {
+pub(crate) fn find_in(xml: &str, sel: &Sel) -> Option<Node> {
     let nodes = parse_dump(xml);
     let found: Vec<usize> = (0..nodes.len()).filter(|&i| nodes[i].0.shows() && nodes[i].0.matches(sel)).collect();
     let i = deepest(found, |&a, &b| b < a && a < nodes[b].1)?;
@@ -585,6 +585,9 @@ fn key_script(keys: &[String]) -> String {
 /// costs seconds a line); newline, tab and quote go as keys. The dispatcher's input_text refuses it while the keyboard is
 /// down, so a run cannot pass with the keys going nowhere visible.
 pub(crate) fn type_text(serial: &str, text: &str, log: Option<&str>) -> Result<(), String> {
+    if !text.is_ascii() {
+        return crate::android_u2::set_focused_text(serial, text, false);
+    }
     let mut keys: Vec<String> = Vec::new();
     let mut run = String::new();
     let flush = |run: &mut String, keys: &mut Vec<String>| {

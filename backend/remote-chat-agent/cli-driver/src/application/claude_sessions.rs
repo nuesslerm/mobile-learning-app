@@ -3,7 +3,7 @@
 //! is resumed by its conversation id (`--resume`) on its next turn. A steer is a message with priority `now`, an interrupt a control request, and a permission the CLI
 //! asks for is handed out as an event and answered on the same process. A change of the thread's mode or model is a control request, not a restart.
 use super::ports::{Linker, SessionDriver};
-use crate::domain::claude::{self, Inbound, Outcome, Question, Step, ToolAsk, Translator};
+use crate::domain::claude::{self, Inbound, Outcome, Question, Step, TaskFrame, TaskId, TaskStdout, ToolAsk, Translator};
 use crate::domain::{Driver, ExecEvent, TurnRequest, Verdict};
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -29,6 +29,7 @@ fn locked<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 /// The turn a process runs: where its events go, the messages of ours it was given (the person's, and each steer), and what was asked of it.
 struct Turn {
     seq: u64,
+    run: String,
     tx: mpsc::Sender<ExecEvent>,
     messages: Vec<String>,
     /// The steers no result has covered yet: the result of what a steer aborted does not end the turn.
@@ -51,6 +52,7 @@ struct Inner {
     pending: HashMap<String, oneshot::Sender<Result<Value, String>>>,
     interrupts: HashSet<String>,
     turn: Option<Turn>,
+    tasks: HashMap<TaskId, String>,
     turns: u64,
     asks: HashMap<String, Waiting>,
     translator: Translator,
@@ -83,7 +85,20 @@ struct Shared {
     slots: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
     idle_ms: AtomicU64,
     interrupt_grace_ms: AtomicU64,
+    report_task: TaskReporter,
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct CompletedTask {
+    pub turn: String,
+    pub id: String,
+    pub provider_run: Option<String>,
+    pub status: String,
+    pub summary: String,
+    pub stdout: Option<TaskStdout>,
+}
+
+type TaskReporter = Box<dyn Fn(&str, CompletedTask) + Send + Sync>;
 
 pub struct ClaudeSessions {
     shared: Arc<Shared>,
@@ -91,11 +106,21 @@ pub struct ClaudeSessions {
 
 impl Default for ClaudeSessions {
     fn default() -> Self {
-        ClaudeSessions { shared: Arc::new(Shared { procs: Mutex::default(), slots: Mutex::default(), idle_ms: AtomicU64::new(DEFAULT_IDLE.as_millis() as u64), interrupt_grace_ms: AtomicU64::new(DEFAULT_INTERRUPT_GRACE.as_millis() as u64) }) }
+        Self::reporting_tasks(|_, _| {})
     }
 }
 
 impl ClaudeSessions {
+    pub fn reporting_tasks(report: impl Fn(&str, CompletedTask) + Send + Sync + 'static) -> Self {
+        Self { shared: Arc::new(Shared {
+            procs: Mutex::default(),
+            slots: Mutex::default(),
+            idle_ms: AtomicU64::new(DEFAULT_IDLE.as_millis() as u64),
+            interrupt_grace_ms: AtomicU64::new(DEFAULT_INTERRUPT_GRACE.as_millis() as u64),
+            report_task: Box::new(report),
+        }) }
+    }
+
     pub fn new(idle: Duration) -> ClaudeSessions {
         let sessions = ClaudeSessions::default();
         sessions.set_idle(idle);
@@ -258,7 +283,7 @@ impl Proc {
                 if inner.ended.is_some() {
                     return;
                 }
-                let busy = inner.turn.is_some() || !inner.asks.is_empty();
+                let busy = inner.turn.is_some() || !inner.asks.is_empty() || !inner.tasks.is_empty();
                 let wait = if idle.is_zero() {
                     Duration::from_secs(1)
                 } else if busy {
@@ -326,7 +351,32 @@ impl Proc {
         Some((turn.tx, vec![ExecEvent::Done]))
     }
 
+    fn on_task(&self, frame: TaskFrame) {
+        let completed = {
+            let mut inner = self.inner();
+            match frame {
+                TaskFrame::Started(id) => {
+                    if let Some(turn) = inner.turn.as_ref().map(|turn| turn.run.clone()) {
+                        inner.tasks.entry(id).or_insert(turn);
+                    }
+                    None
+                }
+                TaskFrame::Finished { id, status, summary, stdout } => inner.tasks.remove(&id).map(|turn| {
+                    inner.last_active = Some(Instant::now());
+                    CompletedTask { turn, id: id.task, provider_run: id.run, status, summary, stdout }
+                }),
+            }
+        };
+        if let Some(task) = completed {
+            (self.shared.report_task)(&self.thread, task);
+        }
+    }
+
     async fn on_frame(&self, frame: &Value) {
+        if let Some(task) = claude::task_frame(frame) {
+            self.on_task(task);
+            return;
+        }
         let (tx, events, close) = {
             let mut inner = self.inner();
             let mut events = Vec::new();
@@ -494,7 +544,7 @@ impl SessionDriver for ClaudeSessions {
             }
             inner.turns += 1;
             let seq = inner.turns;
-            inner.turn = Some(Turn { seq, tx: tx.clone(), messages: vec![message.clone()], steers: Vec::new(), stop_asked: false });
+            inner.turn = Some(Turn { seq, run: req.run_id.clone(), tx: tx.clone(), messages: vec![message.clone()], steers: Vec::new(), stop_asked: false });
             inner.translator.reset();
             inner.last_active = Some(Instant::now());
         }
@@ -973,6 +1023,25 @@ mod tests {
         linker.emit(json!({"type": "result", "subtype": "success", "is_error": true, "result": "rate limited", "user_message_uuids": [uuid]}).to_string());
         // Then only the failed result ended the turn, with the error and then done
         assert_eq!(drain(events).await, vec![ExecEvent::Error("rate limited".into()), ExecEvent::Done]);
+    }
+
+    #[tokio::test]
+    async fn given_a_detached_task_when_its_turn_ends_then_the_process_stays_live_until_it_finishes() {
+        // Given a turn that launches a detached task
+        let (sessions, linker) = (ClaudeSessions::new(Duration::from_millis(50)), claude_session());
+        let mut events = sessions.turn("w1", linker.as_ref(), &request("t1", "hold", None)).await.unwrap();
+        events.recv().await;
+        events.recv().await;
+        let uuid = linker.received().into_iter().map(|(_, m)| m).find(|m| m["type"] == "user").unwrap()["uuid"].clone();
+        linker.emit(json!({"type": "system", "subtype": "task_started", "task_id": "task", "run_id": "provider-run", "is_backgrounded": true}).to_string());
+        // When its parent turn ends and the idle period elapses
+        linker.emit(json!({"type": "result", "subtype": "success", "is_error": false, "user_message_uuids": [uuid]}).to_string());
+        assert_eq!(drain(events).await, [ExecEvent::Done]);
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        // Then the process is still live, and can close normally after completion
+        assert_eq!(linker.kills(), 0);
+        linker.emit(json!({"type": "system", "subtype": "task_notification", "task_id": "task", "run_id": "provider-run", "status": "completed", "summary": "Task finished"}).to_string());
+        until("the idle close", || linker.kills() == 1).await;
     }
 
     #[tokio::test]

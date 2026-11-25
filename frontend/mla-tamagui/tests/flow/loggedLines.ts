@@ -1,25 +1,40 @@
 import '@/lib/logger';
 
-import { liveTail, type LogEntry } from '@lib/logging/liveTail';
 import { drainAllBufferedSinks } from '@lib/logging/primitives';
+import { afterEach, beforeEach, vi } from 'vitest';
 
-// Captured now, while timers are real: a test under fake timers still gets its macrotask.
+const levels = ['debug', 'info', 'warn', 'error'] as const;
+const observeConsole = () => levels.map((level) => ({ level, spy: vi.spyOn(console, level) }));
+let observers: ReturnType<typeof observeConsole>;
+
+beforeEach(() => {
+  observers = observeConsole();
+});
+afterEach(() => {
+  for (const { spy } of observers) spy.mockRestore();
+});
+
+// Error normalization may enqueue a task, even in a test using fake timers.
 const realSetTimeout = globalThis.setTimeout;
-
-// A line logged with an error attached reaches the tail one macrotask after the call.
-const afterPendingLines = () => new Promise<void>((resolve) => realSetTimeout(resolve, 0));
-
-/** Forgets every line logged so far, so a test reads only what its own steps log. */
-export async function forgetLoggedLines(): Promise<void> {
-  await afterPendingLines();
+async function drainLines() {
+  await new Promise<void>((resolve) => realSetTimeout(resolve, 0));
   await drainAllBufferedSinks();
-  liveTail.clear();
 }
 
-/** The lines logged since `forgetLoggedLines`, oldest first; `event` keeps those whose message contains it. */
-export async function loggedLines(event?: string): Promise<LogEntry[]> {
-  await afterPendingLines();
-  await drainAllBufferedSinks();
-  const all = liveTail.getEntries();
-  return event === undefined ? [...all] : all.filter((e) => e.text.includes(event));
+export async function forgetLoggedLines() {
+  await drainLines();
+  for (const { spy } of observers) spy.mockClear();
+}
+
+export async function loggedLines(event?: string) {
+  await drainLines();
+  const lines = observers.flatMap(({ level, spy }) =>
+    spy.mock.calls.map(([message, fields], index) => ({
+      order: spy.mock.invocationCallOrder[index]!,
+      level,
+      text: String(message),
+      context: fields as Record<string, unknown> | undefined,
+    }))
+  );
+  return lines.filter(({ text }) => event === undefined || text.includes(event)).sort((a, b) => a.order - b.order);
 }

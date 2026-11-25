@@ -1052,3 +1052,19 @@ fn given_a_directory_a_binary_file_a_home_path_and_oversized_text_when_tapped_or
     assert_eq!(rig.call("files.writeTerminalArtifact", grant(&text))["error"]["message"], "Missing file content");
     assert_eq!(rig.files.artifact_bytes("/data/t.txt").unwrap(), b"t");
 }
+
+#[test]
+fn given_an_expo_thread_when_orca_discovers_then_closes_it_then_the_tab_stays_closed() {
+    let rig = Rig::new();
+    let agent = rig.agent.as_ref();
+    agent.set_state("mobile.thread.workspace", "mobile-id", json!("feat"));
+    let discover = || orca_map_workspace::layout::import_mobile_chat(agent, "feat", "mobile-id", "codex", "From Expo").unwrap();
+    discover();
+    discover();
+    let tabs = orca_map_workspace::layout::kept(agent, "feat").unwrap();
+    assert_eq!(tabs.len(), 1);
+    assert_eq!(tabs[0]["sessionId"], "mobile-id");
+    assert!(orca_map_workspace::layout::close(agent, "feat", "mobile-id").unwrap());
+    discover();
+    assert!(orca_map_workspace::layout::kept(agent, "feat").unwrap().is_empty());
+}

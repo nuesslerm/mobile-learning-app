@@ -1,0 +1,117 @@
+diff --git a/lib/module/views/Drawer.native.js b/lib/module/views/Drawer.native.js
+index 58b9d1752c3f56cfe33d6a77210c9204cd283d70..26b386c62ce20f1e5791fec7d4bb0b8d1242e714 100644
+--- a/lib/module/views/Drawer.native.js
++++ b/lib/module/views/Drawer.native.js
+@@ -2,7 +2,7 @@
+ 
+ import * as React from 'react';
+ import { I18nManager, Keyboard, Platform, StatusBar, StyleSheet, useWindowDimensions } from 'react-native';
+-import Animated, { interpolate, ReduceMotion, runOnJS, useAnimatedProps, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring } from 'react-native-reanimated';
++import Animated, { Easing, interpolate, ReduceMotion, runOnJS, useAnimatedProps, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+ import useLatestCallback from 'use-latest-callback';
+ import { DrawerGestureContext } from "../utils/DrawerGestureContext.js";
+ import { DrawerProgressContext } from "../utils/DrawerProgressContext.js";
+@@ -153,20 +153,27 @@ export function Drawer({
+     }
+     touchStartX.value = 0;
+     touchX.value = 0;
+-    translationX.value = withSpring(translateX, {
+-      velocity,
+-      stiffness: 1000,
+-      damping: 500,
+-      mass: 3,
+-      overshootClamping: true,
+-      reduceMotion: ReduceMotion.Never
+-    }, finished => runOnJS(onAnimationEnd)(open, finished));
++    const complete = finished => runOnJS(onAnimationEnd)(open, finished);
++    translationX.value = Platform.OS === 'ios' && drawerType === 'back' && open && velocity === undefined
++      ? withTiming(translateX, {
++          duration: 175,
++          easing: Easing.out(Easing.quad),
++          reduceMotion: ReduceMotion.Never
++        }, complete)
++      : withSpring(translateX, {
++          velocity,
++          stiffness: 1000,
++          damping: 500,
++          mass: 3,
++          overshootClamping: true,
++          reduceMotion: ReduceMotion.Never
++        }, complete);
+     if (open) {
+       runOnJS(onOpenLatest)();
+     } else {
+       runOnJS(onCloseLatest)();
+     }
+-  }, [layoutWidth, getDrawerTranslationX, onAnimationEnd, onAnimationStart, onCloseLatest, onOpenLatest, touchStartX, touchX, translationX]);
++  }, [drawerType, layoutWidth, getDrawerTranslationX, onAnimationEnd, onAnimationStart, onCloseLatest, onOpenLatest, touchStartX, touchX, translationX]);
+   const hasDrawerWidth = getDrawerWidthNative({
+     containerWidth: layout.width,
+     customWidth,
+diff --git a/src/views/Drawer.native.tsx b/src/views/Drawer.native.tsx
+index c65ae202a74fd6b51c571521fcc9fd64134dd181..7007cf6db4ee2852453f471cb5c5865865d778ae 100644
+--- a/src/views/Drawer.native.tsx
++++ b/src/views/Drawer.native.tsx
+@@ -9,6 +9,7 @@ import {
+   type ViewProps,
+ } from 'react-native';
+ import Animated, {
++  Easing,
+   interpolate,
+   ReduceMotion,
+   runOnJS,
+@@ -17,6 +18,7 @@ import Animated, {
+   useDerivedValue,
+   useSharedValue,
+   withSpring,
++  withTiming,
+ } from 'react-native-reanimated';
+ import useLatestCallback from 'use-latest-callback';
+ 
+@@ -217,18 +219,26 @@ export function Drawer({
+ 
+       touchStartX.value = 0;
+       touchX.value = 0;
+-      translationX.value = withSpring(
+-        translateX,
+-        {
+-          velocity,
+-          stiffness: 1000,
+-          damping: 500,
+-          mass: 3,
+-          overshootClamping: true,
+-          reduceMotion: ReduceMotion.Never,
+-        },
+-        (finished) => runOnJS(onAnimationEnd)(open, finished)
+-      );
++      const complete = (finished?: boolean) => runOnJS(onAnimationEnd)(open, finished);
++      translationX.value =
++        Platform.OS === 'ios' && drawerType === 'back' && open && velocity === undefined
++          ? withTiming(
++              translateX,
++              { duration: 175, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.Never },
++              complete
++            )
++          : withSpring(
++              translateX,
++              {
++                velocity,
++                stiffness: 1000,
++                damping: 500,
++                mass: 3,
++                overshootClamping: true,
++                reduceMotion: ReduceMotion.Never,
++              },
++              complete
++            );
+ 
+       if (open) {
+         runOnJS(onOpenLatest)();
+@@ -237,6 +247,7 @@ export function Drawer({
+       }
+     },
+     [
++      drawerType,
+       layoutWidth,
+       getDrawerTranslationX,
+       onAnimationEnd,

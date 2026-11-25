@@ -69,7 +69,7 @@ local function bounds(id) local e = device:get_element({id=id}); return e and e.
 
 local function choose_blocks()
   device:clear_logs()
-  device:open_link(base .. "/")
+  device:open_link(base .. "/blind75")
   -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: the first route.change is awaited
   device:extended_wait_until{condition=function() return logged('route.change') end, timeout=60000, interval=250, label='the page hydrated'}
   -- the setting rows run below the first screen of the list

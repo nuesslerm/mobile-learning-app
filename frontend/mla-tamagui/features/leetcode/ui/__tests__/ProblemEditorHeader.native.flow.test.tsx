@@ -13,6 +13,7 @@ import {
 } from '@lib/flow-test-harness';
 
 import { app } from '../../../../tests/flow/app';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNativeHeaderStore } from '@lib/tamagui-design-system';
 import { Platform } from 'react-native';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -72,7 +73,7 @@ function pendingRunner(): Deferred {
 }
 
 // The route's native modules load on the web platform, so iOS comes on once the screen is up and a store write makes the bar re-render into the native one.
-async function openEditor(platform: 'ios' | 'web', runner?: CodeRunnerPort): Promise<FlowSession> {
+async function openEditor(platform: 'ios' | 'web', runner?: CodeRunnerPort, localDrafts = false): Promise<FlowSession> {
   setStackHeadersRendered(true);
   if (platform === 'ios') useNativeHeaderStore.setState({ enabled: false });
   const ports: LeetCodePortOverrides = {
@@ -81,6 +82,7 @@ async function openEditor(platform: 'ios' | 'web', runner?: CodeRunnerPort): Pro
     audio: createFakeAudioRecorder(),
     ...(runner ? { runner } : {}),
   };
+  if (localDrafts) (Platform as { OS: string }).OS = 'ios';
   const session = await app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
   if (platform === 'ios') {
     (Platform as { OS: string }).OS = 'ios';
@@ -108,16 +110,16 @@ describe('the problem editor header on the native twin', () => {
     expect(screen.queryByTestId('NativeHeaderCustom')).toBeNull();
   });
 
-  it('given the native bar, when the settings pill is opened, then the menu has the two sections and More has no Format row', async () => {
+  it('given the native bar, when a setting is selected, then its menu closes and More has no Format row', async () => {
     await openEditor('ios');
 
     await userEvent.click(screen.getByTestId('NativeHeaderItem-Editor settings'));
     const menu = await waitFor(() => screen.getByTestId('NativeHeaderMenu-Editor settings'));
 
     expect(within(menu).getByTestId('NativeHeaderMenuItem-Font size: 14px')).toBeTruthy();
-    expect(within(menu).getByTestId('NativeHeaderMenuItem-Line wrap').getAttribute('data-keeps-menu-presented')).toBe('true');
-    expect(within(menu).getByTestId('NativeHeaderMenuItem-Symbol Bar').getAttribute('data-keeps-menu-presented')).toBe('false');
-    await userEvent.click(screen.getByTestId('NativeHeaderItem-Editor settings'));
+    expect(within(menu).getByTestId('NativeHeaderMenuItem-Symbol Bar')).toBeTruthy();
+    await userEvent.click(within(menu).getByTestId('NativeHeaderMenuItem-Line wrap'));
+    expect(screen.queryByTestId('NativeHeaderMenu-Editor settings')).toBeNull();
     await userEvent.click(screen.getByTestId('NativeHeaderItem-More actions'));
     const more = await waitFor(() => screen.getByTestId('NativeHeaderMenu-More actions'));
     expect(within(more).queryByTestId('NativeHeaderMenuItem-Format')).toBeNull();
@@ -136,14 +138,36 @@ describe('the problem editor header on the native twin', () => {
     await waitFor(() => expect(screen.queryByTestId('NativeHeaderCustom')).toBeNull());
   });
 
-  it('given a clean buffer, when Back is pressed, then the router goes back; and Info pushes the description', async () => {
+  it('given the editor, when Back arrives after Info, then only the description opens', async () => {
     await openEditor('ios');
 
     await userEvent.click(screen.getByTestId('NativeHeaderItem-Problem description'));
     await userEvent.click(screen.getByTestId('NativeHeaderItem-Back to the problem list'));
 
     expect(routerHarness().pushes()).toEqual(['/leetcode/two-sum/description']);
-    expect(routerHarness().calls().at(-1)).toEqual(['back']);
+    expect(routerHarness().calls()).toEqual([['push', '/leetcode/two-sum/description']]);
+  });
+
+  it('given a clean buffer, when Back is tapped twice, then the editor leaves once', async () => {
+    await openEditor('ios');
+    const back = screen.getByTestId('NativeHeaderItem-Back to the problem list');
+    await userEvent.click(back);
+    await userEvent.click(back);
+    expect(routerHarness().calls()).toEqual([['back']]);
+  });
+
+  it('given an edited iOS draft, when the editor is unmounted and reopened, then it restores the edited code', async () => {
+    await AsyncStorage.removeItem('leetcode-draft:two-sum:python3');
+    const first = await openEditor('ios', undefined, true);
+    const editor = await first.editor();
+    await editor.select(0, editor.text().length);
+    await editor.type('print("saved draft")');
+    await waitFor(() => expect(editor.text()).toBe('print("saved draft")'));
+    first.unmount();
+
+    const reopened = await openEditor('ios', undefined, true);
+    expect((await reopened.editor()).text()).toBe('print("saved draft")');
+    await AsyncStorage.removeItem('leetcode-draft:two-sum:python3');
   });
 
   it('given the setting on under the classic bar (web), when a run is in flight, then the spinner and the two pills render with the same ids', async () => {

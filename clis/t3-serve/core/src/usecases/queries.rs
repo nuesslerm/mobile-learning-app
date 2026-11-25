@@ -193,7 +193,7 @@ impl Service {
     pub fn force_stop(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let thread = self.thread_or_missing(payload, "OrchestrationV2ForceStopThreadError", json!({"threadId": field(payload, "threadId")?}))?;
         let turn = payload.get("runId").and_then(Value::as_str).map(|run| self.turn_of_started_run(run).unwrap_or_else(|| run.to_string()));
-        let stopped = self.agent().run(&Op::ThreadForceStop { thread, turn }).map_err(failed)?;
+        let stopped = self.1.force_stop(&thread, turn).map_err(failed)?;
         Ok(json!({"outcome": stopped["outcome"], "sharedWithThreadIds": stopped["shared_with"]}))
     }
 

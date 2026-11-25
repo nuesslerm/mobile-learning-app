@@ -19,6 +19,8 @@ struct Root {
     owner: Option<&'static str>,
 }
 
+pub(crate) const WORKSPACE_DISCOVERY: &str = "skills.discover-workspace.v1";
+
 const SHARED: &[&str] = &["agent-skills"];
 
 const fn home(id: &'static str, label: &'static str, dir: &'static str, owner: &'static str) -> Root {

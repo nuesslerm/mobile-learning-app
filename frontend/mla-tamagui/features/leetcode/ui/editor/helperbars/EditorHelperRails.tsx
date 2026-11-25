@@ -19,6 +19,8 @@ type Props = {
   voiceButton?: React.ReactNode;
   /** A row of its own above the symbol toolbar (the console's action bar). */
   topRow?: React.ReactNode;
+  compactSymbols?: boolean;
+  symbolBarBackground?: string;
 };
 
 export function EditorHelperRails({
@@ -30,6 +32,8 @@ export function EditorHelperRails({
   onDismissKeyboard,
   voiceButton,
   topRow,
+  compactSymbols = false,
+  symbolBarBackground,
 }: Props) {
   const shown = useSymbolBarStore((s) => s.shown);
   const railStyle = useSymbolBarStore((s) => s.railStyle);
@@ -44,6 +48,8 @@ export function EditorHelperRails({
           selection={selection}
           language={language}
           onDismissKeyboard={onDismissKeyboard}
+          compact={compactSymbols}
+          backgroundColor={symbolBarBackground}
         />
       ) : (
         <SyntaxToolbar
@@ -54,14 +60,14 @@ export function EditorHelperRails({
           onConfigure={onConfigure}
         />
       )}
-      <ActionToolbar
+      {compactSymbols && shown && railStyle === 'symbols' ? null : <ActionToolbar
         editorRef={editorRef}
         source={source}
         selection={selection}
         onDone={onDismissKeyboard}
       >
         {voiceButton}
-      </ActionToolbar>
+      </ActionToolbar>}
     </>
   );
 }

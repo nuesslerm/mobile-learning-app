@@ -110,7 +110,9 @@ export { useHeaderHeightStore } from './lib/headerHeightStore';
 export { DEFAULT_NATIVE_HEADERS, useNativeHeaderStore } from './lib/nativeHeaderStore';
 export { useNativeHeaderPath } from './composites/native-header/use-header-env';
 export { useScrollUnder } from './composites/native-header/use-scroll-under';
-export { MenuPanel, type MenuPanelProps } from './composites/menu-panel';
+export { useNativeStackHeaderHeight } from './composites/native-header/use-native-stack-header-height';
+export { PageSheet, type PageSheetProps } from './ui/page-sheet';
+export { MenuPanel, MenuTouchCaptureContext, type MenuPanelProps } from './composites/menu-panel';
 export {
   KEYBOARD_TOOLBAR_Z,
   KeyboardToolbarAwareScrollView,
@@ -165,3 +167,6 @@ export {
 } from './ui/charts/TimeSeriesChart';
 
 export * from './theme';
+export { CompactHeader, CompactIconButton, CompactTabs, DenseActionRow, FloatingBar, FloatingSurface, SearchPill, useCompactColors } from './composites/compact-navigation';
+export { SheetPager } from './composites/sheet-pager';
+export { MarqueeLabel } from './composites/marquee-label';

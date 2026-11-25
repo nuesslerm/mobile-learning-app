@@ -288,6 +288,34 @@ async fn given_a_worktree_made_for_a_workspace_when_its_files_and_diff_are_asked
     assert_eq!(rig.executors.owner("d"), Some("e1".into()));
 }
 
+#[tokio::test]
+async fn a_retry_retires_the_workspace_if_the_executor_removed_the_checkout_before_disconnect() {
+    // Given a registered worktree whose executor disconnected during removal
+    use agent_api_workspace::worktrees::{WORKTREE_CREATE, WORKTREE_REMOVE};
+    let first = ScriptedChannel::new(|tool, args| match tool {
+        "git_worktree_add" => ok(json!({"path": "/base/wt", "branch": args["branch"], "head": "h"})),
+        _ => Err(RemoteError::ExecutorGone),
+    });
+    let rig = rig_with_one(first);
+    let args = json!({"workspace": "wt"});
+    rig.ask(WORKTREE_CREATE, json!({"workspace": "root", "worktree": "wt", "branch": "b"})).await;
+    assert_eq!(code(&rig.ask(WORKTREE_REMOVE, args.clone()).await), "EXECUTOR_GONE");
+    assert_eq!(rig.executors.owner("wt"), Some("e1".into()));
+
+    // When the replacement executor reports the checkout already absent
+    let again = ScriptedChannel::new(|_, _| Err(RemoteError::Action {
+        code: exec_proto::Code::NotFound.as_str().into(), message: "worktree wt does not exist".into(),
+    }));
+    rig.executors.open_executor("e1", "root", again.clone()).unwrap();
+    let answer = rig.ask(WORKTREE_REMOVE, args).await;
+
+    // Then the stale registration is retired and the repository remains attached
+    assert_eq!(again.calls(), [("git_worktree_remove".into(), json!({"name": "wt"}))]);
+    assert_eq!(answer["result"], json!({"workspace": "wt", "removed": true}));
+    assert_eq!(rig.executors.owner("wt"), None);
+    assert_eq!(rig.executors.owner("root"), Some("e1".into()));
+}
+
 fn rig_with_one(channel: Arc<ScriptedChannel>) -> Rig {
     rig(channel as Arc<dyn ExecutorChannel>)
 }

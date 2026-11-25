@@ -19,7 +19,7 @@ fn walk(root: &Path, dir: &Path, out: &mut BTreeSet<String>) {
         let name = entry.file_name().to_string_lossy().to_string();
         let path = entry.path();
         if path.is_dir() {
-            if !SKIP.contains(&name.as_str()) && path.strip_prefix(root).is_ok_and(|rel| rel != Path::new(".claude/worktrees")) {
+            if !SKIP.contains(&name.as_str()) && path.strip_prefix(root).is_ok_and(|rel| rel != Path::new(".claude/worktrees") && rel != Path::new(".context")) {
                 walk(root, &path, out);
             }
         } else if name == "package.json" {

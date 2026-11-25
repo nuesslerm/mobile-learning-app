@@ -1,4 +1,6 @@
-import { router } from 'expo-router';
+import { useCallback } from 'react';
+
+import { backOrReplace, useRouteAction } from './useRouteAction';
 
 /**
  * Dismiss an overlay route (description, history, rename, reset-code, unsaved)
@@ -15,13 +17,7 @@ import { router } from 'expo-router';
  * `replace` rather than `push` for the fallback: the overlay should not stay
  * in the stack behind the editor, or Back from the editor reopens it.
  */
-export function dismissOverlayRoute(problemId: string | undefined): void {
-  if (router.canGoBack()) {
-    router.back();
-    return;
-  }
-  // No `/leetcode` index in this app -- the problem list is `(app)/(content)/index`,
-  // i.e. `/`. Naming a route expo-router has not generated is a typed-routes
-  // error, not a silent no-op.
-  router.replace(problemId ? `/leetcode/${problemId}` : '/');
+export function useDismissOverlayRoute(problemId: string | undefined) {
+  const leave = useRouteAction();
+  return useCallback(() => leave(() => backOrReplace(problemId ? `/leetcode/${problemId}` : '/')), [leave, problemId]);
 }

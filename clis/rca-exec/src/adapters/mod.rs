@@ -2,6 +2,7 @@
 pub mod artifacts;
 pub mod browser;
 pub mod browser_proxy;
+mod claude_task_output;
 pub mod exec_channel;
 pub mod git;
 pub mod hosted;

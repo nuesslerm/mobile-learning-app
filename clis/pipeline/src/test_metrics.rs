@@ -87,8 +87,8 @@ fn timing_text(timing: &Value) -> Value {
 /// `integration` is a service's integration suite (backend/vm-ops-api/integration), its record in the same shape.
 pub(crate) fn row_from_run_report(r: &Value, ran_on: &str) -> Result<Map<String, Value>, String> {
     let platform = text(&r["platform"]).unwrap_or_default();
-    if !matches!(platform.as_str(), "browser" | "android" | "integration") {
-        return Err(format!("not a test harness platform: '{platform}' (browser, android, integration)"));
+    if !matches!(platform.as_str(), "browser" | "android" | "ios" | "integration") {
+        return Err(format!("not a test harness platform: '{platform}' (browser, android, ios, integration)"));
     }
     let mut row = empty_row();
     let started = r["startedMs"].as_i64();

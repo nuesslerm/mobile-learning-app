@@ -85,6 +85,24 @@ describe('menuSignature', () => {
     ).not.toBe(menuSignature(settingsTree(() => undefined, true, 'Hard wrap')));
   });
 
+  it('Given an action image changes, When the signatures are taken, Then the native menu refreshes', () => {
+    const action: MenuActionNode = {
+      testID: 'wrap',
+      label: 'Line wrap',
+      checked: true,
+      onPress: () => undefined,
+    };
+    const withImage: MenuActionNode = {
+      ...action,
+      iosMenuImage: {
+        light: 'data:image/png;base64,light',
+        dark: 'data:image/png;base64,dark',
+      },
+    };
+
+    expect(menuSignature([withImage])).not.toBe(menuSignature([action]));
+  });
+
   it('Given a checked row deep inside a submenu flips, When the signatures are taken, Then they differ', () => {
     const base = settingsTree(() => undefined);
     const flipped = settingsTree(() => undefined);

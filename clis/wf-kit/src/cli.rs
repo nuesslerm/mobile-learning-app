@@ -46,11 +46,17 @@ pub fn run(surface: &Surface) -> ! {
     if program.json {
         rest.push("--json".to_string());
     }
+    if program.performance {
+        std::process::exit(crate::performance::command(&rest));
+    }
+    let exporter = crate::performance::install();
     std::env::set_var("WF_APP", "mla-tamagui");
-    let code = dispatch(surface, &rest);
+    let command = surface.commands.iter().find(|(name, _)| rest.first().is_some_and(|arg| arg == name)).map_or("help", |(name, _)| *name);
+    let code = tracing::info_span!("cli.command", otel.name = %format!("cli.{command}")).in_scope(|| dispatch(surface, &rest));
     if let Some(recorder) = &surface.recorder {
         (recorder.record)(&rest, code, started, surface.version);
     }
+    drop(exporter);
     std::process::exit(code);
 }
 

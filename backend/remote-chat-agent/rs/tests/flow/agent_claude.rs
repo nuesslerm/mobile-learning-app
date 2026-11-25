@@ -100,6 +100,42 @@ async fn given_a_turn_that_streams_text_and_runs_a_tool_when_it_runs_over_the_ag
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_detached_claude_task_when_it_finishes_during_the_next_turn_then_its_receipt_is_replayed_once_on_the_original_turn() {
+    // Given the first turn started a detached command and ended
+    let env = Env::new(&[]);
+    let chain = chain_with(&env, Options::default()).await;
+    let task_started = json!({"type": "system", "subtype": "task_started", "task_id": "task", "run_id": "provider-run", "is_backgrounded": true}).to_string();
+    let receipt = json!({"type": "system", "subtype": "task_notification", "task_id": "task", "run_id": "provider-run", "status": "completed", "summary": "Background command finished"});
+    let mut unknown = receipt.clone();
+    unknown["run_id"] = json!("unknown-run");
+    unknown["summary"] = json!("Unrelated task");
+    chain.script(vec![
+        Turn::replaying(&[task_started]),
+        Turn::replaying(&[unknown.to_string(), receipt.to_string(), receipt.to_string()]),
+    ]);
+    let mut agent = chain.agent().await;
+    thread(&mut agent, "t1").await;
+    let first = turn(&mut agent, "t1", "launch a task", "full-access").await;
+    agent.events_through("turn.finished").await;
+
+    // When the provider sends completion and a duplicate during a second turn
+    let next = turn(&mut agent, "t1", "next prompt", "full-access").await;
+    let live = agent.events_through("turn.finished").await;
+    assert_eq!(live.last().unwrap().turn.as_deref(), next["result"]["turn"].as_str());
+    let replay = agent.ask("thread.history", json!({"thread": "t1"})).await;
+    let events = replay["result"]["events"].as_array().unwrap();
+
+    // Then live delivery and replay attach one receipt to the first turn and both turns are finished
+    let live_task: Vec<_> = live.iter().filter(|e| e.kind.starts_with("tool.")).collect();
+    assert_eq!(live_task.iter().map(|e| e.kind.as_str()).collect::<Vec<_>>(), ["tool.started", "tool.output", "tool.finished"]);
+    assert!(live_task.iter().all(|e| e.turn.as_deref() == first["result"]["turn"].as_str()));
+    assert_eq!(live_task[1].data["data"], "Background command finished");
+    assert_eq!(live_task[2].data["result"]["status"], "completed");
+    assert_eq!(events.iter().filter(|e| e["type"] == "tool.finished" && e["turn"] == first["result"]["turn"]).count(), 1);
+    assert_eq!(events.iter().filter(|e| e["type"] == "turn.finished").count(), 2);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_turn_that_is_working_when_the_mapper_steers_it_then_the_prompt_goes_to_the_live_process_with_priority_now_and_the_same_turn_ends_once_with_no_process_restarted() {
     // Given a Claude Code whose first turn says it is going right and waits, and whose next one says it is going left
     let env = Env::new(&[]);

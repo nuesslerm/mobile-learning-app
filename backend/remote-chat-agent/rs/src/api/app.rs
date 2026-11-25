@@ -66,6 +66,7 @@ pub struct Config {
     pub claude_idle: Duration,
     /// `RCA_OPENCODE_IDLE_SECS`: the same for opencode's server.
     pub opencode_idle: Duration,
+    pub opencode_models: Option<String>,
     /// `RCA_BROWSER`: whether the `browser` group answers or refuses every method.
     pub browser: bool,
 }
@@ -89,6 +90,7 @@ impl Config {
             codex_idle: Duration::from_secs(s.codex_idle_secs),
             claude_idle: Duration::from_secs(s.claude_idle_secs),
             opencode_idle: Duration::from_secs(s.opencode_idle_secs),
+            opencode_models: s.rca_opencode_models,
             browser: s.browser,
             state_seq_base: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_micros() as u64),
         }

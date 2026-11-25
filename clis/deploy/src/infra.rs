@@ -272,6 +272,7 @@ fn free_tier(shape: &str, ocpus: f64, memory: f64, used: (f64, f64)) -> Option<S
 
 fn a1_usage(compartment: &str) -> Res<(f64, f64)> {
     let args = ["compute", "instance", "list", "--compartment-id", compartment, "--all"];
+    let _span = wf_kit::performance::external("oci");
     let out = Command::new("oci").args(args).stdin(Stdio::null()).output();
     let label = "oci compute instance list";
     let o = out.map_err(|e| Fail::Plain(format!("{label} failed: {e}")))?;

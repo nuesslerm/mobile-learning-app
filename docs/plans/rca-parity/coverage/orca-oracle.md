@@ -20,7 +20,7 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 | Behaviour test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock | Service env |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `agent_catalog` | 2 | 3 | 2 | none | none | none | none |
-| `agent_sessions` | 6 | 6 | 17 | none | none | none | none |
+| `agent_sessions` | 7 | 6 | 21 | none | none | none | none |
 | `interrupted` | 1 | 1 | 3 | none | none | none | none |
 | `layout_vault` | 2 | 1 | 2 | none | none | none | none |
 | `terminal_artifacts` | 2 | 4 | none | none | none | none | 1 |

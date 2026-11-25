@@ -3,7 +3,7 @@
 use super::support::*;
 use agent_api_agent::testing::thread_events;
 use t3_core::domain::command::Family;
-use t3_core::domain::decider::Effect;
+use t3_core::domain::decider::{Effect, Outcome, RunStep};
 use t3_core::ports::{AgentApi, AgentEventKind, AgentThread, AgentTurn, EventStore, Finish};
 use t3_serve::adapters::rca::agent_event;
 
@@ -18,6 +18,14 @@ fn crashed_run(h: &Harness, text: &str) -> String {
     match dispatched.effect {
         Some(Effect::Launch(launch)) => launch.run_id,
         other => panic!("no launch: {other:?}"),
+    }
+}
+
+fn queued_run(h: &Harness, marker: &str) -> String {
+    let command = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "mobile", "commandId": format!("c-{marker}"), "threadId": "t1", "messageId": format!("m-{marker}"), "text": marker, "dispatchMode": {"type": "queue_after_active"}});
+    match h.service.engine().dispatch(Family::Thread, &command).unwrap().effect {
+        Some(Effect::Queue(launch)) => launch.run_id,
+        other => panic!("no queue: {other:?}"),
     }
 }
 
@@ -59,6 +67,65 @@ fn script() -> Vec<AgentEventKind> {
         AgentEventKind::ToolFinished { id: "k1".into(), ok: true },
         AgentEventKind::Text("it".into()),
     ]
+}
+
+#[test]
+fn a_detached_claude_receipt_updates_the_original_run_live_and_after_reopening() {
+    // Given a completed Claude turn and an open mobile thread subscription
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    success(&rpc.call("projects.mutate", project_create("c-p1", "p1")));
+    let mut create = thread_create("c-t1", "t1", "p1");
+    create["modelSelection"] = json!({"instanceId": "claudeAgent", "model": "sonnet"});
+    success(&rpc.call("orchestration.dispatchCommand", create));
+    *h.agent.script.lock().unwrap() = vec![
+        AgentEventKind::ToolStarted { id: "bash".into(), name: "Bash".into(), input: json!({"command": "python3 work.py", "run_in_background": true}) },
+        AgentEventKind::ToolOutput { id: "bash".into(), data: "Command running in background with ID: task. Output is being written to its task file.".into() },
+        AgentEventKind::ToolFinished { id: "bash".into(), ok: true },
+        AgentEventKind::Text("STARTED".into()),
+    ];
+    dispatch_message(&mut rpc, "c-1", "launch a background task");
+    let p = settled(&mut rpc, "t1");
+    let run = p["runs"][0]["id"].clone();
+    assert_eq!(p["runs"][0]["status"], "completed");
+    let mut reader = connect(&h);
+    let thread = reader.send("orchestration.subscribeThread", json!({"threadId": "t1"}));
+    assert_eq!(reader.chunk(&thread)[0]["kind"], "snapshot");
+
+    // When the task finishes after the originating turn
+    let call = "claude-task:u1:provider-run:task";
+    h.agent.append("t1", Some("unrelated"), AgentEventKind::ToolStarted { id: "claude-task:unknown:provider-run:task".into(), name: "Background task".into(), input: json!({}) });
+    for event in [
+        AgentEventKind::ToolStarted { id: call.into(), name: "Background task".into(), input: json!({"taskId": "task"}) },
+        AgentEventKind::ToolOutput { id: call.into(), data: "Background command completed (exit code 0)".into() },
+        AgentEventKind::ToolFinished { id: call.into(), ok: true },
+    ] {
+        h.agent.append("t1", Some("u1"), event);
+    }
+
+    // Then the live subscriber gets a completed tool row on the already-finished run
+    let summary = "Background command completed (exit code 0)";
+    let completed = loop {
+        let rows = reader.chunk(&thread);
+        if let Some(row) = rows.into_iter().find(|row| row["event"]["payload"]["name"] == "Background task" && row["event"]["payload"]["status"] == "completed") {
+            break row["event"]["payload"].clone();
+        }
+    };
+    assert_eq!(completed["runId"], run);
+    assert_eq!(completed["input"], summary);
+    assert_eq!(completed["output"], summary);
+
+    // And reopening reads one receipt with the same output and does not start another turn
+    drop(reader);
+    let p = settled(&mut rpc, "t1");
+    assert_eq!(p["runs"].as_array().unwrap().len(), 1);
+    assert_eq!(p["runs"][0]["status"], "completed");
+    let tools: Vec<_> = p["turnItems"].as_array().unwrap().iter().filter(|row| row["name"] == "Background task").collect();
+    assert_eq!(tools, [&completed]);
+    let bash = p["turnItems"].as_array().unwrap().iter().find(|row| row["name"] == "Bash").unwrap();
+    assert_eq!(bash["input"], "python3 work.py");
+    assert_eq!(bash["output"], "Command running in background with ID: task. Output is being written to its task file.");
+    assert_eq!(h.agent.turns.lock().unwrap().len(), 1);
 }
 
 #[test]
@@ -170,6 +237,144 @@ fn a_run_a_restart_left_running_is_followed_to_its_end_without_taking_in_another
     let p = settled(&mut rpc, "t1");
     assert_eq!((p["runs"][0]["status"].as_str(), shell_status(&mut rpc).as_str()), (Some("interrupted"), "idle"));
     assert_eq!(texts(&p)[1].1, "so far, and more");
+}
+
+#[test]
+fn after_a_restart_the_phones_queue_receives_both_automatically_dispatched_turns_in_order() {
+    // Given one running and two queued rows on disk, while RCA is still running the first turn.
+    let (h, _) = seeded();
+    crashed_run(&h, "original");
+    let queued = [queued_run(&h, "A"), queued_run(&h, "B")];
+    h.agent.replies.lock().unwrap().insert("queue.list", Ok(json!({"held": false})));
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    let turn = rca_runs(&h, "original");
+    let restarted = h.restart();
+    let mut rpc = connect(&restarted);
+
+    // When T3 resumes its subscription and RCA finishes the original turn and starts each queued turn.
+    restarted.service.resume_runs();
+    wait_until(|| h.agent.calls.lock().unwrap().contains(&"thread.subscribe"));
+    h.agent.append("t1", Some(&turn), AgentEventKind::TurnFinished(Finish::Completed));
+    for (run, marker) in queued.iter().zip(["A", "B"]) {
+        h.agent.append("t1", Some(run), AgentEventKind::TurnStarted);
+        h.agent.append("t1", Some(run), AgentEventKind::Text(format!("reply {marker}")));
+        h.agent.append("t1", Some(run), AgentEventKind::TurnFinished(Finish::Completed));
+    }
+
+    // Then both replies and completed runs appear on the phone without an explicit history read.
+    let projection = |rpc: &mut Rpc| success(&rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"}))).clone();
+    wait_until(|| projection(&mut rpc)["runs"][2]["status"] == "completed");
+    let actual = projection(&mut rpc);
+    assert!(actual["runs"].as_array().unwrap().iter().all(|run| run["status"] == "completed"));
+    assert_eq!(texts(&actual).into_iter().filter(|(role, _)| role == "assistant").map(|(_, text)| text).collect::<Vec<_>>(), ["reply A", "reply B"]);
+    assert_eq!(h.agent.turns.lock().unwrap().len(), 1, "recovery must not start another turn");
+}
+
+#[test]
+fn after_a_restart_a_forced_stop_keeps_the_queue_waiting_until_the_phone_resumes_it() {
+    // Given a running turn with a queued follow-up, the phone stops the turn and sees the hold.
+    let (h, mut initial) = seeded();
+    let original = crashed_run(&h, "original");
+    let queued = queued_run(&h, "held");
+    let projection = |rpc: &mut Rpc| success(&rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"}))).clone();
+    success(&initial.call("orchestration.dispatchCommand", json!({"type": "thread.stop", "threadId": "t1", "commandId": "c-stop"})));
+    assert_eq!(projection(&mut initial)["runs"][1]["queueHeld"], true);
+    h.service.engine().record("t1", &original, &RunStep::Finished(Outcome::Interrupted)).unwrap();
+    h.agent.replies.lock().unwrap().insert("queue.list", Ok(json!({"held": true})));
+    rca_runs(&h, "original");
+
+    // When T3 recovers, its only queue operation is to read the hold.
+    let restarted = h.restart();
+    let mut rpc = connect(&restarted);
+    let before = h.agent.ops.lock().unwrap().len();
+    restarted.service.resume_runs();
+    wait_until(|| h.agent.ops.lock().unwrap().iter().any(|op| op.method() == "queue.list"));
+    assert_eq!(projection(&mut rpc)["runs"][1]["status"], "queued");
+    assert_eq!(projection(&mut rpc)["runs"][1]["queueHeld"], true);
+    assert_eq!(h.agent.ops.lock().unwrap()[before..].iter().map(|op| op.method()).collect::<Vec<_>>(), ["queue.list"]);
+
+    // Then the user's Resume is what allows RCA to start the turn and T3 to show the reply.
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "queue.resume", "threadId": "t1", "commandId": "c-resume"})));
+    assert_eq!(projection(&mut rpc)["runs"][1]["queueHeld"], false);
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnStarted);
+    h.agent.append("t1", Some(&queued), AgentEventKind::Text("reply after resume".into()));
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnFinished(Finish::Completed));
+    wait_until(|| projection(&mut rpc)["runs"][1]["status"] == "completed");
+    assert!(texts(&projection(&mut rpc)).iter().any(|(role, text)| role == "assistant" && text == "reply after resume"));
+}
+
+#[test]
+fn restart_recovers_a_hold_missing_from_the_saved_queue_rows() {
+    // Given RCA holds a queue that T3 saved before it projected queue holds.
+    let (h, _) = seeded();
+    let original = crashed_run(&h, "original");
+    queued_run(&h, "held");
+    h.service.engine().record("t1", &original, &RunStep::Finished(Outcome::Interrupted)).unwrap();
+    h.agent.replies.lock().unwrap().insert("queue.list", Ok(json!({"held": true})));
+
+    // When the adapter restarts, then the phone can resume the existing queued run.
+    let restarted = h.restart();
+    let mut rpc = connect(&restarted);
+    restarted.service.resume_runs();
+    wait_until(|| success(&rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"})))["runs"][1]["queueHeld"] == true);
+}
+
+#[test]
+fn the_queue_stays_pending_when_its_first_subscription_fails_and_can_be_followed_again() {
+    use std::sync::Arc;
+    use t3_core::ports::AgentError;
+    use t3_core::usecases::{engine::Engine, runner::Runner};
+
+    // Given the queued follow-up is saved in T3 and its events are available at RCA.
+    let (h, _) = seeded();
+    let first = crashed_run(&h, "original");
+    let queued = queued_run(&h, "follow-up");
+    h.service.engine().record("t1", &first, &RunStep::Finished(Outcome::Completed)).unwrap();
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnStarted);
+    h.agent.append("t1", Some(&queued), AgentEventKind::Text("the existing reply".into()));
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnFinished(Finish::Completed));
+    let engine = Arc::new(Engine::open(h.store.clone(), h.clock.clone(), h.ids.clone()).unwrap());
+    let runner = Runner::new(h.agent.clone(), engine.clone(), h.store.clone(), h.log.clone());
+    let attempts = || h.agent.calls.lock().unwrap().iter().filter(|method| **method == "thread.subscribe").count();
+
+    // When the first attempt to follow fails before reading the queued turn.
+    *h.agent.follow_error_once.lock().unwrap() = Some(AgentError::Failed("connection refused".into()));
+    runner.drain("t1");
+
+    // Then T3 stops after one attempt and can follow the same turn on the next drain.
+    assert_eq!(attempts(), 1);
+    assert_eq!(engine.next_queued("t1").as_deref(), Some(queued.as_str()));
+    runner.drain("t1");
+    assert_eq!(attempts(), 2);
+    assert!(engine.next_queued("t1").is_none());
+    assert!(engine.read(|state| state.entities["t1"].runs[1]["status"] == "completed"));
+    assert!(h.agent.turns.lock().unwrap().is_empty(), "a retry only follows the existing turn");
+}
+
+#[test]
+fn after_a_restart_a_queued_run_that_already_started_keeps_receiving_its_reply() {
+    // Given T3 persisted a waiting row, but RCA started its turn before T3 restarted.
+    let (h, _) = seeded();
+    let original = crashed_run(&h, "original");
+    let queued = queued_run(&h, "queued");
+    h.service.engine().record("t1", &original, &RunStep::Finished(Outcome::Completed)).unwrap();
+    rca_runs(&h, "original");
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnStarted);
+    h.agent.append("t1", Some(&queued), AgentEventKind::Text("before restart, ".into()));
+
+    // When T3 catches up and follows the existing turn, then RCA completes it.
+    let restarted = h.restart();
+    let mut rpc = connect(&restarted);
+    restarted.service.resume_runs();
+    wait_until(|| h.agent.calls.lock().unwrap().contains(&"thread.subscribe"));
+    h.agent.append("t1", Some(&queued), AgentEventKind::Text("after restart".into()));
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnFinished(Finish::Completed));
+
+    // Then the original queued run contains both pieces of the reply exactly once.
+    let p = settled(&mut rpc, "t1");
+    assert_eq!(p["runs"][1]["status"], "completed");
+    assert!(texts(&p).iter().any(|(role, text)| role == "assistant" && text == "before restart, after restart"));
+    assert_eq!(h.agent.turns.lock().unwrap().len(), 1);
 }
 
 #[test]

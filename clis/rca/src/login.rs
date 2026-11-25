@@ -39,6 +39,7 @@ struct Socket(WebSocket<TcpStream>);
 
 impl Socket {
     fn open(bearer: &str) -> Result<Socket, String> {
+        let _span = tracing::info_span!("rca.login.connect").entered();
         let authority = authority();
         let stream = TcpStream::connect(&authority).map_err(|e| format!("the rca service at {authority} is unreachable: {e}"))?;
         stream.set_read_timeout(Some(TIMEOUT)).map_err(|e| e.to_string())?;
@@ -50,6 +51,7 @@ impl Socket {
 
     /// One request and its result; the service's refusal is `Err((code, message))`.
     fn call(&mut self, method: &str, params: Value) -> Result<Value, (String, String)> {
+        let _span = tracing::info_span!("rca.client", otel.name = %format!("rca.client.{method}")).entered();
         let id = 1;
         let io = |e: tungstenite::Error| ("IO".to_string(), e.to_string());
         self.0.send(Message::Text(json!({ "id": id, "method": method, "params": params }).to_string().into())).map_err(io)?;

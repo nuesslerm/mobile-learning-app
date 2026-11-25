@@ -38,3 +38,92 @@ fn a_published_runs_named_screenshots_become_the_goldens_of_its_harness() {
     assert!(none.exit_code == 1 && e["error"].as_str().unwrap().contains("no named screenshots") && e["next"].as_str().unwrap().contains("wf test goldens"), "{e}");
     assert!(bare.exit_code == 1 && bare.stdout.contains("wf test goldens <runId|bundle URL>"), "{}", bare.stdout);
 }
+
+#[test]
+fn ios_reference_comparison_keeps_the_source_and_writes_a_diff() {
+    // Given a portrait screenshot, a different design reference, and the expected accessibility element
+    let s = crate::support::SlotSandbox::new("wf-ios-reference-");
+    let png = |value: u8| {
+        wf_harness::golden::encode(&wf_harness::golden::Image {
+            width: 4,
+            height: 8,
+            rgba: [value, value, value, 255].repeat(32),
+        }).unwrap()
+    };
+    let captured = s.file("captured.png", png(0));
+    let source = png(255);
+    let reference = s.file("reference.png", &source);
+    s.stub("idb", r#"case "$1" in
+        ui) echo '[{"AXUniqueId":"Editor"}]' ;;
+        screenshot) cat "$CAPTURED" ;;
+    esac"#);
+    s.stub("sips", r#"while [ "$2" != "--out" ] && [ "$#" -gt 2 ]; do shift; done
+        cp "$1" "$3""#);
+
+    // When the simulator screenshot is compared directly with the supplied reference
+    let r = s.run(&["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &reference, "--out", "run"], &[("CAPTURED", &captured)]);
+
+    // Then the comparison fails with both images and a diff, and the input reference remains intact
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    let result: Value = serde_json::from_str(r.stdout.trim()).unwrap();
+    assert_eq!(result["verdict"], "mismatch");
+    assert_eq!(result["differing_pixels"], 32);
+    for field in ["actual", "expected", "diff"] {
+        assert!(s.repo.join(result[field].as_str().unwrap()).is_file(), "{result}");
+    }
+    assert_eq!(std::fs::read(&reference).unwrap(), source);
+
+    // When a comparison is combined with an update, then the command rejects it
+    let update = s.run(&["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &reference, "--update-goldens"], &[]);
+    assert_eq!(update.exit_code, 2, "{}{}", update.stdout, update.stderr);
+    assert!(update.stdout.contains("cannot be used with --update-goldens"), "{}", update.stdout);
+    assert_eq!(std::fs::read(reference).unwrap(), source);
+
+    // Given a difference below Pixelmatch's colour threshold
+    let near = s.file("near.png", png(1));
+    let args = ["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &near, "--out", "run"];
+    let env = [("CAPTURED", captured.as_str())];
+
+    // When the reference is compared with or without exact mode
+    let perceptual = s.run(&args, &env);
+    let exact = s.run(&[args.as_slice(), &["--exact", "--ignore", "0,0,4,1"]].concat(), &env);
+
+    // Then the regular check matches and exact mode counts every unmasked change
+    assert_eq!(perceptual.exit_code, 0, "{}{}", perceptual.stdout, perceptual.stderr);
+    assert_eq!(exact.exit_code, 1, "{}{}", exact.stdout, exact.stderr);
+    let exact_result: Value = serde_json::from_str(exact.stdout.trim()).unwrap();
+    assert_eq!(exact_result["differing_pixels"], 28);
+    assert_eq!(exact_result["comparison"], "exact");
+    assert!(s.repo.join(exact_result["diff"].as_str().unwrap()).is_file());
+
+    let identical = s.run(&["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &captured, "--exact", "--out", "run"], &env);
+    assert_eq!(identical.exit_code, 0, "{}{}", identical.stdout, identical.stderr);
+    let match_result: Value = serde_json::from_str(identical.stdout.trim()).unwrap();
+    assert_eq!(match_result["differing_pixels"], 0);
+
+    // Given overlapping masks and a 5% budget, when one of 16 scored pixels differs, then it fails at 6.25%.
+    let mut rgba = [0, 0, 0, 255].repeat(32);
+    rgba[16 * 4] = 1;
+    let frame = s.file("recorded.png", wf_harness::golden::encode(&wf_harness::golden::Image {
+        width: 4, height: 8, rgba,
+    }).unwrap());
+    let compare = ["test", "ios-visual", "editor", "--capture", &frame, "--reference", &captured, "--exact",
+        "--ignore", "0,0,4,4", "--ignore", "0,0,2,2", "--out", "run"];
+    let rejected = s.run(&[compare.as_slice(), &["--max-diff-ratio", "0.05"]].concat(), &[]);
+    let rejected_result: Value = serde_json::from_str(rejected.stdout.trim()).unwrap();
+    assert_eq!(rejected.exit_code, 1, "{rejected_result}");
+    assert_eq!(rejected_result["compared_pixels"], 16);
+    assert_eq!(rejected_result["agreement"], 0.9375);
+
+    // When the budget includes the difference, then the run passes and retains the diff.
+    let accepted = s.run(&[compare.as_slice(), &["--max-diff-ratio", "0.0625"]].concat(), &[]);
+    let accepted_result: Value = serde_json::from_str(accepted.stdout.trim()).unwrap();
+    assert_eq!(accepted.exit_code, 0, "{accepted_result}");
+    assert!(s.repo.join(accepted_result["diff"].as_str().unwrap()).is_file());
+
+    // When masks cover the entire frame, then there is no comparable evidence.
+    let masked = s.run(&[compare.as_slice(), &["--ignore", "0,4,4,8"]].concat(), &[]);
+    assert_eq!(masked.exit_code, 2, "{}", masked.stdout);
+    assert!(masked.stdout.contains("masks exclude every pixel"));
+
+}

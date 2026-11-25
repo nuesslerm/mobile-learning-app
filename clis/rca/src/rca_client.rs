@@ -19,6 +19,12 @@ pub struct Answered {
 
 /// One request to the service; a refusal is an `Answered` with its status, an unreachable service an `Err` with the next step.
 pub fn send(method: &str, path: &str, body: Option<&Value>, timeout: Duration) -> Result<Answered, String> {
+    let route = match path.split('?').next().unwrap_or("") {
+        p @ ("/runs" | "/runs/log" | "/runs/cooldowns/clear" | "/runs/sessions" | "/agent/v1/bearers") => p,
+        p if p.starts_with("/agent/v1/bearers/") => "/agent/v1/bearers/:id",
+        _ => "other",
+    };
+    let _span = tracing::info_span!("rca.http", otel.name = %format!("rca.http.{method} {route}")).entered();
     let secret = secrets::load_values(&[SECRET_KEY]).get(SECRET_KEY).cloned().flatten().ok_or(format!("{SECRET_KEY} could not be resolved (`wf secret get {SECRET_KEY}`)"))?;
     let host = std::env::var("RCA_HOST").ok().filter(|h| !h.is_empty()).unwrap_or_else(|| DEFAULT_HOST.into());
     let port = std::env::var("RCA_PORT").ok().filter(|p| !p.is_empty()).unwrap_or_else(|| DEFAULT_PORT.into());

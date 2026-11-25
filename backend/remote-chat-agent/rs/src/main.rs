@@ -30,7 +30,14 @@ async fn main() -> ExitCode {
     // The order the Node entry has: the vault fills what the container was not given, logging is wired, then the gate, then the port.
     secrets::load().await;
     let extra_secrets = secrets::env_vars().iter().filter_map(|name| ProcessEnv.var(name)).filter(|value| value.chars().count() >= 8).collect();
-    let telemetry = service_kit::telemetry::init!("remote-chat-agent", extra_secrets);
+    let telemetry = if let Ok(endpoint) = std::env::var("WF_PERFORMANCE_ENDPOINT") {
+        use service_kit::telemetry;
+        let (dispatch, exporter) = telemetry::build(telemetry::source!("remote-chat-agent"), extra_secrets, Some(telemetry::Destination::new(endpoint, "")));
+        tracing::dispatcher::set_global_default(dispatch).expect("install the performance subscriber");
+        exporter
+    } else {
+        service_kit::telemetry::init!("remote-chat-agent", extra_secrets)
+    };
     if let Err(message) = startup::check(ProcessEnv.settings().agent_cli.as_deref()) {
         eprintln!("remote-chat-agent: {message}");
         return ExitCode::FAILURE;

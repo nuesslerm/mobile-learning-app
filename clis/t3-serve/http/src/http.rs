@@ -132,18 +132,21 @@ pub fn respond(stream: &mut TcpStream, status: u16, body: &Value) {
 
 /// A plain text answer, as the pin's attachment and asset routes give.
 fn respond_text(stream: &mut TcpStream, status: u16, text: &str) {
+    record_status(status);
     let head = format!("HTTP/1.1 {status} {}\r\n{COMMON}Content-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), text.len());
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(text.as_bytes())).and_then(|()| stream.flush());
 }
 
 /// What the pin answers a request its schema refuses: the status and the CORS header, nothing else.
 fn respond_bare(stream: &mut TcpStream, status: u16) {
+    record_status(status);
     let head = format!("HTTP/1.1 {status} {}\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", reason(status));
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
 }
 
 /// A JSON route given a body that does not say it is JSON.
 fn respond_unsupported(stream: &mut TcpStream) {
+    record_status(415);
     const TEXT: &str = "Unsupported content-type: text/plain";
     let head = format!("HTTP/1.1 415 {}\r\n{COMMON}Content-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(415), TEXT.len());
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(TEXT.as_bytes())).and_then(|()| stream.flush());
@@ -171,6 +174,7 @@ fn json_object(stream: &mut TcpStream, request: &Request) -> Option<Value> {
 }
 
 fn respond_empty(stream: &mut TcpStream, status: u16) {
+    record_status(status);
     let head = format!("HTTP/1.1 {status} {}\r\n{COMMON}Content-Length: 0\r\nConnection: close\r\n\r\n", reason(status));
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
 }
@@ -182,6 +186,7 @@ fn send_asset(stream: &mut TcpStream, svc: &Service, token: &str) {
         Err(failure) => return respond_text(stream, failure.status, &failure.text),
     };
     let name: String = asset.name.chars().map(|c| if (c.is_ascii_graphic() && !matches!(c, '"' | '\\' | '/')) || c == ' ' { c } else { '_' }).collect();
+    record_status(200);
     let disposition = if asset.inline { "inline" } else { "attachment" };
     let head = format!(
         "HTTP/1.1 200 OK\r\n{COMMON}Content-Type: {}\r\nContent-Length: {}\r\nCache-Control: private, max-age=3600\r\nX-Content-Type-Options: nosniff\r\nContent-Disposition: {disposition}; filename=\"{name}\"\r\nConnection: close\r\n\r\n",
@@ -205,6 +210,7 @@ fn send_asset(stream: &mut TcpStream, svc: &Service, token: &str) {
 }
 
 fn respond_with(stream: &mut TcpStream, status: u16, body: &Value, extra: &str) {
+    record_status(status);
     let text = if status == 204 { String::new() } else { body.to_string() };
     let cors = if status == 204 { CORS_PREFLIGHT } else { COMMON };
     let head = format!("HTTP/1.1 {status} {}\r\n{cors}{extra}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), text.len());
@@ -236,16 +242,62 @@ fn cookie<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
 
 /// `204` with the guest's session cookie: one per share, readable by no script, sent only to the guest routes.
 fn respond_joined(stream: &mut TcpStream, share: &str, token: &str) {
+    record_status(204);
     let head = format!("HTTP/1.1 204 No Content\r\n{COMMON}{NO_STORE}Set-Cookie: t3_guest_{share}={token}; HttpOnly; Secure; SameSite=Strict; Path=/api/guest; Max-Age={}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", t3_core::usecases::guest::TTL_MS / 1000);
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
 }
 
+fn record_status(status: u16) {
+    tracing::Span::current().record("http.response.status_code", status);
+}
+
+fn route_name(path: &str) -> &str {
+    match path {
+        "/.well-known/oauth-authorization-server" | "/.well-known/oauth-protected-resource" | "/.well-known/oauth-protected-resource/mcp" |
+        "/.well-known/t3/environment" | "/api/auth/browser-session" | "/api/auth/clients/revoke" |
+        "/api/auth/clients/revoke-others" | "/api/auth/pairing-links/revoke" | "/api/auth/pairing-token" |
+        "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
+        "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
+        "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
+        "/api/guest/redeem" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
+        "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
+        "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
+        "/api/voice/models/cancel" | "/api/voice/models/download" | "/api/voice/models/link" |
+        "/api/voice/models/prepare" | "/api/voice/models/remove" | "/api/voice/models/select" |
+        "/api/voice/post-process" | "/api/voice/status" | "/api/voice/transcribe" |
+        "/health" | "/oauth/mcp/approval" | "/oauth/mcp/authorize" |
+        "/oauth/mcp/decision" | "/oauth/mcp/register" | "/oauth/mcp/token" |
+        "/oauth/token" | "/ws" => path,
+        _ if path.starts_with("/api/auth/websocket-ticket/") => "/api/auth/websocket-ticket/:use",
+        _ if path.starts_with(THREADS) => match path[THREADS.len()..].split_once('/') {
+            None => "/api/orchestration/threads/:threadId",
+            Some((_, "history")) => "/api/orchestration/threads/:threadId/history",
+            Some((_, "transcript")) => "/api/orchestration/threads/:threadId/transcript",
+            Some((_, "bounded")) => "/api/orchestration/threads/:threadId/bounded",
+            _ => "unknown",
+        },
+        _ if path.starts_with("/api/voice/cloud/") && path.ends_with("/key") => "/api/voice/cloud/:provider/key",
+        _ if path.starts_with("/api/voice/cloud/") && path.ends_with("/transcribe") => "/api/voice/cloud/:provider/transcribe",
+        _ if path.starts_with(HOOKS) => "/api/hooks/:hookId/:token",
+        _ if path.starts_with(UPLOAD_PREFIX) => "attachment.upload",
+        _ if path.starts_with(ASSET_PREFIX) => "asset",
+        _ => "unknown",
+    }
+}
+
 pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
+    // Accepted sockets can inherit the listener's nonblocking mode on macOS.
+    if stream.set_nonblocking(false).is_err() {
+        return;
+    }
     let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
     let request = match read_request(&mut stream) {
         Ok(r) => r,
-        Err(m) => return respond(&mut stream, 400, &wire::bad_request(m)),
+        Err(m) => return tracing::info_span!("t3.http.invalid", http.response.status_code = 400).in_scope(|| respond(&mut stream, 400, &wire::bad_request(m))),
     };
+    let method = match request.method.as_str() { m @ ("GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS") => m, _ => "OTHER" };
+    let span = tracing::info_span!("t3.http", otel.name = %format!("t3.http.{method} {}", route_name(&request.path)), http.response.status_code = tracing::field::Empty).entered();
     let auth = request.header("authorization");
     match (request.method.as_str(), request.path.as_str()) {
         ("OPTIONS", _) => respond(&mut stream, 204, &Value::Null),
@@ -305,7 +357,7 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             Err(r) => refused(&mut stream, r, ""),
         },
         ("GET", "/ws") => match svc.connect(&request.query) {
-            Ok(connection) => socket::upgrade(stream, &request, connection, stop),
+            Ok(connection) => socket::upgrade(stream, &request, connection, stop, span),
             Err(r) => refused(&mut stream, r, ""),
         },
         ("GET", "/api/orchestration/shell") => {

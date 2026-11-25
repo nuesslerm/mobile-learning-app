@@ -64,7 +64,7 @@ fn repo_bench_cli_times_every_startup_target_of_a_binary_and_counts_the_reposito
     std::fs::create_dir_all(tree.join("node_modules/pkg/lib")).unwrap();
     std::fs::write(tree.join("node_modules/pkg/lib/a.js"), "").unwrap();
     std::fs::write(tree.join("node_modules/pkg/package.json"), "").unwrap();
-    let r = run_wf(&["bench", "cli", "--runs", "1"], &RunOpts::default().cwd(&tree).env("WF_BIN", "/bin/true"));
+    let r = run_wf(&["bench", "cli", "--runs", "1"], &RunOpts::default().cwd(&tree).env("WF_BIN", "true"));
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     // pkg, pkg/lib, pkg/lib/a.js, pkg/package.json
     assert!(r.stdout.contains("bundle alpha/index.js: 1.00 MB\n") && !r.stdout.contains("beta") && r.stdout.ends_with("node_modules files: 4\n"), "{}", r.stdout);

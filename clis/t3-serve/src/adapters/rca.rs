@@ -22,8 +22,9 @@ use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FI
 use exec_fs::{EntryKind, ListResult, ReadResult};
 use serde_json::{json, Value};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
+use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, RuntimeRequestEvent, RuntimeResponse, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
 
 pub struct RcaAgent {
     authority: String,
@@ -229,15 +230,32 @@ fn under(root: &str, path: &str) -> String {
 
 /// What a wire event is to t3, or why it is none: a kind the contract does not have or a field it does not read.
 pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
-    // the queue, request and lifecycle groups write their own kinds on the thread's topic: the rows keep their own record of those
-    if [queue::events::KINDS.as_slice(), requests::events::KINDS.as_slice(), lifecycle::events::KINDS.as_slice()].iter().any(|kinds| kinds.contains(&event.kind.as_str())) {
+    if requests::events::KINDS.contains(&event.kind.as_str()) {
+        use requests::events::RequestEvent;
+        let read = RequestEvent::from_event(event).map_err(|e| AgentError::Failed(format!("rca sent a request event this t3 serve cannot read: {}", e.0)))?;
+        let (id, response) = match read {
+            RequestEvent::ApprovalAnswered { approval, decision } => {
+                let decision = match decision {
+                    Decision::Accept => "accept",
+                    Decision::AcceptForSession => "acceptForSession",
+                    Decision::Decline => "decline",
+                    Decision::Cancel => "cancel",
+                };
+                (approval, RuntimeResponse::Approval(decision))
+            }
+            RequestEvent::InputAnswered { request, answer } => (request, RuntimeResponse::Answer(answer)),
+            RequestEvent::InputDismissed { request } => (request, RuntimeResponse::Dismissed),
+        };
+        return Ok(AgentEvent { seq: event.seq, turn: event.turn.clone(), kind: AgentEventKind::Request(RuntimeRequestEvent::Closed { id, response }) });
+    }
+    if queue::events::KINDS.contains(&event.kind.as_str()) || lifecycle::events::KINDS.contains(&event.kind.as_str()) {
         return Ok(AgentEvent { seq: event.seq, turn: event.turn.clone(), kind: AgentEventKind::Other });
     }
     let read = ThreadEvent::from_event(event).map_err(|e| AgentError::Failed(format!("rca sent an event this t3 serve cannot read: {}", e.0)))?;
     let kind = match read {
         ThreadEvent::TurnStarted {} => AgentEventKind::TurnStarted,
-        ThreadEvent::MessageDelta { role: Role::User, text } => AgentEventKind::UserText(text),
-        ThreadEvent::MessageDelta { role: Role::Assistant, text } => AgentEventKind::Text(text),
+        ThreadEvent::MessageDelta { role: Role::User, text, .. } => AgentEventKind::UserText(text),
+        ThreadEvent::MessageDelta { role: Role::Assistant, text, .. } => AgentEventKind::Text(text),
         ThreadEvent::ReasoningDelta { text } => AgentEventKind::Reasoning(text),
         ThreadEvent::ToolStarted { call, tool, args } => AgentEventKind::ToolStarted { id: call, name: tool, input: args },
         ThreadEvent::ToolOutput { call, data, .. } => AgentEventKind::ToolOutput { id: call, data },
@@ -248,7 +266,9 @@ pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
             FinishReason::Interrupted => Finish::Interrupted,
             FinishReason::Failed => Finish::Failed,
         }),
-        ThreadEvent::FileChanged { .. } | ThreadEvent::ApprovalRequested { .. } | ThreadEvent::InputRequested { .. } | ThreadEvent::PlanUpdated { .. } | ThreadEvent::Usage(_) => AgentEventKind::Other,
+        ThreadEvent::ApprovalRequested { approval, tool, args } => AgentEventKind::Request(RuntimeRequestEvent::Approval { id: approval, tool, args }),
+        ThreadEvent::InputRequested { request, prompt, options } => AgentEventKind::Request(RuntimeRequestEvent::Question { id: request, prompt, options }),
+        ThreadEvent::FileChanged { .. } | ThreadEvent::PlanUpdated { .. } | ThreadEvent::Usage(_) => AgentEventKind::Other,
     };
     Ok(AgentEvent { seq: event.seq, turn: event.turn.clone(), kind })
 }
@@ -484,7 +504,8 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::QueueMove { thread, item, before } => (queue::QUEUE_MOVE, queue::MoveParams { thread: same(thread), item: same(item), before: before.clone() }.to_value()),
         Op::QueueDelete { thread, item } => (queue::QUEUE_DELETE, queue::DeleteParams { thread: same(thread), item: same(item) }.to_value()),
         Op::QueueResume { thread, item } => (queue::QUEUE_RESUME, queue::ResumeParams { thread: same(thread), item: item.clone() }.to_value()),
-        Op::TurnSteer { thread, turn, item } => (TURN_STEER, queue::SteerParams { thread: same(thread), turn: turn.clone(), prompt: None, item: item.clone() }.to_value()),
+        Op::QueueList { thread } => (queue::QUEUE_LIST, queue::ListParams { thread: same(thread) }.to_value()),
+        Op::TurnSteer { thread, turn, item, prompt } => (TURN_STEER, queue::SteerParams { thread: same(thread), turn: turn.clone(), prompt: prompt.clone(), item: item.clone() }.to_value()),
         Op::ThreadArchive { thread, archived } => (lifecycle::THREAD_ARCHIVE, lifecycle::ArchiveParams { thread: same(thread), archived: Some(*archived) }.to_value()),
         Op::ThreadDelete { thread, only_if_unused } => (lifecycle::THREAD_DELETE, lifecycle::DeleteParams { thread: same(thread), only_if_unused: Some(*only_if_unused) }.to_value()),
         Op::ThreadFork { thread, fork, turn, title } => (lifecycle::THREAD_FORK, lifecycle::ForkParams { thread: same(thread), fork: Some(same(fork)), turn: turn.clone(), title: title.clone() }.to_value()),
@@ -652,16 +673,17 @@ impl AgentApi for RcaAgent {
         }
     }
 
-    fn follow(&self, thread_id: &str, after_seq: u64, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
+    fn follow_until(&self, thread_id: &str, after_seq: u64, stop: &AtomicBool, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
         let mut client = self.connect()?;
         let params = SubscribeParams { thread: thread_id.to_string(), after_seq };
         client.subscribe(Subscribe::new(thread_topic(thread_id), THREAD_SUBSCRIBE, params.to_value(), "after_seq")).map_err(failed)?;
-        loop {
+        while !stop.load(Ordering::SeqCst) {
             let Some(event) = client.next_event(QUIET).map_err(failed)? else { continue };
             if sink(agent_event(&event)?) == Follow::Stop {
                 return Ok(());
             }
         }
+        Ok(())
     }
 
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError> {

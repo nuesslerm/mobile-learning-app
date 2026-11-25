@@ -1,0 +1,1805 @@
+{
+ "contains-duplicate": {
+  "url": "https://neetcode.io/problems/duplicate-integer?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=3OamzN90kPg",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can check every pair of different elements in the array and return true if any pair has equal values.\nThis is the most intuitive approach because it directly compares all possible pairs, but it is also the least efficient since it examines every combination."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through the array using two nested loops to check all possible pairs of distinct indices."
+   },
+   {
+    "kind": "li",
+    "text": "If any pair of elements has the same value, return true."
+   },
+   {
+    "kind": "li",
+    "text": "If all pairs are checked and no duplicates are found, return false."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hasDuplicate(self, nums: List[int]) -> bool:\n        for i in range(len(nums)):\n            for j in range(i + 1, len(nums)):\n                if nums[i] == nums[j]:\n                    return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sorting"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "If we sort the array, then any duplicate values will appear next to each other.\nSorting groups identical elements together, so we can simply check adjacent positions to detect duplicates.\nThis reduces the problem to a single linear scan after sorting, making it easy to identify if any value repeats."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Sort the array in non-decreasing order."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through the array starting from index 1."
+   },
+   {
+    "kind": "li",
+    "text": "Compare the current element with the previous element."
+   },
+   {
+    "kind": "li",
+    "text": "If both elements are equal, we have found a duplicate — return True."
+   },
+   {
+    "kind": "li",
+    "text": "If the loop finishes without detecting equal neighbors, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hasDuplicate(self, nums: List[int]) -> bool:\n        nums.sort()\n        for i in range(1, len(nums)):\n            if nums[i] == nums[i - 1]:\n                return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Hash Set"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can use a hash set to efficiently keep track of the values we have already encountered.\nAs we iterate through the array, we check whether the current value is already present in the set.\nIf it is, that means we've seen this value before, so a duplicate exists.\nUsing a hash set allows constant-time lookups, making this approach much more efficient than comparing every pair."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize an empty hash set to store seen values."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through each number in the array."
+   },
+   {
+    "kind": "li",
+    "text": "For each number:\nIf it is already in the set, return True because a duplicate has been found.\nOtherwise, add it to the set."
+   },
+   {
+    "kind": "li",
+    "text": "If the loop finishes without finding any duplicates, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hasDuplicate(self, nums: List[int]) -> bool:\n        seen = set()\n        for num in nums:\n            if num in seen:\n                return True\n            seen.add(num)\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Hash Set Length"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "This approach uses the same idea as the previous hash set method: a set only stores unique values, so duplicates are automatically removed.\nInstead of checking each element manually, we simply compare the length of the set to the length of the original array.\nIf duplicates exist, the set will contain fewer elements.\nThe logic is identical to the earlier approach — this version is just a shorter and more concise implementation of it."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Convert the array into a hash set, which removes duplicates."
+   },
+   {
+    "kind": "li",
+    "text": "Compare the size of the set with the size of the original array."
+   },
+   {
+    "kind": "li",
+    "text": "If the set is smaller, return True because duplicates must have been removed."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hasDuplicate(self, nums: List[int]) -> bool:\n        return len(set(nums)) < len(nums)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "valid-anagram": {
+  "url": "https://neetcode.io/problems/is-anagram?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=9UtInBqnCgA",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "If two strings are anagrams, they must contain exactly the same characters with the same frequencies.\nBy sorting both strings, all characters will be arranged in a consistent order.\nIf the two sorted strings are identical, then every character and its count match, which means the strings are anagrams."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the lengths of the two strings differ, return False immediately because they cannot be anagrams."
+   },
+   {
+    "kind": "li",
+    "text": "Sort both strings."
+   },
+   {
+    "kind": "li",
+    "text": "Compare the sorted versions of the strings:\nIf they are equal, return True.\nOtherwise, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isAnagram(self, s: str, t: str) -> bool:\n        if len(s) != len(t):\n            return False\n\n        return sorted(s) == sorted(t)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n + m log m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n + m) depending on the sorting algorithm."
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of string s and m is the length of string t."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Map"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "If two strings are anagrams, they must use the same characters with the same frequencies.\nInstead of sorting, we can count how many times each character appears in both strings.\nBy using two hash maps (or dictionaries), we track the frequency of every character in each string.\nIf both frequency maps match exactly, then the strings contain the same characters with same frequencies, meaning they are anagrams."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the two strings have different lengths, return False immediately."
+   },
+   {
+    "kind": "li",
+    "text": "Create two hash maps to store character frequencies for each string."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through both strings at the same time:\nIncrease the character count for s[i] in the first map.\nIncrease the character count for t[i] in the second map."
+   },
+   {
+    "kind": "li",
+    "text": "After building both maps, compare them:\nIf the maps are equal, return True.\nOtherwise, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isAnagram(self, s: str, t: str) -> bool:\n        if len(s) != len(t):\n            return False\n\n        countS, countT = {}, {}\n\n        for i in range(len(s)):\n            countS[s[i]] = 1 + countS.get(s[i], 0)\n            countT[t[i]] = 1 + countT.get(t[i], 0)\n        return countS == countT"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) since we have at most 26 different characters."
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of string s and m is the length of string t."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Hash Table (Using Array)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Since the problem guarantees lowercase English letters, we can use a fixed-size array of length 26 to count character frequencies instead of a hash map.\nAs we iterate through both strings simultaneously, we increment the count for each character in s and decrement the count for each character in t.\nIf the strings are anagrams, every increment will be matched by a corresponding decrement, and all values in the array will end at zero.\nThis approach is efficient because it avoids hashing and uses constant space."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the lengths of the strings differ, return False immediately."
+   },
+   {
+    "kind": "li",
+    "text": "Create a frequency array count of size 26 initialized to zero."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through both strings:\nIncrement the count at the index corresponding to s[i].\nDecrement the count at the index corresponding to t[i]."
+   },
+   {
+    "kind": "li",
+    "text": "After processing both strings, scan through the count array:\nIf any value is not zero, return False because the frequencies differ."
+   },
+   {
+    "kind": "li",
+    "text": "If all values are zero, return True since the strings are anagrams."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isAnagram(self, s: str, t: str) -> bool:\n        if len(s) != len(t):\n            return False\n\n        count = [0] * 26\n        for i in range(len(s)):\n            count[ord(s[i]) - ord('a')] += 1\n            count[ord(t[i]) - ord('a')] -= 1\n\n        for val in count:\n            if val != 0:\n                return False\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) since we have at most 26 different characters."
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of string s and m is the length of string t."
+   }
+  ]
+ },
+ "two-sum": {
+  "url": "https://neetcode.io/problems/two-integer-sum?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=KLlXCFG5TnA",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can check every pair of different elements in the array and return the first pair that sums up to the target. This is the most intuitive approach but it's not the most efficient."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through the array with two nested loops to check every pair of different elements."
+   },
+   {
+    "kind": "li",
+    "text": "If the sum of the pair equals the target, return the indices of the pair."
+   },
+   {
+    "kind": "li",
+    "text": "If no such pair is found, return an empty array."
+   },
+   {
+    "kind": "li",
+    "text": "There is guaranteed to be exactly one solution, so we will never return an empty array."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        for i in range(len(nums)):\n            for j in range(i + 1, len(nums)):\n                if nums[i] + nums[j] == target:\n                    return [i, j]\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sorting"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can sort the array and use two pointers to find the two numbers that sum up to the target. This is more efficient than the brute force approach. This approach is similar to the one used in Two Sum II."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a copy of the array and sort it in ascending order."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two pointers, one at the beginning and one at the end of the array."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through the array with the two pointers and check if the sum of the two numbers is equal to the target."
+   },
+   {
+    "kind": "li",
+    "text": "If the sum is equal to the target, return the indices of the two numbers."
+   },
+   {
+    "kind": "li",
+    "text": "If the sum is less than the target, move the left pointer to the right, which will increase the sum."
+   },
+   {
+    "kind": "li",
+    "text": "If the sum is greater than the target, move the right pointer to the left, which will decrease the sum."
+   },
+   {
+    "kind": "li",
+    "text": "There is guaranteed to be exactly one solution, so we will never return an empty array."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        A = []\n        for i, num in enumerate(nums):\n            A.append([num, i])\n\n        A.sort()\n        i, j = 0, len(nums) - 1\n        while i < j:\n            cur = A[i][0] + A[j][0]\n            if cur == target:\n                return [min(A[i][1], A[j][1]),\n                        max(A[i][1], A[j][1])]\n            elif cur < target:\n                i += 1\n            else:\n                j -= 1\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Hash Map (Two Pass)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can use a hash map to store the value and index of each element in the array. Then, we can iterate through the array and check if the complement of the current element exists in the hash map. The complement must be at a different index, because we can't use the same element twice."
+   },
+   {
+    "kind": "p",
+    "text": "By using a hashmap, we can achieve a time complexity of O(n) because the insertion and lookup time of a hashmap is O(1)."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map to store the value and index of each element in the array."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through the array and compute the complement of the current element, which is target - nums[i]."
+   },
+   {
+    "kind": "li",
+    "text": "Check if the complement exists in the hash map."
+   },
+   {
+    "kind": "li",
+    "text": "If it does, return the indices of the current element and its complement."
+   },
+   {
+    "kind": "li",
+    "text": "If no such pair is found, return an empty array."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        indices = {}  # val -> index\n\n        for i, n in enumerate(nums):\n            indices[n] = i\n\n        for i, n in enumerate(nums):\n            diff = target - n\n            if diff in indices and indices[diff] != i:\n                return [i, indices[diff]]\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Hash Map (One Pass)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can solve the problem in a single pass by iterating through the array and checking if the complement of the current element exists in the hash map."
+   },
+   {
+    "kind": "p",
+    "text": "If it does, we return the indices of the current element and its complement. If not, we store the current element in the hash map. This guarantees that we will never use the same element twice, but we still check every element in the array."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map to store the value and index of each element in the array."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through the array and compute the complement of the current element, which is target - nums[i]."
+   },
+   {
+    "kind": "li",
+    "text": "Check if the complement exists in the hash map."
+   },
+   {
+    "kind": "li",
+    "text": "If it does, return the indices of the current element and its complement."
+   },
+   {
+    "kind": "li",
+    "text": "If no such pair is found, return an empty array."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        prevMap = {}  # val -> index\n\n        for i, n in enumerate(nums):\n            diff = target - n\n            if diff in prevMap:\n                return [prevMap[diff], i]\n            prevMap[n] = i"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "group-anagrams": {
+  "url": "https://neetcode.io/problems/anagram-groups?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=vzdNOK2oB2E",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Anagrams become identical when their characters are sorted.\nFor example, \"eat\", \"tea\", and \"ate\" all become \"aet\" after sorting.\nBy using the sorted version of each string as a key, we can group all anagrams together.\nStrings that share the same sorted form must be anagrams, so placing them in the same group is both natural and efficient."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map where each key is the sorted version of a string, and the value is a list of strings belonging to that anagram group."
+   },
+   {
+    "kind": "li",
+    "text": "Iterate through each string in the input list:\nSort the characters of the string to form a key.\nAppend the original string to the list corresponding to this key."
+   },
+   {
+    "kind": "li",
+    "text": "After processing all strings, return all values from the hash map, which represent the grouped anagrams."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def groupAnagrams(self, strs: List[str]) -> List[List[str]]:\n        res = defaultdict(list)\n        for s in strs:\n            sortedS = ''.join(sorted(s))\n            res[sortedS].append(s)\n        return list(res.values())"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of strings and n is the length of the longest string."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Table"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of sorting each string, we can represent every string by the frequency of its characters.\nSince the problem uses lowercase English letters, a fixed-size array of length 26 can capture how many times each character appears.\nTwo strings are anagrams if and only if their frequency arrays are identical.\nBy using this frequency array (converted to a tuple so it can be a dictionary key), we can group all strings that share the same character counts."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map where each key is a 26-length tuple representing character frequencies, and each value is a list of strings belonging to that anagram group."
+   },
+   {
+    "kind": "li",
+    "text": "For each string in the input:\nInitialize a frequency array of size 26 with all zeros.\nFor each character in the string, increment the count at the corresponding index.\nConvert the frequency array to a tuple and use it as the key.\nAppend the string to the list associated with this key."
+   },
+   {
+    "kind": "li",
+    "text": "After processing all strings, return all the lists stored in the hash map."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def groupAnagrams(self, strs: List[str]) -> List[List[str]]:\n        res = defaultdict(list)\n        for s in strs:\n            count = [0] * 26\n            for c in s:\n                count[ord(c) - ord('a')] += 1\n            res[tuple(count)].append(s)\n        return list(res.values())"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(m) extra space.\nO(m * n) space for the output list."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of strings and n is the length of the longest string."
+   }
+  ]
+ },
+ "top-k-frequent-elements": {
+  "url": "https://neetcode.io/problems/top-k-elements-in-list?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=YPTqKIgVk-k",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   },
+   {
+    "title": "Bucket Sort Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/13"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To find the k most frequent elements, we first need to know how often each number appears.\nOnce we count the frequencies, we can sort the unique numbers based on how many times they occur.\nAfter sorting, the numbers with the highest frequencies will naturally appear at the end of the list.\nBy taking the last k entries, we get the k most frequent elements."
+   },
+   {
+    "kind": "p",
+    "text": "This approach is easy to reason about:\ncount the frequencies → sort by frequency → take the top k."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map to store the frequency of each number."
+   },
+   {
+    "kind": "li",
+    "text": "Build a list of [frequency, number] pairs from the map."
+   },
+   {
+    "kind": "li",
+    "text": "Sort this list in ascending order based on frequency."
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty result list."
+   },
+   {
+    "kind": "li",
+    "text": "Repeatedly pop from the end of the sorted list (highest frequency) and append the number to the result."
+   },
+   {
+    "kind": "li",
+    "text": "Stop when the result contains k elements."
+   },
+   {
+    "kind": "li",
+    "text": "Return the result list."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def topKFrequent(self, nums: List[int], k: int) -> List[int]:\n        count = {}\n        for num in nums:\n            count[num] = 1 + count.get(num, 0)\n\n        arr = []\n        for num, cnt in count.items():\n            arr.append([cnt, num])\n        arr.sort()\n\n        res = []\n        while len(res) < k:\n            res.append(arr.pop()[1])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Min-Heap"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "After counting how often each number appears, we want to efficiently keep track of only the k most frequent elements.\nA min-heap is perfect for this because it always keeps the smallest element at the top.\nBy pushing (frequency, value) pairs into the heap and removing the smallest whenever the heap grows beyond size k, we ensure that the heap always contains the top k most frequent elements.\nIn the end, the heap holds exactly the k values with the highest frequencies."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Build a frequency map that counts how many times each number appears."
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty min-heap."
+   },
+   {
+    "kind": "li",
+    "text": "For each number in the frequency map:\nPush (frequency, number) into the heap.\nIf the heap size becomes greater than k, pop once to remove the smallest frequency."
+   },
+   {
+    "kind": "li",
+    "text": "After processing all numbers, the heap contains the k most frequent elements."
+   },
+   {
+    "kind": "li",
+    "text": "Pop all elements from the heap and collect their numbers into the result list."
+   },
+   {
+    "kind": "li",
+    "text": "Return the result."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def topKFrequent(self, nums: List[int], k: int) -> List[int]:\n        count = {}\n        for num in nums:\n            count[num] = 1 + count.get(num, 0)\n\n        heap = []\n        for num in count.keys():\n            heapq.heappush(heap, (count[num], num))\n            if len(heap) > k:\n                heapq.heappop(heap)\n\n        res = []\n        for i in range(k):\n            res.append(heapq.heappop(heap)[1])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n + k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array and k is the number of top frequent elements."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bucket Sort"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Each number in the array appears a certain number of times, and the maximum possible frequency is the length of the array.\nWe can use this idea by creating a list where the index represents a frequency, and at each index we store all numbers that appear exactly that many times."
+   },
+   {
+    "kind": "p",
+    "text": "For example:"
+   },
+   {
+    "kind": "li",
+    "text": "All numbers that appear 1 time go into group freq[1]."
+   },
+   {
+    "kind": "li",
+    "text": "All numbers that appear 2 times go into group freq[2]."
+   },
+   {
+    "kind": "li",
+    "text": "And so on."
+   },
+   {
+    "kind": "p",
+    "text": "After we build these groups, we look from the highest possible frequency down to the lowest and collect numbers from these groups until we have k of them.\nThis way, we directly jump to the most frequent numbers without sorting all the elements by frequency."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Build a frequency map that counts how many times each number appears."
+   },
+   {
+    "kind": "li",
+    "text": "Create a list of groups freq, where freq[i] will store all numbers that appear exactly i times."
+   },
+   {
+    "kind": "li",
+    "text": "For each number and its frequency in the map, add the number to freq[frequency]."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize an empty result list."
+   },
+   {
+    "kind": "li",
+    "text": "Loop from the largest possible frequency down to 1:\nFor each number in freq[i], add it to the result list.\nOnce the result contains k numbers, return it."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def topKFrequent(self, nums: List[int], k: int) -> List[int]:\n        count = {}\n        freq = [[] for i in range(len(nums) + 1)]\n\n        for num in nums:\n            count[num] = 1 + count.get(num, 0)\n        for num, cnt in count.items():\n            freq[cnt].append(num)\n\n        res = []\n        for i in range(len(freq) - 1, 0, -1):\n            for num in freq[i]:\n                res.append(num)\n                if len(res) == k:\n                    return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "encode-and-decode-strings": {
+  "url": "https://neetcode.io/problems/string-encode-and-decode?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=B1k_sxOSgv8",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Encoding & Decoding"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To encode a list of strings into a single string, we need a way to store each string so that we can later separate them correctly during decoding.\nA simple and reliable strategy is to record the length of each string first, followed by a special separator, and then append all the strings together.\nDuring decoding, we can read the recorded lengths to know exactly how many characters to extract for each original string.\nThis avoids any issues with special characters, commas, or symbols inside the strings because the lengths tell us precisely where each string starts and ends."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the input list is empty, return an empty string."
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty list to store the sizes of each string."
+   },
+   {
+    "kind": "li",
+    "text": "For each string, append its length to the sizes list."
+   },
+   {
+    "kind": "li",
+    "text": "Build a single string by:\nWriting all sizes separated by commas.\nAdding a '#' to mark the end of the size section.\nAppending all the actual strings in order."
+   },
+   {
+    "kind": "li",
+    "text": "Return the final encoded string."
+   },
+   {
+    "kind": "li",
+    "text": "If the encoded string is empty, return an empty list."
+   },
+   {
+    "kind": "li",
+    "text": "Read characters from the start until reaching '#' to extract all recorded sizes:\nParse each size by reading until a comma."
+   },
+   {
+    "kind": "li",
+    "text": "After the '#', extract substrings according to the sizes list:\nFor each size, read that many characters and append the substring to the result."
+   },
+   {
+    "kind": "li",
+    "text": "Return the list of decoded strings."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def encode(self, strs: List[str]) -> str:\n        if not strs:\n            return \"\"\n        sizes, res = [], \"\"\n        for s in strs:\n            sizes.append(len(s))\n        for sz in sizes:\n            res += str(sz)\n            res += ','\n        res += '#'\n        for s in strs:\n            res += s\n        return res\n\n    def decode(self, s: str) -> List[str]:\n        if not s:\n            return []\n        sizes, res, i = [], [], 0\n        while s[i] != '#':\n            cur = \"\"\n            while s[i] != ',':\n                cur += s[i]\n                i += 1\n            sizes.append(int(cur))\n            i += 1\n        i += 1\n        for sz in sizes:\n            res.append(s[i:i + sz])\n            i += sz\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m) for each encode() and decode() function calls."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n) for each encode() and decode() function calls."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the sum of lengths of all the strings and n is the number of strings."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Encoding & Decoding (Optimal)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of storing all string lengths first and then appending the strings, we can directly attach each string to its length.\nFor every string, we write length#string.\nThe # character acts as a clear boundary between the length and the actual content, and using the length ensures we know exactly how many characters to read—no matter what characters appear in the string itself.\nDuring decoding, we simply read characters until we reach # to find the length, then extract exactly that many characters as the string.\nThis approach is both simpler and more efficient because it avoids building separate sections for lengths and content."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize an empty result string."
+   },
+   {
+    "kind": "li",
+    "text": "For each string in the list:\nCompute its length.\nAppend \"length#string\" to the result."
+   },
+   {
+    "kind": "li",
+    "text": "Return the final encoded string."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize an empty list for the decoded strings and a pointer i = 0."
+   },
+   {
+    "kind": "li",
+    "text": "While i is within the bounds of the encoded string:\nMove a pointer j forward until it finds '#' — this segment represents the length.\nConvert the substring s[i:j] into an integer length.\nMove i to the character right after '#'.\nExtract the next length characters — this is the original string.\nAppend the extracted string to the result list.\nMove i forward by length to continue decoding the next segment."
+   },
+   {
+    "kind": "li",
+    "text": "Return the list of decoded strings."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n\n    def encode(self, strs: List[str]) -> str:\n        res = \"\"\n        for s in strs:\n            res += str(len(s)) + \"#\" + s\n        return res\n\n    def decode(self, s: str) -> List[str]:\n        res = []\n        i = 0\n\n        while i < len(s):\n            j = i\n            while s[j] != '#':\n                j += 1\n            length = int(s[i:j])\n            i = j + 1\n            j = i + length\n            res.append(s[i:j])\n            i = j\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m) for each encode() and decode() function calls."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n) for each encode() and decode() function calls."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the sum of lengths of all the strings and n is the number of strings."
+   }
+  ]
+ },
+ "product-of-array-except-self": {
+  "url": "https://neetcode.io/problems/products-of-array-discluding-self?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=bNvIQI2wAjk",
+  "prerequisites": [
+   {
+    "title": "Static Arrays Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/2"
+   },
+   {
+    "title": "Prefix Sums Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/4"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "Video Solution"
+   },
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "For each position in the array, we can compute the product of all other elements by multiplying every value except the one at the current index.\nThis directly follows the problem statement and is the most straightforward approach:\nfor each index, multiply all elements except itself.\nAlthough simple, this method is inefficient because it repeats a full pass through the array for every element."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Let n be the length of the input array and create a result array res of size n."
+   },
+   {
+    "kind": "li",
+    "text": "For each index i from 0 to n - 1:\nInitialize a running product prod = 1.\nLoop through all indices j from 0 to n - 1:\nIf j is not equal to i, multiply prod by nums[j].\n\n\nStore prod in res[i]."
+   },
+   {
+    "kind": "li",
+    "text": "After all indices are processed, return res."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def productExceptSelf(self, nums: List[int]) -> List[int]:\n        n = len(nums)\n        res = [0] * n\n\n        for i in range(n):\n            prod = 1\n            for j in range(n):\n                if i == j:\n                    continue\n                prod *= nums[j]\n\n            res[i] = prod\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Division"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "This approach works by using a simple idea:\nIf we know the product of all non-zero numbers, we can easily compute the answer for each position using division — as long as there are no division-by-zero issues."
+   },
+   {
+    "kind": "p",
+    "text": "So we first check how many zeros the array has:"
+   },
+   {
+    "kind": "li",
+    "text": "If there are two or more zeros, then every product will include at least one zero → the entire result is all zeros."
+   },
+   {
+    "kind": "li",
+    "text": "If there is exactly one zero, then only the position containing that zero will get the product of all non-zero numbers. All other positions become zero."
+   },
+   {
+    "kind": "li",
+    "text": "If there are no zeros, we can safely do:\nresult[i] = total_product // nums[i]"
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Traverse the array once:\nMultiply all non-zero numbers to get the total product.\nCount how many zeros appear."
+   },
+   {
+    "kind": "li",
+    "text": "If the zero count is greater than 1:\nReturn an array of all zeros."
+   },
+   {
+    "kind": "li",
+    "text": "Create a result array of size n."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through the numbers again:\nIf there is one zero:\nThe index with zero gets the product of all non-zero numbers.\nAll other positions get 0.\n\n\nIf there are no zeros:\nSet each result value to total_product // nums[i]."
+   },
+   {
+    "kind": "li",
+    "text": "Return the result array."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def productExceptSelf(self, nums: List[int]) -> List[int]:\n        prod, zero_cnt = 1, 0\n        for num in nums:\n            if num:\n                prod *= num\n            else:\n                zero_cnt +=  1\n        if zero_cnt > 1: return [0] * len(nums)\n\n        res = [0] * len(nums)\n        for i, c in enumerate(nums):\n            if zero_cnt: res[i] = 0 if c else prod\n            else: res[i] = prod // c\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Prefix & Suffix"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "For each index, we need the product of all elements before it and all elements after it.\nInstead of recomputing the product repeatedly, we can pre-compute two helpful arrays:"
+   },
+   {
+    "kind": "li",
+    "text": "Prefix product: pref[i] = product of all elements to the left of i"
+   },
+   {
+    "kind": "li",
+    "text": "Suffix product: suff[i] = product of all elements to the right of i"
+   },
+   {
+    "kind": "p",
+    "text": "Then, the final answer for each index is simply:"
+   },
+   {
+    "kind": "p",
+    "text": "result[i] = prefix[i] × suffix[i]"
+   },
+   {
+    "kind": "p",
+    "text": "This works because:"
+   },
+   {
+    "kind": "li",
+    "text": "The prefix handles everything before the index"
+   },
+   {
+    "kind": "li",
+    "text": "The suffix handles everything after the index"
+   },
+   {
+    "kind": "p",
+    "text": "Both pieces together form the product of all numbers except the one at that position."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Let n be the length of the array.\nCreate three arrays of size n:\n\npref for prefix products\nsuff for suffix products\nres for the final result"
+   },
+   {
+    "kind": "li",
+    "text": "Set:\n\npref[0] = 1 (nothing to the left of index 0)\nsuff[n - 1] = 1 (nothing to the right of last index)"
+   },
+   {
+    "kind": "li",
+    "text": "Build the prefix product array:\n\nFor each i from 1 to n - 1:\npref[i] = nums[i - 1] × pref[i - 1]"
+   },
+   {
+    "kind": "li",
+    "text": "Build the suffix product array:\n\nFor each i from n - 2 down to 0:\nsuff[i] = nums[i + 1] × suff[i + 1]"
+   },
+   {
+    "kind": "li",
+    "text": "Build the result:\n\nFor each index i, compute:\nres[i] = pref[i] × suff[i]"
+   },
+   {
+    "kind": "li",
+    "text": "Return the result array."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def productExceptSelf(self, nums: List[int]) -> List[int]:\n        n = len(nums)\n        res = [0] * n\n        pref = [0] * n\n        suff = [0] * n\n\n        pref[0] = suff[n - 1] = 1\n        for i in range(1, n):\n            pref[i] = nums[i - 1] * pref[i - 1]\n        for i in range(n - 2, -1, -1):\n            suff[i] = nums[i + 1] * suff[i + 1]\n        for i in range(n):\n            res[i] = pref[i] * suff[i]\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Prefix & Suffix (Optimal)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can compute the product of all elements except the current one without using extra prefix and suffix arrays.\nInstead, we reuse the result array and build the answer in two simple passes:"
+   },
+   {
+    "kind": "li",
+    "text": "In the first pass, we fill res[i] with the product of all elements to the left of i (prefix product)."
+   },
+   {
+    "kind": "li",
+    "text": "In the second pass, we multiply each res[i] with the product of all elements to the right of i (postfix product)."
+   },
+   {
+    "kind": "p",
+    "text": "By maintaining two running values — prefix and postfix — we avoid the need for separate prefix and suffix arrays.\nThis gives us the same logic as the previous method, but with O(1) extra space."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize the result array res with all values set to 1."
+   },
+   {
+    "kind": "li",
+    "text": "Create a variable prefix = 1."
+   },
+   {
+    "kind": "li",
+    "text": "First pass (left to right):\nFor each index i:\nSet res[i] = prefix (product of all elements to the left).\nUpdate prefix *= nums[i]."
+   },
+   {
+    "kind": "li",
+    "text": "Create a variable postfix = 1."
+   },
+   {
+    "kind": "li",
+    "text": "Second pass (right to left):\nFor each index i:\nMultiply res[i] by postfix (product of all elements to the right).\nUpdate postfix *= nums[i]."
+   },
+   {
+    "kind": "li",
+    "text": "Return the result array res."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def productExceptSelf(self, nums: List[int]) -> List[int]:\n        res = [1] * (len(nums))\n\n        prefix = 1\n        for i in range(len(nums)):\n            res[i] = prefix\n            prefix *= nums[i]\n        postfix = 1\n        for i in range(len(nums) - 1, -1, -1):\n            res[i] *= postfix\n            postfix *= nums[i]\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   }
+  ]
+ },
+ "valid-sudoku": {
+  "url": "https://neetcode.io/problems/valid-sudoku?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=TjFXEUCMqI8",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "A valid Sudoku board must follow three rules:"
+   },
+   {
+    "kind": "li",
+    "text": "Each row can contain digits 1–9 at most once."
+   },
+   {
+    "kind": "li",
+    "text": "Each column can contain digits 1–9 at most once."
+   },
+   {
+    "kind": "li",
+    "text": "Each 3×3 box can contain digits 1–9 at most once."
+   },
+   {
+    "kind": "p",
+    "text": "We can directly check all these conditions one by one.\nFor every row, every column, and every 3×3 box, we keep a set of seen digits and make sure no number appears twice.\nIf we ever find a duplicate in any of these three checks, the board is invalid."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Check all rows:\n\nFor each row index row from 0 to 8:\nCreate an empty set seen.\nFor each column index i from 0 to 8:\nSkip if the cell is \".\".\nIf the value is already in seen, return False.\nOtherwise, add it to seen."
+   },
+   {
+    "kind": "li",
+    "text": "Check all columns:\n\nFor each column index col from 0 to 8:\nCreate an empty set seen.\nFor each row index i from 0 to 8:\nSkip if the cell is \".\".\nIf the value is already in seen, return False.\nOtherwise, add it to seen."
+   },
+   {
+    "kind": "li",
+    "text": "Check all 3×3 boxes:\n\nNumber the 3×3 boxes from 0 to 8.\nFor each square:\nCreate an empty set seen.\nFor i in 0..2 and j in 0..2:\nCompute:\nrow = (square // 3) * 3 + i\ncol = (square % 3) * 3 + j\n\n\nSkip if the cell is \".\".\nIf the value is already in seen, return False.\nOtherwise, add it to seen."
+   },
+   {
+    "kind": "li",
+    "text": "If all rows, columns, and 3×3 boxes pass these checks without duplicates, return True."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isValidSudoku(self, board: List[List[str]]) -> bool:\n        for row in range(9):\n            seen = set()\n            for i in range(9):\n                if board[row][i] == \".\":\n                    continue\n                if board[row][i] in seen:\n                    return False\n                seen.add(board[row][i])\n\n        for col in range(9):\n            seen = set()\n            for i in range(9):\n                if board[i][col] == \".\":\n                    continue\n                if board[i][col] in seen:\n                    return False\n                seen.add(board[i][col])\n\n        for square in range(9):\n            seen = set()\n            for i in range(3):\n                for j in range(3):\n                    row = (square//3) * 3 + i\n                    col = (square % 3) * 3 + j\n                    if board[row][col] == \".\":\n                        continue\n                    if board[row][col] in seen:\n                        return False\n                    seen.add(board[row][col])\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Set (One Pass)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of checking rows, columns, and 3×3 boxes separately, we can validate the entire Sudoku board in one single pass.\nFor each cell, we check whether the digit has already appeared in:"
+   },
+   {
+    "kind": "li",
+    "text": "the same row"
+   },
+   {
+    "kind": "li",
+    "text": "the same column"
+   },
+   {
+    "kind": "li",
+    "text": "the same 3×3 box"
+   },
+   {
+    "kind": "p",
+    "text": "We track these using three hash sets:"
+   },
+   {
+    "kind": "li",
+    "text": "rows[r] keeps digits seen in row r"
+   },
+   {
+    "kind": "li",
+    "text": "cols[c] keeps digits seen in column c"
+   },
+   {
+    "kind": "li",
+    "text": "squares[(r // 3, c // 3)] keeps digits in the 3×3 box"
+   },
+   {
+    "kind": "p",
+    "text": "If a digit appears again in any of these places, the board is invalid."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create three hash maps of sets:\n\nrows to track digits in each row  \ncols to track digits in each column  \nsquares to track digits in each 3×3 sub-box, keyed by (r // 3, c // 3)"
+   },
+   {
+    "kind": "li",
+    "text": "Loop through every cell in the board:\n\nSkip the cell if it contains \".\".\nLet val be the digit in the cell.\nIf val is already in:\nrows[r] → duplicate in the row  \ncols[c] → duplicate in the column  \nsquares[(r // 3, c // 3)] → duplicate in the 3×3 box\nThen return False."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise, add the digit to all three sets:\n\nrows[r]\ncols[c]\nsquares[(r // 3, c // 3)]"
+   },
+   {
+    "kind": "li",
+    "text": "If the whole board is scanned without detecting duplicates, return True."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isValidSudoku(self, board: List[List[str]]) -> bool:\n        cols = defaultdict(set)\n        rows = defaultdict(set)\n        squares = defaultdict(set)\n\n        for r in range(9):\n            for c in range(9):\n                if board[r][c] == \".\":\n                    continue\n                if ( board[r][c] in rows[r]\n                    or board[r][c] in cols[c]\n                    or board[r][c] in squares[(r // 3, c // 3)]):\n                    return False\n\n                cols[c].add(board[r][c])\n                rows[r].add(board[r][c])\n                squares[(r // 3, c // 3)].add(board[r][c])\n\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bitmask"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Every digit from 1 to 9 can be represented using a single bit in an integer.\nFor example, digit 1 uses bit 0, digit 2 uses bit 1, …, digit 9 uses bit 8.\nThis means we can track which digits have appeared in a row, column, or 3×3 box using just one integer per row/column/box instead of a hash set."
+   },
+   {
+    "kind": "p",
+    "text": "When we encounter a digit, we compute its bit position and check:"
+   },
+   {
+    "kind": "li",
+    "text": "if that bit is already set in the row → duplicate in row"
+   },
+   {
+    "kind": "li",
+    "text": "if that bit is already set in the column → duplicate in column"
+   },
+   {
+    "kind": "li",
+    "text": "if that bit is already set in the box → duplicate in box"
+   },
+   {
+    "kind": "p",
+    "text": "If none of these checks fail, we “turn on” that bit to mark the digit as seen.\nThis approach is both memory efficient and fast."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create three arrays of size 9:\n\nrows[i] stores bits for digits seen in row i\ncols[i] stores bits for digits seen in column i\nsquares[i] stores bits for digits seen in 3×3 box i"
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each cell (r, c) of the board:\n\nSkip if the cell contains \".\".\nConvert the digit to a bit index: val = int(board[r][c]) - 1.\nCompute the mask: mask = 1 << val."
+   },
+   {
+    "kind": "li",
+    "text": "Check for duplicates:\n\nIf mask is already set in rows[r], return False.\nIf mask is already set in cols[c], return False.\nIf mask is already set in squares[(r // 3) * 3 + (c // 3)], return False."
+   },
+   {
+    "kind": "li",
+    "text": "Mark the digit as seen:\n\nrows[r] |= mask\ncols[c] |= mask\nsquares[(r // 3) * 3 + (c // 3)] |= mask"
+   },
+   {
+    "kind": "li",
+    "text": "If all cells are processed without conflicts, return True."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isValidSudoku(self, board: List[List[str]]) -> bool:\n        rows = [0] * 9\n        cols = [0] * 9\n        squares = [0] * 9\n\n        for r in range(9):\n            for c in range(9):\n                if board[r][c] == \".\":\n                    continue\n\n                val = int(board[r][c]) - 1\n                if (1 << val) & rows[r]:\n                    return False\n                if (1 << val) & cols[c]:\n                    return False\n                if (1 << val) & squares[(r // 3) * 3 + (c // 3)]:\n                    return False\n\n                rows[r] |= (1 << val)\n                cols[c] |= (1 << val)\n                squares[(r // 3) * 3 + (c // 3)] |= (1 << val)\n\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "longest-consecutive-sequence": {
+  "url": "https://neetcode.io/problems/longest-consecutive-sequence?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=P6RZZMu_maU",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "A consecutive sequence grows by checking whether the next number (num + 1, num + 2, …) exists in the set.\nThe brute-force approach simply starts from every number in the list and tries to extend a consecutive streak as far as possible.\nFor each number, we repeatedly check if the next number exists, increasing the streak length until the sequence breaks.\nEven though this method works, it does unnecessary repeated work because many sequences get recomputed multiple times."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Convert the input list to a set for O(1) lookups."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize res to store the maximum streak length."
+   },
+   {
+    "kind": "li",
+    "text": "For each number num in the original list:\nStart a new streak count at 0.\nSet curr = num.\nWhile curr exists in the set:\nIncrease the streak count.\nMove to the next number (curr += 1).\n\n\nUpdate res with the longest streak found so far."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after checking all numbers."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestConsecutive(self, nums: List[int]) -> int:\n        res = 0\n        store = set(nums)\n\n        for num in nums:\n            streak, curr = 0, num\n            while curr in store:\n                streak += 1\n                curr += 1\n            res = max(res, streak)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sorting"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "If we sort the numbers first, then all consecutive values will appear next to each other.\nThis makes it easy to walk through the sorted list and count how long each consecutive sequence is.\nWe simply move forward while the current number matches the expected next value in the sequence.\nDuplicates don’t affect the result—they are just skipped—while gaps reset the streak count.\nThis approach is simpler and more organized than the brute force method because sorting places all potential sequences in order."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the input list is empty, return 0."
+   },
+   {
+    "kind": "li",
+    "text": "Sort the array in non-decreasing order."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize:\nres to track the longest streak,\ncurr as the first number,\nstreak as 0,\nindex i = 0."
+   },
+   {
+    "kind": "li",
+    "text": "While i is within bounds:\nIf nums[i] does not match curr, reset:\ncurr = nums[i]\nstreak = 0\n\n\nSkip over all duplicates of curr by advancing i while nums[i] == curr.\nIncrease streak by 1 since we found the expected number.\nIncrease curr by 1 to expect the next number in the sequence.\nUpdate res with the maximum streak found so far."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after scanning the entire list."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestConsecutive(self, nums: List[int]) -> int:\n        if not nums:\n            return 0\n        res = 0\n        nums.sort()\n\n        curr, streak = nums[0], 0\n        i = 0\n        while i < len(nums):\n            if curr != nums[i]:\n                curr = nums[i]\n                streak = 0\n            while i < len(nums) and nums[i] == curr:\n                i += 1\n            streak += 1\n            curr += 1\n            res = max(res, streak)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Hash Set"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To avoid repeatedly recounting the same sequences, we only want to start counting when we find the beginning of a consecutive sequence.\nA number is the start of a sequence if num - 1 is not in the set.\nThis guarantees that each consecutive sequence is counted exactly once."
+   },
+   {
+    "kind": "p",
+    "text": "Once we identify such a starting number, we simply keep checking if num + 1, num + 2, … exist in the set and extend the streak as far as possible.\nThis makes the solution efficient and clean because each number contributes to the sequence only one time."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Convert the list into a set numSet for O(1) lookups."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize longest to track the length of the longest consecutive sequence."
+   },
+   {
+    "kind": "li",
+    "text": "For each number num in numSet:\nCheck if num - 1 is not in the set:\nIf true, num is the start of a sequence.\nInitialize length = 1.\nWhile num + length exists in the set, increase length.\n\n\nUpdate longest with the maximum length found."
+   },
+   {
+    "kind": "li",
+    "text": "Return longest after scanning all numbers."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestConsecutive(self, nums: List[int]) -> int:\n        numSet = set(nums)\n        longest = 0\n\n        for num in numSet:\n            if (num - 1) not in numSet:\n                length = 1\n                while (num + length) in numSet:\n                    length += 1\n                longest = max(length, longest)\n        return longest"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Hash Map"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "When we place a new number into the map, it may connect two existing sequences or extend one of them.\nInstead of scanning forward or backward, we only look at the lengths stored at the neighbors:"
+   },
+   {
+    "kind": "li",
+    "text": "mp[num - 1] gives the length of the sequence ending right before num"
+   },
+   {
+    "kind": "li",
+    "text": "mp[num + 1] gives the length of the sequence starting right after num"
+   },
+   {
+    "kind": "p",
+    "text": "By adding these together and including the current number, we know the total length of the new merged sequence.\nWe then update the left boundary and right boundary of this sequence so the correct length can be retrieved later.\nThis keeps the whole operation very efficient and avoids repeated work."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map mp that stores sequence lengths at boundary positions."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize res = 0 to store the longest sequence found."
+   },
+   {
+    "kind": "li",
+    "text": "For each number num in the input:\nIf num is already in mp, skip it.\nCompute the new sequence length:\nlength = mp[num - 1] + mp[num + 1] + 1\n\n\nStore this length at num.\nUpdate the boundaries:\nLeft boundary: mp[num - mp[num - 1]] = length\nRight boundary: mp[num + mp[num + 1]] = length\n\n\nUpdate res to keep track of the longest sequence."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after processing all numbers."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestConsecutive(self, nums: List[int]) -> int:\n        mp = defaultdict(int)\n        res = 0\n\n        for num in nums:\n            if not mp[num]:\n                mp[num] = mp[num - 1] + mp[num + 1] + 1\n                mp[num - mp[num - 1]] = mp[num]\n                mp[num + mp[num + 1]] = mp[num]\n                res = max(res, mp[num])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ }
+}

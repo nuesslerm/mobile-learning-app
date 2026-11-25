@@ -25,6 +25,7 @@ if [ -n "${STUB_UI_SEQ:-}" ]; then
 fi
 case "$*" in
   *"id -u"*) echo 0;;
+  *"am start -W"*) echo "Status: ok";;
   *"[ -e /sdcard/wf-record.on ]"*) [ -n "${STUB_RECORDING:-}" ] && echo "wf-recording=$STUB_RECORDING"; true;;
   *"pkill -INT screenrecord"*) [ -z "${STUB_DEVICE_BIN:-}" ] || PATH="$STUB_DEVICE_BIN" /bin/sh -c "$4";;
   *get-state*) n=$(cat "$0.n" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$0.n"; [ "$n" -gt "${STUB_OFFLINE_POLLS:-0}" ] && echo device; exit 0;;
@@ -950,6 +951,7 @@ impl FakeUiServer {
                             dead = false;
                             json!({ "jsonrpc": "2.0", "id": 1, "error": { "code": -32000, "message": "java.lang.NullPointerException" } }).to_string()
                         }
+                        "dumpWindowHierarchy" => ok(json!(r#"<hierarchy><node resource-id="com.android.systemui:id/back" content-desc="Back" bounds="[66,976][173,1040]"/></hierarchy>"#)),
                         "objInfoOfAllInstances" | "count" => {
                             let sel = serde_json::from_str::<Value>(&body).map(|v| v["params"][0].clone()).unwrap_or_default();
                             asked.lock().unwrap().push(sel.clone());
@@ -1028,6 +1030,20 @@ impl FakeUiServer {
     pub(crate) fn asked(&self) -> Vec<Value> {
         std::mem::take(&mut *self.selectors.lock().unwrap())
     }
+}
+
+#[test]
+fn a_learner_can_tap_the_keyboard_dismiss_button_in_the_system_window() {
+    // Given a visible Android IME whose navigation button is outside the application window
+    let sandbox = sandbox("wf-flow-android-ime-");
+    let server = FakeUiServer::start(None, false);
+    // When the native journey taps the system button by its full accessibility id
+    let tap = android(&sandbox, &["tap-on", "--id", "com.android.systemui:id/back"], &[
+        ("WF_ANDROID_UIA", "u2"), ("WF_U2_URL", &server.url), ("ANDROID_SERIAL", "emulator-5554"),
+    ]);
+    // Then one physical tap lands in the visible button
+    assert_eq!(tap.exit_code, 0, "{}", out(&tap));
+    assert_eq!(sandbox.calls("adb").iter().filter(|call| call.ends_with("shell input tap 119.5 1008")).count(), 1);
 }
 
 #[test]
@@ -1196,11 +1212,11 @@ fn the_cold_start_ends_at_once_on_expo_gos_error_screen_with_what_its_error_log_
 
 #[test]
 fn the_cold_start_opens_the_link_it_is_told_and_an_update_is_told_it_bare() {
-    // Given Expo Go showing the app's first frame (the Blind 75 menu button), and an update's base with its link without /--
+    // Given Expo Go showing the app's first frame (the Library menu button), and an update's base with its link without /--
     let s = sandbox("wf-flow-android-bare-open-");
     s.file("e2e/warm-app.lua", std::fs::read(crate::support::repo_root().join("e2e/warm-app.lua")).unwrap());
     s.file("ui.xml", r#"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation="0">
-<node index="0" text="" resource-id="LeetcodeListMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
+<node index="0" text="" resource-id="LibraryHomeMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
 </hierarchy>"#);
     let (update, out_dir) = ("exp://u.expo.dev/p/group/g", s.repo.join("warm").display().to_string());
     let open = |extra: &[&str]| {
@@ -1233,7 +1249,7 @@ fn an_android_test_case_run_without_a_base_stops_before_it_opens_any_link() {
         s.file(&format!("e2e/{script}.lua"), std::fs::read(repo_root().join(format!("e2e/{script}.lua"))).unwrap());
     }
     s.file("ui.xml", r#"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation="0">
-<node index="0" text="" resource-id="LeetcodeListMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
+<node index="0" text="" resource-id="LibraryHomeMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
 </hierarchy>"#);
     let out_env = format!("out={}", s.repo.join("warm").display());
     let run = |script: &str, extra: &[&str]| {
@@ -1344,25 +1360,55 @@ assert_true(device:press_key('Backspace', {optional=true}) == nil, "a key with t
 }
 
 #[test]
-fn stack_maps_a_logged_hermes_stack_through_the_groups_source_map_from_the_bucket() {
-    // Given a bucket holding an update group's summary and its android source map (one mapping: bundle 1:1 is boom, features/a.ts:1:1)
-    let bucket = crate::support::MockServer::start(None);
+fn stack_uses_the_sealed_map_for_the_requested_update() {
+    // Given a published group and an authenticated artifact containing its Android map
+    let s = sandbox("wf-flow-android-stack-");
     let map = json!({ "version": 3, "sources": ["features/a.ts"], "names": ["boom"], "mappings": "AAAAA" });
-    bucket.routes(&[
-        ("GET /verification/eas-updates/g-1/summary.json", crate::support::MockReply::json(200, json!({ "maps": { "files": ["_expo/static/js/ios/e.hbc.map", "_expo/static/js/android/e.hbc.map"] } }))),
-        ("GET /verification/eas-updates/g-1/_expo/static/js/android/e.hbc.map", crate::support::MockReply::json(200, map)),
-    ]);
+    let key = [42u8; 32];
+    let key_hex = "2a".repeat(32);
+    wf_bucket::eas_maps::write(&s.repo, &key, "g-1", "android", "update-1", map.to_string().as_bytes()).unwrap();
+    let sealed = s.repo.join("g-1/android.map.sealed");
+    s.stub("gh", r#"case "$1" in
+  api) case "$2" in *name=eas-maps-g-1) echo 123;; esac;;
+  run) [ "$*" = "run download 123 --name eas-maps-g-1 --dir $7" ] || exit 1
+       cp "$SEALED_MAP" "$7/android.map.sealed";;
+esac"#);
     let stack = "Error: x\n    at boom (address at index.android.bundle:1:1)\n    at native (native)";
-    let opts = RunOpts::default().clean_env().env("VERIFICATION_ARTIFACTS_READ_URL", &format!("http://127.0.0.1:{}", bucket.port)).input(stack);
+    let opts = RunOpts::default().clean_env().cwd(&s.repo).bin_dir(&s.bin_dir)
+        .env("CI_DB_KEY", &key_hex).env("SEALED_MAP", &sealed.display().to_string()).input(stack);
+    let run = |group, id| crate::support::run_wf(&["android", "stack", group, "--update-id", id], &opts);
 
-    // When the stack is mapped for that group, and for a group the bucket does not have
-    let mapped = last_json(&crate::support::run_wf(&["android", "stack", "g-1"], &opts));
-    let missing = crate::support::run_wf(&["android", "stack", "g-2"], &opts);
+    // When the stack is resolved by its group and update ID
+    let mapped = last_json(&run("g-1", "update-1"));
 
-    // Then the located frame names its source line, the others stay as logged, and the unknown group fails with the next step
+    // Then the JavaScript frame resolves while the native frame remains as logged
+    assert_eq!(mapped["result"]["updateId"], "update-1");
     assert_eq!(mapped["result"]["frames"][1]["source"], "features/a.ts");
     assert_eq!(mapped["result"]["text"], "Error: x\nboom (features/a.ts:1:1)\nat native (native)");
     assert_eq!(mapped["result"]["frames"][2]["mapped"], false);
-    assert_eq!(missing.exit_code, 1);
-    assert!(last_json(&missing)["error"].as_str().unwrap().contains("no summary for update group g-2"));
+
+    // Given another update ID, an unknown group, or a key that cannot authenticate the archive,
+    // when requested, then the stack command fails without returning any mapped frames.
+    let wrong_update = run("g-1", "update-2");
+    let missing = run("g-2", "update-2");
+    let wrong_key = crate::support::run_wf(&["android", "stack", "g-1"], &opts.clone().env("CI_DB_KEY", &"ff".repeat(32)));
+    for (result, error) in [(wrong_update, "stack belongs to update-2"), (missing, "no retained source map artifact"), (wrong_key, "cannot authenticate")] {
+        assert_eq!(result.exit_code, 1, "{}", out(&result));
+        assert!(last_json(&result)["error"].as_str().unwrap_or_default().contains(error), "{}", out(&result));
+    }
+}
+
+#[test]
+fn reopening_an_update_starts_a_new_launcher_process_before_delivering_the_link() {
+    // Given an installed Expo Go experience and a recorded Android shell
+    let s = sandbox("wf-flow-relaunch-update-");
+    s.file("reopen.lua", "device:open_link('exp://u.expo.dev/p/group/g', {relaunch=true})");
+    // When the learner reopens their update
+    let result = android(&s, &["test", "reopen.lua", "--no-record"], &[]);
+    // Then the previous process is stopped and the launcher opens before the update intent
+    assert_eq!(result.exit_code, 0, "{}", result.stderr);
+    let calls = s.calls("adb");
+    let position = |fragment: &str| calls.iter().position(|call| call.contains(fragment)).unwrap();
+    assert!(position("am force-stop host.exp.exponent") < position("android.intent.action.MAIN"));
+    assert!(position("android.intent.action.MAIN") < position("android.intent.action.VIEW"));
 }

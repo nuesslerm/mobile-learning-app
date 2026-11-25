@@ -10,14 +10,19 @@ import { useColorScheme, useWindowDimensions, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { useHeaderHeightStore } from '../../lib/headerHeightStore';
-import { useTheme } from '../../primitives';
+import { useTheme, XStack } from '../../primitives';
 import { usePresetThemeStore } from '../../theme/state/presetThemeStore';
+import { Icon } from '../../ui/icon';
+import { Text } from '../../ui/text';
 import { Spinner } from '../../ui/spinner';
 import {
   ClassicScreenHeader,
   DEFAULT_TOP_INSET,
 } from '../classic-screen-header';
 
+import { MenuPanel } from '../menu-panel';
+
+import { renderGlassMenuGroup } from './glass-menu-group';
 import { GlassTitle } from './glass-title';
 import type { HeaderEnv } from './header-env';
 import { HEADER_BUSY_LABEL, type ScreenHeaderSpec } from './header-spec';
@@ -51,6 +56,18 @@ const RENDERERS: HeaderRenderers = {
     </View>
   ),
   title: (props) => <GlassTitle {...props} />,
+  menuGroup: renderGlassMenuGroup,
+  status: ({ icon, sfSymbol, label, testID, menu }) => {
+    const content = (
+      <XStack items="center" gap="$1" testID={menu ? undefined : testID}>
+        <Icon as={icon} size={sfSymbol ? 16 : 13} color="$color10" systemSymbol={sfSymbol} />
+        <Text color="$color10" fontSize={11} lineHeight={14}>{label}</Text>
+      </XStack>
+    );
+    return menu
+      ? <MenuPanel {...menu} icon={icon} testID={testID} size={38} trigger={content} />
+      : content;
+  },
 };
 
 /** The spec's handlers go through one ref, so the bar (and an open UIMenu) is rebuilt only when it shows something new, never because a render made new closures. */

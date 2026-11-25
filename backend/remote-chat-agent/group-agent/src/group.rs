@@ -121,7 +121,7 @@ impl AgentThreadsGroup {
         let mut prepared = self.runner.prepare(&p.thread, &Known::of(&thread), None, input)?;
         prepared.require_cli().await?;
         if let Some(staging) = self.staging.as_ref().filter(|_| !ids.is_empty()) {
-            prepared.note_files(&staging.stage(&p.workspace, &ids).await?);
+            prepared.note_files(&ids, &staging.stage(&p.workspace, &ids).await?);
         }
         let turn = prepared.launch().await?;
         to_value(&StartResult { thread: p.thread, turn })
@@ -374,7 +374,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_a_turn_with_attachments_when_started_then_they_are_staged_first_the_cli_is_told_where_and_the_log_keeps_only_what_was_said() {
+    async fn given_a_turn_with_attachments_when_started_then_the_cli_is_told_where_and_the_log_keeps_the_references() {
         // Given a service whose staging answers a path per id, and a thread
         let staging = Arc::new(Staging(Mutex::default(), None));
         let rig = rig_with_staging(staging.clone());
@@ -386,10 +386,12 @@ mod tests {
         // Then staging was asked once, for that workspace and those ids in order
         assert!(started.get("result").is_some(), "{started}");
         assert_eq!(*staging.0.lock().unwrap(), [("w1".to_string(), vec!["a1".to_string(), "a2".to_string()])]);
-        // And the CLI's prompt has what was said and then each path, while the thread records only what was said
+        // And history keeps the original text and ordered attachment references from the staged files.
         let prompt = rig.spawner.prompts()[0].clone();
         assert!(prompt.starts_with("look at these") && prompt.ends_with("\n- .rca/attachments/a1/f.txt\n- .rca/attachments/a2/f.txt"), "{prompt}");
-        assert_eq!(rig.engine.events_of("t")[1].data["text"], json!("look at these"));
+        let events = rig.engine.events_of("t");
+        assert_eq!(events[1].data["text"], json!("look at these"));
+        assert_eq!(events[1].data["attachments"], json!([{"id": "a1", "name": "f.txt"}, {"id": "a2", "name": "f.txt"}]));
     }
 
     #[tokio::test]
@@ -500,6 +502,61 @@ mod tests {
         let errors: Vec<(Value, Value)> = events.iter().filter(|e| e.kind == "error").map(|e| (e.data["code"].clone(), e.data["message"].clone())).collect();
         assert_eq!(errors, [(json!("CLI_START_FAILED"), json!("opencode could not start: not found")), (json!("CLI_ERROR"), json!("exited with 1: not logged in"))]);
         assert_eq!(events.iter().filter(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()).collect::<Vec<_>>(), [json!("failed"), json!("failed")]);
+    }
+
+    #[tokio::test]
+    async fn given_claude_is_waiting_to_open_when_a_turn_is_sent_then_its_id_arrives_before_startup_and_the_reply_uses_that_id() {
+        use rca_cli_driver::application::ports::{Link, Linker};
+        use rca_cli_driver::domain::Driver;
+        use std::path::Path;
+        use tokio::sync::Notify;
+
+        struct GatedLinker {
+            inner: Arc<dyn Linker>,
+            opening: Notify,
+            release: Notify,
+        }
+
+        #[async_trait]
+        impl Linker for GatedLinker {
+            async fn open(&self, driver: Driver, cwd: &Path, args: &[String]) -> Result<Link, String> {
+                self.opening.notify_one();
+                self.release.notified().await;
+                self.inner.open(driver, cwd, args).await
+            }
+        }
+
+        // Given a provider that cannot open until the test releases it.
+        let mut rig = rig();
+        let linker = Arc::new(GatedLinker { inner: rca_cli_driver::testing::claude_session(), opening: Notify::new(), release: Notify::new() });
+        let group = AgentThreadsGroup::new(rig.engine.clone(), rig.executors.clone(), Arc::new(crate::host::FixedLinker(linker.clone())), Arc::new(Mcp));
+        rig.api = AgentApi::new(vec![Arc::new(group)]).unwrap();
+        rig.create("t").await;
+
+        // When the client submits a turn and the provider starts opening.
+        let rig = Arc::new(rig);
+        let submitting = Arc::clone(&rig);
+        let request = tokio::spawn(async move {
+            submitting.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "claudeAgent", "prompt": "hello"})).await
+        });
+        tokio::time::timeout(Duration::from_secs(2), linker.opening.notified()).await.expect("provider started opening");
+
+        // Then the start receipt is available while the provider is still blocked.
+        let answer = tokio::time::timeout(Duration::from_secs(2), request).await.expect("start receipt before provider startup completes").unwrap();
+        let turn = answer["result"]["turn"].as_str().expect("turn ID in start receipt");
+        let pending = rig.engine.events_of("t");
+        assert_eq!(pending[0].turn.as_deref(), Some(turn));
+        assert_eq!(pending[0].kind, "turn.started");
+        assert!(!pending.iter().any(|event| event.kind == "turn.finished"));
+
+        // And completing startup delivers the reply once under the acknowledged ID.
+        linker.release.notify_one();
+        rig.wait_idle("t").await;
+        let events = rig.engine.events_of("t");
+        let replies = events.iter().filter(|event| event.data.get("role") == Some(&json!("assistant"))).map(|event| (event.turn.as_deref(), &event.data["text"])).collect::<Vec<_>>();
+        assert_eq!(replies, [(Some(turn), &json!("Hi"))]);
+        assert_eq!(events.last().unwrap().turn.as_deref(), Some(turn));
+        assert_eq!(events.last().unwrap().data["reason"], "completed");
     }
 
     #[tokio::test]

@@ -65,3 +65,38 @@ pub fn hang_until_orphaned() -> ! {
     }
     std::process::exit(124)
 }
+
+/// Give a traced fixture time to flush completed spans before its process is reaped.
+pub fn stop_fixture(child: &mut std::process::Child, signal: &str) {
+    if std::env::var_os("WF_PERFORMANCE_FIXTURE").is_some() && child.try_wait().ok().flatten().is_none() {
+        let _ = std::process::Command::new("kill").args([signal, &child.id().to_string()]).status();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while std::time::Instant::now() < deadline {
+            if child.try_wait().ok().flatten().is_some() { return; }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+/// The pinned wire inventory and the first schema-valid request fixture for each row.
+pub fn performance_catalog(dir: &std::path::Path) -> Vec<(serde_json::Value, serde_json::Value)> {
+    use serde_json::Value;
+    let read = |name: &str| -> Value {
+        serde_json::from_slice(&std::fs::read(dir.join(name)).unwrap()).unwrap()
+    };
+    let corpus = read("corpus.json");
+    let mut inputs = std::collections::HashMap::new();
+    for generator in corpus["generators"].as_array().unwrap() {
+        for case in generator["cases"].as_array().unwrap() {
+            if case["tags"].as_array().unwrap().iter().any(|tag| tag == "class:valid") {
+                inputs.entry(case["row"].as_str().unwrap()).or_insert(&case["input"]);
+            }
+        }
+    }
+    read("inventory.json")["endpoints"].as_array().unwrap().iter().map(|row| {
+        let input = inputs.get(row["id"].as_str().unwrap()).copied().cloned().unwrap_or(Value::Null);
+        (row.clone(), input)
+    }).collect()
+}

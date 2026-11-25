@@ -30,7 +30,15 @@ fn line(value: Value) -> String {
 }
 
 pub fn initialize(id: u64) -> String {
-    line(json!({"id": id, "method": "initialize", "params": {"clientInfo": {"name": "rca", "title": "rca", "version": "1.0.0"}}}))
+    line(json!({"id": id, "method": "initialize", "params": {"clientInfo": {"name": "rca", "title": "rca", "version": "1.0.0"}, "capabilities": {"experimentalApi": true}}}))
+}
+
+pub fn background_terminals(id: u64, thread: &str, cursor: Option<&str>) -> String {
+    line(json!({"id": id, "method": "thread/backgroundTerminals/list", "params": {"threadId": thread, "cursor": cursor}}))
+}
+
+pub fn terminate_background_terminal(id: u64, thread: &str, process: &str) -> String {
+    line(json!({"id": id, "method": "thread/backgroundTerminals/terminate", "params": {"threadId": thread, "processId": process}}))
 }
 
 pub fn initialized() -> String {

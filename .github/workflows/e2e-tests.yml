@@ -16,6 +16,9 @@ on:
   # pipeline.yml calls this as its last jobs, so a push to dev runs dev's own copy (a workflow_run trigger would run main's).
   workflow_call:
     inputs:
+      sample:
+        type: number
+        default: 1
       platform:
         type: string
         required: true
@@ -44,6 +47,9 @@ on:
         required: false
       # how the same run's eas-update job ended (success, failure, cancelled, skipped; empty on a dispatch), or `wait`: the job started beside the eas-update-e2e job and
       # reads how it ended just before its tests: which update the android update units may load
+      update_branch:
+        type: string
+        required: false
       eas_update:
         type: string
         required: false
@@ -89,16 +95,19 @@ permissions:
 
 jobs:
   e2e-tests:
-    name: ${{ inputs.platform }}-e2e-tests${{ inputs.shards > 1 && format(' ({0}/{1})', inputs.shard, inputs.shards) || '' }}
+    name: ${{ inputs.platform }}-e2e-tests${{ inputs.sample > 1 && format(' sample {0}', inputs.sample) || '' }}${{ inputs.shards > 1 && format(' ({0}/{1})', inputs.shard, inputs.shards) || '' }}
     runs-on: ${{ fromJSON(inputs.runner || '"ubuntu-24.04"') }}
     # both jobs build the backends, cold; the browser job also builds the export (about 4 min); the Android one boots the device
     timeout-minutes: 70
     concurrency:
-      group: e2e-tests-${{ inputs.platform }}-${{ inputs.shard }}-${{ github.sha }}
+      group: e2e-tests-${{ inputs.platform }}-${{ inputs.shard }}-${{ inputs.sample }}-${{ github.sha }}
       cancel-in-progress: false
     env:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       PLATFORM: ${{ inputs.platform }}
+      WF_NATIVE_SAMPLE: ${{ inputs.sample }}
+      WF_E2E_SHA: ${{ inputs.sha || github.sha }}
+      WF_NATIVE_RUNTIME: ${{ inputs.platform == 'android' && 'android-34-default-x86_64-expo58' || '' }}
       SHA: ${{ inputs.sha || github.sha }}
       BASE: ${{ inputs.base }}
       ALL: ${{ inputs.all }}
@@ -118,7 +127,7 @@ jobs:
       # the leetcode token the EAS Update of branch e2e baked in (pipeline.yml eas-update); the backend started here takes it
       E2E_LEETCODE_BEARER: e2e-loopback-bearer
       # the Android tests load that variant, which dials the runner's backends as 10.0.2.2:8787 and :8789
-      WF_EAS_UPDATE_BRANCH: ${{ inputs.platform == 'android' && 'e2e' || 'dev' }}
+      WF_EAS_UPDATE_BRANCH: ${{ inputs.update_branch || (inputs.platform == 'android' && 'e2e' || 'dev') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -126,7 +135,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-job
         with:
-          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}
+          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}${{ inputs.sample > 1 && format('-sample-{0}', inputs.sample) || '' }}
           keep-android: ${{ inputs.platform == 'android' }}
           apt-packages: ${{ inputs.platform == 'android' && 'ffmpeg libpulse0 libnss3 libxkbcommon0 libgl1' || 'ffmpeg' }}
           # the tests reach only backends this job starts on loopback
@@ -353,6 +362,7 @@ jobs:
         # bash with pipefail: the step fails when wf test run does, not when tee does
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           SELECT: ${{ steps.pick.outputs.select }}
         run: |
           # shellcheck disable=SC2086
@@ -369,8 +379,12 @@ jobs:
         if: ${{ !cancelled() && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: test-runs-${{ inputs.platform }}-e2e-${{ inputs.shard }}
-          path: ${{ runner.temp }}/test-runs
+          name: test-runs-${{ inputs.platform }}-e2e-${{ inputs.shard }}-sample-${{ inputs.sample }}
+          path: |
+            ${{ runner.temp }}/test-runs
+            ${{ runner.temp }}/e2e-runs/**/summary.json
+            ${{ runner.temp }}/e2e-runs/**/android-process.log
+            ${{ runner.temp }}/*-wf-learner-*/preflight.log
           retention-days: 10
           if-no-files-found: ignore
       - name: Stop the backends
@@ -406,4 +420,4 @@ jobs:
         if: ${{ always() }}
         with:
           mode: upload
-          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}
+          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}${{ inputs.sample > 1 && format('-sample-{0}', inputs.sample) || '' }}

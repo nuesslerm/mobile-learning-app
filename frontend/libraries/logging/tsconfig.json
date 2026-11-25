@@ -26,5 +26,5 @@
     }
   },
   "include": ["src/**/*", "tests/**/*", "vitest.config.ts"],
-  "exclude": ["node_modules", "tests/babel/fixtures/**/*"]
+  "exclude": ["node_modules"]
 }

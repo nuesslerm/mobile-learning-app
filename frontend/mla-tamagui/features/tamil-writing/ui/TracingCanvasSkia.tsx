@@ -30,6 +30,7 @@ import {
 } from '../domain/strokes';
 
 import { GuideGlyph } from './GuideGlyph';
+import { traceGuideValue } from './traceGuideValue';
 import type { TracingCanvasProps } from './TracingCanvasSvg';
 
 const DEFAULT_HEIGHT = 300;
@@ -135,6 +136,8 @@ function SkiaTracingCanvas(): React.ReactElement {
   const {
     glyph,
     strokes,
+    pen,
+    strokePens,
     onStroke,
     onSizeChange,
     showGuide = true,
@@ -230,6 +233,11 @@ function SkiaTracingCanvas(): React.ReactElement {
         <View
           flex={1}
           testID={`${testID}Surface`}
+          {...(Platform.OS === 'ios' && process.env.EXPO_PUBLIC_NATIVE_SUITE === '1' ? {
+            accessible: true,
+            accessibilityLabel: 'Tracing surface',
+            accessibilityValue: { text: traceGuideValue(activePath) },
+          } : {})}
           data-active-guide={
             activePath.length > 1 ? pointsToPath(activePath) : ''
           }
@@ -297,8 +305,8 @@ function SkiaTracingCanvas(): React.ReactElement {
               <TestablePath
                 key={index}
                 path={makePath(pointsToSmoothPath(stroke))}
-                color={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                color={strokePens?.[index]?.color ?? inkColor}
+                strokeWidth={strokePens?.[index]?.width ?? STROKE_WIDTH}
                 style="stroke"
                 strokeCap="round"
                 strokeJoin="round"
@@ -307,8 +315,8 @@ function SkiaTracingCanvas(): React.ReactElement {
             {current ? (
               <TestablePath
                 path={makePath(pointsToSmoothPath(current))}
-                color={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                color={pen?.color ?? inkColor}
+                strokeWidth={pen?.width ?? STROKE_WIDTH}
                 style="stroke"
                 strokeCap="round"
                 strokeJoin="round"

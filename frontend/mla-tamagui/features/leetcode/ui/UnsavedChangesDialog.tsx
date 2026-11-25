@@ -17,19 +17,20 @@ type Props = {
  * honest: the edits leave the editor but stay recoverable from Version history.
  */
 export function UnsavedChangesDialog({ onDismiss }: Props) {
-  const request = useUnsavedChangesRequestStore((s) => s.payload);
   const clearRequest = useUnsavedChangesRequestStore((s) => s.clear);
 
   const handleCancel = () => {
-    request?.onCancel();
+    const { payload } = useUnsavedChangesRequestStore.getState();
     clearRequest();
+    payload?.onCancel();
     onDismiss();
   };
 
   const handleDiscard = () => {
-    request?.onDiscard();
+    const { payload } = useUnsavedChangesRequestStore.getState();
     clearRequest();
     onDismiss();
+    payload?.onDiscard();
   };
 
   return (

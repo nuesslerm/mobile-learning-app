@@ -90,7 +90,7 @@ struct Data {
 }
 
 #[derive(Default)]
-pub struct MemStore(Mutex<Data>);
+pub struct MemStore(Mutex<Data>, AtomicU64);
 
 /// The reading of a database the double has, changed by a test.
 pub struct FixedStorage(pub Mutex<Result<StorageSample, String>>);
@@ -102,6 +102,10 @@ impl StorageProbe for FixedStorage {
 }
 
 impl MemStore {
+    pub fn history_reads(&self) -> u64 {
+        self.1.load(Ordering::SeqCst)
+    }
+
     fn data(&self) -> std::sync::MutexGuard<'_, Data> {
         self.0.lock().unwrap()
     }
@@ -123,6 +127,7 @@ impl EventStore for MemStore {
     }
 
     fn read_after(&self, after: u64) -> StoreResult<Vec<StoredEvent>> {
+        self.1.fetch_add(1, Ordering::SeqCst);
         Ok(self.data().events.iter().filter(|e| e.sequence > after).cloned().collect())
     }
 
@@ -252,6 +257,7 @@ pub struct ScriptedAgent {
     pub interrupted: Mutex<Vec<String>>,
     /// While set, `history` answers it instead of the log.
     pub history_error: Mutex<Option<AgentError>>,
+    pub follow_error_once: Mutex<Option<AgentError>>,
     /// While set, `list_dir` answers it: a folder the executor does not have.
     pub dir_error: Mutex<Option<AgentError>>,
     /// While true, `history` sends the log from its first event whatever number it is asked after.
@@ -393,10 +399,13 @@ impl AgentApi for ScriptedAgent {
         Ok(())
     }
 
-    fn follow(&self, thread_id: &str, after_seq: u64, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
+    fn follow_until(&self, thread_id: &str, after_seq: u64, stop: &std::sync::atomic::AtomicBool, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
         self.called("thread.subscribe");
+        if let Some(error) = self.follow_error_once.lock().unwrap().take() {
+            return Err(error);
+        }
         let mut seen = after_seq;
-        loop {
+        while !stop.load(Ordering::SeqCst) {
             let news: Vec<AgentEvent> = {
                 let agents = self.state();
                 let Some(log) = agents.logs.get(thread_id) else { return Err(AgentError::NoThread) };
@@ -413,6 +422,7 @@ impl AgentApi for ScriptedAgent {
                 }
             }
         }
+        Ok(())
     }
 
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError> {

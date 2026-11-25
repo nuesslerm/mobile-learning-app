@@ -287,6 +287,7 @@ fn random_hex() -> String {
 
 /// `GET <path>` answered 200.
 fn health(addr: SocketAddr, path: &str) -> bool {
+    let _span = wf_kit::performance::external("probe.http");
     let Ok(mut stream) = TcpStream::connect_timeout(&addr, Duration::from_secs(2)) else { return false };
     let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
     if stream.write_all(format!("GET {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n").as_bytes()).is_err() {

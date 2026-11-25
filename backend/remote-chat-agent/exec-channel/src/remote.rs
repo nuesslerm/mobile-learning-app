@@ -167,13 +167,21 @@ impl Drop for CancelOnDrop<'_> {
         let mut state = lock(&self.channel.state);
         if self.armed && state.pending.remove(&self.id).is_some() && !state.closed {
             let cancel = Request::new(format!("c{}", self.channel.next.fetch_add(1, Ordering::SeqCst)), exec_proc::CANCEL, json!({"id": self.id}));
-            self.channel.sink.send(cancel.encode());
+            let sent = tracing::info_span!("rca.channel.cancel", api.outcome = tracing::field::Empty).entered();
+            sent.record("api.outcome", if self.channel.sink.send(cancel.encode()) { "sent" } else { "error" });
         }
     }
 }
 
 impl Channel {
     async fn run(&self, tool: &str, args: Value, events: Option<mpsc::UnboundedSender<Streamed>>) -> Result<ActionOutput, RemoteError> {
+        let span = tracing::info_span!("rca.channel", otel.name = %format!("rca.channel.{tool}"), api.outcome = "cancelled");
+        let result = tracing::Instrument::instrument(self.exchange(tool, args, events), span.clone()).await;
+        span.record("api.outcome", if result.is_ok() { "ok" } else { "error" });
+        result
+    }
+
+    async fn exchange(&self, tool: &str, args: Value, events: Option<mpsc::UnboundedSender<Streamed>>) -> Result<ActionOutput, RemoteError> {
         let id = format!("a{}", self.next.fetch_add(1, Ordering::SeqCst));
         let (tx, mut rx) = mpsc::unbounded_channel();
         {

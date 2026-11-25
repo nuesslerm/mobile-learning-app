@@ -1,0 +1,77 @@
+{
+  "suite": "appdrawer",
+  "step": "final-given-the-open-drawer-when-the-coding-agent-sho-c624db",
+  "scheme": "dark",
+  "snapshot": "appdrawer/final-given-the-open-drawer-when-the-coding-agent-sho-c624db.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 928,
+    "page_height": 928
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "AppDrawerFooter",
+      "AppDrawerAccount",
+      "AppDrawerCodingAgent",
+      "LibraryHome",
+      "LibraryHomeMenuButton",
+      "LibraryCategory-All Topics",
+      "LibraryCategory-Algorithms",
+      "LibraryCategory-Database",
+      "LibraryCategory-NeetCode 150",
+      "LibraryCategory-Blind 75",
+      "LibraryTopic-Array",
+      "LibraryTopic-Math",
+      "LibraryTopic-Greedy",
+      "LibraryTopic-Depth-First Search",
+      "LibraryTopic-String",
+      "LibraryTopic-Dynamic Programming",
+      "LibraryTopic-Database",
+      "LibraryTopic-Matrix",
+      "LibraryTopic-Tree",
+      "LibraryTopic-Graph",
+      "LibraryTopic-Hash Table",
+      "LibraryTopic-Sorting",
+      "LibraryTopic-Binary Search",
+      "LibraryTopic-Bit Manipulation",
+      "AlgorithmsTabBar",
+      "AlgorithmsTab-Library",
+      "AlgorithmsTab-Discuss",
+      "AlgorithmsTab-Calendar",
+      "AlgorithmsTab-You",
+      "AlgorithmsTab-Search"
+    ],
+    "text": "Learning workspace\nLeetCode Library\nDesign system\nCoding agent\nTamil\nSettings\nDashboards\nCoding agent\nLibrary\nNeetCode 150\nCategory\nAll Topics\nAlgorithms\nDatabase\nNeetCode 150\nBlind 75\nKnowledge\nArray\nMath\nGreedy\nDepth-First Search\nString\nDynamic Programming\nDatabase\nMatrix\nTree\nGraph\nHash Table\nSorting\nBinary Search\nBit Manipulation\nCompanies\nGoogle\n2,326 Questions\nAmazon\n2,018 Questions\nMeta\n1,3"
+  },
+  "timings": {
+    "render_ms": 242
+  },
+  "name": "appdrawer/final-given-the-open-drawer-when-the-coding-agent-sho-c624db.dark",
+  "image": {
+    "width": 360,
+    "height": 850
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

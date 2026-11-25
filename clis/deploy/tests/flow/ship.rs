@@ -686,11 +686,11 @@ const PNPM_FAILS: &str = "#!/bin/sh\necho \"$*\" >> \"$0.log\"\necho \"eas: buil
 const PNPM_RUNS_THE_SCRIPT: &str = "#!/bin/sh\nif [ \"$1\" = exec ]; then exec npx expo export $EXPO_EXPORT_PLATFORM_FLAGS --output-dir dist --clear --source-maps $EXPO_EXPORT_FLAGS; fi\nf=$2; shift 5\ncd frontend/$f && exec node scripts/publish-eas-update.js \"$@\"";
 /// `npx expo export` and `npx eas-cli update`, each taking a moment, with the baked-in env the export saw.
 const NPX_EXPORTS_AND_UPLOADS: &str = "#!/bin/sh\necho \"$* | lab=$EXPO_PUBLIC_DEVICE_LAB backend=$EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL\" >> \"$0.log\"\n\
-    case \"$1\" in\n  expo) sleep 0.3; mkdir -p dist/_expo/static/js/android; echo '{\"version\":3}' > dist/_expo/static/js/android/entry-1.hbc.map;;\n\
+    case \"$1\" in\n  expo) sleep 0.3; mkdir -p dist/_expo/static/js/android dist/_expo/static/js/ios; cp /dev/null dist/_expo/static/js/ios/entry-1.hbc.map; echo '{\"version\":3}' > dist/_expo/static/js/android/entry-1.hbc.map;;\n\
     eas-cli) sleep 0.2; echo '[{\"id\":\"u1\",\"group\":\"g-all\",\"platform\":\"ios\"},{\"id\":\"u2\",\"group\":\"g-all\",\"platform\":\"android\"}]';;\nesac";
 
 struct Eas {
-    /// The run's pointer dir: where the source maps and the summaries are written.
+    /// The run's pointer dir, containing update summaries.
     dir: tempfile::TempDir,
     /// u.expo.dev: the group's manifest is not served at first, then it is.
     updates: crate::support::MockServer,
@@ -790,9 +790,9 @@ fn ship_eas_publishes_the_app_as_an_eas_update_through_its_publish_script() {
             assert_eq!((h("expo-platform"), h("expo-protocol-version"), h("accept")), ("android".into(), "1".into(), "multipart/mixed,application/expo+json,application/json".into()));
             assert!(config.contains(&format!("runtimeVersion: '{}'", h("expo-runtime-version"))), "the runtime version comes from app.config.js: {:?}", h("expo-runtime-version"));
         }
-        // and its source map is in the pointer dir under the update group, so a device stack maps back to file:line
-        assert_eq!(summary["maps"]["stored"], 1, "{summary}");
-        assert!(eas.dir.path().join("g-123/_expo/static/js/ios/entry-abc.hbc.map").is_file(), "{:?}", eas.files());
+        // The pointer artifact contains metadata alone, even when the export produced a source map.
+        assert_eq!(summary["maps"]["found"], 1, "{summary}");
+        assert!(!eas.dir.path().join("g-123/_expo").exists(), "{:?}", eas.files());
         // and with --pointer the summary is stored twice: under the group, and as the branch's latest update, which the e2e tests read
         for key in ["g-123/summary.json", "latest-feature-x.json"] {
             let stored = eas.stored(key).unwrap_or_else(|| panic!("{key} is not written: {:?}", eas.files()));
@@ -963,7 +963,16 @@ fn the_publish_script_exports_ios_and_android_for_all_with_the_env_baked_in_and_
         std::fs::create_dir_all(&scripts).unwrap();
         std::fs::copy(repo_root().join("frontend/mla-tamagui/scripts/publish-eas-update.js"), scripts.join("publish-eas-update.js")).unwrap();
         // When CI publishes one group for every platform, with the device lab's env and a backend token
-        let env = [("EXPO_PUBLIC_DEVICE_LAB", "1"), ("EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL", "http://leetcode-backend-prod:8789"), ("EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN", "flow-token-value")];
+        let archive = ctx.cwd.join("sealed-maps");
+        let archive_dir = archive.display().to_string();
+        let key_hex = "2a".repeat(32);
+        let env = [
+            ("EXPO_PUBLIC_DEVICE_LAB", "1"),
+            ("EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL", "http://leetcode-backend-prod:8789"),
+            ("EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN", "flow-token-value"),
+            ("WF_EAS_MAPS_DIR", &archive_dir),
+            ("CI_DB_KEY", &key_hex),
+        ];
         let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all", "--pointer"], Some("tok"), &env);
         assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
         // Then the export is iOS and Android (expo's own `all` adds web), with the env baked in, and the upload is one group for all
@@ -982,6 +991,12 @@ fn the_publish_script_exports_ios_and_android_for_all_with_the_env_baked_in_and_
             assert!(names.contains(&name), "{name}: {summary}");
         }
         assert_eq!(summary["hosts"], json!(["leetcode-backend-prod"]), "{summary}");
+        assert_eq!(summary["maps"]["stored"], 2, "{summary}");
+        for platform in ["android", "ios"] {
+            let sealed = std::fs::read(archive.join(format!("g-all/{platform}.map.sealed"))).unwrap();
+            assert!(sealed.starts_with(b"WFEASMAP1\n"));
+            assert!(!eas.dir.path().join("g-all/_expo").exists());
+        }
         // And no value is published: the token is in neither the line nor the stored pointer
         let stored = eas.stored("latest-dev.json").expect("the dev pointer is written");
         assert!(!r.stdout.contains("flow-token-value") && !stored.to_string().contains("flow-token-value"), "{}", r.stdout);

@@ -104,7 +104,7 @@ mod tests {
             Arc::new(rca_group_agent::AgentQueueGroup::new(runner.clone())),
             Arc::new(rca_group_agent::AgentLifecycleGroup::new(runner)),
             Arc::new(AttachmentsGroup::new(Attachments::new(Arc::new(rca_group_attachments::testing::MemoryBlobs::default()), Arc::new(rca_group_attachments::testing::FixedClock(1)), Arc::new(rca_group_attachments::testing::CountingIds::default()), executors.clone()))),
-            Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(rca_group_catalog::testing::SetClock::at(1)), Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world"))))),
+            Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(rca_group_catalog::testing::SetClock::at(1)), Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world")), None))),
             Arc::new(PreviewGroup::new(executors.clone())),
             Arc::new(PreviewSessionGroup::new(previews.clone())),
             Arc::new(PreviewWatchGroup::new(previews)),

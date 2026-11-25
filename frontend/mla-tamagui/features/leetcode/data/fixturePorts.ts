@@ -1,3 +1,5 @@
+import { bundledLibrary } from './library/libraryContent';
+import type { LibrarySnapshot } from '../domain/library/library';
 import type { RunResponse } from '../domain';
 import { createWebViewEditorBridge } from './editor/cm6/webViewEditorBridge';
 import { createGatewayCodeRunner } from './gatewayCodeRunner';
@@ -67,10 +69,10 @@ const PLAN_ALTERNATIVES: EditAlternative[] = [
         startLine: 8,
         endLine: 8,
         newText: [
-          '        const seen = new Map<number, number>();',
+          '        const seen = new Map();',
           '        for (let i = 0; i < nums.length; i++) {',
           '            const need = target - nums[i];',
-          '            if (seen.has(need)) return [seen.get(need)!, i];',
+          '            if (seen.has(need)) return [seen.get(need), i];',
           '            seen.set(nums[i], i);',
           '        }',
         ].join('\n'),
@@ -95,10 +97,10 @@ const PLAN_ALTERNATIVES: EditAlternative[] = [
         startLine: 8,
         endLine: 8,
         newText: [
-          '        const seen = new Map<number, number>();',
+          '        const seen = new Map();',
           '        for (let i = 0; i < values.length; i++) {',
           '            const need = target - values[i];',
-          '            if (seen.has(need)) return [seen.get(need)!, i];',
+          '            if (seen.has(need)) return [seen.get(need), i];',
           '            seen.set(values[i], i);',
           '        }',
         ].join('\n'),
@@ -187,11 +189,23 @@ function createFixtureAudio(): AudioRecordingPort {
   };
 }
 
-export function createFixturePorts(): Omit<LeetCodePorts, 'flags'> {
+export function createFixturePorts(): Omit<LeetCodePorts, 'flags' | 'libraryCover'> {
   const gateway = createFixtureGateway();
+  const drafts = new Map<string, string>();
+  let library: LibrarySnapshot | null = null;
   return {
     clock: () => performance.now(),
+    libraryStorage: { read: async () => library, write: async (next) => { library = next; } },
+    libraryContent: bundledLibrary,
     editorBridge: createWebViewEditorBridge(),
+    codeDrafts: {
+      read: async (problemId, language) => drafts.get(`${problemId}:${language}`) ?? null,
+      write: async (problemId, language, code) => {
+        const key = `${problemId}:${language}`;
+        if (code === null) drafts.delete(key);
+        else drafts.set(key, code);
+      },
+    },
     gateway,
     voice: createFixtureVoice(),
     audio: createFixtureAudio(),

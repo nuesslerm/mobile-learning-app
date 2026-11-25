@@ -26,11 +26,18 @@ pub struct E2eTest {
 
 /// An e2e test from its file: the `--[[--- ... ---]]` header at the top of `e2e/<name>.lua` (one `key: value` a line); a
 /// Lua file without one is a helper, not a test.
-fn parse_test(path: &str, text: &str) -> Option<E2eTest> {
+fn parse_test(path: &str, text: &str, include_candidates: bool) -> Option<E2eTest> {
     let body = text.strip_prefix("--[[---\n")?;
     let front = &body[..body.find("\n---]]")?];
     let name = Path::new(path).file_stem()?.to_string_lossy().to_string();
     let get = |key: &str| front.lines().find_map(|l| l.strip_prefix(&format!("{key}:"))).map(|v| v.trim().to_string());
+    let mut units = get("units").into_iter().collect::<Vec<_>>();
+    if include_candidates {
+        units.extend(get("candidates"));
+    }
+    let units = units.iter().flat_map(|value| value.split(';'))
+        .map(|entry| entry.split_whitespace().map(str::to_string).collect::<Vec<_>>())
+        .filter(|args| !args.is_empty()).collect();
     Some(E2eTest {
         name,
         script: Some(path.to_string()),
@@ -38,7 +45,7 @@ fn parse_test(path: &str, text: &str) -> Option<E2eTest> {
         against: get("against").unwrap_or_default(),
         timeout_s: get("timeout").and_then(|v| v.parse().ok()),
         focus: get("focus").is_some_and(|v| v == "true"),
-        units: get("units").map(|v| v.split(';').map(|u| u.split_whitespace().map(str::to_string).collect::<Vec<_>>()).filter(|u| !u.is_empty()).collect()).unwrap_or_default(),
+        units,
     })
 }
 
@@ -57,13 +64,18 @@ pub fn repo() -> PathBuf {
 }
 
 pub fn e2e_tests() -> Vec<E2eTest> {
+    read_e2e_tests(false)
+}
+
+/// Explicit case selection can also run candidates outside the timed CI suite.
+pub fn read_e2e_tests(include_candidates: bool) -> Vec<E2eTest> {
     let dir = std::env::var_os("WF_TEST_E2E_DIR").map(PathBuf::from).unwrap_or_else(|| repo().join("e2e"));
     let mut out: Vec<E2eTest> = std::fs::read_dir(dir)
         .into_iter()
         .flatten()
         .flatten()
         .filter(|e| e.path().extension().is_some_and(|x| x == "lua"))
-        .filter_map(|e| parse_test(&format!("e2e/{}", e.file_name().to_string_lossy()), &std::fs::read_to_string(e.path()).ok()?))
+        .filter_map(|e| parse_test(&format!("e2e/{}", e.file_name().to_string_lossy()), &std::fs::read_to_string(e.path()).ok()?, include_candidates))
         .flat_map(per_platform)
         .collect();
     out.sort_by(|a, b| (&a.name, &a.platform).cmp(&(&b.name, &b.platform)));
@@ -160,6 +172,7 @@ fn workflow_file(reference: Option<&str>) -> String {
 fn last_green(sha: &str) -> Option<String> {
     let repo_name = std::env::var("GITHUB_REPOSITORY").ok()?;
     let workflow = workflow_file(std::env::var("GITHUB_WORKFLOW_REF").ok().as_deref());
+    let _span = wf_kit::performance::external("gh");
     let out = Command::new("gh")
         .args(["run", "list", "-R", &repo_name, "--workflow", &workflow, "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
         .stdin(Stdio::null())
@@ -313,5 +326,18 @@ mod workflow_file_tests {
         assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted-backend-core.yml@refs/heads/dev")), "ci-hosted-backend-core.yml");
         assert_eq!(workflow_file(Some("o/r/.github/workflows/cold-ci.yml@refs/heads/dev")), "ci-hosted-backend-core.yml");
         assert_eq!(workflow_file(None), "ci-hosted-backend-core.yml");
+    }
+}
+
+#[cfg(test)]
+mod case_selection_tests {
+    use super::parse_test;
+
+    #[test]
+    fn given_a_candidate_when_reading_the_suite_then_only_explicit_case_selection_includes_it() {
+        let header = "--[[---\nunits: case=core; case=retained\ncandidates: case=extra\n---]]";
+        let suite = |include_candidates| parse_test("native.lua", header, include_candidates).unwrap().units;
+        assert_eq!(suite(false), [vec!["case=core"], vec!["case=retained"]]);
+        assert_eq!(suite(true), [vec!["case=core"], vec!["case=retained"], vec!["case=extra"]]);
     }
 }

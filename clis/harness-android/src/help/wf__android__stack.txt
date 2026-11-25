@@ -1,13 +1,14 @@
-Usage: wf android stack <group> [--platform P] [--file F]
+Usage: wf android stack <group> [--platform P] [--file F] [--update-id ID] [--map PATH]
 
-Maps a JavaScript stack the app logged (an `app.crash` line from BetterStack) to source lines. The stack is read from --file,
-else stdin. <group> is the EAS Update's group id (in its link, `exp://u.expo.dev/<project>/group/<group>`, and in the run
-summary); the source map comes from the verification bucket, where `wf ship eas` stores the group's maps and summary.json.
-Hermes frames (`at name (address at bundle:LINE:COL)`) map to `name (source:LINE:COL)`; a frame the map cannot place stays as
-logged and carries mapped: false. `wf android test` does the same for every crash and error line of its run.
+Maps a logged JavaScript stack to source lines off-device. <group> is the EAS update group in the log or update link.
+The default map comes from the group's encrypted GitHub Actions artifact, using gh authentication and CI_DB_KEY
+from the vault. WF_EAS_MAPS_DIR reads the same sealed layout locally. For a local build, pass the exact map with --map.
+Hermes frames map to name (source:LINE:COL). Unrecognized frames stay as logged and carry mapped: false.
 
 Options:
-  --platform <p>         the platform's map (default android)
-  --file <path>          read the stack from a file instead of stdin
+  --platform <p>        ios or android (default android)
+  --file <path>         read the stack from a file instead of stdin
+  --update-id <id>      require the sealed map to match the log's platform update ID
+  --map <path>          use a local map from the exact build instead of downloading one
 
-Result: {group, platform, map, frames: [{raw, mapped, source, line, column, name}], text}
+Result: {group, platform, map, updateId, frames: [{raw, mapped, source, line, column, name}], text}

@@ -10,7 +10,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-const SPEC: Spec = Spec { values: &["base", "sha", "out", "serial", "platform"], flags: &["all", "changed", "json"], positional: Positional::Any, ..Spec::NONE };
+const NATIVE_SECTION_BUDGET_S: u64 = 15 * 60;
+const SPEC: Spec = Spec { values: &["base", "sha", "out", "serial", "platform", "device", "case"], flags: &["all", "changed", "json"], positional: Positional::Any, ..Spec::NONE };
 
 /// One run of an e2e test: the whole script, or one of its `units:`.
 #[derive(Debug, Clone, PartialEq)]
@@ -21,6 +22,12 @@ pub struct Unit {
     pub against: String,
     pub timeout_s: u64,
     pub args: Vec<String>,
+}
+
+impl Unit {
+    fn is_native_learner(&self) -> bool {
+        matches!(self.test.as_str(), "leetcode-native" | "tamil-native")
+    }
 }
 
 /// The units of the picked tests, in test order: one per `units:` entry, or one for a test without units.
@@ -56,7 +63,7 @@ fn command_line(unit: &Unit, dir: &Path, serial: Option<&str>, flags: &[String],
     for kv in &unit.args {
         a.extend(["--env".into(), kv.clone()]);
     }
-    if let Some(s) = serial.filter(|_| unit.platform == "android") {
+    if let Some(s) = serial.filter(|_| unit.platform != "browser") {
         a.extend(["--device".into(), s.to_string()]);
     }
     // WF_TEST_PUBLISH=1 (the workflow): each run becomes a run bundle folder the workflow uploads as an artifact, which also posts its test_runs row
@@ -130,6 +137,8 @@ fn run_unit(unit: &Unit, sha: &str, root: &Path, serial: Option<&str>, flags: &[
 /// The unit on its harness; an Android one holds the device's lease while it runs.
 fn run_on_harness(unit: &Unit, sha: &str, dir: &Path, serial: Option<&str>, flags: &[String], target: Option<&Target>) -> (&'static str, String, u64) {
     let serial = match (unit.platform.as_str(), serial) {
+        ("ios", Some(s)) => Some(s.to_string()),
+        ("ios", None) => return ("error", "select an iOS simulator with --device <UDID>".into(), 0),
         ("android", Some(s)) if std::env::var("WF_TEST_NO_ADB").is_ok() => Some(s.to_string()),
         ("android", Some(s)) => match device_run::connect_serial(s) {
             Ok(s) => Some(s),
@@ -156,7 +165,18 @@ fn run_on_harness(unit: &Unit, sha: &str, dir: &Path, serial: Option<&str>, flag
 fn spawn_and_wait(unit: &Unit, sha: &str, dir: &Path, serial: Option<&str>, flags: &[String], lease: Option<&str>, target: Option<&Target>) -> (&'static str, String, u64) {
     let mut words = device_run::runner();
     let program = words.remove(0);
-    let mut cmd = Command::new(program);
+    let mut cmd = if unit.is_native_learner() {
+        let mut wrapper = Command::new("python3");
+        if unit.platform == "android" {
+            if let Some(target) = target {
+                wrapper.env("WF_NATIVE_UPDATE_BASE", target.base());
+            }
+        }
+        wrapper.arg(catalog::repo().join("clis/wf-harness/ios_simulator.py")).args(["case", "--platform", &unit.platform, "--device", serial.unwrap_or("")]).arg(program);
+        wrapper
+    } else {
+        Command::new(program)
+    };
     cmd.args(words).args(command_line(unit, dir, serial, flags, target));
     if let Ok(log) = std::fs::File::create(dir.join("run.log")) {
         if let Ok(err) = log.try_clone() {
@@ -215,7 +235,8 @@ fn target_key(update: Option<&UpdateTarget>) -> String {
 /// Android units reuse the running app, started cold first when it is not known good: before the first, after a unit that did not
 /// pass, and when the update's group changed (16 Oct: a cold start was 57 to 76 s of every unit).
 fn needs_warm(unit: &Unit, warm: &Warm, key: &str) -> bool {
-    unit.platform == "android" && (!warm.ok || warm.at.as_deref() != Some(key))
+    // A native case restores the verified learner checkpoint before acting, including after a failed case.
+    unit.platform == "android" && (warm.at.as_deref() != Some(key) || (!warm.ok && !unit.is_native_learner()))
 }
 
 /// `WF_E2E_STATE`: the file a stage keeps the warm state in, so each test's own `wf test run` (one per Nx task) starts
@@ -234,7 +255,7 @@ fn save_warm(warm: &Warm) {
 /// A unit's target must be its harness's: Android runs on an EAS Update, the browser on a web export (the error, and the next step).
 fn unsupported(u: &Unit) -> Option<(String, String)> {
     match (u.platform.as_str(), u.against.as_str()) {
-        ("android", "update") | ("browser", "export") => None,
+        ("ios" | "android", "update") | ("browser", "export") => None,
         ("android", "metro") => Some((format!("{} runs on Android against the dev Metro, which is gone: Android tests run against the EAS Update CI published", u.test), format!("set `against: update` (or `against: android=update, browser=export`) in {}", u.script))),
         ("browser", "metro") => Some((format!("{} runs in the browser against the dev Metro, which is gone: browser tests run against a web export", u.test), format!("set `against: export` (or `against: android=update, browser=export`) in {}", u.script))),
         ("browser", "update") => Some((format!("{} runs in the browser against an EAS Update: an update has no web build, browser tests run against a web export", u.test), format!("set `against: android=update, browser=export` in {}", u.script))),
@@ -261,7 +282,7 @@ pub fn run(rest: &[String]) -> i32 {
     with_verb.extend_from_slice(own);
     let Some(p) = parse_spec(&with_verb, &SPEC) else { return 2 };
     let sha = p.val("sha").map(str::to_string).unwrap_or_else(catalog::head_sha);
-    let books = catalog::e2e_tests();
+    let books = catalog::read_e2e_tests(p.val("case").is_some());
     let picked = match catalog::pick(&p, &books) {
         Ok(v) => v,
         Err(e) => {
@@ -275,8 +296,17 @@ pub fn run(rest: &[String]) -> i32 {
     if let Some(platform) = p.val("platform") {
         units.retain(|u| u.platform == platform);
     }
+    if let Some(case) = p.val("case") {
+        let selected = format!("case={case}");
+        units.retain(|unit| unit.args.contains(&selected));
+        if units.is_empty() {
+            println!("{}", json!({ "ok": false, "error": format!("no selected test has case {case}") }));
+            return 2;
+        }
+    }
     let root = p.val("out").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(".agents/tmp/device-runs").join(&sha[..sha.len().min(9)]));
-    let serial = p.val("serial").map(str::to_string).or_else(|| std::env::var("WF_ANDROID_SERIAL").ok());
+    let android_device = p.val("serial").map(str::to_string).or_else(|| std::env::var("WF_ANDROID_SERIAL").ok());
+    let ios_device = p.val("device").map(str::to_string).or_else(|| std::env::var("WF_IOS_UDID").ok());
     if units.is_empty() {
         println!("{}", json!({ "ok": true, "sha": sha, "units": [], "note": "no focused e2e test was picked" }));
         return 0;
@@ -294,7 +324,12 @@ pub fn run(rest: &[String]) -> i32 {
     // the export the browser units run against: checked once, served for the whole run; a missing or stale one fails those units
     let export = units.iter().any(|u| u.against == "export").then(|| export_site::serve_current(&catalog::repo()));
     // the update the Android units load, read once: a failed or stale one fails those units
-    let update = units.iter().any(|u| u.against == "update").then(|| device_run::update_target(&sha));
+    let platform_update = |platform: &str| units.iter().any(|u| u.platform == platform && u.against == "update").then(|| device_run::update_target(&sha, platform));
+    let android_update = platform_update("android");
+    let ios_update = platform_update("ios");
+    let is_section = units.first().is_some_and(|first| first.is_native_learner()
+        && units.iter().all(|u| u.test == first.test && u.platform == first.platform));
+    let sample = std::env::var("WF_NATIVE_SAMPLE").ok().and_then(|s| s.parse::<usize>().ok()).unwrap_or(1);
     let mut results: Vec<Value> = Vec::new();
     let mut warms: Vec<Value> = Vec::new();
     let mut warm = load_warm();
@@ -303,8 +338,16 @@ pub fn run(rest: &[String]) -> i32 {
     // failures in a row mean something shared is broken (the device, a backend): the rest would only burn the job's time
     let max_fails: usize = std::env::var("WF_TEST_MAX_FAILS").ok().and_then(|v| v.parse().ok()).unwrap_or(3);
     let mut fails_in_row = 0;
-    for u in &units {
-        if fails_in_row >= max_fails {
+    let mut section_start: Option<Instant> = None;
+    for (index, u) in units.iter().enumerate() {
+        if is_section && index >= 10 && section_start.is_some_and(|start| start.elapsed().as_secs_f64() > NATIVE_SECTION_BUDGET_S as f64) {
+            let note = format!("section exceeded the {NATIVE_SECTION_BUDGET_S}-second budget before this candidate");
+            println!("{}", json!({ "unit": slug(u), "verdict": "skipped", "durationS": 0.0, "note": note }));
+            results.push(json!({ "test": u.test, "args": u.args, "sha": sha, "script": u.script, "platform": u.platform, "verdict": "skipped", "durationS": 0.0, "note": note }));
+            continue;
+        }
+        let (serial, update) = if u.platform == "ios" { (&ios_device, &ios_update) } else { (&android_device, &android_update) };
+        if !is_section && fails_in_row >= max_fails {
             let note = format!("not run: the {fails_in_row} units before it failed in a row");
             println!("{}", json!({ "unit": slug(u), "verdict": "skipped", "durationS": 0.0, "bundle": null, "note": note }));
             results.push(json!({ "test": u.test, "args": u.args, "sha": sha, "script": u.script, "platform": u.platform, "verdict": "skipped", "note": note, "durationS": 0.0 }));
@@ -316,7 +359,7 @@ pub fn run(rest: &[String]) -> i32 {
             continue;
         }
         let mut target = None;
-        let problem = match (u.against.as_str(), &export, &update) {
+        let problem = match (u.against.as_str(), &export, update) {
             ("export", Some(Ok((server, stamp))), _) => {
                 target = Some(Target::Export(ExportRun { base: server.base_url.clone(), built: export_built(stamp, &export_site::dir(&catalog::repo())) }));
                 None
@@ -350,6 +393,7 @@ pub fn run(rest: &[String]) -> i32 {
                 continue;
             }
         }
+        section_start.get_or_insert_with(Instant::now);
         let r = run_unit(u, &sha, &root, serial.as_deref(), &flags, target.as_ref());
         println!("{}", json!({ "unit": slug(u), "verdict": r["verdict"], "durationS": r["durationS"], "bundle": r["bundle"], "note": r["note"] }));
         // a unit that did not pass may leave the app broken: the next one starts it cold again
@@ -358,13 +402,30 @@ pub fn run(rest: &[String]) -> i32 {
         fails_in_row = if r["verdict"] == "pass" { 0 } else { fails_in_row + 1 };
         results.push(r);
     }
-    if let Some(Ok((server, _))) = &export {
-        server.stop();
-    }
-    let ok = results.iter().all(|r| r["verdict"] == "pass");
-    let summary = json!({ "ok": ok, "sha": sha, "out": root.display().to_string(), "units": results, "warms": warms });
+    let seconds = section_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
+    let passed = results.iter().all(|r| r["verdict"] == "pass") && (!is_section || seconds <= NATIVE_SECTION_BUDGET_S as f64);
+    for unit in &mut results { unit["sample"] = json!(sample); }
+    let measurement = json!({ "sample": sample, "seconds": seconds, "budgetSeconds": is_section.then_some(NATIVE_SECTION_BUDGET_S), "cases": results.len(), "ok": passed });
+    if let Some(Ok((server, _))) = &export { server.stop(); }
+    let summary = json!({ "ok": passed, "sha": sha, "out": root.display().to_string(), "units": results, "warms": warms, "measurements": [measurement] });
     let _ = std::fs::create_dir_all(&root);
     let _ = std::fs::write(root.join("summary.json"), serde_json::to_string_pretty(&summary).unwrap_or_default());
     println!("{summary}");
-    i32::from(!ok)
+    i32::from(!passed)
+}
+
+#[cfg(test)]
+mod ready_device_tests {
+    use super::{needs_warm, warm_unit, Warm};
+
+    #[test]
+    fn given_a_failed_android_journey_when_the_next_learner_restores_the_checkpoint_then_only_a_new_update_needs_a_cold_start() {
+        let mut unit = warm_unit(1, "update");
+        let warm = Warm { ok: false, at: Some("update:A".into()) };
+        assert!(needs_warm(&unit, &warm, "update:A"));
+        unit.test = "tamil-native".into();
+        assert!(!needs_warm(&unit, &warm, "update:A"));
+        assert!(needs_warm(&unit, &warm, "update:B"));
+        assert!(needs_warm(&unit, &Warm::default(), "update:A"));
+    }
 }

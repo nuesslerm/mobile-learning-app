@@ -147,15 +147,19 @@ describe('Submit and Run on the device, through the console', () => {
   });
 
   it('given a page that never answers, when the limit passes, then the console reports the timeout, a fresh page is loaded, and the next run passes', async () => {
-    expectWarning(/device_runner\.(timeout|page_lost)/);
+    expectWarning(/device_runner\.timeout/);
+    expectWarning(/device_runner\.page_lost/);
     useRunnerSettingStore.setState({ runner: 'device' });
     const { gateway, host, runner } = setup({ judge: (call, load) => (load === 1 ? HANG : answers.allPass(call)) });
     await renderEditor(gateway, runner);
+    await forgetLoggedLines();
 
     await tap('ConsoleBarRun');
     await waitFor(() => expect(host.loads).toBe(2), { timeout: 4000 });
     await waitFor(() => expect(exists('ConsoleResultVerdict')).toBe(true), { timeout: 4000 });
     expect(text('ConsoleResultErrorText')).toContain('Timeout');
+    await waitFor(async () => expect(await loggedLines('device_runner.timeout')).not.toHaveLength(0));
+    await waitFor(async () => expect(await loggedLines('device_runner.page_lost')).not.toHaveLength(0));
     await waitFor(() => expect(exists('ConsolePending')).toBe(false));
     await tap('ConsoleFooterRun');
 
@@ -215,16 +219,20 @@ describe('a custom case on the device, through the console', () => {
   });
 
   it('given the page never answers, when the limit passes, then a fresh page is loaded and the next custom run answers', async () => {
-    expectWarning(/device_runner\.(timeout|page_lost)/);
+    expectWarning(/device_runner\.timeout/);
+    expectWarning(/device_runner\.page_lost/);
     useRunnerSettingStore.setState({ runner: 'device' });
     const { gateway, host, runner } = setup({ judge: (call, load) => (load === 1 ? HANG : answers.custom(call, [0, 1])) });
     await renderEditor(gateway, runner);
     await addCustomCase();
+    await forgetLoggedLines();
 
     await tap('ConsoleFooterRun');
     await waitFor(() => expect(host.loads).toBe(2), { timeout: 4000 });
     await waitFor(() => expect(exists('ConsolePending')).toBe(false), { timeout: 4000 });
     expect(text('ConsoleResultErrorText')).toContain('Timeout');
+    await waitFor(async () => expect(await loggedLines('device_runner.timeout')).not.toHaveLength(0));
+    await waitFor(async () => expect(await loggedLines('device_runner.page_lost')).not.toHaveLength(0));
     await tap('ConsoleFooterRun');
 
     await waitFor(() => expect(verdict()).toBe('Custom case'), { timeout: 4000 });

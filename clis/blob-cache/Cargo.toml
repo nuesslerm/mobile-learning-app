@@ -6,6 +6,7 @@ description = "One cache over a blob store: kinds, generations, budgets and a br
 publish = false
 
 [dependencies]
+tracing = "0.1"
 cli-http = { path = "../http" }
 getrandom = "0.4"
 hmac = "0.12"

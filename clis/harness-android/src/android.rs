@@ -87,7 +87,7 @@ fn spec(verb: &str) -> Spec {
         "start-device" => (&["name", "screen", "port", "with"], &["dry-run", "slim", "stock", "expo-go", "local"], Positional::None),
         "stop-device" => (&["name"], &["dry-run", "local"], Positional::None),
         "list-devices" => (&["name"], &["local"], Positional::None),
-        "stack" => (&["platform", "file"], &[], Positional::Exactly(1)),
+        "stack" => (&["platform", "file", "update-id", "map"], &[], Positional::Exactly(1)),
         "lease" => (&["name", "wait", "ttl", "who", "id", "clean-package"], &["local", "no-wait"], Positional::AtMost(1)),
         _ => (&["device"], &[], Positional::None),
     };
@@ -164,7 +164,7 @@ fn verb(verb: &str, rest: &[String]) -> i32 {
         "start-device" => (Some(name.clone()), start_device(&name, &p)),
         "stop-device" => (Some(name.clone()), stop_device(&name, &p)),
         "list-devices" => (Some(name.clone()), list_devices(&name, &p)),
-        "stack" => (None, harness_core::android_logs::stack(&p.positional[0], p.val("platform").unwrap_or("android"), p.val("file")).map_err(|e| failed(e, "wf android stack --help; the group id is in the EAS Update link and in the run summary"))),
+        "stack" => (None, harness_core::android_logs::stack(&p.positional[0], p.val("platform").unwrap_or("android"), p.val("file"), p.val("update-id"), p.val("map")).map_err(|e| failed(e, "wf android stack --help; the group id is in the EAS Update link and in the run summary"))),
         "lease" => {
             let action = p.positional.first().map_or("acquire", String::as_str);
             if !["acquire", "heartbeat", "release", "status"].contains(&action) {

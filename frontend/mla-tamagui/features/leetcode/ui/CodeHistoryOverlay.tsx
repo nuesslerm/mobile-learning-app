@@ -1,13 +1,14 @@
 import { Logger } from '@lib/logging';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { CodeHistorySheet } from './CodeHistorySheet';
 import { useCodeHistoryRequestStore } from '../state/codeHistoryRequestStore';
-import { dismissOverlayRoute } from './dismissOverlayRoute';
+import { useDismissOverlayRoute } from './dismissOverlayRoute';
 
 export function CodeHistoryOverlay() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const dismiss = useDismissOverlayRoute(id);
   const payload = useCodeHistoryRequestStore((s) => s.payload);
   const clear = useCodeHistoryRequestStore((s) => s.clear);
 
@@ -26,12 +27,12 @@ export function CodeHistoryOverlay() {
   // Deep-linked or cold-started with no editor to restore into: there is
   // nothing this sheet could do, so leave rather than render a Restore button
   // that silently does nothing.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!hadPayload.current && (!payload || !id)) {
       Logger.warn('leetcode.history.no_target', { problemId: id });
-      dismissOverlayRoute(id);
+      dismiss();
     }
-  }, [payload, id]);
+  }, [payload, id, dismiss]));
 
   if (!payload || !id) return null;
 
@@ -40,7 +41,7 @@ export function CodeHistoryOverlay() {
       problemId={id}
       onRestore={payload.onRestore}
       onClose={() => {
-        dismissOverlayRoute(id);
+        dismiss();
         clear();
       }}
     />

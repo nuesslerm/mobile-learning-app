@@ -10,7 +10,7 @@ export function editorBridgeWith(change: (real: EditorClient) => Partial<EditorC
     html: () => real.html(),
     connect: (webView) => {
       const bridge = real.connect(webView);
-      return { receive: bridge.receive, client: { ...bridge.client, ...change(bridge.client) } };
+      return { ...bridge, client: { ...bridge.client, ...change(bridge.client) } };
     },
   };
 }

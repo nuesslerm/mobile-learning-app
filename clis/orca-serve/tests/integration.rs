@@ -28,3 +28,7 @@ mod speech;
 mod terminal_artifacts;
 #[path = "integration/terminal_pty.rs"]
 mod terminal_pty;
+#[path = "integration/performance.rs"]
+mod performance;
+#[path = "integration/catalog.rs"]
+mod catalog;

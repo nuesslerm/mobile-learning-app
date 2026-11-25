@@ -1,0 +1,1078 @@
+{
+ "number-of-islands": {
+  "url": "https://neetcode.io/problems/count-number-of-islands?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=pV2kpPD66nE",
+  "prerequisites": [
+   {
+    "title": "Matrix DFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/29"
+   },
+   {
+    "title": "Matrix BFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/30"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def numIslands(self, grid: List[List[str]]) -> int:\n        directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]\n        ROWS, COLS = len(grid), len(grid[0])\n        islands = 0\n\n        def dfs(r, c):\n            if (r < 0 or c < 0 or r >= ROWS or\n                c >= COLS or grid[r][c] == \"0\"\n            ):\n                return\n\n            grid[r][c] = \"0\"\n            for dr, dc in directions:\n                dfs(r + dr, c + dc)\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == \"1\":\n                    dfs(r, c)\n                    islands += 1\n\n        return islands"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def numIslands(self, grid: List[List[str]]) -> int:\n        directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]\n        ROWS, COLS = len(grid), len(grid[0])\n        islands = 0\n\n        def bfs(r, c):\n            q = deque()\n            grid[r][c] = \"0\"\n            q.append((r, c))\n\n            while q:\n                row, col = q.popleft()\n                for dr, dc in directions:\n                    nr, nc = dr + row, dc + col\n                    if (nr < 0 or nc < 0 or nr >= ROWS or\n                        nc >= COLS or grid[nr][nc] == \"0\"\n                    ):\n                        continue\n                    q.append((nr, nc))\n                    grid[nr][nc] = \"0\"\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == \"1\":\n                    bfs(r, c)\n                    islands += 1\n\n        return islands"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Disjoint Set Union"
+   },
+   {
+    "kind": "pre",
+    "text": "class DSU:\n    def __init__(self, n):\n        self.Parent = list(range(n + 1))\n        self.Size = [1] * (n + 1)\n\n    def find(self, node):\n        if self.Parent[node] != node:\n            self.Parent[node] = self.find(self.Parent[node])\n        return self.Parent[node]\n\n    def union(self, u, v):\n        pu = self.find(u)\n        pv = self.find(v)\n        if pu == pv:\n            return False\n        if self.Size[pu] >= self.Size[pv]:\n            self.Size[pu] += self.Size[pv]\n            self.Parent[pv] = pu\n        else:\n            self.Size[pv] += self.Size[pu]\n            self.Parent[pu] = pv\n        return True\n\nclass Solution:\n    def numIslands(self, grid: List[List[str]]) -> int:\n        ROWS, COLS = len(grid), len(grid[0])\n        dsu = DSU(ROWS * COLS)\n\n        def index(r, c):\n            return r * COLS + c\n\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n        islands = 0\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == '1':\n                    islands += 1\n                    for dr, dc in directions:\n                        nr, nc = r + dr, c + dc\n                        if (nr < 0 or nc < 0 or nr >= ROWS or\n                            nc >= COLS or grid[nr][nc] == \"0\"\n                        ):\n                            continue\n\n                        if dsu.union(index(r, c), index(nr, nc)):\n                            islands -= 1\n\n        return islands"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   }
+  ]
+ },
+ "max-area-of-island": {
+  "url": "https://neetcode.io/problems/max-area-of-island?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=iJGr1OtmH0c",
+  "prerequisites": [
+   {
+    "title": "Matrix DFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/29"
+   },
+   {
+    "title": "Matrix BFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/30"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxAreaOfIsland(self, grid: List[List[int]]) -> int:\n        ROWS, COLS = len(grid), len(grid[0])\n        visit = set()\n\n        def dfs(r, c):\n            if (r < 0 or r == ROWS or c < 0 or\n                c == COLS or grid[r][c] == 0 or\n                (r, c) in visit\n            ):\n                return 0\n            visit.add((r, c))\n            return (1 + dfs(r + 1, c) +\n                        dfs(r - 1, c) +\n                        dfs(r, c + 1) +\n                        dfs(r, c - 1))\n\n        area = 0\n        for r in range(ROWS):\n            for c in range(COLS):\n                area = max(area, dfs(r, c))\n        return area"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxAreaOfIsland(self, grid: List[List[int]]) -> int:\n        directions = [[1, 0], [-1, 0], [0, 1], [0, -1]]\n        ROWS, COLS = len(grid), len(grid[0])\n        area = 0\n\n        def bfs(r, c):\n            q = deque()\n            grid[r][c] = 0\n            q.append((r, c))\n            res = 1\n\n            while q:\n                row, col = q.popleft()\n                for dr, dc in directions:\n                    nr, nc = dr + row, dc + col\n                    if (nr < 0 or nc < 0 or nr >= ROWS or\n                        nc >= COLS or grid[nr][nc] == 0\n                    ):\n                        continue\n                    q.append((nr, nc))\n                    grid[nr][nc] = 0\n                    res += 1\n            return res\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == 1:\n                    area = max(area, bfs(r, c))\n\n        return area"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Disjoint Set Union"
+   },
+   {
+    "kind": "pre",
+    "text": "class DSU:\n    def __init__(self, n):\n        self.Parent = list(range(n + 1))\n        self.Size = [1] * (n + 1)\n\n    def find(self, node):\n        if self.Parent[node] != node:\n            self.Parent[node] = self.find(self.Parent[node])\n        return self.Parent[node]\n\n    def union(self, u, v):\n        pu = self.find(u)\n        pv = self.find(v)\n        if pu == pv:\n            return False\n        if self.Size[pu] >= self.Size[pv]:\n            self.Size[pu] += self.Size[pv]\n            self.Parent[pv] = pu\n        else:\n            self.Size[pv] += self.Size[pu]\n            self.Parent[pu] = pv\n        return True\n\n    def getSize(self, node):\n        par = self.find(node)\n        return self.Size[par]\n\nclass Solution:\n    def maxAreaOfIsland(self, grid: List[List[int]]) -> int:\n        ROWS, COLS = len(grid), len(grid[0])\n        dsu = DSU(ROWS * COLS)\n\n        def index(r, c):\n            return r * COLS + c\n\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n        area = 0\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == 1:\n                    for dr, dc in directions:\n                        nr, nc = r + dr, c + dc\n                        if (nr < 0 or nc < 0 or nr >= ROWS or\n                            nc >= COLS or grid[nr][nc] == 0\n                        ):\n                            continue\n\n                        dsu.union(index(r, c), index(nr, nc))\n\n                    area = max(area, dsu.getSize(index(r, c)))\n\n        return area"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   }
+  ]
+ },
+ "clone-graph": {
+  "url": "https://neetcode.io/problems/clone-graph?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=mQeF6bN8hMk",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Seacrh"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\n# Definition for a Node.\nclass Node:\n    def __init__(self, val = 0, neighbors = None):\n        self.val = val\n        self.neighbors = neighbors if neighbors is not None else []\n\"\"\"\n\nclass Solution:\n    def cloneGraph(self, node: Optional['Node']) -> Optional['Node']:\n        oldToNew = {}\n\n        def dfs(node):\n            if node in oldToNew:\n                return oldToNew[node]\n\n            copy = Node(node.val)\n            oldToNew[node] = copy\n            for nei in node.neighbors:\n                copy.neighbors.append(dfs(nei))\n            return copy\n\n        return dfs(node) if node else None"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\n# Definition for a Node.\nclass Node:\n    def __init__(self, val = 0, neighbors = None):\n        self.val = val\n        self.neighbors = neighbors if neighbors is not None else []\n\"\"\"\n\nclass Solution:\n    def cloneGraph(self, node: Optional['Node']) -> Optional['Node']:\n        if not node:\n            return None\n\n        oldToNew = {}\n        oldToNew[node] = Node(node.val)\n        q = deque([node])\n\n        while q:\n            cur = q.popleft()\n            for nei in cur.neighbors:\n                if nei not in oldToNew:\n                    oldToNew[nei] = Node(nei.val)\n                    q.append(nei)\n                oldToNew[cur].neighbors.append(oldToNew[nei])\n\n        return oldToNew[node]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges."
+   }
+  ]
+ },
+ "walls-and-gates": {
+  "url": "https://neetcode.io/problems/islands-and-treasure?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=e69C6xhiSQE",
+  "prerequisites": [
+   {
+    "title": "Matrix BFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/30"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force (Backtracking)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def islandsAndTreasure(self, grid: List[List[int]]) -> None:\n        ROWS, COLS = len(grid), len(grid[0])\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n        INF = 2147483647\n        visit = [[False for _ in range(COLS)] for _ in range(ROWS)]\n\n        def dfs(r, c):\n            if (r < 0 or c < 0 or r >= ROWS or\n                c >= COLS or grid[r][c] == -1 or\n                visit[r][c]):\n                return INF\n            if grid[r][c] == 0:\n                return 0\n\n            visit[r][c] = True\n            res = INF\n            for dx, dy in directions:\n                res = min(res, 1 + dfs(r + dx, c + dy))\n            visit[r][c] = False\n            return res\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == INF:\n                    grid[r][c] = dfs(r, c)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n * 4 ^ {m * n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def islandsAndTreasure(self, grid: List[List[int]]) -> None:\n        ROWS, COLS = len(grid), len(grid[0])\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n        INF = 2147483647\n\n        def bfs(r, c):\n            q = deque([(r, c)])\n            visit = [[False] * COLS for _ in range(ROWS)]\n            visit[r][c] = True\n            steps = 0\n            while q:\n                for _ in range(len(q)):\n                    row, col = q.popleft()\n                    if grid[row][col] == 0:\n                        return steps\n                    for dr, dc in directions:\n                        nr, nc = row + dr, col + dc\n                        if (0 <= nr < ROWS and 0 <= nc < COLS and\n                            not visit[nr][nc] and grid[nr][nc] != -1\n                        ):\n                            visit[nr][nc] = True\n                            q.append((nr, nc))\n                steps += 1\n            return INF\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == INF:\n                    grid[r][c] = bfs(r, c)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O((m * n) ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Multi Source BFS"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def islandsAndTreasure(self, grid: List[List[int]]) -> None:\n        ROWS, COLS = len(grid), len(grid[0])\n        visit = set()\n        q = deque()\n\n        def addCell(r, c):\n            if (min(r, c) < 0 or r == ROWS or c == COLS or\n                (r, c) in visit or grid[r][c] == -1\n            ):\n                return\n            visit.add((r, c))\n            q.append([r, c])\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == 0:\n                    q.append([r, c])\n                    visit.add((r, c))\n\n        dist = 0\n        while q:\n            for i in range(len(q)):\n                r, c = q.popleft()\n                grid[r][c] = dist\n                addCell(r + 1, c)\n                addCell(r - 1, c)\n                addCell(r, c + 1)\n                addCell(r, c - 1)\n            dist += 1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   }
+  ]
+ },
+ "rotting-oranges": {
+  "url": "https://neetcode.io/problems/rotting-fruit?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=y704fEOx0s0",
+  "prerequisites": [
+   {
+    "title": "Matrix BFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/30"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def orangesRotting(self, grid: List[List[int]]) -> int:\n        q = collections.deque()\n        fresh = 0\n        time = 0\n\n        for r in range(len(grid)):\n            for c in range(len(grid[0])):\n                if grid[r][c] == 1:\n                    fresh += 1\n                if grid[r][c] == 2:\n                    q.append((r, c))\n\n        directions = [[0, 1], [0, -1], [1, 0], [-1, 0]]\n        while fresh > 0 and q:\n            length = len(q)\n            for i in range(length):\n                r, c = q.popleft()\n\n                for dr, dc in directions:\n                    row, col = r + dr, c + dc\n                    if (row in range(len(grid))\n                        and col in range(len(grid[0]))\n                        and grid[row][col] == 1\n                    ):\n                        grid[row][col] = 2\n                        q.append((row, col))\n                        fresh -= 1\n            time += 1\n        return time if fresh == 0 else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search (No Queue)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def orangesRotting(self, grid: List[List[int]]) -> int:\n        ROWS, COLS = len(grid), len(grid[0])\n        fresh = 0\n        time = 0\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if grid[r][c] == 1:\n                    fresh += 1\n\n        directions = [[0, 1], [0, -1], [1, 0], [-1, 0]]\n\n        while fresh > 0:\n            flag = False\n            for r in range(ROWS):\n                for c in range(COLS):\n                    if grid[r][c] == 2:\n                        for dr, dc in directions:\n                            row, col = r + dr, c + dc\n                            if (row in range(ROWS) and\n                                col in range(COLS) and\n                                grid[row][col] == 1):\n                                grid[row][col] = 3\n                                fresh -= 1\n                                flag = True\n\n            if not flag:\n                return -1\n\n            for r in range(ROWS):\n                for c in range(COLS):\n                    if grid[r][c] == 3:\n                        grid[r][c] = 2\n\n            time += 1\n\n        return time"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O((m * n) ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the grid."
+   }
+  ]
+ },
+ "pacific-atlantic-water-flow": {
+  "url": "https://neetcode.io/problems/pacific-atlantic-water-flow?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=s-VkcjHqkGI",
+  "prerequisites": [
+   {
+    "title": "Matrix DFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/29"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force (Backtracking)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def pacificAtlantic(self, heights: List[List[int]]) -> List[List[int]]:\n        ROWS, COLS = len(heights), len(heights[0])\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n\n        pacific = atlantic = False\n\n        def dfs(r, c, prevVal):\n            nonlocal pacific, atlantic\n            if r < 0 or c < 0:\n                pacific = True\n                return\n            if r >= ROWS or c >= COLS:\n                atlantic = True\n                return\n            if heights[r][c] > prevVal:\n                return\n\n            tmp = heights[r][c]\n            heights[r][c] = float('inf')\n            for dx, dy in directions:\n                dfs(r + dx, c + dy, tmp)\n                if pacific and atlantic:\n                    break\n            heights[r][c] = tmp\n\n        res = []\n        for r in range(ROWS):\n            for c in range(COLS):\n                pacific = False\n                atlantic = False\n                dfs(r, c, float('inf'))\n                if pacific and atlantic:\n                    res.append([r, c])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n * 4 ^ {m * n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def pacificAtlantic(self, heights: List[List[int]]) -> List[List[int]]:\n        ROWS, COLS = len(heights), len(heights[0])\n        pac, atl = set(), set()\n\n        def dfs(r, c, visit, prevHeight):\n            if ((r, c) in visit or\n                r < 0 or c < 0 or\n                r == ROWS or c == COLS or\n                heights[r][c] < prevHeight\n            ):\n                return\n            visit.add((r, c))\n            dfs(r + 1, c, visit, heights[r][c])\n            dfs(r - 1, c, visit, heights[r][c])\n            dfs(r, c + 1, visit, heights[r][c])\n            dfs(r, c - 1, visit, heights[r][c])\n\n        for c in range(COLS):\n            dfs(0, c, pac, heights[0][c])\n            dfs(ROWS - 1, c, atl, heights[ROWS - 1][c])\n\n        for r in range(ROWS):\n            dfs(r, 0, pac, heights[r][0])\n            dfs(r, COLS - 1, atl, heights[r][COLS - 1])\n\n        res = []\n        for r in range(ROWS):\n            for c in range(COLS):\n                if (r, c) in pac and (r, c) in atl:\n                    res.append([r, c])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def pacificAtlantic(self, heights: List[List[int]]) -> List[List[int]]:\n        ROWS, COLS = len(heights), len(heights[0])\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n        pac = [[False] * COLS for _ in range(ROWS)]\n        atl = [[False] * COLS for _ in range(ROWS)]\n\n        def bfs(source, ocean):\n            q = deque(source)\n            while q:\n                r, c = q.popleft()\n                ocean[r][c] = True\n                for dr, dc in directions:\n                    nr, nc = r + dr, c + dc\n                    if (0 <= nr < ROWS and 0 <= nc < COLS and\n                        not ocean[nr][nc] and\n                        heights[nr][nc] >= heights[r][c]\n                    ):\n                        q.append((nr, nc))\n\n        pacific = []\n        atlantic = []\n        for c in range(COLS):\n            pacific.append((0, c))\n            atlantic.append((ROWS - 1, c))\n\n        for r in range(ROWS):\n            pacific.append((r, 0))\n            atlantic.append((r, COLS - 1))\n\n        bfs(pacific, pac)\n        bfs(atlantic, atl)\n\n        res = []\n        for r in range(ROWS):\n            for c in range(COLS):\n                if pac[r][c] and atl[r][c]:\n                    res.append([r, c])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   }
+  ]
+ },
+ "surrounded-regions": {
+  "url": "https://neetcode.io/problems/surrounded-regions?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=9z2BunfoZ5Y",
+  "prerequisites": [
+   {
+    "title": "Matrix DFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/29"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def solve(self, board: List[List[str]]) -> None:\n        ROWS, COLS = len(board), len(board[0])\n\n        def capture(r, c):\n            if (r < 0 or c < 0 or r == ROWS or\n                c == COLS or board[r][c] != \"O\"\n            ):\n                return\n            board[r][c] = \"T\"\n            capture(r + 1, c)\n            capture(r - 1, c)\n            capture(r, c + 1)\n            capture(r, c - 1)\n\n        for r in range(ROWS):\n            if board[r][0] == \"O\":\n                capture(r, 0)\n            if board[r][COLS - 1] == \"O\":\n                capture(r, COLS - 1)\n\n        for c in range(COLS):\n            if board[0][c] == \"O\":\n                capture(0, c)\n            if board[ROWS - 1][c] == \"O\":\n                capture(ROWS - 1, c)\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if board[r][c] == \"O\":\n                    board[r][c] = \"X\"\n                elif board[r][c] == \"T\":\n                    board[r][c] = \"O\""
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns of the board."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def solve(self, board: List[List[str]]) -> None:\n        ROWS, COLS = len(board), len(board[0])\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n\n        def capture():\n            q = deque()\n            for r in range(ROWS):\n                for c in range(COLS):\n                    if (r == 0 or r == ROWS - 1 or\n                        c == 0 or c == COLS - 1 and\n                        board[r][c] == \"O\"\n                    ):\n                        q.append((r, c))\n            while q:\n                r, c = q.popleft()\n                if board[r][c] == \"O\":\n                    board[r][c] = \"T\"\n                    for dr, dc in directions:\n                        nr, nc = r + dr, c + dc\n                        if 0 <= nr < ROWS and 0 <= nc < COLS:\n                            q.append((nr, nc))\n\n        capture()\n        for r in range(ROWS):\n            for c in range(COLS):\n                if board[r][c] == \"O\":\n                    board[r][c] = \"X\"\n                elif board[r][c] == \"T\":\n                    board[r][c] = \"O\""
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns of the board."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Disjoint Set Union"
+   },
+   {
+    "kind": "pre",
+    "text": "class DSU:\n    def __init__(self, n):\n        self.Parent = list(range(n + 1))\n        self.Size = [1] * (n + 1)\n\n    def find(self, node):\n        if self.Parent[node] != node:\n            self.Parent[node] = self.find(self.Parent[node])\n        return self.Parent[node]\n\n    def union(self, u, v):\n        pu = self.find(u)\n        pv = self.find(v)\n        if pu == pv:\n            return False\n        if self.Size[pu] >= self.Size[pv]:\n            self.Size[pu] += self.Size[pv]\n            self.Parent[pv] = pu\n        else:\n            self.Size[pv] += self.Size[pu]\n            self.Parent[pu] = pv\n        return True\n\n    def connected(self, u, v):\n        return self.find(u) == self.find(v)\n\nclass Solution:\n    def solve(self, board: List[List[str]]) -> None:\n        ROWS, COLS = len(board), len(board[0])\n        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]\n        dsu = DSU(ROWS * COLS + 1)\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if board[r][c] != \"O\":\n                    continue\n                if (r == 0 or c == 0 or\n                    r == (ROWS - 1) or c == (COLS - 1)\n                ):\n                    dsu.union(ROWS * COLS, r * COLS + c)\n                else:\n                    for dx, dy in directions:\n                        nr, nc = r + dx, c + dy\n                        if board[nr][nc] == \"O\":\n                            dsu.union(r * COLS + c, nr * COLS + nc)\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if not dsu.connected(ROWS * COLS, r * COLS + c):\n                    board[r][c] = \"X\""
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns of the board."
+   }
+  ]
+ },
+ "course-schedule": {
+  "url": "https://neetcode.io/problems/course-schedule?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=EgI5nU9etnU",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Cycle Detection (DFS)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canFinish(self, numCourses: int, prerequisites: List[List[int]]) -> bool:\n        # Map each course to its prerequisites\n        preMap = {i: [] for i in range(numCourses)}\n        for crs, pre in prerequisites:\n            preMap[crs].append(pre)\n\n        # Store all courses along the current DFS path\n        visiting = set()\n\n        def dfs(crs):\n            if crs in visiting:\n                # Cycle detected\n                return False\n            if preMap[crs] == []:\n                return True\n\n            visiting.add(crs)\n            for pre in preMap[crs]:\n                if not dfs(pre):\n                    return False\n            visiting.remove(crs)\n            preMap[crs] = []\n            return True\n\n        for c in range(numCourses):\n            if not dfs(c):\n                return False\n        return True"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of courses and E is the number of prerequisites."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Topological Sort (Kahn's Algorithm)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def canFinish(self, numCourses: int, prerequisites: List[List[int]]) -> bool:\n        indegree = [0] * numCourses\n        adj = [[] for i in range(numCourses)]\n        for src, dst in prerequisites:\n            indegree[dst] += 1\n            adj[src].append(dst)\n\n        q = deque()\n        for n in range(numCourses):\n            if indegree[n] == 0:\n                q.append(n)\n\n        finish = 0\n        while q:\n            node = q.popleft()\n            finish += 1\n            for nei in adj[node]:\n                indegree[nei] -= 1\n                if indegree[nei] == 0:\n                    q.append(nei)\n\n        return finish == numCourses"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of courses and E is the number of prerequisites."
+   }
+  ]
+ },
+ "course-schedule-ii": {
+  "url": "https://neetcode.io/problems/course-schedule-ii?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=Akt3glAwyfY",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Cycle Detection (DFS)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:\n        prereq = {c: [] for c in range(numCourses)}\n        for crs, pre in prerequisites:\n            prereq[crs].append(pre)\n\n        output = []\n        visit, cycle = set(), set()\n\n        def dfs(crs):\n            if crs in cycle:\n                return False\n            if crs in visit:\n                return True\n\n            cycle.add(crs)\n            for pre in prereq[crs]:\n                if dfs(pre) == False:\n                    return False\n            cycle.remove(crs)\n            visit.add(crs)\n            output.append(crs)\n            return True\n\n        for c in range(numCourses):\n            if dfs(c) == False:\n                return []\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of courses and E is the number of prerequisites."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Topological Sort (Kahn's Algorithm)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:\n        indegree = [0] * numCourses\n        adj = [[] for i in range(numCourses)]\n        for src, dst in prerequisites:\n            indegree[dst] += 1\n            adj[src].append(dst)\n\n        q = deque()\n        for n in range(numCourses):\n            if indegree[n] == 0:\n                q.append(n)\n\n        finish, output = 0, []\n        while q:\n            node = q.popleft()\n            output.append(node)\n            finish += 1\n            for nei in adj[node]:\n                indegree[nei] -= 1\n                if indegree[nei] == 0:\n                    q.append(nei)\n\n        if finish != numCourses:\n            return []\n        return output[::-1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of courses and E is the number of prerequisites."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Topological Sort (DFS)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:\n        adj = [[] for i in range(numCourses)]\n        indegree = [0] * numCourses\n        for nxt, pre in prerequisites:\n            indegree[nxt] += 1\n            adj[pre].append(nxt)\n\n        output = []\n\n        def dfs(node):\n            output.append(node)\n            indegree[node] -= 1\n            for nei in adj[node]:\n                indegree[nei] -= 1\n                if indegree[nei] == 0:\n                    dfs(nei)\n\n        for i in range(numCourses):\n            if indegree[i] == 0:\n                dfs(i)\n\n        return output if len(output) == numCourses else []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of courses and E is the number of prerequisites."
+   }
+  ]
+ },
+ "graph-valid-tree": {
+  "url": "https://neetcode.io/problems/valid-tree?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=bXsUuownnoQ",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Cycle Detection (DFS)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def validTree(self, n: int, edges: List[List[int]]) -> bool:\n        if len(edges) > (n - 1):\n            return False\n\n        adj = [[] for _ in range(n)]\n        for u, v in edges:\n            adj[u].append(v)\n            adj[v].append(u)\n\n        visit = set()\n        def dfs(node, par):\n            if node in visit:\n                return False\n\n            visit.add(node)\n            for nei in adj[node]:\n                if nei == par:\n                    continue\n                if not dfs(nei, node):\n                    return False\n            return True\n\n        return dfs(0, -1) and len(visit) == n"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number vertices and E is the number of edges in the graph."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def validTree(self, n: int, edges: List[List[int]]) -> bool:\n        if len(edges) > n - 1:\n            return False\n\n        adj = [[] for _ in range(n)]\n        for u, v in edges:\n            adj[u].append(v)\n            adj[v].append(u)\n\n        visit = set()\n        q = deque([(0, -1)])  # (current node, parent node)\n        visit.add(0)\n\n        while q:\n            node, parent = q.popleft()\n            for nei in adj[node]:\n                if nei == parent:\n                    continue\n                if nei in visit:\n                    return False\n                visit.add(nei)\n                q.append((nei, node))\n\n        return len(visit) == n"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number vertices and E is the number of edges in the graph."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Disjoint Set Union"
+   },
+   {
+    "kind": "pre",
+    "text": "class DSU:\n    def __init__(self, n):\n        self.comps = n\n        self.Parent = list(range(n + 1))\n        self.Size = [1] * (n + 1)\n\n    def find(self, node):\n        if self.Parent[node] != node:\n            self.Parent[node] = self.find(self.Parent[node])\n        return self.Parent[node]\n\n    def union(self, u, v):\n        pu = self.find(u)\n        pv = self.find(v)\n        if pu == pv:\n            return False\n\n        self.comps -= 1\n        if self.Size[pu] < self.Size[pv]:\n            pu, pv = pv, pu\n        self.Size[pu] += self.Size[pv]\n        self.Parent[pv] = pu\n        return True\n\n    def components(self):\n        return self.comps\n\nclass Solution:\n    def validTree(self, n: int, edges: List[List[int]]) -> bool:\n        if len(edges) > n - 1:\n            return False\n\n        dsu = DSU(n)\n        for u, v in edges:\n            if not dsu.union(u, v):\n                return False\n        return dsu.components() == 1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + (E * α(V)))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph. α() is used for amortized complexity."
+   }
+  ]
+ },
+ "number-of-connected-components-in-an-undirected-graph": {
+  "url": "https://neetcode.io/problems/count-connected-components?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=8f1XPm4WOUc",
+  "prerequisites": [
+   {
+    "title": "Union-Find Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/7"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def countComponents(self, n: int, edges: List[List[int]]) -> int:\n        adj = [[] for _ in range(n)]\n        visit = [False] * n\n        for u, v in edges:\n            adj[u].append(v)\n            adj[v].append(u)\n\n        def dfs(node):\n            for nei in adj[node]:\n                if not visit[nei]:\n                    visit[nei] = True\n                    dfs(nei)\n\n        res = 0\n        for node in range(n):\n            if not visit[node]:\n                visit[node] = True\n                dfs(node)\n                res += 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def countComponents(self, n: int, edges: List[List[int]]) -> int:\n        adj = [[] for _ in range(n)]\n        visit = [False] * n\n        for u, v in edges:\n            adj[u].append(v)\n            adj[v].append(u)\n\n        def bfs(node):\n            q = deque([node])\n            visit[node] = True\n            while q:\n                cur = q.popleft()\n                for nei in adj[cur]:\n                    if not visit[nei]:\n                        visit[nei] = True\n                        q.append(nei)\n\n        res = 0\n        for node in range(n):\n            if not visit[node]:\n                bfs(node)\n                res += 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Disjoint Set Union (Rank | Size)"
+   },
+   {
+    "kind": "pre",
+    "text": "class DSU:\n    def __init__(self, n):\n        self.parent = list(range(n))\n        self.rank = [1] * n\n\n    def find(self, node):\n        cur = node\n        while cur != self.parent[cur]:\n            self.parent[cur] = self.parent[self.parent[cur]]\n            cur = self.parent[cur]\n        return cur\n\n    def union(self, u, v):\n        pu = self.find(u)\n        pv = self.find(v)\n        if pu == pv:\n            return False\n        if self.rank[pv] > self.rank[pu]:\n            pu, pv = pv, pu\n        self.parent[pv] = pu\n        self.rank[pu] += self.rank[pv]\n        return True\n\nclass Solution:\n    def countComponents(self, n: int, edges: List[List[int]]) -> int:\n        dsu = DSU(n)\n        res = n\n        for u, v in edges:\n            if dsu.union(u, v):\n                res -= 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + (E * α(V)))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph. α() is used for amortized complexity."
+   }
+  ]
+ },
+ "redundant-connection": {
+  "url": "https://neetcode.io/problems/redundant-connection?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=1lNK80tOTfc",
+  "prerequisites": [
+   {
+    "title": "Union-Find Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/7"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Cycle Detection (DFS)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:\n        n = len(edges)\n        adj = [[] for _ in range(n + 1)]\n\n        def dfs(node, par):\n            if visit[node]:\n                return True\n\n            visit[node] = True\n            for nei in adj[node]:\n                if nei == par:\n                    continue\n                if dfs(nei, node):\n                    return True\n            return False\n\n        for u, v in edges:\n            adj[u].append(v)\n            adj[v].append(u)\n            visit = [False] * (n + 1)\n\n            if dfs(u, -1):\n                return [u, v]\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(E * (V + E))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:\n        n = len(edges)\n        adj = [[] for _ in range(n + 1)]\n        for u, v in edges:\n            adj[u].append(v)\n            adj[v].append(u)\n\n        visit = [False] * (n + 1)\n        cycle = set()\n        cycleStart = -1\n\n        def dfs(node, par):\n            nonlocal cycleStart\n            if visit[node]:\n                cycleStart = node\n                return True\n\n            visit[node] = True\n            for nei in adj[node]:\n                if nei == par:\n                    continue\n                if dfs(nei, node):\n                    if cycleStart != -1:\n                        cycle.add(node)\n                    if node == cycleStart:\n                        cycleStart = -1\n                    return True\n            return False\n\n        dfs(1, -1)\n\n        for u, v in reversed(edges):\n            if u in cycle and v in cycle:\n                return [u, v]\n\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Topological Sort (Kahn's Algorithm)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:\n        n = len(edges)\n        indegree = [0] * (n + 1)\n        adj = [[] for _ in range(n + 1)]\n        for u, v in edges:\n            adj[u].append(v)\n            adj[v].append(u)\n            indegree[u] += 1\n            indegree[v] += 1\n\n        q = deque()\n        for i in range(1, n + 1):\n            if indegree[i] == 1:\n                q.append(i)\n\n        while q:\n            node = q.popleft()\n            indegree[node] -= 1\n            for nei in adj[node]:\n                indegree[nei] -= 1\n                if indegree[nei] == 1:\n                    q.append(nei)\n\n        for u, v in reversed(edges):\n            if indegree[u] == 2 and indegree[v]:\n                return [u, v]\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Disjoint Set Union"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findRedundantConnection(self, edges: List[List[int]]) -> List[int]:\n        par = [i for i in range(len(edges) + 1)]\n        rank = [1] * (len(edges) + 1)\n\n        def find(n):\n            p = par[n]\n            while p != par[p]:\n                par[p] = par[par[p]]\n                p = par[p]\n            return p\n\n        def union(n1, n2):\n            p1, p2 = find(n1), find(n2)\n\n            if p1 == p2:\n                return False\n            if rank[p1] > rank[p2]:\n                par[p2] = p1\n                rank[p1] += rank[p2]\n            else:\n                par[p1] = p2\n                rank[p2] += rank[p1]\n            return True\n\n        for n1, n2 in edges:\n            if not union(n1, n2):\n                return [n1, n2]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + (E * α(V)))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges in the graph. α() is used for amortized complexity."
+   }
+  ]
+ },
+ "word-ladder": {
+  "url": "https://neetcode.io/problems/word-ladder?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=h9iTnkgv05E",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Breadth First Search - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def ladderLength(self, beginWord: str, endWord: str, wordList: List[str]) -> int:\n        if (endWord not in wordList) or (beginWord == endWord):\n            return 0\n\n        n, m = len(wordList), len(wordList[0])\n        adj = [[] for _ in range(n)]\n        mp = {}\n        for i in range(n):\n            mp[wordList[i]] = i\n\n        for i in range(n):\n            for j in range(i + 1, n):\n                cnt = 0\n                for k in range(m):\n                    if wordList[i][k] != wordList[j][k]:\n                        cnt += 1\n                if cnt == 1:\n                    adj[i].append(j)\n                    adj[j].append(i)\n\n        q, res = deque(), 1\n        visit = set()\n        for i in range(m):\n            for c in range(97, 123):\n                if chr(c) == beginWord[i]:\n                    continue\n                word = beginWord[:i] + chr(c) + beginWord[i + 1:]\n                if word in mp and mp[word] not in visit:\n                    q.append(mp[word])\n                    visit.add(mp[word])\n\n        while q:\n            res += 1\n            for i in range(len(q)):\n                node = q.popleft()\n                if wordList[node] == endWord:\n                    return res\n                for nei in adj[node]:\n                    if nei not in visit:\n                        visit.add(nei)\n                        q.append(nei)\n\n        return 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 * m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of words and m is the length of the word."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Breadth First Search - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def ladderLength(self, beginWord: str, endWord: str, wordList: List[str]) -> int:\n        if (endWord not in wordList) or (beginWord == endWord):\n            return 0\n        words, res = set(wordList), 0\n        q = deque([beginWord])\n        while q:\n            res += 1\n            for _ in range(len(q)):\n                node = q.popleft()\n                if node == endWord:\n                    return res\n                for i in range(len(node)):\n                    for c in range(97, 123):\n                        if chr(c) == node[i]:\n                            continue\n                        nei = node[:i] + chr(c) + node[i + 1:]\n                        if nei in words:\n                            q.append(nei)\n                            words.remove(nei)\n        return 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m ^ 2 * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m ^ 2 * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of words and m is the length of the word."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Breadth First Search - III"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def ladderLength(self, beginWord: str, endWord: str, wordList: List[str]) -> int:\n        if endWord not in wordList:\n            return 0\n\n        nei = collections.defaultdict(list)\n        wordList.append(beginWord)\n        for word in wordList:\n            for j in range(len(word)):\n                pattern = word[:j] + \"*\" + word[j + 1 :]\n                nei[pattern].append(word)\n\n        visit = set([beginWord])\n        q = deque([beginWord])\n        res = 1\n        while q:\n            for i in range(len(q)):\n                word = q.popleft()\n                if word == endWord:\n                    return res\n                for j in range(len(word)):\n                    pattern = word[:j] + \"*\" + word[j + 1 :]\n                    for neiWord in nei[pattern]:\n                        if neiWord not in visit:\n                            visit.add(neiWord)\n                            q.append(neiWord)\n            res += 1\n        return 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m ^ 2 * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m ^ 2 * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of words and m is the length of the word."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Meet In The Middle (BFS)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def ladderLength(self, beginWord: str, endWord: str, wordList: List[str]) -> int:\n        if endWord not in wordList or beginWord == endWord:\n            return 0\n        m = len(wordList[0])\n        wordSet = set(wordList)\n        qb, qe = deque([beginWord]), deque([endWord])\n        fromBegin, fromEnd = {beginWord: 1}, {endWord: 1}\n\n        while qb and qe:\n            if len(qb) > len(qe):\n                qb, qe = qe, qb\n                fromBegin, fromEnd = fromEnd, fromBegin\n            for _ in range(len(qb)):\n                word = qb.popleft()\n                steps = fromBegin[word]\n                for i in range(m):\n                    for c in range(97, 123):\n                        if chr(c) == word[i]:\n                            continue\n                        nei = word[:i] + chr(c) + word[i + 1:]\n                        if nei not in wordSet:\n                            continue\n                        if nei in fromEnd:\n                            return steps + fromEnd[nei]\n                        if nei not in fromBegin:\n                            fromBegin[nei] = steps + 1\n                            qb.append(nei)\n        return 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m ^ 2 * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m ^ 2 * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of words and m is the length of the word."
+   }
+  ]
+ }
+}

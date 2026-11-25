@@ -509,6 +509,9 @@ pub fn decide(model: &ReadModel, thread_id: &str, body: &Body, ctx: &Context) ->
         },
         Body::QueueAdd { item, prompt, attachments, workspace, driver, model: model_name, runtime_mode, interaction_mode } => {
             let id = item.clone().unwrap_or_else(|| (ctx.new_id)());
+            if neutral.turns.iter().any(|turn| turn.id == id) {
+                return refuse("ITEM_ALREADY_STARTED", format!("queued item {id} already started"));
+            }
             if thread.lifecycle.queue.iter().any(|q| q.item == id) {
                 return Ok(Vec::new());
             }
@@ -926,6 +929,15 @@ pub(crate) mod tests {
         let target = rig.run("t", Body::QueueMove { item: "q1".into(), before: Some("ghost".into()) }).unwrap_err();
         assert_eq!((gone.code, gone.message), ("ITEM_NOT_QUEUED", "Run q2 is not queued.".to_string()));
         assert_eq!((target.code, target.message), ("ITEM_NOT_QUEUED", "Queue target ghost is not queued.".to_string()));
+    }
+
+    #[test]
+    fn given_a_completed_turn_when_its_mobile_submission_retries_then_it_cannot_be_queued_again() {
+        let mut rig = Rig::new();
+        rig.thread("t", Some("workspace"), Some("codex"));
+        rig.turn("t", "client-turn", "prompt", "done", "completed");
+        assert_eq!(code(rig.run("t", add("client-turn", "prompt"))), "ITEM_ALREADY_STARTED");
+        assert!(rig.lifecycle("t").queue.is_empty());
     }
 
     #[test]

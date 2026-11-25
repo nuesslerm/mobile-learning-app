@@ -1742,6 +1742,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -1782,6 +1783,7 @@ dependencies = [
  "exec-pty",
  "serde_json",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -10,7 +10,7 @@ use tungstenite::handshake::derive_accept_key;
 use tungstenite::protocol::{Role, WebSocketConfig};
 use tungstenite::{Error, Message, WebSocket};
 
-pub fn upgrade(mut stream: TcpStream, request: &Request, mut connection: Connection, stop: &AtomicBool) {
+pub fn upgrade(mut stream: TcpStream, request: &Request, mut connection: Connection, stop: &AtomicBool, span: tracing::span::EnteredSpan) {
     let upgrading = request.header("upgrade").is_some_and(|v| v.eq_ignore_ascii_case("websocket"));
     let Some(key) = request.header("sec-websocket-key").filter(|_| upgrading) else {
         return respond(&mut stream, 400, &json!({"code": "bad_request", "message": "A WebSocket upgrade is required."}));
@@ -20,6 +20,8 @@ pub fn upgrade(mut stream: TcpStream, request: &Request, mut connection: Connect
     if stream.write_all(head.as_bytes()).and_then(|()| stream.flush()).is_err() {
         return;
     }
+    span.record("http.response.status_code", 101);
+    drop(span);
     let _ = stream.set_nodelay(true);
     let _ = stream.set_read_timeout(Some(Duration::from_millis(20)));
     let config = WebSocketConfig::default().max_message_size(Some(1 << 20));

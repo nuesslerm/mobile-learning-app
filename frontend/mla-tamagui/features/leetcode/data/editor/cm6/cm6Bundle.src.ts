@@ -14,6 +14,7 @@ import {
   defaultKeymap,
   historyKeymap,
   indentWithTab,
+  undoDepth,
 } from '@codemirror/commands';
 import {
   indentOnInput,
@@ -21,6 +22,7 @@ import {
   bracketMatching,
   syntaxHighlighting,
   defaultHighlightStyle,
+  HighlightStyle,
 } from '@codemirror/language';
 import {
   Compartment,
@@ -28,13 +30,15 @@ import {
   EditorState,
   RangeSetBuilder,
 } from '@codemirror/state';
-import { oneDark } from '@codemirror/theme-one-dark';
+import { oneDark, oneDarkTheme } from '@codemirror/theme-one-dark';
 import {
   EditorView,
   keymap,
   lineNumbers,
   Decoration,
   highlightWhitespace,
+  highlightActiveLine,
+  highlightActiveLineGutter,
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
@@ -51,6 +55,7 @@ import {
   type Language,
   type SelRange,
 } from '@lib/code-editor-api';
+import { tags } from '@lezer/highlight';
 import { Logger } from '@lib/logging';
 import { createPageTransport } from '@lib/webview-rpc';
 import { createCm6Host, revisionField, selectionOf, setRevisionBase, typingCalls } from './cm6Host';
@@ -61,7 +66,7 @@ import {
 } from '../../../domain/editor/configPatch';
 import { marksField } from './cm6Marks';
 import { completionExtensions } from './completionExtension';
-import { languageCompartment, languageExtension } from './languageExtensions';
+import { contrastSyntaxFor, languageCompartment, languageExtension } from './languageExtensions';
 declare global {
   type ReactNativeWebViewBridge = {
     postMessage: (msg: string) => void;
@@ -72,6 +77,7 @@ declare global {
     __editorEngine__?: EditorEngine;
     /** set by the page html in tests only */
     __EDITOR_DEBUG__?: boolean;
+    __EDITOR_PROFILE_INPUT__?: boolean;
     __editorDebug__?: {
       simulateUser(
         spec:
@@ -169,6 +175,9 @@ function parseEditorConfig(value: unknown): EditorConfig | null {
   }
   return {
     initialText,
+    noAutoFocus: value.noAutoFocus === true,
+    ...(value.surface === 'canvas' ? { surface: 'canvas' as const } : {}),
+    syntaxPalette: value.syntaxPalette === 'contrast' ? 'contrast' : 'default',
     isDark: value.isDark,
     fontSize,
     lineHeight,
@@ -236,27 +245,55 @@ const completionFor = (language: string) =>
     entries: currentCompletion.entries,
     onOpenChange: (open) => core?.ingestCompletion(open),
   });
+const CANVAS_FONT_SCALE = 1.055;
+const CANVAS_LINE_HEIGHT_SCALE = 0.982;
+const EDITOR_FONT = "'Menlo', 'Courier New', monospace";
+const CANVAS_LINE_INSET = '9px';
+const CONTRAST_ACTIVE_LINE = '#0f0f15';
+const CONTRAST_FUNCTION = '#40A990';
+const CONTRAST_COMMENT = '#57606D';
+const CONTRAST_TYPE = '#65DCC3';
+
+const contrastHighlight = HighlightStyle.define([
+  { tag: [tags.keyword, tags.definitionKeyword, tags.controlKeyword], color: '#FF3B91' },
+  { tag: [tags.className, tags.typeName], color: CONTRAST_TYPE },
+  { tag: tags.function(tags.variableName), color: CONTRAST_FUNCTION },
+  { tag: [tags.null, tags.bool, tags.number, tags.propertyName], color: '#AC64FA' },
+  { tag: [tags.string, tags.regexp], color: '#9ACC78' },
+  { tag: [tags.comment, tags.docComment], color: CONTRAST_COMMENT },
+  { tag: [tags.punctuation, tags.operator], color: '#A0ABB9' },
+]);
+
 function buildConfigExtensions(cfg: EditorConfig) {
+  const contrast = cfg.isDark && cfg.syntaxPalette === 'contrast';
+  const canvas = cfg.surface === 'canvas';
+  const cursorColor = canvas && contrast ? '#fff' : cfg.cursorColor;
+  const whitespaceColor = cfg.isDark ? (canvas ? '#6A7584' : '#8b93a1') : '#9aa0a6';
+  const whitespaceStops = canvas ? '0.75px, transparent 1.25px' : '20%, transparent 5%';
   const theme = EditorView.theme(
     {
       '&': {
-        fontSize: `${cfg.fontSize}px`,
+        fontSize: `${canvas ? cfg.fontSize * CANVAS_FONT_SCALE : cfg.fontSize}px`,
         lineHeight: `${cfg.lineHeight}px`,
-        fontFamily: "'Menlo', 'Courier New', monospace",
+        fontFamily: EDITOR_FONT,
         height: '100%',
+        backgroundColor: cfg.backgroundColor,
+        ...(contrast ? { color: '#F1F1F4' } : {}),
       },
       '.cm-content': {
-        padding: '12px 0',
-        caretColor: cfg.cursorColor,
+        padding: canvas ? '0 0 12px' : '12px 0',
+        caretColor: cursorColor,
       },
       '.cm-line': {
-        padding: '0 12px',
+        padding: canvas ? `0 6px 0 ${CANVAS_LINE_INSET}` : '0 12px',
       },
+      ...(canvas ? { '.cm-lineWrapping': { whiteSpace: 'pre-wrap' } } : {}),
       '.cm-scroller': {
-        fontFamily: "'Menlo', 'Courier New', monospace",
+        fontFamily: EDITOR_FONT,
+        ...(canvas ? { lineHeight: `${cfg.lineHeight * CANVAS_LINE_HEIGHT_SCALE}px` } : {}),
       },
       '.cm-cursor': {
-        borderLeftColor: cfg.cursorColor,
+        borderLeftColor: cursorColor,
         borderLeftWidth: '2px',
       },
       '.cm-selectionBackground': {
@@ -265,6 +302,17 @@ function buildConfigExtensions(cfg: EditorConfig) {
       '.cm-activeLine': {
         background: 'transparent',
       },
+      ...(contrast ? {
+        '&.cm-focused .cm-activeLine': {
+          background: canvas
+            ? `linear-gradient(90deg, #0000 ${CANVAS_LINE_INSET}, ${CONTRAST_ACTIVE_LINE} ${CANVAS_LINE_INSET})`
+            : CONTRAST_ACTIVE_LINE,
+        },
+        '.cm-activeLineGutter': { backgroundColor: 'transparent' },
+        '.cm-function-name': { color: CONTRAST_FUNCTION },
+        '.cm-type-name, .cm-type-name span': { color: CONTRAST_TYPE },
+        '&.cm-focused .cm-activeLineGutter': { color: '#f1f1f4' },
+      } : {}),
       '.cm-gutters': {
         background: cfg.backgroundColor,
         borderRight: `1px solid ${cfg.borderColor}`,
@@ -272,7 +320,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
       },
       '.cm-lineNumbers .cm-gutterElement': {
         padding: '0 8px 0 4px',
-        minWidth: '28px',
+        minWidth: canvas ? '42px' : '28px',
       },
       '&.cm-focused': {
         outline: 'none',
@@ -282,7 +330,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
         borderBottom: `1px solid ${cfg.cursorColor}`,
       },
       '.cm-highlightSpace': {
-        backgroundImage: `radial-gradient(circle at 50% 55%, ${cfg.isDark ? '#8b93a1' : '#9aa0a6'} 20%, transparent 5%)`,
+        backgroundImage: `radial-gradient(circle at 50% 55%, ${whitespaceColor} ${whitespaceStops})`,
       },
       '.cm-run-error-line': {
         background: cfg.isDark ? 'rgba(248,113,113,0.2)' : 'rgba(220,38,38,0.12)',
@@ -300,8 +348,9 @@ function buildConfigExtensions(cfg: EditorConfig) {
     EditorState.tabSize.of(cfg.tabSize),
     // Spaces, as in every LeetCode stub: Python rejects a tab-indented line under a space-indented one (TabError).
     indentUnit.of(' '.repeat(cfg.tabSize)),
-    cfg.isDark ? oneDark : [],
     theme,
+    cfg.isDark ? (contrast ? [oneDarkTheme, syntaxHighlighting(contrastHighlight)] : oneDark) : [],
+    contrast ? [highlightActiveLine(), highlightActiveLineGutter(), contrastSyntaxFor(cfg.language)] : [],
     cfg.wordWrap ? EditorView.lineWrapping : [],
     cfg.showWhitespace ? highlightWhitespace() : [],
   ];
@@ -320,12 +369,44 @@ function languageOf(id: string): Language {
 }
 const randomId = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2);
+function profileInput() {
+  let inputAt: number | null = null;
+  let lastReport = -Infinity;
+  let updates = 0;
+  return {
+    observer: EditorView.domEventObservers({
+      beforeinput: () => { inputAt = performance.now(); },
+    }),
+    updated() {
+      const updatedAt = performance.now();
+      const inputToUpdateMs = inputAt === null ? null : updatedAt - inputAt;
+      inputAt = null;
+      updates += 1;
+      if (updatedAt - lastReport < 250) return;
+      lastReport = updatedAt;
+      const sampledUpdates = updates;
+      updates = 0;
+      requestAnimationFrame(() => {
+        postToRN({
+          type: 'inputTiming',
+          inputToUpdateMs,
+          updateToFrameMs: performance.now() - updatedAt,
+          updates: sampledUpdates,
+          sentAtMs: Date.now(),
+        });
+      });
+    },
+  };
+}
 function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
+  const inputTiming = window.__EDITOR_PROFILE_INPUT__ ? profileInput() : null;
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
+      inputTiming?.updated();
       postToRN({
         type: 'contentChanged',
         text: update.state.doc.toString(),
+        canUndo: undoDepth(update.state) > 0,
         ...getEditorState(update.view),
       });
     }
@@ -409,6 +490,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
       updateListener,
       apiListener,
       touchHandler,
+      ...(inputTiming ? [inputTiming.observer] : []),
     ],
   });
 }
@@ -474,7 +556,7 @@ function createEditor(cfg: EditorConfig) {
   disableTextAssist(document.documentElement);
   disableTextAssist(document.body);
   disableTextAssist(view.contentDOM);
-  view.focus();
+  if (!cfg.noAutoFocus) view.focus();
   postToRN({
     type: 'hydrated',
     text: view.state.doc.toString(),

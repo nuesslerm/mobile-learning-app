@@ -17,3 +17,5 @@ mod report;
 mod surface;
 #[path = "flow/vm.rs"]
 mod vm;
+#[path = "flow/performance.rs"]
+mod performance;

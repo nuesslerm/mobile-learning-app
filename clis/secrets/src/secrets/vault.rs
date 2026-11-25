@@ -16,6 +16,7 @@ pub struct VaultEntry {
 }
 
 fn run_bws(args: &[&str], token: &str, server_url: Option<&str>) -> Result<String, String> {
+    let _span = wf_kit::performance::external("bws");
     let mut cmd = Command::new("bws");
     cmd.args(args).env("BWS_ACCESS_TOKEN", token).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     if let Some(url) = server_url {

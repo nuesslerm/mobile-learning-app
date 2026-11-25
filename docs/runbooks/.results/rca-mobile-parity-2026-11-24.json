@@ -1,0 +1,1808 @@
+{
+  "schema": "rca-mobile-parity-results/1",
+  "runId": "rca-mobile-native-manual-closeout",
+  "started": "2026-11-24T13:49:00+01:00",
+  "finished": "2026-11-24T14:22:37.787732+01:00",
+  "serverRevision": "e288fa6f",
+  "host": "macOS",
+  "device": "iPhone 18 Pro Max Simulator, iOS 27.0",
+  "apps": {
+    "t3": {
+      "version": "2.3.0",
+      "build": "1",
+      "source": "59651c17"
+    },
+    "orca": {
+      "version": "0.0.68",
+      "build": "1",
+      "source": "d4562c44"
+    }
+  },
+  "results": [
+    {
+      "case": "photo-picker",
+      "variant": "orca-claude-two-photos-cold",
+      "app": "orca",
+      "provider": "claude",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "claude_a3232836_0467_4c2a_a921_dda229a5a436",
+      "assertions": {
+        "twoNativeSelections": true,
+        "twoComposerAttachments": true,
+        "twoPreviewsAfterColdReopen": true,
+        "orderedFixtureBytesOrPixels": true,
+        "providerReportedFourColors": true,
+        "nativeTranscriptShowsCompleteOriginalReply": true
+      },
+      "evidence": [
+        "shots/orca-claude-picker.png",
+        "shots/orca-claude-composer.png",
+        "shots/orca-claude-cold-previews.png",
+        "shots/orca-claude-reply.png",
+        "traces/orca-claude-photo-journal.json",
+        "traces/orca-claude-attachment-receipt.json"
+      ],
+      "receipts": {
+        "orca-claude-photo-journal": {
+          "thread": "claude_a3232836_0467_4c2a_a921_dda229a5a436",
+          "turns": [
+            {
+              "seq": 16455,
+              "type": "turn.started",
+              "turn": "turn-df593366-09a6-4d39-8ecf-4207172875a0",
+              "reason": null,
+              "model": null
+            },
+            {
+              "seq": 16474,
+              "type": "turn.finished",
+              "turn": "turn-df593366-09a6-4d39-8ecf-4207172875a0",
+              "reason": "completed",
+              "model": null
+            }
+          ],
+          "assistant": "Auto-loaded: using-superpowers, caveman- Image 1: left blue, right orange.\n- Image 2: left green, right purple.\n- RCA_ORCA_CLAUDE_PHOTO\n\n\ud83e\udea8",
+          "tools": [
+            {
+              "seq": 16462,
+              "name": null,
+              "tool": "Read",
+              "title": null
+            },
+            {
+              "seq": 16464,
+              "name": null,
+              "tool": "Read",
+              "title": null
+            }
+          ]
+        },
+        "orca-claude-attachment-receipt": [
+          {
+            "id": "095b39b7-3fbd-8355-a44e-ba8719b7da6e",
+            "inputSlot": "first",
+            "originalSha256": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "receivedSha256": "72a5f473ca684e30f169974f1999a96aaac3ab792ae77f7a6726849df11b5f43",
+            "storedSha256": "72a5f473ca684e30f169974f1999a96aaac3ab792ae77f7a6726849df11b5f43",
+            "bytesMatch": false,
+            "pixelsMatch": true,
+            "storedHashMatches": true
+          },
+          {
+            "id": "2a586434-7b41-704a-1bae-67b3609b1b42",
+            "inputSlot": "second",
+            "originalSha256": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "receivedSha256": "194586150446bbc0fe1c453868ec84ac677dd5e6fb7d706a7c6f23ee50b642c4",
+            "storedSha256": "194586150446bbc0fe1c453868ec84ac677dd5e6fb7d706a7c6f23ee50b642c4",
+            "bytesMatch": false,
+            "pixelsMatch": true,
+            "storedHashMatches": true
+          }
+        ]
+      },
+      "deviceAppBundleId": "com.stably.orca.mobile"
+    },
+    {
+      "case": "photo-picker",
+      "variant": "orca-opencode-two-photos-cold",
+      "app": "orca",
+      "provider": "opencode",
+      "tier": "simulator",
+      "verdict": "partial",
+      "threadId": "opencode_95d80e7b_3698_43a2_b3f6_cf79a83dc5a0",
+      "assertions": {
+        "twoNativeSelections": true,
+        "twoComposerAttachments": true,
+        "twoPreviewsAfterColdReopen": true,
+        "orderedFixtureBytesOrPixels": true,
+        "providerReportedFourColors": true,
+        "nativeTranscriptShowsCompleteOriginalReply": false
+      },
+      "evidence": [
+        "shots/orca-opencode-picker.png",
+        "shots/orca-opencode-composer.png",
+        "shots/orca-opencode-cold-reopen.png",
+        "shots/orca-opencode-final.png",
+        "traces/orca-opencode-photo-journal.json",
+        "traces/orca-opencode-attachment-receipt.json"
+      ],
+      "receipts": {
+        "orca-opencode-photo-journal": {
+          "thread": "opencode_95d80e7b_3698_43a2_b3f6_cf79a83dc5a0",
+          "turns": [
+            {
+              "seq": 16476,
+              "type": "turn.started",
+              "turn": "turn-c054d6bd-9045-4a5c-96f6-5c83a31ab76e",
+              "reason": null,
+              "model": null
+            },
+            {
+              "seq": 16507,
+              "type": "turn.finished",
+              "turn": "turn-c054d6bd-9045-4a5c-96f6-5c83a31ab76e",
+              "reason": "completed",
+              "model": null
+            },
+            {
+              "seq": 16617,
+              "type": "turn.started",
+              "turn": "turn-c849ca2d-7976-4d44-9916-93f0b3846d56",
+              "reason": null,
+              "model": null
+            }
+          ],
+          "assistant": "Auto-loaded: caveman, using-superpowers\n\nRead both photos now.Photo 1: left blue, right orange.\nPhoto 2: left green, right purple.\n\nRCA_ORCA_OPENCODE_PHOTO",
+          "tools": [
+            {
+              "seq": 16483,
+              "name": null,
+              "tool": "read",
+              "title": null
+            },
+            {
+              "seq": 16486,
+              "name": null,
+              "tool": "read",
+              "title": null
+            }
+          ]
+        },
+        "orca-opencode-attachment-receipt": [
+          {
+            "id": "63568dbe-35f4-a31c-cb35-f7c56fac501a",
+            "inputSlot": "first",
+            "originalSha256": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "receivedSha256": "72a5f473ca684e30f169974f1999a96aaac3ab792ae77f7a6726849df11b5f43",
+            "storedSha256": "72a5f473ca684e30f169974f1999a96aaac3ab792ae77f7a6726849df11b5f43",
+            "bytesMatch": false,
+            "pixelsMatch": true,
+            "storedHashMatches": true
+          },
+          {
+            "id": "f5f7d564-fc82-8638-dc6c-c28244e5c347",
+            "inputSlot": "second",
+            "originalSha256": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "receivedSha256": "194586150446bbc0fe1c453868ec84ac677dd5e6fb7d706a7c6f23ee50b642c4",
+            "storedSha256": "194586150446bbc0fe1c453868ec84ac677dd5e6fb7d706a7c6f23ee50b642c4",
+            "bytesMatch": false,
+            "pixelsMatch": true,
+            "storedHashMatches": true
+          }
+        ]
+      },
+      "deviceAppBundleId": "com.stably.orca.mobile",
+      "notes": "The original turn completed and RCA retained its entire reply. The cold-reopened transcript displayed the initial assistant segment but omitted the later color answer."
+    },
+    {
+      "case": "photo-picker",
+      "variant": "t3-codex-two-photos-cold",
+      "app": "t3",
+      "provider": "codex",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "cd32450f-2377-4552-addf-2661e41cf4bb",
+      "assertions": {
+        "twoNativeSelections": true,
+        "twoComposerAttachments": true,
+        "twoPreviewsAfterColdReopen": true,
+        "orderedFixtureBytesOrPixels": true,
+        "providerReportedFourColors": true,
+        "nativeTranscriptShowsCompleteOriginalReply": true
+      },
+      "evidence": [
+        "shots/t3-codex-picker.png",
+        "shots/t3-codex-composer.png",
+        "shots/t3-codex-cold-reopen.png",
+        "shots/t3-codex-reply.png",
+        "traces/t3-codex-photo-journal.json",
+        "traces/t3-codex-attachment-receipt.json"
+      ],
+      "receipts": {
+        "t3-codex-photo-journal": {
+          "thread": "cd32450f-2377-4552-addf-2661e41cf4bb",
+          "turns": [
+            {
+              "seq": 16509,
+              "type": "turn.started",
+              "turn": "turn-20fdeab5-240c-44c4-9501-5fdd234f89da",
+              "reason": null,
+              "model": null
+            },
+            {
+              "seq": 16578,
+              "type": "turn.finished",
+              "turn": "turn-20fdeab5-240c-44c4-9501-5fdd234f89da",
+              "reason": "completed",
+              "model": null
+            }
+          ],
+          "assistant": "I\u2019ll inspect the two images to see what they contain.\n\nBoth images are split vertically into equal halves:\n\n- First: blue on the left, orange on the right.\n- Second: green on the left, purple on the right.\n\nWhat would you like me to do with them?",
+          "tools": [
+            {
+              "seq": 16524,
+              "name": null,
+              "tool": "command",
+              "title": null
+            },
+            {
+              "seq": 16527,
+              "name": null,
+              "tool": "image_view",
+              "title": null
+            },
+            {
+              "seq": 16529,
+              "name": null,
+              "tool": "image_view",
+              "title": null
+            }
+          ]
+        },
+        "t3-codex-attachment-receipt": [
+          {
+            "name": "rca-media-blue-orange.png",
+            "id": "pending-16c75e02e116dd9b4b238f3e",
+            "status": 200,
+            "mime": "image/png",
+            "fileRevision": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "bytes": 1151,
+            "originalSha256": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "readbackSha256": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "bytesMatch": true
+          },
+          {
+            "name": "rca-media-green-purple.png",
+            "id": "pending-587f2c812d09a3ab041b19b4",
+            "status": 200,
+            "mime": "image/png",
+            "fileRevision": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "bytes": 1151,
+            "originalSha256": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "readbackSha256": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "bytesMatch": true
+          }
+        ]
+      },
+      "deviceAppBundleId": "com.t3tools.t3code",
+      "notes": "The initial Codex send contained the two photos without prompt text. Its reply identified the colors in attachment order."
+    },
+    {
+      "case": "photo-picker",
+      "variant": "t3-opencode-two-photos-cold",
+      "app": "t3",
+      "provider": "opencode",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "1d347710-6d1f-4cd6-b596-ebca054dadf7",
+      "assertions": {
+        "twoNativeSelections": true,
+        "twoComposerAttachments": true,
+        "twoPreviewsAfterColdReopen": true,
+        "orderedFixtureBytesOrPixels": true,
+        "providerReportedFourColors": true,
+        "nativeTranscriptShowsCompleteOriginalReply": true
+      },
+      "evidence": [
+        "shots/t3-opencode-picker.png",
+        "shots/t3-opencode-composer.png",
+        "shots/t3-opencode-cold-reopen.png",
+        "shots/t3-opencode-reply.png",
+        "traces/t3-opencode-photo-journal.json",
+        "traces/t3-opencode-attachment-receipt.json"
+      ],
+      "receipts": {
+        "t3-opencode-photo-journal": {
+          "thread": "1d347710-6d1f-4cd6-b596-ebca054dadf7",
+          "turns": [
+            {
+              "seq": 16580,
+              "type": "turn.started",
+              "turn": "turn-dbd0f598-5078-46a9-ae27-52e5df148819",
+              "reason": null,
+              "model": null
+            },
+            {
+              "seq": 16616,
+              "type": "turn.finished",
+              "turn": "turn-dbd0f598-5078-46a9-ae27-52e5df148819",
+              "reason": "completed",
+              "model": null
+            }
+          ],
+          "assistant": "Auto-loaded: caveman, using-superpowers\n\nRead both images.**1. Blue-orange** (320\u00d7200): two equal vertical halves \u2014 left blue (#2664F5-ish royal blue), right orange (#F7941D-ish amber).\n\n**2. Green-purple** (320\u00d7200): two equal vertical halves \u2014 left green (#0FAA57-ish emerald), right purple (#7B2FF7-ish violet).\n\nBoth: hard vertical split, no text, no gradient, no border.",
+          "tools": [
+            {
+              "seq": 16587,
+              "name": null,
+              "tool": "read",
+              "title": null
+            },
+            {
+              "seq": 16590,
+              "name": null,
+              "tool": "read",
+              "title": null
+            }
+          ]
+        },
+        "t3-opencode-attachment-receipt": [
+          {
+            "name": "rca-media-blue-orange.png",
+            "id": "pending-e58b8766d8a5bb847f7610e8",
+            "status": 200,
+            "mime": "image/png",
+            "fileRevision": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "bytes": 1151,
+            "originalSha256": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "readbackSha256": "36215a65df863ea5f55b930df358356a3f25ab818262563ded7efc556ca95cab",
+            "bytesMatch": true
+          },
+          {
+            "name": "rca-media-green-purple.png",
+            "id": "pending-f35462028bf76a54f87b0f00",
+            "status": 200,
+            "mime": "image/png",
+            "fileRevision": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "bytes": 1151,
+            "originalSha256": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "readbackSha256": "e8adf45ff5597c8610436544c1507a8436969f778539b481ab66e27c3d6040e5",
+            "bytesMatch": true
+          }
+        ]
+      },
+      "deviceAppBundleId": "com.t3tools.t3code"
+    },
+    {
+      "case": "approve-deny-question",
+      "variant": "t3-stale-allow-after-new-turn",
+      "app": "t3",
+      "provider": "codex",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "f69c347c-44f5-4a06-9831-30b31804ecf1",
+      "assertions": {
+        "differentTurnAndApprovalIds": true,
+        "tappedOldNativeApprovalWhileNewRequestPending": true,
+        "oldAllowedCommandDidNotRun": true,
+        "noExtraApprovalAnswerAfterStaleTap": true,
+        "newRequestStillPending": true,
+        "oldControlClearedAfterResume": true
+      },
+      "evidence": [
+        "shots/t3-stale-before-tap.png",
+        "shots/t3-stale-after-tap.png",
+        "shots/t3-after-stale-reconnect.png",
+        "traces/t3-approval-ids.json",
+        "traces/t3-after-stale-before-answer.json",
+        "traces/t3-approval-final.json"
+      ],
+      "receipts": {
+        "t3-approval-ids": {
+          "old": {
+            "seq": 16832,
+            "turn": "turn-c5b68b82-6595-4f63-aed1-d65d14749702",
+            "approval": "exec-9a1ac566-747b-4dcc-bf3f-fac45460f164"
+          },
+          "new": {
+            "seq": 16859,
+            "turn": "turn-ac0e458e-77b5-4f3e-ad9b-72e283e8e9d7",
+            "approval": "exec-d9680c49-ff79-4876-9adc-264e019cbcbc"
+          }
+        },
+        "t3-after-stale-before-answer": [
+          {
+            "seq": 16832,
+            "type": "approval.requested",
+            "turn": "turn-c5b68b82-6595-4f63-aed1-d65d14749702",
+            "approval": "exec-9a1ac566-747b-4dcc-bf3f-fac45460f164",
+            "decision": null,
+            "reason": null
+          },
+          {
+            "seq": 16833,
+            "type": "approval.answered",
+            "turn": "turn-c5b68b82-6595-4f63-aed1-d65d14749702",
+            "approval": "exec-9a1ac566-747b-4dcc-bf3f-fac45460f164",
+            "decision": "decline",
+            "reason": null
+          },
+          {
+            "seq": 16846,
+            "type": "turn.finished",
+            "turn": "turn-c5b68b82-6595-4f63-aed1-d65d14749702",
+            "approval": null,
+            "decision": null,
+            "reason": "completed"
+          },
+          {
+            "seq": 16847,
+            "type": "turn.started",
+            "turn": "turn-ac0e458e-77b5-4f3e-ad9b-72e283e8e9d7",
+            "approval": null,
+            "decision": null,
+            "reason": null
+          },
+          {
+            "seq": 16859,
+            "type": "approval.requested",
+            "turn": "turn-ac0e458e-77b5-4f3e-ad9b-72e283e8e9d7",
+            "approval": "exec-d9680c49-ff79-4876-9adc-264e019cbcbc",
+            "decision": null,
+            "reason": null
+          }
+        ],
+        "t3-approval-final": {
+          "events": [
+            {
+              "seq": 16832,
+              "type": "approval.requested",
+              "turn": "turn-c5b68b82-6595-4f63-aed1-d65d14749702",
+              "approval": "exec-9a1ac566-747b-4dcc-bf3f-fac45460f164",
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16833,
+              "type": "approval.answered",
+              "turn": "turn-c5b68b82-6595-4f63-aed1-d65d14749702",
+              "approval": "exec-9a1ac566-747b-4dcc-bf3f-fac45460f164",
+              "decision": "decline",
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16846,
+              "type": "turn.finished",
+              "turn": "turn-c5b68b82-6595-4f63-aed1-d65d14749702",
+              "approval": null,
+              "decision": null,
+              "reason": "completed",
+              "marker": []
+            },
+            {
+              "seq": 16847,
+              "type": "turn.started",
+              "turn": "turn-ac0e458e-77b5-4f3e-ad9b-72e283e8e9d7",
+              "approval": null,
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16859,
+              "type": "approval.requested",
+              "turn": "turn-ac0e458e-77b5-4f3e-ad9b-72e283e8e9d7",
+              "approval": "exec-d9680c49-ff79-4876-9adc-264e019cbcbc",
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16860,
+              "type": "approval.answered",
+              "turn": "turn-ac0e458e-77b5-4f3e-ad9b-72e283e8e9d7",
+              "approval": "exec-d9680c49-ff79-4876-9adc-264e019cbcbc",
+              "decision": "decline",
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16873,
+              "type": "turn.finished",
+              "turn": "turn-ac0e458e-77b5-4f3e-ad9b-72e283e8e9d7",
+              "approval": null,
+              "decision": null,
+              "reason": "completed",
+              "marker": []
+            }
+          ]
+        }
+      },
+      "deviceAppBundleId": "com.t3tools.t3code",
+      "notes": "B was started through RCA to hold A visible during the adapter pause. T3 cleared A and left B pending at RCA. The externally started B did not render in T3, so it was declined through RCA for cleanup."
+    },
+    {
+      "case": "approve-deny-question",
+      "variant": "orca-stale-allow-after-new-turn",
+      "app": "orca",
+      "provider": "codex",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "codex_33940440_c7f8_42a9_909d_2b1c7ea4fb56",
+      "assertions": {
+        "differentTurnAndApprovalIds": true,
+        "tappedOldNativeApprovalWhileNewRequestPending": true,
+        "oldAllowedCommandDidNotRun": true,
+        "noExtraApprovalAnswerAfterStaleTap": true,
+        "newRequestStillPending": true,
+        "oldControlClearedAfterResume": true
+      },
+      "evidence": [
+        "shots/orca-stale-before-tap.png",
+        "shots/orca-stale-after-tap.png",
+        "shots/orca-fresh-approval-b.png",
+        "traces/orca-approval-ids.json",
+        "traces/orca-after-stale-before-allow.json",
+        "traces/orca-approval-final.json"
+      ],
+      "receipts": {
+        "orca-approval-ids": {
+          "old": {
+            "seq": 16711,
+            "turn": "turn-f5316188-9994-4027-9c0b-6b0e7a96e796",
+            "approval": "exec-83295aa9-73cf-49b7-a9f3-5612d97df9c4"
+          },
+          "new": {
+            "seq": 16740,
+            "turn": "turn-d679e29c-f840-444f-bbd6-14d010d26ca0",
+            "approval": "exec-0221ba47-8e96-4c8a-807c-e3720da06ac7"
+          }
+        },
+        "orca-after-stale-before-allow": [
+          {
+            "seq": 16711,
+            "type": "approval.requested",
+            "turn": "turn-f5316188-9994-4027-9c0b-6b0e7a96e796",
+            "approval": "exec-83295aa9-73cf-49b7-a9f3-5612d97df9c4",
+            "decision": null
+          },
+          {
+            "seq": 16712,
+            "type": "approval.answered",
+            "turn": "turn-f5316188-9994-4027-9c0b-6b0e7a96e796",
+            "approval": "exec-83295aa9-73cf-49b7-a9f3-5612d97df9c4",
+            "decision": "decline"
+          },
+          {
+            "seq": 16740,
+            "type": "approval.requested",
+            "turn": "turn-d679e29c-f840-444f-bbd6-14d010d26ca0",
+            "approval": "exec-0221ba47-8e96-4c8a-807c-e3720da06ac7",
+            "decision": null
+          }
+        ],
+        "orca-approval-final": {
+          "events": [
+            {
+              "seq": 16697,
+              "type": "turn.started",
+              "turn": "turn-f5316188-9994-4027-9c0b-6b0e7a96e796",
+              "approval": null,
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16711,
+              "type": "approval.requested",
+              "turn": "turn-f5316188-9994-4027-9c0b-6b0e7a96e796",
+              "approval": "exec-83295aa9-73cf-49b7-a9f3-5612d97df9c4",
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16712,
+              "type": "approval.answered",
+              "turn": "turn-f5316188-9994-4027-9c0b-6b0e7a96e796",
+              "approval": "exec-83295aa9-73cf-49b7-a9f3-5612d97df9c4",
+              "decision": "decline",
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16726,
+              "type": "turn.finished",
+              "turn": "turn-f5316188-9994-4027-9c0b-6b0e7a96e796",
+              "approval": null,
+              "decision": null,
+              "reason": "completed",
+              "marker": []
+            },
+            {
+              "seq": 16727,
+              "type": "turn.started",
+              "turn": "turn-d679e29c-f840-444f-bbd6-14d010d26ca0",
+              "approval": null,
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16740,
+              "type": "approval.requested",
+              "turn": "turn-d679e29c-f840-444f-bbd6-14d010d26ca0",
+              "approval": "exec-0221ba47-8e96-4c8a-807c-e3720da06ac7",
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16741,
+              "type": "approval.answered",
+              "turn": "turn-d679e29c-f840-444f-bbd6-14d010d26ca0",
+              "approval": "exec-0221ba47-8e96-4c8a-807c-e3720da06ac7",
+              "decision": "accept_for_session",
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16742,
+              "type": "tool.output",
+              "turn": "turn-d679e29c-f840-444f-bbd6-14d010d26ca0",
+              "approval": null,
+              "decision": null,
+              "reason": null,
+              "marker": []
+            },
+            {
+              "seq": 16758,
+              "type": "turn.finished",
+              "turn": "turn-d679e29c-f840-444f-bbd6-14d010d26ca0",
+              "approval": null,
+              "decision": null,
+              "reason": "completed",
+              "marker": []
+            }
+          ]
+        }
+      },
+      "deviceAppBundleId": "com.stably.orca.mobile",
+      "notes": "Orca replaced A with B. The separate fresh native action recorded accept_for_session for B only and the B marker printed. Permission was scoped to the disposable thread."
+    },
+    {
+      "case": "skill-load",
+      "variant": "orca-claude-native-slash",
+      "app": "orca",
+      "provider": "claude",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "claude_4ecb6960_23dc_4c8f_9c56_c20bb03d2134",
+      "assertions": {
+        "nativeAutocompleteSelected": true,
+        "providerLoadedFixture": true,
+        "replyHadUndisclosedMarker": true,
+        "nativeReplyVisible": true
+      },
+      "evidence": [
+        "shots/orca-claude-skill-menu.png",
+        "shots/orca-claude-native-skill-reply.png",
+        "traces/orca-claude-skill-journal.json",
+        "traces/orca-claude-provider-skill-expansion.json"
+      ],
+      "receipts": {
+        "orca-claude-skill-journal": {
+          "events": [
+            {
+              "seq": 16638,
+              "type": "turn.started",
+              "turn": "turn-ceff294b-e212-4665-bb9d-03215add1ca8",
+              "reason": null,
+              "tool": null,
+              "text": null,
+              "args": null
+            },
+            {
+              "seq": 16641,
+              "type": "message.delta",
+              "turn": "turn-ceff294b-e212-4665-bb9d-03215add1ca8",
+              "reason": null,
+              "tool": null,
+              "text": "Auto-loaded:",
+              "args": null
+            },
+            {
+              "seq": 16642,
+              "type": "message.delta",
+              "turn": "turn-ceff294b-e212-4665-bb9d-03215add1ca8",
+              "reason": null,
+              "tool": null,
+              "text": " caveman, using-superp",
+              "args": null
+            },
+            {
+              "seq": 16643,
+              "type": "message.delta",
+              "turn": "turn-ceff294b-e212-4665-bb9d-03215add1ca8",
+              "reason": null,
+              "tool": null,
+              "text": "owers\n\nCOMPASS",
+              "args": null
+            },
+            {
+              "seq": 16644,
+              "type": "message.delta",
+              "turn": "turn-ceff294b-e212-4665-bb9d-03215add1ca8",
+              "reason": null,
+              "tool": null,
+              "text": "_LILAC_6E",
+              "args": null
+            },
+            {
+              "seq": 16645,
+              "type": "message.delta",
+              "turn": "turn-ceff294b-e212-4665-bb9d-03215add1ca8",
+              "reason": null,
+              "tool": null,
+              "text": "43",
+              "args": null
+            },
+            {
+              "seq": 16646,
+              "type": "turn.finished",
+              "turn": "turn-ceff294b-e212-4665-bb9d-03215add1ca8",
+              "reason": "completed",
+              "tool": null,
+              "text": null,
+              "args": null
+            }
+          ]
+        },
+        "orca-claude-provider-skill-expansion": [
+          {
+            "type": "user",
+            "role": "user",
+            "includesSkillInstruction": true
+          },
+          {
+            "type": "api-request-blob",
+            "role": "user",
+            "includesSkillInstruction": true
+          },
+          {
+            "type": "assistant",
+            "role": "assistant",
+            "includesSkillInstruction": false
+          }
+        ]
+      },
+      "deviceAppBundleId": "com.stably.orca.mobile"
+    },
+    {
+      "case": "skill-load",
+      "variant": "t3-codex-native-slash",
+      "app": "t3",
+      "provider": "codex",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "3e44a967-f3fa-4607-b2a4-28ffa5026f63",
+      "assertions": {
+        "nativeAutocompleteSelected": true,
+        "providerLoadedFixture": true,
+        "replyHadUndisclosedMarker": true,
+        "nativeReplyVisible": true
+      },
+      "evidence": [
+        "shots/t3-codex-native-autocomplete.png",
+        "shots/t3-codex-native-skill-reply.png",
+        "traces/t3-codex-fresh-skill.json",
+        "traces/t3-codex-provider-skill-expansion.json"
+      ],
+      "receipts": {
+        "t3-codex-fresh-skill": {
+          "events": [
+            {
+              "seq": 16876,
+              "type": "turn.started",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": null,
+              "args": null
+            },
+            {
+              "seq": 16879,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "COMP",
+              "args": null
+            },
+            {
+              "seq": 16880,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "ASS",
+              "args": null
+            },
+            {
+              "seq": 16881,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "_L",
+              "args": null
+            },
+            {
+              "seq": 16882,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "IL",
+              "args": null
+            },
+            {
+              "seq": 16883,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "AC",
+              "args": null
+            },
+            {
+              "seq": 16884,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "_",
+              "args": null
+            },
+            {
+              "seq": 16885,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "6",
+              "args": null
+            },
+            {
+              "seq": 16886,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "E",
+              "args": null
+            },
+            {
+              "seq": 16887,
+              "type": "message.delta",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": null,
+              "tool": null,
+              "text": "43",
+              "args": null
+            },
+            {
+              "seq": 16888,
+              "type": "turn.finished",
+              "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+              "reason": "completed",
+              "tool": null,
+              "text": null,
+              "args": null
+            }
+          ]
+        },
+        "t3-codex-provider-skill-expansion": [
+          {
+            "type": "response_item",
+            "payloadType": "message",
+            "role": "user",
+            "includesSkillFile": true,
+            "includesSkillInstruction": true
+          },
+          {
+            "type": "event_msg",
+            "payloadType": "item_completed",
+            "role": null,
+            "includesSkillFile": false,
+            "includesSkillInstruction": false
+          },
+          {
+            "type": "response_item",
+            "payloadType": "message",
+            "role": "assistant",
+            "includesSkillFile": false,
+            "includesSkillInstruction": false
+          },
+          {
+            "type": "event_msg",
+            "payloadType": "task_complete",
+            "role": null,
+            "includesSkillFile": false,
+            "includesSkillInstruction": false
+          }
+        ]
+      },
+      "deviceAppBundleId": "com.t3tools.t3code"
+    },
+    {
+      "case": "skill-load",
+      "variant": "t3-claude-cold-provider-start",
+      "app": "t3",
+      "provider": "claude",
+      "tier": "simulator",
+      "verdict": "partial",
+      "threadId": "74792add-8af9-4cd1-873b-c4879bd2421f",
+      "assertions": {
+        "nativeAutocompleteSelected": true,
+        "providerLoadedFixture": true,
+        "providerReplyHadUndisclosedMarker": true,
+        "nativeReplyVisible": false
+      },
+      "evidence": [
+        "shots/t3-claude-native-autocomplete.png",
+        "shots/t3-claude-native-skill-result.png",
+        "traces/t3-claudeAgent-fresh-skill.json",
+        "traces/t3-claude-native-projection.json",
+        "traces/t3-claude-start-timeout.txt"
+      ],
+      "receipts": {
+        "t3-claudeAgent-fresh-skill": {
+          "events": [
+            {
+              "seq": 16889,
+              "type": "turn.started",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": null,
+              "args": null
+            },
+            {
+              "seq": 16894,
+              "type": "message.delta",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": "Auto-loaded: using",
+              "args": null
+            },
+            {
+              "seq": 16895,
+              "type": "message.delta",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": "-superpowers, cave",
+              "args": null
+            },
+            {
+              "seq": 16896,
+              "type": "message.delta",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": "man",
+              "args": null
+            },
+            {
+              "seq": 16897,
+              "type": "tool.started",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": "Skill",
+              "text": null,
+              "args": {
+                "skill": "rca-parity-sundial"
+              }
+            },
+            {
+              "seq": 16899,
+              "type": "tool.finished",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": null,
+              "args": null
+            },
+            {
+              "seq": 16900,
+              "type": "message.delta",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": "SUNDIAL_",
+              "args": null
+            },
+            {
+              "seq": 16901,
+              "type": "message.delta",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": "CORAL_4C08",
+              "args": null
+            },
+            {
+              "seq": 16902,
+              "type": "message.delta",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": null,
+              "tool": null,
+              "text": "\n\n\ud83e\udea8",
+              "args": null
+            },
+            {
+              "seq": 16903,
+              "type": "turn.finished",
+              "turn": "turn-6afd69ab-7d8c-49f4-ba55-f80a33ab4d00",
+              "reason": "completed",
+              "tool": null,
+              "text": null,
+              "args": null
+            }
+          ]
+        },
+        "t3-claude-native-projection": {
+          "latestRun": {
+            "id": "run:thread:74792add-8af9-4cd1-873b-c4879bd2421f:ordinal:1",
+            "status": "failed",
+            "providerInstanceId": "claudeAgent"
+          },
+          "assistant": []
+        },
+        "t3-claude-start-timeout": "ts=1795526009 level=info source=t3 msg=\"run.started\" thread=74792add-8af9-4cd1-873b-c4879bd2421f run=run:thread:74792add-8af9-4cd1-873b-c4879bd2421f:ordinal:1 instance=claudeAgent\nts=1795526039 level=info source=t3 msg=\"run.ended\" run=run:thread:74792add-8af9-4cd1-873b-c4879bd2421f:ordinal:1 outcome=\"OpenFailed(\\\"TIMEOUT: turn.start was not answered in 30s\\\")\""
+      },
+      "deviceAppBundleId": "com.t3tools.t3code",
+      "notes": "The T3 run opener timed out after 30 seconds. Claude later loaded the skill and RCA retained its marker, while the T3 projection still reported a failed run and no assistant message."
+    },
+    {
+      "case": "skill-load",
+      "variant": "t3-claude-warm-provider-thread",
+      "app": "t3",
+      "provider": "claude",
+      "tier": "simulator",
+      "verdict": "pass",
+      "threadId": "74792add-8af9-4cd1-873b-c4879bd2421f",
+      "assertions": {
+        "nativeAutocompleteSelected": true,
+        "providerLoadedFixture": true,
+        "nativeReplyVisible": true,
+        "replyHadUndisclosedMarker": true
+      },
+      "evidence": [
+        "shots/t3-claude-warm-skill-menu.png",
+        "shots/t3-claude-warm-native-reply.png",
+        "traces/t3-claude-warm-result.json"
+      ],
+      "receipts": {
+        "t3-claude-warm-result": {
+          "verdict": "pass",
+          "assertions": {
+            "nativeAutocompleteSelected": true,
+            "providerLoadedFixture": true,
+            "nativeReplyVisible": true,
+            "replyHadUndisclosedMarker": true
+          },
+          "projection": {
+            "runs": [
+              {
+                "id": "run:thread:74792add-8af9-4cd1-873b-c4879bd2421f:ordinal:1",
+                "status": "failed",
+                "providerInstanceId": "claudeAgent"
+              },
+              {
+                "id": "run:thread:74792add-8af9-4cd1-873b-c4879bd2421f:ordinal:2",
+                "status": "completed",
+                "providerInstanceId": "claudeAgent"
+              }
+            ],
+            "assistant": [
+              "HOURGLASS_AMBER_9D12\n\n\ud83e\udea8"
+            ]
+          },
+          "events": [
+            {
+              "seq": 16946,
+              "type": "turn.started",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": null,
+              "args": null,
+              "text": null,
+              "role": null
+            },
+            {
+              "seq": 16947,
+              "type": "message.delta",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": null,
+              "args": null,
+              "text": "$rca-parity-hourglass Return the hourglass marker.",
+              "role": "user"
+            },
+            {
+              "seq": 16948,
+              "type": "tool.started",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": "Skill",
+              "args": {
+                "skill": "rca-parity-hourglass"
+              },
+              "text": null,
+              "role": null
+            },
+            {
+              "seq": 16949,
+              "type": "tool.output",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": null,
+              "args": null,
+              "text": null,
+              "role": null
+            },
+            {
+              "seq": 16950,
+              "type": "tool.finished",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": null,
+              "args": null,
+              "text": null,
+              "role": null
+            },
+            {
+              "seq": 16951,
+              "type": "message.delta",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": null,
+              "args": null,
+              "text": "HOURGLASS_",
+              "role": "assistant"
+            },
+            {
+              "seq": 16952,
+              "type": "message.delta",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": null,
+              "args": null,
+              "text": "AMBER_9D12",
+              "role": "assistant"
+            },
+            {
+              "seq": 16953,
+              "type": "message.delta",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": null,
+              "tool": null,
+              "args": null,
+              "text": "\n\n\ud83e\udea8",
+              "role": "assistant"
+            },
+            {
+              "seq": 16954,
+              "type": "turn.finished",
+              "turn": "turn-a27570fc-ef22-4fa0-b82b-7751b238a613",
+              "reason": "completed",
+              "tool": null,
+              "args": null,
+              "text": null,
+              "role": null
+            }
+          ],
+          "notes": "A new fixture on the already-open Claude provider thread completed. The first cold launch remains a separate timeout result."
+        }
+      },
+      "deviceAppBundleId": "com.t3tools.t3code",
+      "notes": "A new fixture on the already-open Claude provider thread completed. The first cold launch remains a separate timeout result."
+    },
+    {
+      "case": "queue-lifecycle",
+      "variant": "t3-startup-default-queue-tap",
+      "app": "t3",
+      "provider": "codex",
+      "tier": "simulator",
+      "verdict": "fail",
+      "threadId": "3e44a967-f3fa-4607-b2a4-28ffa5026f63",
+      "assertions": {
+        "pendingRunAndQueueControlVisible": true,
+        "nativeStartupTapAccepted": false,
+        "earlyDraftPreservedAfterRejection": true,
+        "explicitQueueAfterStartAccepted": true
+      },
+      "evidence": [
+        "shots/t3-queue-startup-first.png",
+        "shots/t3-queue-startup-draft.png",
+        "shots/t3-startup-queue-error.png",
+        "shots/t3-queue-after-explicit.png",
+        "traces/t3-queue-final.json",
+        "recordings/t3-queue-native.mp4"
+      ],
+      "receipts": {},
+      "deviceAppBundleId": "com.t3tools.t3code",
+      "notes": "A typed draft exposed Queue while the parent was Pending. The tap returned already has an active run with the draft preserved. Later explicit Queue menu actions each added one item."
+    },
+    {
+      "case": "queue-lifecycle",
+      "variant": "t3-native-reorder-control",
+      "app": "t3",
+      "provider": "codex",
+      "tier": "simulator",
+      "verdict": "blocked",
+      "threadId": "3e44a967-f3fa-4607-b2a4-28ffa5026f63",
+      "assertions": {
+        "twoHeldCardsInNativeSheet": true,
+        "dragChangedOrder": false,
+        "cardMenuOffersReorder": false
+      },
+      "evidence": [
+        "shots/t3-queue-two-held.png",
+        "shots/t3-queue-after-drag.png",
+        "shots/t3-queue-card-menu.png",
+        "traces/t3-queue-before-drag.json",
+        "traces/t3-queue-after-drag.json",
+        "recordings/t3-queue-native.mp4"
+      ],
+      "receipts": {
+        "t3-queue-before-drag": {
+          "held": true,
+          "queue": null,
+          "items": [
+            {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+              "prompt": "AReply exactly RCA_QUEUE_B.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526162710
+            },
+            {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+              "prompt": "Reply RCA_QUEUE_C.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526176956
+            }
+          ]
+        },
+        "t3-queue-after-drag": {
+          "held": true,
+          "queue": null,
+          "items": [
+            {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+              "prompt": "AReply exactly RCA_QUEUE_B.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526162710
+            },
+            {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+              "prompt": "Reply RCA_QUEUE_C.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526176956
+            }
+          ]
+        }
+      },
+      "deviceAppBundleId": "com.t3tools.t3code",
+      "notes": "The installed build offered Send now, Edit and Remove. The held queue and IDs were identical before and after the drag."
+    },
+    {
+      "case": "queue-lifecycle",
+      "variant": "t3-paired-reorder-native-resume",
+      "app": "t3",
+      "provider": "codex",
+      "tier": "adapter",
+      "verdict": "pass",
+      "threadId": "3e44a967-f3fa-4607-b2a4-28ffa5026f63",
+      "assertions": {
+        "pairedReorderChangedOrder": true,
+        "queueStayedHeldThroughMove": true,
+        "nativeResumeStartedEachItemOnceInNewOrder": true
+      },
+      "evidence": [
+        "traces/t3-queue-after-adapter-reorder.json",
+        "traces/t3-queue-move-receipt.json",
+        "shots/t3-queue-adapter-reorder-visible.png",
+        "traces/t3-queue-final.json",
+        "shots/t3-queue-empty.png",
+        "recordings/t3-queue-native.mp4"
+      ],
+      "receipts": {
+        "t3-queue-after-adapter-reorder": {
+          "held": true,
+          "items": [
+            {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+              "prompt": "Reply RCA_QUEUE_C.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526176956
+            },
+            {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+              "prompt": "AReply exactly RCA_QUEUE_B.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526162710
+            }
+          ]
+        },
+        "t3-queue-move-receipt": {
+          "sequence": 25518
+        },
+        "t3-queue-final": [
+          {
+            "seq": 16887,
+            "type": "message.delta",
+            "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+            "item": null,
+            "reason": null,
+            "text": "43",
+            "role": "assistant"
+          },
+          {
+            "seq": 16888,
+            "type": "turn.finished",
+            "turn": "turn-71b472d5-9dd0-438a-8630-afc35298e702",
+            "item": null,
+            "reason": "completed",
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16904,
+            "type": "turn.started",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16905,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": "Run /bin/sleep 65 in the foreground and wait for it. Then reply RCA_QUEUE_PARENT. Do not detach it.",
+            "role": "user"
+          },
+          {
+            "seq": 16906,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": "I",
+            "role": "assistant"
+          },
+          {
+            "seq": 16907,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": "\u2019ll",
+            "role": "assistant"
+          },
+          {
+            "seq": 16908,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " run",
+            "role": "assistant"
+          },
+          {
+            "seq": 16909,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " the",
+            "role": "assistant"
+          },
+          {
+            "seq": 16910,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " sleep",
+            "role": "assistant"
+          },
+          {
+            "seq": 16911,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " in",
+            "role": "assistant"
+          },
+          {
+            "seq": 16912,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " the",
+            "role": "assistant"
+          },
+          {
+            "seq": 16913,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " foreground",
+            "role": "assistant"
+          },
+          {
+            "seq": 16914,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " and",
+            "role": "assistant"
+          },
+          {
+            "seq": 16915,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " wait",
+            "role": "assistant"
+          },
+          {
+            "seq": 16916,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " for",
+            "role": "assistant"
+          },
+          {
+            "seq": 16917,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " it",
+            "role": "assistant"
+          },
+          {
+            "seq": 16918,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " to",
+            "role": "assistant"
+          },
+          {
+            "seq": 16919,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": " finish",
+            "role": "assistant"
+          },
+          {
+            "seq": 16920,
+            "type": "message.delta",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": null,
+            "text": ".",
+            "role": "assistant"
+          },
+          {
+            "seq": 16923,
+            "type": "queue.added",
+            "turn": null,
+            "item": {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+              "prompt": "AReply exactly RCA_QUEUE_B.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526162710
+            },
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16924,
+            "type": "queue.added",
+            "turn": null,
+            "item": {
+              "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+              "prompt": "Reply RCA_QUEUE_C.",
+              "model": "gpt-6.1-sol",
+              "created_at_ms": 1795526176956
+            },
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16926,
+            "type": "queue.held",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": "force_stop",
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16927,
+            "type": "turn.finished",
+            "turn": "turn-35924704-b3a6-40a9-ac2b-2c0fecb769ac",
+            "item": null,
+            "reason": "interrupted",
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16928,
+            "type": "queue.moved",
+            "turn": null,
+            "item": null,
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16929,
+            "type": "queue.resumed",
+            "turn": null,
+            "item": null,
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16930,
+            "type": "queue.started",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16931,
+            "type": "turn.started",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": null,
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16932,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": null,
+            "reason": null,
+            "text": "Reply RCA_QUEUE_C.",
+            "role": "user"
+          },
+          {
+            "seq": 16933,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": null,
+            "reason": null,
+            "text": "R",
+            "role": "assistant"
+          },
+          {
+            "seq": 16934,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": null,
+            "reason": null,
+            "text": "CA",
+            "role": "assistant"
+          },
+          {
+            "seq": 16935,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": null,
+            "reason": null,
+            "text": "_QUEUE",
+            "role": "assistant"
+          },
+          {
+            "seq": 16936,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": null,
+            "reason": null,
+            "text": "_C",
+            "role": "assistant"
+          },
+          {
+            "seq": 16937,
+            "type": "turn.finished",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:4",
+            "item": null,
+            "reason": "completed",
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16938,
+            "type": "queue.started",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16939,
+            "type": "turn.started",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": null,
+            "reason": null,
+            "text": null,
+            "role": null
+          },
+          {
+            "seq": 16940,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": null,
+            "reason": null,
+            "text": "AReply exactly RCA_QUEUE_B.",
+            "role": "user"
+          },
+          {
+            "seq": 16941,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": null,
+            "reason": null,
+            "text": "R",
+            "role": "assistant"
+          },
+          {
+            "seq": 16942,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": null,
+            "reason": null,
+            "text": "CA",
+            "role": "assistant"
+          },
+          {
+            "seq": 16943,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": null,
+            "reason": null,
+            "text": "_QUEUE",
+            "role": "assistant"
+          },
+          {
+            "seq": 16944,
+            "type": "message.delta",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": null,
+            "reason": null,
+            "text": "_B",
+            "role": "assistant"
+          },
+          {
+            "seq": 16945,
+            "type": "turn.finished",
+            "turn": "run:thread:3e44a967-f3fa-4607-b2a4-28ffa5026f63:ordinal:3",
+            "item": null,
+            "reason": "completed",
+            "text": null,
+            "role": null
+          }
+        ]
+      },
+      "notes": "The reorder action came from a paired adapter RPC. Queue creation, Stop, and Resume were native."
+    }
+  ],
+  "recordings": [
+    "recordings/t3-queue-native.mp4"
+  ],
+  "bundle": {
+    "id": "run-04cf06c6bac8ecfe",
+    "localPath": ".context/rca-mobile-manual-closeout/published/run-04cf06c6bac8ecfe",
+    "files": {
+      "recordings/t3-queue-native.mp4": "5ce9974b13b7529e4c3bb59de22483c21c97533c020c67134c5f33c8fb7092ef",
+      "shots/orca-claude-cold-previews.png": "1f989e2451aa5a56e3b084067fff6d3728a65d2e524adf0f18904de9c3c3af9b",
+      "shots/orca-claude-composer.png": "7156ee4023b0d7e36dc0aa0da5b4b4d344d5447b1b3bdf3ad6b60ace77d280d2",
+      "shots/orca-claude-native-skill-reply.png": "19a99d265d6a1fb71adc3f4114826f25d3c89ea1c7592c8cdb7b62cc1ceaf536",
+      "shots/orca-claude-picker.png": "4db54e062b130656d867c33e2a1d6c4fcdf292610937ca1ccb7400148e084630",
+      "shots/orca-claude-reply.png": "8a605b93070a24084cc005b02c6db647474b3d4ab0e54263403737bbedc761c5",
+      "shots/orca-claude-skill-menu.png": "ec14ee7615c3caa2b0a9be73d627ae9ccf8f5f1e89ad88fd57fbd0f7c5801e38",
+      "shots/orca-fresh-approval-b.png": "2cb05a70179e72a6c0dab896d238d4ac1ac5af4b8d4954d50bfe9e5a6efa93e1",
+      "shots/orca-opencode-cold-reopen.png": "7b327de7f6d682576c610f08a6d47f1204fe94a9838b21c06f2e790663ac6f9f",
+      "shots/orca-opencode-composer.png": "6dc01df61a682e1e3b800ab914bad220f53ca648504f32552c6e04e397fad61f",
+      "shots/orca-opencode-final.png": "2bac861f083f0811dccc09ba9552de02ae0ae77effbf1f1de075461484a7bbb6",
+      "shots/orca-opencode-picker.png": "8c35202ec006462eadfe6dd91b2cf314df484633e5b0e63dbc2e9f1465758dff",
+      "shots/orca-stale-after-tap.png": "654f5f06c9ba659fe7df3e4a0db06a723b59897a13844bb7af06f45808b3a9eb",
+      "shots/orca-stale-before-tap.png": "b4e9757f55ec2e696b8e70f9c7f74e0197da3058207c6040a3c07ed686d284a7",
+      "shots/t3-after-stale-reconnect.png": "4c159ee4a12332fa7d73916349f59854ba01e1b798b1a322c3710abc051f65ea",
+      "shots/t3-claude-native-autocomplete.png": "e283b066ea09178f6c86b42b7f3929ef13b7d0de4cefbd4a3a43c5b2363ef9f4",
+      "shots/t3-claude-native-skill-result.png": "14f574166c5e3d3cab6ce8f5613c9ddd115c78f02d9662a84da73857abbbf4ff",
+      "shots/t3-claude-warm-native-reply.png": "e9f7e7bda7daff0bf82df60b715aab0f854976c72f0a8bc6907475c87271d769",
+      "shots/t3-claude-warm-skill-menu.png": "ed5562e7c591e15d989618928c433e0a413cafff09ca2fb1c0114ad084d34814",
+      "shots/t3-codex-cold-reopen.png": "d4d3c6631435b270d4e71df621ad10269a1414c07aa866938fbce9c154d5e7dd",
+      "shots/t3-codex-composer.png": "fcc444d99b10c73a65ff78db33321d28b7f343b0641d2d7ed00fca3090be70a2",
+      "shots/t3-codex-native-autocomplete.png": "bbe010cb4ceaaac84b3048dfecfe4e1e1b82dde76dc04082115cad9fd0f44855",
+      "shots/t3-codex-native-skill-reply.png": "e15cb3fd5d63d7f3d04814d60d888a9e99bed7677e3c8ebebf7ae164e27e9ee8",
+      "shots/t3-codex-picker.png": "b02074aed3de87e9d37342f47175ffd328b9707d26a18a4c448dcae5eda4c8a2",
+      "shots/t3-codex-reply.png": "ac538e55cbdb57bf8a2837f35d5121ade2ce222c9cc8119dd3855e344c1b051d",
+      "shots/t3-opencode-cold-reopen.png": "8006709b9a7803965b7c5b9664a3547a28dfb01327c0fe415fe6ea38a224173d",
+      "shots/t3-opencode-composer.png": "7e244082a507d59fcd0f79099b45f0d531d9205e6eb750d8798f1101623281e4",
+      "shots/t3-opencode-picker.png": "a259797f8854b5b0ac76bcd8139c1d99f7c14a7afb6f1415328cf4b363ccfb7e",
+      "shots/t3-opencode-reply.png": "68d722e98ac2e646da60934c1ac5cc17c0893981a7a98aaa4e3cdb778403adc5",
+      "shots/t3-queue-adapter-reorder-visible.png": "c8926f67962002ada5da0efc31a3c576d0fd49296ecc97d4e3d23f418ba6f177",
+      "shots/t3-queue-after-drag.png": "09b02fbea6e21c77600e3b2c59c2f2b3f37ad2c7819cc59992a6f68af5c8ef9c",
+      "shots/t3-queue-after-explicit.png": "005e588f5b377c58fa1fc2982fe03dbf8d4e1158d935a7e5e73fd33703dd1cc8",
+      "shots/t3-queue-card-menu.png": "7821501f5098507a7a10f8f1eb9e297f8d46830465be2d7efa1718eceb054a42",
+      "shots/t3-queue-empty.png": "0fdc05ca28ff2e4e3e2c277da675895dfeac28726d793cde77150a9cdb430864",
+      "shots/t3-queue-startup-draft.png": "09dd0bdb93d77fa67c77900cf3bb135cc5f511c8bdae0325adc7a95c3f45d5df",
+      "shots/t3-queue-startup-first.png": "16bc266d19238b59e536cbc3b1a15b0997a62286bd3d9ea042e94bc95e4d7acb",
+      "shots/t3-queue-two-held.png": "325671ed324a08f92e1452f72c7b594d3779c141b0e177ef4acb45942a556077",
+      "shots/t3-stale-after-tap.png": "88512bc7e98a1e322ae9d3ad1d2b278f235cb7b91cb98e1b917caab221da60bc",
+      "shots/t3-stale-before-tap.png": "93104eeb69460ac394a8c4f361f4f20afddacae14f24352cbd39bda61d8c8749",
+      "shots/t3-startup-queue-error.png": "2a10744c2e09cdeb24430c2387f9f889f64591bc912148c1df981e9f2e37e2c4",
+      "traces/orca-after-stale-before-allow.json": "f49475adc3d478dc46fa88308f8406179ca6fdfbda3e3528f5906f1d7bf178f2",
+      "traces/orca-approval-final.json": "eb3ddf6adcc303d7ca654432c52ed82ec29207b550fcce026f4e8204f85cf05e",
+      "traces/orca-approval-ids.json": "5130ed5ba1537a592239dcd1fc5448f91d674e2bb8bc32bbbca27e8c0f8707a9",
+      "traces/orca-claude-attachment-receipt.json": "6bf4c9e7ad77fd4c404706597c3718574425d28e52eb6578a56ca639e121c012",
+      "traces/orca-claude-photo-journal.json": "49bcd04906fb6523fcefabc31eedd36a7b6d76aa01dc22216406574459587232",
+      "traces/orca-claude-provider-skill-expansion.json": "1d3d42a7b7f1c1646414c6029c8f9505e3ec0cb284209e9e68689c855ad5669a",
+      "traces/orca-claude-skill-journal.json": "eb3c038562ddcf51b04ce753d25da6b897dfc83057f2287ae884b598c5c4d706",
+      "traces/orca-opencode-attachment-receipt.json": "cadc2c0993361ea2c06d5b5c9b95af087fd4002e07871991aa59b8fe2ef37ea8",
+      "traces/orca-opencode-photo-journal.json": "7eac523959a062cdfdc3acd8747345a32cb860186892b762b49469c5b6e27ea4",
+      "traces/t3-after-stale-before-answer.json": "fcb04fcdaa935ed8508dacfcc54c74f31368d16739ab8d6ca0b979cc429b65eb",
+      "traces/t3-approval-final.json": "5f1fa8bf838aa8818d92dcb37550e9cb07e542caa1751a5ef4485aac509b7156",
+      "traces/t3-approval-ids.json": "d4b98eae8975269ef9625c551a0cfc0b786f589255f0da13fe8726a8672935a3",
+      "traces/t3-claude-native-projection.json": "9cf138d91772e50b49a717dac1edfa40381c002c03520ccdbbed4b75b67aca89",
+      "traces/t3-claude-start-timeout.txt": "6ade7bcf7499242d8aeeaf2f1e2c46a53cef58361634ad19fb60a900a0becb8e",
+      "traces/t3-claude-warm-result.json": "9705a63d3ce682a90f4bff2365c46705fda52df23e025a1399f572ee34cb84f9",
+      "traces/t3-claudeAgent-fresh-skill.json": "1c36147624c657975165bb9e407cdd342c8aedb85663f9502e502b7555abd92c",
+      "traces/t3-codex-attachment-receipt.json": "8b95647512e6e38657670ecda9994726de31202d6ea1185f0f57b1c8b56c145c",
+      "traces/t3-codex-fresh-skill.json": "9c3c315ca49e0ac54f1e54e342d1be2631e0de87e073b371eddd5cb4aa28f04c",
+      "traces/t3-codex-photo-journal.json": "f8edc126ec6cd1c74e236f4c7063ec68661cc11e6da0de1af3edf7588079b332",
+      "traces/t3-codex-provider-skill-expansion.json": "5fea1bfd925d4da385fee9b238d21175f4fc8728e4cd7af2cc5b9fea6aae4879",
+      "traces/t3-opencode-attachment-receipt.json": "0f454b6197e1571c6fc0ec338efa6c1afd13d4857577be87b13028eb30b11373",
+      "traces/t3-opencode-photo-journal.json": "98fc0e6f536b8314e766269c1731de6fde968d25282ef8369ba00b155ed84950",
+      "traces/t3-queue-after-adapter-reorder.json": "0372405c8ce9e61d7102e933aa7460f203e6003346edb3963bbe26da0e2134ff",
+      "traces/t3-queue-after-drag.json": "70b0322566cb2fd0ca89a24e362b18c94ce582d9ff798909f18f73c543578428",
+      "traces/t3-queue-before-drag.json": "70b0322566cb2fd0ca89a24e362b18c94ce582d9ff798909f18f73c543578428",
+      "traces/t3-queue-final.json": "3b8da0dbb97a857140fd4e34d5f53568f5a7c0bac2960de2dd5ff7b7f25311d8",
+      "traces/t3-queue-move-receipt.json": "4e29082ae21427ea7153ac199bab0a19a1f10a282f706e418670d688f384fcf6"
+    }
+  }
+}
