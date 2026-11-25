@@ -1,0 +1,21 @@
+{
+  "platform": "ios",
+  "expectedTestID": "TamilPracticeUndo",
+  "name": "tamil-handwriting-guide-dark",
+  "image": {
+    "width": 1320,
+    "height": 2868
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.002,
+    "ignore": [
+      [
+        0,
+        0,
+        1320,
+        200
+      ]
+    ]
+  }
+}
