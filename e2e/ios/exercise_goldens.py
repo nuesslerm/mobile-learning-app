@@ -35,6 +35,8 @@ class ExerciseRun:
             raise ValueError("Exercise goldens require iPhone 18 Pro Max running iOS 27.0")
         self.socket = args.companion or f"/tmp/idb/{args.device}_companion.sock"
         self.env = {k: os.environ[k] for k in ("PATH", "HOME", "LANG", "TMPDIR") if k in os.environ}
+        if args.companion:
+            self.env["IDB_COMPANION"] = args.companion
 
     def idb(self, *args):
         return subprocess.check_output(

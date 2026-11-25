@@ -19,7 +19,7 @@ os.execute("mkdir -p " .. out)
 -- read from the Run Result tab.
 local READY = 'ProblemEditorScreen'
 local function choose_autocomplete_off()
-  device:open_link(base .. "/")
+  device:open_link(base .. "/blind75")
   device:assert_visible({id='LeetcodeListRunnerRow'}, {timeout=60000})
   device:extended_wait_until{condition=function()
     for _, l in ipairs(device:get_logs{level='info'}) do if l:find('route.change', 1, true) then return true end end

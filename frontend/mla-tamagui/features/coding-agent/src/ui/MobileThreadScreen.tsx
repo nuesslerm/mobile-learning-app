@@ -45,7 +45,18 @@ export function MobileThreadScreen({ api, id }: { api: MobilePort; id: string })
           respond={value => void state.respond(request.id, request.kind, value)} />)}
         {children.length ? <Text variant="strong">Subagents</Text> : null}
         {children.map(child => <View key={child.id} gap="$1" testID={'MobileAgent-' + child.id}>
-          <Text>{child.label}</Text><Text variant="muted">{child.status}</Text>
+          <ListItem testID={'ChildTranscript-' + child.id} showChevron onPress={() => state.setChildId(state.childId === child.id ? undefined : child.id)}>
+            <Text>{child.label}</Text>
+          </ListItem>
+          <Text variant="muted">{child.status}</Text>
+          {state.childId === child.id ? <>
+            {state.transcript?.rows.map(item => <View key={item.seq} gap="$1">
+              <Text variant="strong">{item.role === 'user' ? 'User' : 'Agent'}</Text>
+              <Markdown content={item.text ?? ''} />
+            </View>)}
+            {state.transcript?.message || !state.transcript
+              ? <Text variant="muted">{state.transcript?.message ?? 'Loading transcript…'}</Text> : null}
+          </> : null}
         </View>)}
         {state.context?.family.threads.filter(t => t.lineage?.parent === id).map(({ thread }) => (
           <ListItem key={thread.id} testID={'Child-' + thread.id} showChevron onPress={() =>

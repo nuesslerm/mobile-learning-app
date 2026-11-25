@@ -96,6 +96,10 @@ pub fn create_thread(agent: &dyn Agent, workspace: &str, new: NewThread) -> Resu
             "thread":new.thread,"workspace":workspace,"driver":new.driver,"title":new.title
         }),
     )?;
+    agent.request(
+        ReadWrite::SetContext,
+        json!({"scope":"mobile.thread.workspace","key":new.thread,"value":workspace}),
+    )?;
     if let Some(number) = new.task {
         agent.request(
             ReadWrite::SetContext,

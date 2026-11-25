@@ -9,6 +9,7 @@ export type ThreadContext = {
   task: { workspace: string; number: number } | null;
   family: { threads: { thread: MobileThread; lineage?: { parent?: string } }[] };
 };
+export type TranscriptItem = { seq: number; kind: string; role?: string; text?: string };
 export type AgentEvent = {
   seq: number; thread: string; type: string; turn?: string; role?: string; text?: string;
   tool?: string; args?: unknown; request?: string; approval?: string; prompt?: string;
@@ -24,6 +25,7 @@ export interface MobilePort {
   tasks(pair: Pairing, workspace: string): Promise<RepositoryTask[]>;
   createThread(pair: Pairing, workspace: string, title: string, driver: string, task?: number): Promise<string>;
   context(pair: Pairing, thread: string): Promise<ThreadContext>;
+  transcript(pair: Pairing, thread: string): Promise<TranscriptItem[]>;
   history(pair: Pairing, thread: string, after: number): Promise<{ events: AgentEvent[]; more: boolean }>;
   follow(pair: Pairing, thread: string, after: number, event: (event: AgentEvent) => void, closed: () => void): () => void;
   send(pair: Pairing, thread: string, id: string, prompt: string): Promise<void>;

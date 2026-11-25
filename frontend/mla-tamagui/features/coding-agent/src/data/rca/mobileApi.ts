@@ -1,6 +1,6 @@
 import { randomUUID } from 'expo-crypto';
 import { Logger } from '@lib/logging';
-import type { AgentEvent, MobilePort, MobileThread, Pairing, RepositoryTask, Workspace } from '../../domain/mobile';
+import type { AgentEvent, MobilePort, MobileThread, Pairing, RepositoryTask, TranscriptItem, Workspace } from '../../domain/mobile';
 import { ThreadNotFound } from '../../domain/mobile';
 import { readPairing, savePairing } from './credentials';
 
@@ -21,7 +21,7 @@ async function request<T>(pair: Pairing, path: string, method = 'GET', body?: un
   if (method === 'DELETE' && path === '/pair' && response.status === 401) return undefined as T;
   if (!response.ok) {
     const error = await response.text();
-    if (response.status === 404 && /\/threads\/[^/]+$/.test(path)) throw new ThreadNotFound(error);
+    if (response.status === 404 && path.startsWith('/threads/')) throw new ThreadNotFound(error);
     throw new Error(response.status === 401 ? 'Pairing expired or revoked.' : error || 'Gateway request failed.');
   }
   return response.json() as Promise<T>;
@@ -59,6 +59,9 @@ export function createMobileApi(): MobilePort {
       return response.thread.id;
     },
     context: (pair, id) => request(pair, threadPath(id)),
+    async transcript(pair, id) {
+      return (await request<{ items: TranscriptItem[] }>(pair, threadPath(id) + '/transcript')).items;
+    },
     history: (pair, id, after) => request(pair, threadPath(id) + '/history?after=' + after),
     follow(pair, id, after, onEvent, closed) {
       const socket = new WebSocket(endpoint(pair.endpoint).replace(/^http/, 'ws') + '/v1' + threadPath(id) + '/events?after=' + after);

@@ -84,6 +84,7 @@ fn read(agent: &dyn AgentApi, target: &Target) -> Result<Value, Failure> {
 
 pub(crate) fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let target = orca_map_workspace::resolve(agent, selector(params)?)?;
+    layout::discover_mobile_chats(agent, &target.workspace)?;
     read(agent, &target)
 }
 
@@ -186,6 +187,7 @@ struct TabsStream {
 pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription>, Failure> {
     let agent = ctx.agent_handle.clone();
     let target = orca_map_workspace::resolve(agent.as_ref(), selector(params)?)?;
+    layout::discover_mobile_chats(agent.as_ref(), &target.workspace)?;
     let id = format!("{}:{}", base(ctx.connection_id, &target.id), ctx.request_id);
     Ok(Box::new(TabsStream { id, agent, target, last: None, asked: None }))
 }

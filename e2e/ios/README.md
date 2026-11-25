@@ -16,4 +16,4 @@ The test terminates Expo Go, saves this project's previous Tamil course progress
 
 The RCA simulator baseline uses a clean, isolated build of dev revision `8b230d5ed206794d74bda422a8eaecc13279eb51`. The app source had an empty working-tree diff against that revision. Its minified iOS Hermes bundle had SHA-256 `75409fd948c0651f8333cc277d78f4208fda6382c83a616c0ed5e714818a889f`. A second capture matched all 22 references with zero differing pixels. Substituting the listen prompt for the fill prompt failed the comparator with 53,372 differing pixels. The existing native screenshot harness writes the comparison result and pixel diff on failure.
 
-For installations of fb-idb that need a separate input companion, pass its Unix socket using `--companion`. The `wf` comparison still addresses the simulator by UDID.
+For installations of fb-idb that need a separate input companion, pass its Unix socket using `--companion`. The driver and the `wf` screenshot comparison both use that companion.

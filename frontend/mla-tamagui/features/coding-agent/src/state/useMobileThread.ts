@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ThreadNotFound } from '../domain/mobile';
-import type { AgentEvent, MobilePort, Pairing, ThreadContext } from '../domain/mobile';
+import type { AgentEvent, MobilePort, Pairing, ThreadContext, TranscriptItem } from '../domain/mobile';
 
 export function useMobileThread(api: MobilePort, thread: string) {
   const [pair, setPair] = useState<Pairing | null>();
@@ -9,6 +9,22 @@ export function useMobileThread(api: MobilePort, thread: string) {
   const [status, setStatus] = useState('Connecting…');
   const [error, setError] = useState('');
   const [legacy, setLegacy] = useState(false);
+  const [childId, setChildId] = useState<string>();
+  const [transcript, setTranscript] = useState<{ rows: TranscriptItem[]; message: string }>();
+  useEffect(() => {
+    let active = true;
+    setTranscript(undefined);
+    if (childId && pair) {
+      api.transcript(pair, childId).then(items => {
+        const rows = items.filter(item => item.kind === 'message' && item.text);
+        if (active) setTranscript({ rows, message: rows.length ? '' : 'No transcript messages yet.' });
+      }).catch(e => {
+        if (active) setTranscript({ rows: [], message: e instanceof ThreadNotFound
+          ? 'RCA has activity for this agent. A separate transcript is unavailable.' : String(e) });
+      });
+    }
+    return () => { active = false; };
+  }, [api, childId, pair]);
   const [draft, setDraft] = useState('');
   const attempt = useRef<{ id: string; prompt: string } | undefined>(undefined);
   const sending = useRef(false);
@@ -18,7 +34,7 @@ export function useMobileThread(api: MobilePort, thread: string) {
     let failures = 0;
     let timer: ReturnType<typeof setTimeout>;
     let stop: (() => void) | undefined;
-    setLegacy(false); setEvents([]); setContext(undefined); setPair(undefined); setError(''); setStatus('Connecting…');
+    setChildId(undefined); setLegacy(false); setEvents([]); setContext(undefined); setPair(undefined); setError(''); setStatus('Connecting…');
     setDraft(''); attempt.current = undefined;
     async function connect() {
       try {
@@ -82,5 +98,5 @@ export function useMobileThread(api: MobilePort, thread: string) {
     try { await api.respond(pair, thread, id, kind, value); setError(''); }
     catch (e) { setError(String(e)); }
   }
-  return { legacy, pair, context, events, status, error, draft, setDraft, send, respond };
+  return { childId, setChildId, transcript, legacy, pair, context, events, status, error, draft, setDraft, send, respond };
 }

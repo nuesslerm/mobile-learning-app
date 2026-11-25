@@ -22,7 +22,7 @@ end
 -- and the default is put back at the end: later tests expect it. The static page paints its buttons before its scripts have hydrated them, and a tap
 -- before that is lost: it is repeated until the screen logs it
 local function tap_choice(id, event)
-  device:open_link(base .. "/")
+  device:open_link(base .. "/blind75")
   device:assert_visible({id=id}, {timeout=60000})
   device:clear_logs()
   for _ = 1, 10 do

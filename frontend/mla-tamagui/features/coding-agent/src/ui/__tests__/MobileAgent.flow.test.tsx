@@ -21,7 +21,8 @@ describe('RCA mobile routes', () => {
     await app.render('/coding-agent/thread-42', { overrides: { 'coding-agent': { mobile } } });
     await screen.findByText('Check selection');
     expect(screen.getByText('Task #42')).toBeTruthy();
-    expect(screen.getByText('/root/reviewer')).toBeTruthy();
+    await userEvent.click(screen.getByText('/root/reviewer'));
+    await screen.findByText('Selection restored');
     await userEvent.click(screen.getByText('Allow once'));
     await waitFor(() => expect(screen.queryByText('Approval requested')).toBeNull());
     expect(screen.getByText('Check selection')).toBeTruthy();

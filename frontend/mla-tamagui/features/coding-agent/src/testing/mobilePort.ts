@@ -21,6 +21,7 @@ export function createMobileDouble(initial: Pairing | null = null) {
     tasks: async () => [{ number: 42, title: thread.title }],
     createThread: async () => thread.id,
     context: async () => ({ thread, task: { workspace, number: 42 }, family: { threads: [] } }),
+    transcript: async () => [{ seq: 1, kind: 'message', role: 'assistant', text: 'Selection restored' }],
     history: async (_pair, _thread, after) => ({ events: events.filter(e => e.seq > after), more: false }),
     follow(_pair, _thread, _after, event) { listener = event; return () => { listener = undefined; }; },
     async send(_pair, id, turn, prompt) {
