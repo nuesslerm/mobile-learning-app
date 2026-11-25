@@ -6,7 +6,11 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 
 /// Each command word served by a separate binary, and that binary.
-const EXTERNAL: &[(&str, &str)] = &[("t3", "t3-serve"), ("exec", "rca-exec"), ("mimic", "wf-mimic")];
+const EXTERNAL: &[(&str, &str)] = &[("rca-serve", "rca-serve"), ("t3", "t3-serve"), ("exec", "rca-exec"), ("mimic", "wf-mimic")];
+
+pub fn mobile(rest: &[String]) -> Option<i32> {
+    run("rca-serve", "rca-serve", rest)
+}
 
 pub fn t3(rest: &[String]) -> Option<i32> {
     run("t3", "t3", rest)

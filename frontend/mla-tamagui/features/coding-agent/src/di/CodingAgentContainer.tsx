@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from 'react';
 
 import { createHttpDispatchRunsPort } from '../data/dispatchRunsGateway';
 import { createAsyncStorageTokenStore } from '../data/tokenStore';
+import { createMobileApi } from '../data/rca/mobileApi';
 import { createWsOrchestration } from '../data/wsOrchestration';
 import type { CodingAgentPorts } from '../domain/ports';
 import { CodingAgentPortsProvider } from '../state/ports';
@@ -14,6 +15,7 @@ export function createDefaultPorts(overrides: Partial<CodingAgentPorts> = {}): C
   const tokenStore = overrides.tokenStore ?? createAsyncStorageTokenStore();
   return {
     tokenStore,
+    mobile: overrides.mobile ?? (overrides.orchestration ? undefined : createMobileApi()),
     orchestration: overrides.orchestration ?? createWsOrchestration(tokenStore),
     dispatchRuns: overrides.dispatchRuns ?? createHttpDispatchRunsPort(appConfig.vmOpsApiBaseUrl),
   };

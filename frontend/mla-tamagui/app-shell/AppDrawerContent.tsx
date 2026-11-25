@@ -1,9 +1,5 @@
 import { Icon, Text, View } from '@lib/tamagui-design-system';
 import {
-  GlassControlBackground,
-  supportsGlassControl,
-} from '@lib/tamagui-design-system/ui/glass-control-background';
-import {
   DrawerContentScrollView,
   useDrawerProgress,
   useDrawerStatus,
@@ -17,11 +13,10 @@ import {
   PenLine,
   Settings,
   Cpu,
-  User,
 } from '@lib/tamagui-design-system/icons';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
-import { useEffect, useRef } from 'react';
-import { AccessibilityInfo, findNodeHandle, Keyboard, Platform, Pressable, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { Keyboard, Platform, Pressable, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -71,28 +66,9 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
     const shade = Math.floor(14 + 4 * progress.value + 0.05);
     return { backgroundColor: `rgb(${shade}, ${shade}, ${shade})` };
   });
-  const accountButton = useRef<React.ComponentRef<typeof Pressable>>(null);
-  const returningFromSettings = useRef(false);
-  const viewingSettings = pathname === '/settings' || pathname.startsWith('/settings/');
-
   useEffect(() => {
     if (open) Keyboard.dismiss();
   }, [open]);
-
-  useEffect(() => {
-    if (viewingSettings || !open || !returningFromSettings.current) return undefined;
-    returningFromSettings.current = false;
-    const frame = requestAnimationFrame(() => {
-      const button = accountButton.current;
-      if (Platform.OS === 'web') {
-        (button as unknown as HTMLElement | null)?.focus();
-        return;
-      }
-      const node = findNodeHandle(button);
-      if (node != null) AccessibilityInfo.setAccessibilityFocus(node);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [open, viewingSettings]);
 
   const openCodingAgent = () => {
     props.navigation.closeDrawer();
@@ -149,11 +125,6 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
       <DrawerFooter
         dark={dark}
         open={open}
-        accountButton={accountButton}
-        onAccount={() => {
-          returningFromSettings.current = true;
-          router.push('/settings');
-        }}
         onCodingAgent={openCodingAgent}
       />
     </View>
@@ -163,42 +134,23 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
 function DrawerFooter({
   dark,
   open,
-  accountButton,
-  onAccount,
   onCodingAgent,
 }: {
   dark: boolean;
   open: boolean;
-  accountButton: React.Ref<React.ComponentRef<typeof Pressable>>;
-  onAccount: () => void;
   onCodingAgent: () => void;
 }) {
   const { bottom } = useSafeAreaInsets();
-  const glass = Platform.OS === 'ios' && supportsGlassControl();
   return (
     <View
       testID="AppDrawerFooter"
       flexDirection="row"
       items="center"
-      justify="space-between"
+      justify="flex-end"
       px={28}
       pt={8}
       pb={Math.max(28, bottom - 5)}
     >
-      <Pressable
-        ref={accountButton}
-        testID="AppDrawerAccount"
-        accessibilityRole="button"
-        accessibilityLabel="Open account settings"
-        tabIndex={open ? 0 : -1}
-        onPress={onAccount}
-        style={[styles.account, { backgroundColor: dark ? '#303036' : '#E7E7EB' }]}
-      >
-        {glass && <GlassControlBackground />}
-        <View width={34} height={34} rounded={999} bg="$color5" items="center" justify="center">
-          <Icon as={User} size={18} />
-        </View>
-      </Pressable>
       <Pressable
         testID="AppDrawerCodingAgent"
         accessibilityRole="button"
@@ -216,6 +168,5 @@ function DrawerFooter({
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  account: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   shortcut: { width: 122, height: 48, borderRadius: 24, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
 });
