@@ -2,16 +2,18 @@ url: ${URL}
 ---
 - launchApp
 - startRecording: run
-- assertVisible: {css: '[data-testid="TamilCollection-first-steps"]'}
+- assertVisible: First steps
 - takeScreenshot: start
-- tapOn: {css: '[data-testid="TamilCollection-first-steps"]'}
-- assertVisible: {css: '[data-testid="TamilPractice"]'}
-- tapOn: {css: '[data-testid="TamilPractice"]'}
-- assertVisible: {css: '[data-testid="TamilStartPractice"]'}
+- tapOn: First steps
+- assertVisible: Practice
+- tapOn: Practice
+- assertVisible: Start practice
 - takeScreenshot: lesson
-- tapOn: Back
-- assertVisible: {css: '[data-testid="TamilPractice"]'}
-- tapOn: Back
-- assertVisible: {css: '[data-testid="TamilCollection-first-steps"]'}
+- tapOn:
+    point: "8%,4%"
+- assertVisible: Practice
+- tapOn:
+    point: "8%,4%"
+- assertVisible: First steps
 - takeScreenshot: finish
 - stopRecording
