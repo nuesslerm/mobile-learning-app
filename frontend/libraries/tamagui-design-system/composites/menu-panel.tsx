@@ -1,6 +1,6 @@
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import type { LucideIcon } from 'lucide-react-native';
-import { useRef, useState, type ComponentRef, type ReactElement, type ReactNode } from 'react';
+import { createContext, useContext, useRef, useState, type ComponentRef, type ReactElement, type ReactNode } from 'react';
 import {
   Modal,
   Platform,
@@ -9,6 +9,7 @@ import {
   Text as RNText,
   useWindowDimensions,
   View,
+  type GestureResponderEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -207,6 +208,9 @@ function ConfirmCard({
  * in place under a header row that goes back, a pick inside a submenu returns to the root, and a confirm row becomes a one-button card.
  * A modal card under the trigger, mounted only while open (a portal cannot render on the server), so an outside tap closes it and nothing depends on a popover library's collision logic inside a header.
  */
+// A native modal can deliver a menu press outside the navigator's responder tree.
+export const MenuTouchCaptureContext = createContext<((event: GestureResponderEvent) => boolean) | undefined>(undefined);
+
 export function MenuPanel({
   icon,
   accessibilityLabel,
@@ -222,6 +226,7 @@ export function MenuPanel({
   panelWidth = PANEL_WIDTH,
   panelRadius = 20,
 }: MenuPanelProps) {
+  const captureTouch = useContext(MenuTouchCaptureContext);
   const [open, setOpen] = useState(false);
   const [afterDismiss, setAfterDismiss] = useState<(() => void) | null>(null);
   const [path, setPath] = useState<MenuPath>(ROOT_PATH);
@@ -440,6 +445,7 @@ export function MenuPanel({
             style={[styles.backdrop, { backgroundColor: nativeGlass ? "transparent" : colors.scrim }]}
           />
           <View
+            onStartShouldSetResponderCapture={captureTouch}
             testID={`${testID}Content`}
             style={[
               styles.card,

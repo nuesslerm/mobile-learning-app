@@ -1,6 +1,6 @@
 import { Logger } from '@lib/logging';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { CodeHistorySheet } from './CodeHistorySheet';
 import { useCodeHistoryRequestStore } from '../state/codeHistoryRequestStore';
@@ -27,12 +27,12 @@ export function CodeHistoryOverlay() {
   // Deep-linked or cold-started with no editor to restore into: there is
   // nothing this sheet could do, so leave rather than render a Restore button
   // that silently does nothing.
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!hadPayload.current && (!payload || !id)) {
       Logger.warn('leetcode.history.no_target', { problemId: id });
       dismiss();
     }
-  }, [payload, id, dismiss]);
+  }, [payload, id, dismiss]));
 
   if (!payload || !id) return null;
 

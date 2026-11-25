@@ -1,3 +1,4 @@
+import { MenuTouchCaptureContext } from '@lib/tamagui-design-system';
 import { usePathname } from 'expo-router';
 import { useRef, type ReactNode } from 'react';
 import { Platform, type GestureResponderEvent } from 'react-native';
@@ -23,7 +24,10 @@ export function NavigationTouchBoundary({ children }: { children: ReactNode }) {
     return false;
   }
 
-  return <GestureHandlerRootView style={{ flex: 1 }} onStartShouldSetResponderCapture={Platform.OS === 'ios' ? captureRepeat : undefined}>
-    {children}
-  </GestureHandlerRootView>;
+  const captureTouch = Platform.OS === 'ios' ? captureRepeat : undefined;
+  return <MenuTouchCaptureContext.Provider value={captureTouch}>
+    <GestureHandlerRootView style={{ flex: 1 }} onStartShouldSetResponderCapture={captureTouch}>
+      {children}
+    </GestureHandlerRootView>
+  </MenuTouchCaptureContext.Provider>;
 }

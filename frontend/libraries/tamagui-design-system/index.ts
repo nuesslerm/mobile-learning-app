@@ -112,7 +112,7 @@ export { useNativeHeaderPath } from './composites/native-header/use-header-env';
 export { useScrollUnder } from './composites/native-header/use-scroll-under';
 export { useNativeStackHeaderHeight } from './composites/native-header/use-native-stack-header-height';
 export { PageSheet, type PageSheetProps } from './ui/page-sheet';
-export { MenuPanel, type MenuPanelProps } from './composites/menu-panel';
+export { MenuPanel, MenuTouchCaptureContext, type MenuPanelProps } from './composites/menu-panel';
 export {
   KEYBOARD_TOOLBAR_Z,
   KeyboardToolbarAwareScrollView,

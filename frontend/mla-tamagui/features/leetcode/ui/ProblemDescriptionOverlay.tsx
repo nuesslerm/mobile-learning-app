@@ -1,5 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback } from 'react';
 
 import { ProblemDescriptionSheet } from './ProblemDescriptionSheet';
 import { useLeetCodePorts } from '../state/ports';
@@ -11,9 +11,9 @@ export function ProblemDescriptionOverlay() {
   const { libraryContent } = useLeetCodePorts();
   const problem = id ? libraryContent.problem(id) : undefined;
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!problem) dismiss();
-  }, [problem, dismiss]);
+  }, [problem, dismiss]));
 
   if (!problem) return null;
 
