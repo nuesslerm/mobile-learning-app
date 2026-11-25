@@ -717,6 +717,7 @@ function ProblemEditorContent({
                   editorFocusedRef.current = focused;
                   if (focused) closeConsole('editor-focus');
                 }}
+                documentReady={editorReady}
                 onHydratedChange={setEditorReady}
               />
               {iosCanvas && (!editorReady || startupBuffer !== null) && (

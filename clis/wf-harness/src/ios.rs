@@ -247,6 +247,37 @@ impl Device for Simulator {
         source: &str,
         _: bool,
     ) -> Result<Value, String> {
+        if source == "template" {
+            let screenshot = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
+            let path = screenshot
+                .path()
+                .to_str()
+                .ok_or("invalid screenshot path")?;
+            self.take_screenshot(path)?;
+            let png = std::fs::read(path).map_err(|e| e.to_string())?;
+            let screen = self.call(json!(["screen"]))?;
+            let bounds = el.bounds;
+            let left = bounds.left as f64;
+            let top = bounds.top as f64;
+            let strokes = harness_core::trace::template_strokes_in_viewport(
+                &png,
+                screen["width"].as_f64().ok_or("missing screen width")?,
+                [
+                    left,
+                    top,
+                    (bounds.right - bounds.left) as f64,
+                    (bounds.bottom - bounds.top) as f64,
+                ],
+            )?;
+            if strokes.is_empty() {
+                return Err("no writing template is visible".into());
+            }
+            for stroke in &strokes {
+                let points: Vec<_> = stroke.iter().map(|(x, y)| [left + x, top + y]).collect();
+                self.call(json!(["stroke", points]))?;
+            }
+            return Ok(json!({"strokes": strokes.len()}));
+        }
         let paths: Value = serde_json::from_str(el.text.as_deref().unwrap_or(""))
             .map_err(|_| "missing simulator tracing geometry")?;
         let strokes = paths[source].as_array().ok_or("missing guide strokes")?;

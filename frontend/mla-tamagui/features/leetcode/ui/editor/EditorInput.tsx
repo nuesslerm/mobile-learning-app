@@ -93,6 +93,7 @@ type Props = {
   value: string;
   onChangeText: (text: string) => void;
   onSelectionChange: (sel: Selection) => void;
+  documentReady?: boolean;
   onHydratedChange?: (hydrated: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
   onUndoAvailabilityChange?: (canUndo: boolean) => void;
@@ -120,6 +121,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       onChangeText,
       onSelectionChange,
       onHydratedChange,
+      documentReady,
       onFocusChange,
       onUndoAvailabilityChange,
       documentKey,
@@ -874,7 +876,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             coldStartRef.current?.mark('loadStart');
             Logger.info('editor.webview.load_start', {});
           }} />
-        {Platform.OS === 'android' ? <EditorTextMirror source={textMirror} /> : null}
+        {(Platform.OS === 'android' || process.env.EXPO_PUBLIC_DEVICE_LAB === '1') && (
+          <EditorTextMirror source={textMirror} loading={process.env.EXPO_PUBLIC_DEVICE_LAB === '1' && !documentReady} />
+        )}
       </View>
     );
   }

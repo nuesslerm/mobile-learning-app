@@ -2,7 +2,7 @@
 platform: android, ios
 against: update
 timeout: 180
-units: case=resume; case=tiles; case=typed; case=listen; case=fill; case=review; case=trace; case=redraw; case=flash-english; case=flash-tamil
+units: case=resume; case=tiles; case=typed; case=listen; case=fill; case=review; case=trace; case=redraw; case=flash-english; case=flash-tamil; case=word; case=weak-letter; case=skip; case=library; case=double-rate
 focus: true
 features: tamil-writing
 ---]]
@@ -139,6 +139,67 @@ local function trace(redraw)
   text("[0-9]+% ON THE LINE")
   local score = assert(device:get_element({text="[0-9]+% ON THE LINE"}).text):match("(%d+)%%")
   assert_true(tonumber(score) and tonumber(score) >= 90, "tracing score must reach 90%")
+end
+cases.word = function()
+  open("/tamil/write/word-uyir-a", "TamilWriteCanvasSurface")
+  device:assert_visible({text=".*அம்மா.*"})
+  device:draw_strokes_on({id="TamilWriteCanvasSurface"}, {source="template", human=true})
+  device:scroll_until_visible{element={id="TamilWriteDone"}, direction="DOWN"}
+  tap("TamilWriteDone")
+  text("Practice complete")
+end
+local function scroll_to(id)
+  device:scroll_until_visible{element={id=id}, direction="DOWN"}
+end
+cases["weak-letter"] = function()
+  open("/tamil/uyir-1", device.platform == "android" and "TamilPracticePosition" or "TamilPracticeUndo")
+  scroll_to("TamilPracticeGotIt")
+  tap("TamilPracticeGotIt")
+  open("/tamil/alphabet", "TamilCourseReview")
+  tap("TamilCourseReview")
+  show("TamilReviewReveal")
+  tap("TamilReviewReveal")
+  text("ஆ")
+  tap("TamilReviewReveal")
+  tap("TamilReviewAgain")
+  text("1 AGAIN")
+end
+cases.skip = function()
+  local task = task_in("colors", "colors-e64ac07e1c54ea9701d8")
+  begin("colors", task)
+  tap("TamilSkipListening")
+  for i = 2, #task.exercises do
+    correct(task.exercises[i])
+    tap("TamilContinue")
+  end
+  text("0 missed · 1 skipped")
+  device:tap_on({text="Review missed and skipped"})
+  text(headings.listen)
+  correct(task.exercises[1])
+  tap("TamilContinue")
+  text("0 missed · 0 skipped")
+end
+cases.library = function()
+  open("/tamil/handwriting", "TamilHandwritingSearch")
+  tap("TamilHandwritingSearch")
+  device:input_text("ஆ")
+  tap("TamilCharacter-uyir-aa")
+  text("ஆ · ā")
+  show("TamilWriteCanvasSurface")
+end
+cases["double-rate"] = function()
+  flash()
+  tap("TamilFlashReveal")
+  show("TamilFlashRate-Good")
+  local box = assert(device:get_element({id="TamilFlashRate-Good"})).bounds
+  local point = {point=("%d,%d"):format(box.cx, box.cy)}
+  device:tap_on(point)
+  device:tap_on(point)
+  text(deck.exercises[2].english)
+  open_library(device, env.base, true)
+  flash()
+  text("0 due · " .. (#deck.exercises - 1) .. " new")
+  text(deck.exercises[2].english)
 end
 cases.trace = function() trace(false) end
 cases.redraw = function() trace(true) end

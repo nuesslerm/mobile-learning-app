@@ -63,3 +63,9 @@ The [three-sample run](https://github.com/nuesslerm/mobile-learning-app/actions/
 Android used the shared Linux `wf-build` job, which took 215 seconds. Both test update publishes and job dependencies precede the device jobs.
 
 The [Android run on 36c163c9](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45542540641) passed nine journeys in each section. LeetCode took 311.6 seconds with an extra slash inserted by tapping an expanded symbol group. Tamil took 306.6 seconds with the last relaunch landing on the Android home screen. The next run selects the symbol in the active group and launches Expo Go with an explicit package.
+
+### Core benchmark on both hosted runners
+
+In the [three-sample core run](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45544327590), Android passed all ten Tamil journeys in 169.8, 165.8 and 169.3 seconds. LeetCode took 213.4, 281.9 and 211.3 seconds. The first Android sample passed all twenty journeys. The other two exposed races opening the language wheel, editing immediately after loading a draft, inserting a symbol, and dismissing the Android keyboard.
+
+The next benchmark proposes fifteen journeys in each section. Cases 11–15 exercise editor settings, completion, blocks, two independent drafts and a deterministic voice edit on LeetCode. On Tamil they exercise word writing, weak-letter review, skipped audio, handwriting search and double-tap rating persistence. The voice case replays audio and the voice transport only for its device-lab deep link. Its code runs against the same runner as the other editor journeys.

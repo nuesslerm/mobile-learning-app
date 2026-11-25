@@ -2,7 +2,7 @@
 platform: android, ios
 against: update
 timeout: 180
-units: case=search; case=neetcode; case=one-editor; case=python; case=javascript; case=custom-input; case=repair-error; case=draft; case=symbol; case=keyboard
+units: case=search; case=neetcode; case=one-editor; case=python; case=javascript; case=custom-input; case=repair-error; case=draft; case=symbol; case=keyboard; case=settings; case=completion; case=blocks; case=two-drafts; case=voice
 focus: true
 features: leetcode
 ---]]
@@ -39,6 +39,7 @@ local function keyboard(want)
     timeout=10000, label=want and "system keyboard opened" or "system keyboard dismissed"}
 end
 local function focus_end(first_line)
+  if device.platform == "android" then visible("CodeEditorText") end
   local box = device:get_element({id="ProblemEditorInput"})
   if box then
     device:tap_on({point=("%d,%d"):format(box.bounds.cx, math.floor(box.bounds.top + 25))})
@@ -60,8 +61,11 @@ local function focus_end(first_line)
   end
 end
 local function hide_keyboard()
-  local hide = {text="Hide keyboard"}
-  if device:get_element(hide) then device:tap_on(hide) else
+  if not device:get_device_state("keyboard").visible then return end
+  local hide = {text="Hide [Kk]eyboard"}
+  if device:get_element(hide) then device:tap_on(hide)
+  elseif device.platform == "android" then device:back()
+  else
     device:scroll_until_visible{element={id="EditorAction-Done"}, direction="RIGHT", from={id="EditorActionToolbar"}}
     tap("EditorAction-Done")
   end
@@ -90,6 +94,7 @@ local function type_in_starter(text, row)
     device:press_key("Remote Dpad Up")
   end
   device:input_text(text)
+  if device.platform == "android" then device:assert_visible({id="CodeEditorText", text="(?s).*" .. text .. ".*"}) end
   hide_keyboard()
 end
 local function search(term, problem)
@@ -147,6 +152,7 @@ cases.javascript = function()
     device:tap_on({text="JavaScript"})
   else
     tap("ProblemEditorLanguagePicker-Trigger")
+    visible("WheelItemContainer-0")
     local wheel = assert(device:get_element({id="WheelItemContainer-0"})).bounds
     device:swipe(("%d,%d"):format(wheel.cx, wheel.cy), ("%d,%d"):format(wheel.cx, wheel.top-14), {duration=350})
     device:assert_visible({id="ProblemEditorLanguagePicker-Trigger", text="JavaScript"})
@@ -201,6 +207,10 @@ cases.symbol = function()
   if device:get_element(collapsed) then device:tap_on(collapsed) end
   local key = {id="SymbolBarKey-g4-0"}
   if device:get_element(key) then device:tap_on(key) else device:tap_on({text="(Type )?\\+"}) end
+  if device.platform == "android" then
+    device:assert_visible({id="CodeEditorText", text="(?s)v=8\\+.*"})
+    focus_end(true)
+  end
   device:input_text("5")
   hide_keyboard()
   output("13")
@@ -212,6 +222,93 @@ cases.keyboard = function()
   tap("ConsoleSheetHandle")
   append("3")
   output("123")
+end
+cases.settings = function()
+  local function open_settings()
+    if device.platform == "ios" then
+      local bar = assert(device:get_element({id="RNSScreen"})).bounds
+      device:tap_on({point=("%d,%d"):format(bar.right-28,bar.cy)})
+    else
+      tap("EditorSettingsButton")
+    end
+  end
+  open("/leetcode/two-sum", "ConsoleBarRun")
+  open_settings()
+  local setting = {text="Font size: [0-9]+px"}
+  device:assert_visible(setting)
+  local current = assert(device:get_element(setting)).text
+  local chosen = current == "Font size: 18px" and "16px" or "18px"
+  device:tap_on(setting)
+  device:tap_on({text=chosen})
+  device:extended_wait_until{not_visible={text=chosen}}
+  open_settings()
+  device:assert_visible({text="Font size: " .. chosen})
+  open_library(device, env.base, true)
+  open("/leetcode/two-sum", "ConsoleBarRun")
+  open_settings()
+  device:assert_visible({text="Font size: " .. chosen})
+end
+cases.completion = function()
+  device:open_link(env.base .. "/blind75")
+  device:scroll_until_visible{element={id="LeetcodeListAutocompleteOn"}, direction="DOWN"}
+  tap("LeetcodeListAutocompleteOn")
+  editor("v=Fal\n" .. py .. "79 if v == False else 0")
+  if device.platform == "ios" then
+    device:extended_wait_until{condition=function() return device:get_element({id="ProblemEditorStartupInput"}) == nil end, timeout=15000}
+  end
+  focus_end(true)
+  device:input_text("s")
+  device:tap_on({text="Tab"})
+  hide_keyboard()
+  output("79")
+end
+cases.blocks = function()
+  local function set_blocks(enabled)
+    device:open_link(env.base .. "/blind75")
+    local choice = "LeetcodeListBlockView" .. (enabled and "On" or "Off")
+    device:scroll_until_visible{element={id=choice}, direction="DOWN"}
+    tap(choice)
+  end
+  open("/leetcode/two-sum", "ConsoleBarRun")
+  type_in_starter("return 64", 4)
+  set_blocks(true)
+  device:open_link(env.base .. "/leetcode/two-sum")
+  visible("CodeEditorText")
+  device:tap_on({text="Blocks"})
+  device:assert_visible({text=".*return 64.*"})
+  device:tap_on({text="Code"})
+  device:assert_not_visible({id="BlockRow-0"})
+  set_blocks(false)
+  open("/leetcode/two-sum", "ConsoleBarRun")
+  output("64")
+end
+cases["two-drafts"] = function()
+  local function open_problem(slug, title)
+    open("/leetcode/" .. slug .. "/problem", "ProblemOpenEditor")
+    device:assert_visible({text=".*" .. title .. ".*"})
+    tap("ProblemOpenEditor")
+    visible("ConsoleBarRun")
+    visible("CodeEditorText")
+  end
+  open_problem("two-sum", "Two Sum")
+  type_in_starter("return 32", 4)
+  open_problem("contains-duplicate", "Contains Duplicate")
+  type_in_starter("return False", 4)
+  output("(false|False)")
+  open_problem("two-sum", "Two Sum")
+  output("32")
+  open_problem("contains-duplicate", "Contains Duplicate")
+  output("(false|False)")
+end
+cases.voice = function()
+  open("/leetcode/two-sum?lang=javascript&voiceReplay=1", "ConsoleBarRun")
+  device:scroll_until_visible{element={id="ProblemEditorVoiceStartButton"}, direction="DOWN"}
+  tap("ProblemEditorVoiceStartButton")
+  tap("ProblemEditorVoiceToolbar-Send")
+  device:assert_visible({text="rename nums to values and return early when target is found"})
+  tap("ProblemEditorVoiceReviewSheet-Send")
+  tap("ProblemEditorAlternativePicker-Row-1")
+  output("\\[0, ?1\\]")
 end
 run_flow("Given isolated learner data, when the learner completes " .. env.case .. ", then its outcome is visible", function()
   open_library(device, env.base)
