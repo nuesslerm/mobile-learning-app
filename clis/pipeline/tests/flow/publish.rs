@@ -194,3 +194,29 @@ fn a_bundle_carries_what_the_build_cache_did_since_the_last_publish_and_only_onc
     // And only the two runs it carried left the file
     assert_eq!(std::fs::read_to_string(s.repo.join("cache/build-cache-runs.jsonl")).unwrap().lines().count(), 1);
 }
+
+#[test]
+fn simulator_recordings_keep_the_device_and_revision_when_published() {
+    // Given an executed simulator journey with its recording and device manifest
+    let sandbox = SlotSandbox::new("wf-ios-publish-");
+    let dir = sandbox.repo.join("ios");
+    let mut report = run_report(&dir);
+    report["platform"] = json!("ios");
+    report["nativeDevice"] = json!({"device":"tamil","runtime":"iOS 27.0","expoGo":"58.0.7"});
+    sandbox.file("ios/report.json", report.to_string());
+    sandbox.file("ios/run.mp4", "recording");
+
+    // When the runner publishes the journey
+    let out = sandbox.repo.join("evidence");
+    let result = sandbox.run(&["test", "publish", dir.to_str().unwrap(), "--no-record", "--out", out.to_str().unwrap()], &[]);
+    assert_eq!(result.exit_code, 0, "{}{}", result.stdout, result.stderr);
+
+    // Then the bundle identifies the platform, device, tested revision and video
+    let summary = last_json(&result);
+    let bundle_dir = std::path::Path::new(summary["dir"].as_str().unwrap());
+    let bundle = read_json(&bundle_dir.join("bundle.json"));
+    assert_eq!(bundle["metrics"]["harness"], "ios");
+    assert_eq!(bundle["metrics"]["sha"], report["sha"]);
+    assert_eq!(bundle["nativeDevice"], report["nativeDevice"]);
+    assert!(bundle_dir.join("run.mp4").is_file());
+}

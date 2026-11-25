@@ -328,7 +328,7 @@ pub fn run(rest: &[String]) -> i32 {
     let mut section_start = None;
     for u in &units {
         let (serial, update) = if u.platform == "ios" { (&ios_device, &ios_update) } else { (&android_device, &android_update) };
-        if fails_in_row >= max_fails {
+        if !is_section && fails_in_row >= max_fails {
             let note = format!("not run: the {fails_in_row} units before it failed in a row");
             println!("{}", json!({ "unit": slug(u), "verdict": "skipped", "durationS": 0.0, "bundle": null, "note": note }));
             results.push(json!({ "test": u.test, "args": u.args, "sha": sha, "script": u.script, "platform": u.platform, "verdict": "skipped", "note": note, "durationS": 0.0 }));
