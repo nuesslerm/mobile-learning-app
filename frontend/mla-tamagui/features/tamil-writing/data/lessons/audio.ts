@@ -21,7 +21,7 @@ export function createExpoTamilAudio(): TamilAudioPort {
     current = undefined;
   }
   return {
-    async play(id, slow) {
+    async play(id, slow, onStarted) {
       stop();
       const request = playback;
       if (Platform.OS !== 'web') await setAudioModeAsync({ playsInSilentMode: true });
@@ -35,6 +35,7 @@ export function createExpoTamilAudio(): TamilAudioPort {
       player.setPlaybackRate(slow ? 0.75 : 1);
       const subscription = player.addListener('playbackStatusUpdate', (status) => {
         if (!status.playing || status.currentTime <= 0) return;
+        onStarted?.();
         Logger.info('tamil.audio.started', { exerciseId: id, rate: status.playbackRate });
         subscription.remove();
         unsubscribe = undefined;

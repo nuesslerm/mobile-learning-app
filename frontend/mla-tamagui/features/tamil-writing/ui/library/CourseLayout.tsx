@@ -35,15 +35,16 @@ export function CourseLayout({ title, children, testID, onBack, header, leading,
   );
 }
 
-export function CourseButton({ label, onPress, disabled, testID }: {
+export function CourseButton({ label, onPress, disabled, testID, accessibilityLabel }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   testID?: string;
+  accessibilityLabel?: string;
 }) {
   const colors = useCompactColors();
   return (
-    <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} testID={testID}
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} disabled={disabled} onPress={onPress} testID={testID}
       style={{ opacity: disabled ? 0.45 : 1 }}>
       <FloatingSurface style={styles.button}>
         <Text style={{ color: disabled ? colors.muted : colors.green, fontWeight: '700', fontSize: 16 }}>{label}</Text>

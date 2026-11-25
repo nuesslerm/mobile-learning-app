@@ -105,7 +105,7 @@ type EditorScreenProps = {
 };
 
 export function ProblemEditorScreen(props: EditorScreenProps) {
-  const draftProblemId = Platform.OS === 'ios' && props.seed === undefined ? props.id : undefined;
+  const draftProblemId = Platform.OS !== 'web' && props.seed === undefined ? props.id : undefined;
   const { session, loading } = useCodeDrafts(draftProblemId, EDITOR_LANGUAGES);
   if (loading) {
     return <YStack flex={1} items="center" justify="center" bg="$background"><Spinner /></YStack>;

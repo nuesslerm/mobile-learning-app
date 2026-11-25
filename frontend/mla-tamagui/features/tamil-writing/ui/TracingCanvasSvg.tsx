@@ -1,6 +1,6 @@
 import { View } from '@lib/tamagui-design-system';
 import { useCallback, useEffect, useReducer, useState } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
+import { Platform, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 import { useTheme } from '@lib/tamagui-design-system/primitives';
@@ -182,6 +182,11 @@ export function TracingCanvasSvg({
         <View
           flex={1}
           testID={`${testID}Surface`}
+          {...(Platform.OS === 'ios' && process.env.EXPO_PUBLIC_NATIVE_SUITE === '1' ? {
+            accessible: true,
+            accessibilityLabel: 'Tracing surface',
+            accessibilityValue: { text: JSON.stringify({ guide: activePath.length > 1 ? [activePath] : [] }) },
+          } : {})}
           data-active-guide={
             activePath.length > 1 ? pointsToPath(activePath) : ''
           }

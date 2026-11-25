@@ -11,6 +11,6 @@ export type CourseProgressPort = {
 };
 
 export type TamilAudioPort = {
-  play(exerciseId: string, slow: boolean): Promise<void>;
+  play(exerciseId: string, slow: boolean, onStarted?: () => void): Promise<void>;
   stop(): void;
 };

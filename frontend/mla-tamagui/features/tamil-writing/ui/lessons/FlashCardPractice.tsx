@@ -44,7 +44,7 @@ export function FlashCardPractice({ task }: { task: Task }) {
             </Text>
             <Text style={{ color: colors.muted }}>{current.transliteration}</Text>
           </View>}
-          {(!englishFirst || revealed) && <CourseButton label="Play Tamil" testID="TamilFlashAudio"
+          {(!englishFirst || revealed) && <CourseButton label="Play Tamil" testID="TamilFlashAudio" accessibilityLabel={practice.played ? 'Play Tamil, recording played' : undefined}
             disabled={pending} onPress={() => { void practice.play(); }} />}
         </FloatingSurface>
         {options ? <View style={styles.directions}>

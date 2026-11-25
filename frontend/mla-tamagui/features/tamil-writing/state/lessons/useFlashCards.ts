@@ -9,6 +9,7 @@ type Session = { direction: Direction; reviews: Reviews; now: number };
 
 export function useFlashCards(task: Task) {
   const { flashCards, audio } = useTamilWritingPorts();
+  const [playedId, setPlayedId] = useState<string>();
   const [session, setSession] = useState<Session>();
   const [revealed, setRevealed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -63,6 +64,7 @@ export function useFlashCards(task: Task) {
     session, queue, current, pending, error, revealed, load, rate,
     reveal: () => setRevealed(true),
     options: revealed && session && preview(review, new Date(session.now)),
-    play: () => protect(async () => { if (current) await audio.play(current.id, false); }),
+    played: Boolean(current && current.id === playedId),
+    play: () => protect(async () => { if (current) await audio.play(current.id, false, () => setPlayedId(current.id)); }),
   };
 }

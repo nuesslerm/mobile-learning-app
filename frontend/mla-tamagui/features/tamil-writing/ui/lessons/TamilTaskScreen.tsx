@@ -115,8 +115,10 @@ function Prompt({ exercise, practice }: { exercise: Exercise; practice: ReturnTy
         <Text style={[styles.heading, { color: colors.foreground }]}>{titles[exercise.kind]}</Text>
         {exercise.kind === 'listen' && (
           <View style={styles.audio}>
-            <CourseButton label="Play Tamil" testID="TamilPlayAudio" onPress={() => { void practice.play(exercise.id, false); }} />
-            <CourseButton label="Slow" testID="TamilSlowAudio" onPress={() => { void practice.play(exercise.id, true); }} />
+            <CourseButton label="Play Tamil" testID="TamilPlayAudio"
+              accessibilityLabel={practice.played?.id === exercise.id && practice.played.slow === false ? 'Play Tamil, recording played' : undefined} onPress={() => { void practice.play(exercise.id, false); }} />
+            <CourseButton label="Slow" testID="TamilSlowAudio"
+              accessibilityLabel={practice.played?.id === exercise.id && practice.played.slow === true ? 'Slow, recording played' : undefined} onPress={() => { void practice.play(exercise.id, true); }} />
           </View>
         )}
         {exercise.kind === 'translate' && (

@@ -69,6 +69,7 @@ export function ConsoleSheet({ problem, console: state, colorScheme, fieldError,
 
   const sheet = (
     <Sheet
+      accessible={false}
       open={state.open}
       onOpenChange={(open) => !open && onSheetClosed()}
       snapPoints={floating ? FLOATING_SNAP_POINTS : SNAP_POINTS}

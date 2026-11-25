@@ -232,6 +232,11 @@ function SkiaTracingCanvas(): React.ReactElement {
         <View
           flex={1}
           testID={`${testID}Surface`}
+          {...(Platform.OS === 'ios' && process.env.EXPO_PUBLIC_NATIVE_SUITE === '1' ? {
+            accessible: true,
+            accessibilityLabel: 'Tracing surface',
+            accessibilityValue: { text: JSON.stringify({ guide: activePath.length > 1 ? [activePath] : [] }) },
+          } : {})}
           data-active-guide={
             activePath.length > 1 ? pointsToPath(activePath) : ''
           }

@@ -11,6 +11,7 @@ export function useTaskPractice(topicId: string, task: Task, saved: CourseProgre
   const [answers, setAnswers] = useState(saved.tasks[task.id]?.answers ?? {});
   const [round, setRound] = useState(() => task.exercises.filter((exercise) => !answers[exercise.id]));
   const [initialCount, setInitialCount] = useState(task.exercises.length - round.length);
+  const [played, setPlayed] = useState<{ id: string; slow: boolean }>();
   const [index, setIndex] = useState(0);
   const [feedback, setFeedback] = useState<Verdict>();
   const [preview, setPreview] = useState(round.length === task.exercises.length);
@@ -73,7 +74,7 @@ export function useTaskPractice(topicId: string, task: Task, saved: CourseProgre
   async function play(id: string, slow: boolean) {
     setError(undefined);
     try {
-      await audio.play(id, slow);
+      await audio.play(id, slow, () => setPlayed({ id, slow }));
     } catch (cause) {
       Logger.withError(cause).error('tamil.audio.play_failed');
       setError('Couldn’t play the recording. Try again.');
@@ -81,7 +82,7 @@ export function useTaskPractice(topicId: string, task: Task, saved: CourseProgre
   }
 
   return {
-    answers, exercise, feedback, preview, pending, error, play,
+    answers, exercise, feedback, preview, pending, error, play, played,
     number: initialCount + index + 1,
     total: initialCount + round.length,
     begin: () => { audio.stop(); setPreview(false); },
