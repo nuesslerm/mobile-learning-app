@@ -96,3 +96,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 pinned 0.1.9, latest 0.1.11. Run 45160014078 (2026-11-23 10:52 UTC) failed in "Check the pins" with `no matching package named rca-core found`: ninth failing run in a row, the `mla` registry is unreachable from the runner (owner item, see 2026-11-19). Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
+
+## 2026-11-25
+
+- Verdict: run 45396275713 (scheduled 2026-11-24 12:43 UTC, about 16 h old), `ok: false`, 240 findings, 18 hard (all `should-have-hit`), 222 `replayed-nothing`. Down from 392 hard on 2026-11-24 and the lowest since the clean night of 2026-11-20. `group-overlap` and `cancelled-while-running` are gone (fewer superseded runs in the window; the audit job ran 29 min). Largest waste: `crate-orca-serve:cargo-integration` (123 s, 121 s), `crate-orca-serve:cargo-flow` (105 s).
+- Fixes landed: none. The cause of the `should-have-hit` misses is still not traced; `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 pinned 0.1.9, latest 0.1.11. Run 45395025359 (2026-11-24 12:35 UTC) failed in "Check the pins" with a different cause: the `rca-core` registry error is gone (the runner now builds `wf`, joins the tailnet and runs the plan), and the step ends at the "The marker was refused" branch (exit 1) of the plan. Cause of the refusal not read from the plan output (it is in the step's JSON, not in the failed-log lines). Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
