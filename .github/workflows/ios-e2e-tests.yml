@@ -116,4 +116,6 @@ jobs:
             ${{ runner.temp }}/ios-device.json
             ${{ runner.temp }}/test-runs
             ${{ runner.temp }}/e2e-runs/**/summary.json
+            ${{ runner.temp }}/e2e-runs/**/run.log
+            ${{ runner.temp }}/e2e-runs/**/rec/wait-timeout-*.hierarchy.json
           retention-days: 10

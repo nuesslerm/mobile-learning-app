@@ -148,9 +148,29 @@ fn rpc_once(serial: &str, method: &str, params: Value, timeout: Duration) -> Res
     out
 }
 
+// The bundled UIAutomator HTTP server can decode request bytes as Latin-1.
+// JSON Unicode escapes keep selectors and editable text intact on those devices.
+fn rpc_body(value: &Value) -> String {
+    use std::fmt::Write;
+    let json = value.to_string();
+    if json.is_ascii() { return json; }
+    let mut body = String::with_capacity(json.len());
+    for ch in json.chars() {
+        if ch.is_ascii() {
+            body.push(ch);
+        } else {
+            for code in ch.encode_utf16(&mut [0; 2]) {
+                write!(body, "\\u{code:04x}").expect("writing to a String");
+            }
+        }
+    }
+    body
+}
+
 fn rpc_untimed(serial: &str, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
     let body = json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
-    let post = |url: &str| Request::post(&format!("{url}/jsonrpc/0")).direct().timeout(timeout).json(&body).send();
+    let post = |url: &str| Request::post(&format!("{url}/jsonrpc/0")).direct().timeout(timeout)
+        .header("Content-Type", "application/json; charset=utf-8").body(rpc_body(&body)).send();
     let r = match post(&base(serial)?) {
         Ok(r) => r,
         Err(_) => {
@@ -219,12 +239,14 @@ pub(crate) fn revived(serial: &str) -> Result<bool, String> {
 }
 
 /// adb input text has no Unicode key map. UIAutomator can fill an empty focused native field.
-pub(crate) fn type_unicode(serial: &str, text: &str) -> Result<(), String> {
-    const FOCUSED: u64 = 0x1000;
+pub(crate) fn set_focused_text(serial: &str, text: &str, replace: bool) -> Result<(), String> {
+    const FOCUSED: u64 = 0x020000;
     let field = json!({"mask": CLASS_NAME | FOCUSED, "className": "android.widget.EditText", "focused": true, "childOrSibling": [], "childOrSiblingSelector": []});
-    let info = rpc_once(serial, "objInfo", json!([field]), Duration::from_secs(5))?;
-    if info["text"].as_str().is_some_and(|contents| !contents.is_empty() && contents != info["hintText"].as_str().unwrap_or("")) {
-        return Err("Unicode entry requires an empty focused field".into());
+    if !replace {
+        let info = rpc_once(serial, "objInfo", json!([field]), Duration::from_secs(5))?;
+        if info["text"].as_str().is_some_and(|s| !s.is_empty() && s != info["hintText"].as_str().unwrap_or("")) {
+            return Err("Unicode entry requires an empty focused field or replace=true".into());
+        }
     }
     let result = rpc_once(serial, "setText", json!([field, text]), Duration::from_secs(5))?;
     if result == false { return Err("Android did not accept Unicode input".into()); }
@@ -466,5 +488,22 @@ mod tests {
             assert_eq!((paced[0], paced[n - 1], paced[n - 2]), (path[0], path[path.len() - 1], path[path.len() - 1]), "starts on its first point and rests on its last");
         }
         assert!(pace(&[(150.0, 250.0)]).len() == 1, "a tap stays a tap");
+    }
+}
+
+
+#[cfg(test)]
+mod unicode_rpc {
+    use super::*;
+
+    #[test]
+    fn non_ascii_labels_and_inputs_survive_the_android_server_decoder() {
+        // Given Tamil text, punctuation and a supplementary-plane character in an RPC payload
+        let request = json!(["காதல்", "1 missed · 0 skipped", "🎴", "\"", "\\"]);
+        // When UIAutomator decodes the JSON bytes using a single-byte character set
+        let bytes = rpc_body(&request);
+        assert!(bytes.is_ascii());
+        // Then its selector and input values are identical to the learner's text
+        assert_eq!(serde_json::from_str::<Value>(&bytes).unwrap(), request);
     }
 }

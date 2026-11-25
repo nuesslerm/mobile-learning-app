@@ -147,7 +147,9 @@ cases.javascript = function()
     device:tap_on({text="JavaScript"})
   else
     tap("ProblemEditorLanguagePicker-Trigger")
-    tap("ProblemEditorLanguagePicker-JavaScript")
+    local wheel = assert(device:get_element({id="WheelItemContainer-0"})).bounds
+    device:swipe(("%d,%d"):format(wheel.cx, wheel.cy), ("%d,%d"):format(wheel.cx, wheel.top-14), {duration=350})
+    device:assert_visible({id="ProblemEditorLanguagePicker-Trigger", text="JavaScript"})
   end
   type_in_starter("return 37", 8)
   output("37")
@@ -159,8 +161,13 @@ cases["custom-input"] = function()
   tap("ConsoleChipAdd")
   tap("ConsoleField-target")
   keyboard(true)
-  device:press_key("Ctrl+End")
-  device:input_text("7")
+  if device.platform == "android" then
+    device:input_text("97", {replace=true})
+    device:tap_on({text="Testcase"})
+  else
+    device:press_key("Ctrl+End")
+    device:input_text("7")
+  end
   tap("ConsoleFooterRun")
   device:assert_visible({text="Output"}, {timeout=60000})
   device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text="97"})

@@ -159,7 +159,12 @@ async def drive(socket, udid, info):
             try:
                 result = None
                 if op == "tree":
-                    result = json.loads((await client.accessibility_info(None, False)).json)
+                    try:
+                        result = json.loads((await client.accessibility_info(None, False)).json)
+                    except Exception as error:
+                        if "no frontmost application" not in str(error):
+                            raise
+                        result = []
                 elif op == "keyboard":
                     dims = info["screen_dimensions"]
                     width, height = dims["width_points"], dims["height_points"]

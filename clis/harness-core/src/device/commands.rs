@@ -223,7 +223,11 @@ impl Run<'_> {
                 let text = self.str("text").unwrap_or_default();
                 self.keyboard_must_be(true)?;
                 let t0 = Instant::now();
-                dev.input_text(text)?;
+                if self.args.get("replace") == Some(&Value::Bool(true)) {
+                    dev.replace_text(text)?;
+                } else {
+                    dev.input_text(text)?;
+                }
                 Ok(json!({ "typed": text, "ms": ms(t0.elapsed()) }))
             }
             "press_key" => {

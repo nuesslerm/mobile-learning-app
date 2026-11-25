@@ -165,6 +165,10 @@ impl Device for AndroidDevice {
         input::type_text(&self.serial()?, text, self.log().as_deref())
     }
 
+    fn replace_text(&self, text: &str) -> Result<(), String> {
+        crate::android_u2::set_focused_text(&self.serial()?, text, true)
+    }
+
     fn press_key(&self, key: Key) -> Result<(), String> {
         let serial = self.serial()?;
         if key == Key::SelectAll {

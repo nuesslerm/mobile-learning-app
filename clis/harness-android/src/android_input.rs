@@ -586,7 +586,7 @@ fn key_script(keys: &[String]) -> String {
 /// down, so a run cannot pass with the keys going nowhere visible.
 pub(crate) fn type_text(serial: &str, text: &str, log: Option<&str>) -> Result<(), String> {
     if !text.is_ascii() {
-        return crate::android_u2::type_unicode(serial, text);
+        return crate::android_u2::set_focused_text(serial, text, false);
     }
     let mut keys: Vec<String> = Vec::new();
     let mut run = String::new();

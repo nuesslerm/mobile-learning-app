@@ -173,6 +173,10 @@ pub trait Device {
     fn swipe(&self, from: (f64, f64), to: (f64, f64), duration_ms: u64) -> Result<(), String>;
     /// Types at the caret of the focused field (the dispatcher refuses it while the keyboard is down, as press_key).
     fn input_text(&self, text: &str) -> Result<(), String>;
+    fn replace_text(&self, text: &str) -> Result<(), String> {
+        self.press_key(Key::SelectAll)?;
+        self.input_text(text)
+    }
     fn press_key(&self, key: Key) -> Result<(), String>;
     /// The system Back key (Android; the dispatcher refuses it while the keyboard is up).
     fn back(&self) -> Result<(), String>;

@@ -209,7 +209,7 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "input_text",
         maestro: Some("inputText"),
-        params: &[pos("text", Kind::Str, "the text, typed key by key"), OPTIONAL, LABEL],
+        params: &[pos("text", Kind::Str, "the text to enter"), opt("replace", Kind::Bool, Some("false"), "replace the contents of the focused field"), OPTIONAL, LABEL],
         platforms: Platforms::Both,
         guarded: true,
         action: true,

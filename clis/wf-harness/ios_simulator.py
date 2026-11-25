@@ -40,19 +40,35 @@ def prepare(udid):
     if not udid:
         if os.getenv("GITHUB_ACTIONS") != "true":
             raise ValueError("Local runs require --device <UDID>")
+        xcode = subprocess.check_output(["xcodebuild", "-version"], text=True).strip()
+        print(f"{xcode}\nChecking {RUNTIME} for {MODEL}", file=sys.stderr, flush=True)
+        runtimes = json.loads(sim("list", "runtimes", "-j"))["runtimes"]
+        runtime = next((r for r in runtimes if r["identifier"] == RUNTIME and r["isAvailable"]), None)
+        if runtime is None:
+            raise ValueError(f"The runner has no available {RUNTIME}")
         udid = sim("create", "tamil", MODEL, RUNTIME)
+        print(f"Booting {udid} with {runtime['name']} ({runtime['buildversion']})", file=sys.stderr, flush=True)
         sim("boot", udid)
-        sim("bootstatus", udid, "-b")
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
             archive = folder / ARCHIVE
+            print(f"Downloading Expo Go {VERSION}", file=sys.stderr, flush=True)
             urllib.request.urlretrieve(DOWNLOAD, archive)
             if hashlib.sha256(archive.read_bytes()).hexdigest() != SHA256:
                 raise ValueError("Expo Go simulator download failed checksum verification")
             app = folder / "Expo Go.app"
             app.mkdir()
             subprocess.run(["tar", "-xzf", archive, "-C", app], check=True)
+            subprocess.run(["xcrun", "simctl", "bootstatus", udid, "-b"], check=True, stdout=sys.stderr)
+            print(f"Installing Expo Go {VERSION} on {udid}", file=sys.stderr, flush=True)
             sim("install", udid, str(app))
+            # A freshly installed Expo Go shows two host-app tutorials before the project can receive touches.
+            root = Path(sim("get_app_container", udid, EXPO, "data"))
+            prefs = root / f"Library/Preferences/{EXPO}.plist"
+            prefs.parent.mkdir(parents=True, exist_ok=True)
+            settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
+            settings.update(ExpoGoOnboardingFinished=True, EXDevMenuIsOnboardingFinished=True)
+            prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
     print(json.dumps(simulator_manifest(udid)))
 
 

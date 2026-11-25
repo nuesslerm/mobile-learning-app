@@ -84,9 +84,9 @@ cases.typed = function()
   tap("TamilTypedAnswer")
   device:extended_wait_until{condition=function() return device:get_device_state("keyboard").visible end}
   local answer = short.exercises[1].tamil
-  device:input_text(answer)
+  device:input_text(answer, {replace=device.platform == "android"})
   device:assert_visible({id="TamilTypedAnswer", text=answer})
-  if device.platform == "ios" then device:tap_on({text=headings.translate}) else device:back() end
+  device:tap_on({text=headings.translate})
   device:extended_wait_until{condition=function() return not device:get_device_state("keyboard").visible end}
   tap("TamilCheck")
   text("Correct")
@@ -120,7 +120,12 @@ cases.review = function()
 end
 local function trace(redraw)
   local pad = {id="TamilPracticeCanvasSurface"}
-  open("/tamil/uyir-1", "TamilPracticeUndo")
+  open("/tamil/uyir-1", "TamilPracticePosition")
+  if device.platform == "android" then
+    local screen = device:get_device_state("screen")
+    device:swipe(("9,%d"):format(math.floor(screen.height*.86)), ("9,%d"):format(math.floor(screen.height*.31)), {duration=600})
+  end
+  show("TamilPracticeUndo")
   if redraw then
     local box = assert(device:get_element(pad), "tracing surface missing").bounds
     device:swipe(("%d,%d"):format(box.left+8, box.top+8), ("%d,%d"):format(box.left+26, box.top+8), {duration=200})
