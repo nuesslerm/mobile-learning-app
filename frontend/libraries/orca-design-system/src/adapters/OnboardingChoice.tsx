@@ -1,16 +1,7 @@
 import type { OnboardingChoiceProps } from '@lib/agent-ui-contracts';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  useColorScheme,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
-const palettes = {
-  light: { base: '#ffffff', secondary: '#696969', bright: '#171717' },
-  dark: { base: '#0a0a0a', secondary: '#acacac', bright: '#e5e5e5' },
-};
+import { homePalettes, useOrcaScheme } from './appearance';
 
 export function OnboardingChoice({
   label,
@@ -20,8 +11,8 @@ export function OnboardingChoice({
   disabled,
   onPress,
 }: OnboardingChoiceProps) {
-  const palette = palettes[useColorScheme() === 'dark' ? 'dark' : 'light'];
-  const color = primary ? palette.base : palette.secondary;
+  const palette = homePalettes[useOrcaScheme()];
+  const color = primary ? palette.bgBase : palette.textSecondary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -30,7 +21,7 @@ export function OnboardingChoice({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        primary ? { backgroundColor: palette.bright } : styles.secondary,
+        primary ? { backgroundColor: palette.surfaceBright } : styles.secondary,
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}
@@ -58,6 +49,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
+    borderCurve: 'continuous',
     paddingVertical: 8,
   },
   secondary: { marginTop: 4 },

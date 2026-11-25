@@ -19,7 +19,26 @@ export interface NotificationChoicesProps {
   onChoice: (choice: 'enable' | 'skip') => void;
 }
 
+export interface UnpairedHomeProps {
+  contentMaxWidth: number;
+  isWideLayout: boolean;
+  bottomInset: number;
+  title: string;
+  description: string;
+  steps: readonly { id: string; title: string; description: string }[];
+  pairLabel: string;
+  onPairDesktop: () => void;
+}
+
+export interface PairDesktopButtonProps {
+  label: string;
+  onPress: () => void;
+}
+
 export interface AgentComponents {
+  BrandMark: ComponentType<{ size?: number }>;
+  PairDesktopButton: ComponentType<PairDesktopButtonProps>;
+  UnpairedHome: ComponentType<UnpairedHomeProps>;
   OnboardingChoice: ComponentType<OnboardingChoiceProps>;
   NotificationChoices: ComponentType<NotificationChoicesProps>;
 }

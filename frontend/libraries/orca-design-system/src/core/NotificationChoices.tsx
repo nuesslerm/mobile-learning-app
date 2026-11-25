@@ -1,4 +1,7 @@
-import { useAgentComponents, type NotificationChoicesProps } from '@lib/agent-ui-contracts';
+import {
+  useAgentComponents,
+  type NotificationChoicesProps,
+} from '@lib/agent-ui-contracts';
 
 export function NotificationChoices(props: NotificationChoicesProps) {
   const { OnboardingChoice: Choice } = useAgentComponents();
