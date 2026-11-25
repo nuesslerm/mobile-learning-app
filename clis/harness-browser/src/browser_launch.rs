@@ -365,7 +365,7 @@ impl Session {
             return;
         }
         let _ = self.page.eval_page(&format!("window.__shell?.toggleKeyboard({visible})"));
-        let strategy = if self.device.spec["platform"] == "ios" { "overlay" } else { "resize" };
+        let strategy = if self.platform() == "ios" { "overlay" } else { "resize" };
         let inset = if visible && strategy == "overlay" { KEYBOARD_HEIGHT } else { 0 };
         if let Ok(Some(app)) = self.page.find_frame_named("device-frame-app", Duration::from_millis(200)) {
             let _ = self.page.eval_in_frame(&app.id, &format!("(() => {{ window.__MCP_KEYBOARD_VISIBLE__ = {visible}; window.__MCP_KEYBOARD_MODE__ = '{strategy}'; window.__MCP_KEYBOARD_HEIGHT__ = {inset}; window.dispatchEvent(new Event('mcp:keyboardframe')); }})()"));

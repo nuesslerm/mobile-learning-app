@@ -3824,3 +3824,7 @@ One native T3 pairing run on the simulator named `rca`. The previous input runne
 ### 2026-11-25 — Observe native T3 pairing through Mimic
 
 One paired iOS run against the pinned 0.1.9 server produced 106 traffic rows before the footer, including OAuth, a ticket, the shell snapshot, a 101 upgrade and correlated RPC frames. A second capture opening the fixture thread demonstrated the additional orchestration, preview, source-control and terminal subscriptions. Keep the filtered vocabulary and connection-local request labels. Targeted Mimic flow suite including split T3 replies and chunked HTTP: 29 passed in 1.53 s locally.
+
+### 2026-11-25 — iPhone keyboard coverage in the browser runbook
+
+Same iPhone 15 Pro preset, focused Expo chat, 852 CSS px viewport. The software keyboard started at y=582. The harness previously told the app the keyboard resized its viewport while the device shell overlaid it, placing the Send button’s bottom at y=831. Resolving the platform through the device’s existing iOS default moved Send to y=561. One real RCA reply arrived after tapping it with the keyboard visible.

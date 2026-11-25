@@ -9,6 +9,7 @@ import { useMemo, type ReactNode } from 'react';
 
 import { createHttpDispatchRunsPort } from '../data/dispatchRunsGateway';
 import { createAsyncStorageTokenStore } from '../data/tokenStore';
+import { createT3MobileApi } from '../data/t3/mobileApi';
 import { createMobileApi } from '../data/rca/mobileApi';
 import { createWsOrchestration } from '../data/wsOrchestration';
 import type { CodingAgentPorts } from '../domain/ports';
@@ -26,6 +27,7 @@ export function createDefaultPorts(
   const tokenStore = overrides.tokenStore ?? createAsyncStorageTokenStore();
   return {
     tokenStore,
+    t3Mobile: overrides.t3Mobile ?? createT3MobileApi(),
     mobile:
       overrides.mobile ??
       (overrides.orchestration ? undefined : createMobileApi()),

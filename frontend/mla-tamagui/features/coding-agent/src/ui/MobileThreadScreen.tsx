@@ -8,6 +8,8 @@ import { conversation, type Pending } from '../domain/mobileConversation';
 import { useMobileThread } from '../state/useMobileThread';
 import { useCodingAgentPorts } from '../state/ports';
 import { ThreadScreen } from './ThreadScreen';
+import { ChatKeyboardArea } from './ChatKeyboardArea';
+import { ChatScroll } from './ChatScroll';
 import { MobileWorkspacesScreen } from './MobileWorkspacesScreen';
 
 function RequestCard({ request, respond }: { request: Pending; respond: (value: string) => void }) {
@@ -31,11 +33,13 @@ export function MobileThreadScreen({ api, id, orca = false }: { api: MobilePort;
   const { rows, pending, children } = useMemo(() => conversation(state.events), [state.events]);
   if (state.legacy) return <ThreadScreen threadId={id} />;
   if (state.pair === null) return <MobileWorkspacesScreen api={api} destination={id} orca={orca} />;
+  const TranscriptScroll = orca ? ChatScroll : ScrollView;
+  const KeyboardArea = orca ? ChatKeyboardArea : KeyboardAvoidingView;
   return <View flex={1} bg="$background">
     <ScreenHeader glass testID="MobileThreadHeader" title={state.context?.thread.title ?? 'Thread'}
       subtitle={state.context?.thread.workspace} onBack={() => router.canGoBack() ? router.back() : router.replace('/coding-agent')} />
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <ScrollView keyboardShouldPersistTaps="handled">
+    <KeyboardArea style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <TranscriptScroll keyboardShouldPersistTaps="handled">
       <View p="$4" gap="$3">
         {state.status ? <Text variant="muted">{state.status}</Text> : null}
         {state.error ? <Text color="$red10" accessibilityRole="alert">{state.error}</Text> : null}
@@ -71,14 +75,14 @@ export function MobileThreadScreen({ api, id, orca = false }: { api: MobilePort;
           </ListItem>
         ))}
       </View>
-    </ScrollView>
+    </TranscriptScroll>
     {orca ? <Composer value={state.draft} onChangeText={state.setDraft}
       placeholder="Ask anything, @ to mention files, / for commands" sendLabel="Send message"
       canSend={!!state.context && !!state.draft.trim()} sending={state.sending}
       onSend={() => { void state.send().then(sent => { if (sent) Keyboard.dismiss(); }); }} /> :
     <ComposerBase testID="MobileComposer" placeholder="Message…" value={state.draft}
       onChangeText={state.setDraft} disabled={!state.context} onSend={() => void state.send()} />}
-    </KeyboardAvoidingView>
+    </KeyboardArea>
   </View>;
 }
 

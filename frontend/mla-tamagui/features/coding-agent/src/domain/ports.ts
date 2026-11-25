@@ -1,3 +1,4 @@
+import type { T3MobilePort } from './t3Mobile';
 import type { MobilePort } from './mobile';
 import type {
   OrchestrationSubscribeShellItem,
@@ -85,6 +86,7 @@ export type TokenStorePort = {
 
 export type CodingAgentPorts = {
   mobile?: MobilePort;
+  t3Mobile?: T3MobilePort;
   orchestration: OrchestrationPort;
   dispatchRuns: DispatchRunsPort;
   tokenStore: TokenStorePort;
