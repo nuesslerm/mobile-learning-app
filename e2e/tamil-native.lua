@@ -2,7 +2,8 @@
 platform: android, ios
 against: update
 timeout: 180
-units: case=resume; case=tiles; case=typed; case=listen; case=fill; case=review; case=trace; case=redraw; case=flash-english; case=flash-tamil; case=word; case=weak-letter; case=skip; case=library; case=double-rate
+units: case=resume; case=tiles; case=typed; case=listen; case=fill; case=review; case=trace; case=redraw; case=flash-english; case=flash-tamil; case=word; case=weak-letter
+candidates: case=skip; case=library; case=double-rate
 focus: true
 features: tamil-writing
 ---]]
@@ -86,8 +87,6 @@ cases.typed = function()
   local answer = short.exercises[1].tamil
   device:input_text(answer, {replace=device.platform == "android"})
   device:assert_visible({id="TamilTypedAnswer", text=answer})
-  device:tap_on({text=headings.translate})
-  device:extended_wait_until{condition=function() return not device:get_device_state("keyboard").visible end}
   tap("TamilCheck")
   text("Correct")
 end

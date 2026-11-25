@@ -383,6 +383,8 @@ jobs:
           path: |
             ${{ runner.temp }}/test-runs
             ${{ runner.temp }}/e2e-runs/**/summary.json
+            ${{ runner.temp }}/e2e-runs/**/android-process.log
+            ${{ runner.temp }}/*-wf-learner-*/preflight.log
           retention-days: 10
           if-no-files-found: ignore
       - name: Stop the backends

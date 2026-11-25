@@ -32,6 +32,19 @@ def call(folder, op, **fields):
     return message.get("value")
 
 
+def tree(folder):
+    deadline = time.monotonic() + 4
+    while True:
+        try:
+            return call(folder, "tree")
+        except RuntimeError as error:
+            # A changing foreground window invalidates its snapshot between lookup and frame capture.
+            transient = ("kAXErrorInvalidUIElement", "kAXErrorServerNotFound")
+            if not any(code in str(error) for code in transient) or time.monotonic() >= deadline:
+                raise
+            time.sleep(.08)
+
+
 def start(udid, runner):
     state = state_file(udid)
     if state.exists():
@@ -41,7 +54,7 @@ def start(udid, runner):
         except ProcessLookupError:
             state.unlink()
         else:
-            call(Path(previous["folder"]), "tree")
+            tree(Path(previous["folder"]))
             return
     session = "wf-ui-" + uuid.uuid4().hex
     log = state.with_suffix(".log")

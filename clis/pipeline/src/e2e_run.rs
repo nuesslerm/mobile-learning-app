@@ -274,7 +274,7 @@ pub fn run(rest: &[String]) -> i32 {
     with_verb.extend_from_slice(own);
     let Some(p) = parse_spec(&with_verb, &SPEC) else { return 2 };
     let sha = p.val("sha").map(str::to_string).unwrap_or_else(catalog::head_sha);
-    let books = catalog::e2e_tests();
+    let books = catalog::read_e2e_tests(p.val("case").is_some());
     let picked = match catalog::pick(&p, &books) {
         Ok(v) => v,
         Err(e) => {

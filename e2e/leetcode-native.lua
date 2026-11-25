@@ -2,7 +2,8 @@
 platform: android, ios
 against: update
 timeout: 180
-units: case=search; case=neetcode; case=one-editor; case=python; case=javascript; case=custom-input; case=repair-error; case=draft; case=symbol; case=keyboard; case=settings; case=completion; case=blocks; case=two-drafts; case=voice
+units: case=search; case=neetcode; case=one-editor; case=python; case=javascript; case=custom-input; case=repair-error; case=draft; case=symbol; case=keyboard
+candidates: case=settings; case=completion; case=blocks; case=two-drafts; case=voice
 focus: true
 features: leetcode
 ---]]

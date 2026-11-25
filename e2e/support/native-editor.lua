@@ -3,8 +3,7 @@ local function keyboard(want)
     timeout=10000, label=want and "system keyboard opened" or "system keyboard dismissed"}
 end
 local function focus_end(first_line)
-  if device.platform == "android" then device:assert_visible({id="CodeEditorText"}) end
-  local box = device.platform == "android" and device:get_element({id="ProblemEditorInput"})
+  local box = device.platform == "android" and device:assert_visible({id="CodeEditorInput"})
   if box then
     device:tap_on({point=("%d,%d"):format(box.bounds.cx, math.floor(box.bounds.top + 25))})
   else

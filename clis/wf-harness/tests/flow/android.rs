@@ -25,6 +25,7 @@ if [ -n "${STUB_UI_SEQ:-}" ]; then
 fi
 case "$*" in
   *"id -u"*) echo 0;;
+  *"am start -W"*) echo "Status: ok";;
   *"[ -e /sdcard/wf-record.on ]"*) [ -n "${STUB_RECORDING:-}" ] && echo "wf-recording=$STUB_RECORDING"; true;;
   *"pkill -INT screenrecord"*) [ -z "${STUB_DEVICE_BIN:-}" ] || PATH="$STUB_DEVICE_BIN" /bin/sh -c "$4";;
   *get-state*) n=$(cat "$0.n" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$0.n"; [ "$n" -gt "${STUB_OFFLINE_POLLS:-0}" ] && echo device; exit 0;;
@@ -1395,4 +1396,19 @@ esac"#);
         assert_eq!(result.exit_code, 1, "{}", out(&result));
         assert!(last_json(&result)["error"].as_str().unwrap_or_default().contains(error), "{}", out(&result));
     }
+}
+
+#[test]
+fn reopening_an_update_starts_a_new_launcher_process_before_delivering_the_link() {
+    // Given an installed Expo Go experience and a recorded Android shell
+    let s = sandbox("wf-flow-relaunch-update-");
+    s.file("reopen.lua", "device:open_link('exp://u.expo.dev/p/group/g', {relaunch=true})");
+    // When the learner reopens their update
+    let result = android(&s, &["test", "reopen.lua", "--no-record"], &[]);
+    // Then the previous process is stopped and the launcher opens before the update intent
+    assert_eq!(result.exit_code, 0, "{}", result.stderr);
+    let calls = s.calls("adb");
+    let position = |fragment: &str| calls.iter().position(|call| call.contains(fragment)).unwrap();
+    assert!(position("am force-stop host.exp.exponent") < position("android.intent.action.MAIN"));
+    assert!(position("android.intent.action.MAIN") < position("android.intent.action.VIEW"));
 }

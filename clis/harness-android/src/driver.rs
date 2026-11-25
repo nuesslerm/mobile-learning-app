@@ -137,11 +137,21 @@ impl Device for AndroidDevice {
     }
 
     fn relaunch_link(&self, link: &str) -> Result<(), String> {
+        let serial = self.serial()?;
+        let package = "host.exp.exponent";
         let url = input::sh_word(&harness_core::android_logs::link_with_run_id(link));
-        let started = input::adb_text(&self.serial()?, &["shell", "am", "start", "-S", "-W", "--include-stopped-packages",
-            "-p", "host.exp.exponent", "-a", "android.intent.action.VIEW", "-d", &url])?;
-        if !started.lines().any(|line| line.trim() == "Status: ok") {
-            return Err(format!("Android could not relaunch Expo Go: {started}"));
+        input::adb_run(&serial, &["shell", "am", "force-stop", package])?;
+        // Start through the launcher so Android creates the new process before Expo handles the update intent.
+        for intent in [
+            vec!["-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER"],
+            vec!["-a", "android.intent.action.VIEW", "-d", &url],
+        ] {
+            let mut args = vec!["shell", "am", "start", "-W", "--include-stopped-packages", "-p", package];
+            args.extend(intent);
+            let started = input::adb_text(&serial, &args)?;
+            if !started.lines().any(|line| line.trim() == "Status: ok") {
+                return Err(format!("Android could not relaunch Expo Go: {started}"));
+            }
         }
         Ok(())
     }

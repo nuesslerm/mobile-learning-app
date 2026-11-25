@@ -297,7 +297,7 @@ async def drive(socket, udid, info=None):
 
         async def tree():
             if folder:
-                return xcui.call(folder, "tree")
+                return xcui.tree(folder)
             return await accessibility_tree(client)
 
         tree_at, last_tree = 0.0, []

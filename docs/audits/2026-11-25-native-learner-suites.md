@@ -121,3 +121,22 @@ Shared Linux wf build job: 136 s.
 The shared Linux wf build took 116 s.
 Android test update publishing job took 176 seconds.
 iOS test update publishing job took 171 seconds.
+
+### Choosing the timed suites
+
+The [three-run benchmark on 35193be7](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45564812928) used six independent hosted devices. On the slowest iPhone the first ten LeetCode journeys took 596.5 seconds before section overhead. Adding editor settings brought the total to 651.3 seconds. The first twelve Tamil journeys took 549.8 seconds, including a failed keyboard-dismissal assertion. Adding skipped listening brought that total to 627.8 seconds. The next qualification uses **10 LeetCode and 12 Tamil journeys** on both platforms. Later candidates remain individually selectable with `--case`.
+
+All fifteen LeetCode journeys passed on the named local simulator in 200.3 seconds. After re-reading expired XCTest snapshots, the fifteen Tamil journeys passed in 171.9 seconds. The learner-storage digest matched before and after. One hosted iPhone showed typed Tamil and an enabled Check button above the keyboard while the heading tap left the keyboard open. Direct submission through Check passed on the local device in 9.7 seconds. The Android recordings showed process restarts returning the learner to the launcher. The driver now starts the Expo Go launcher activity before delivering the update to the new process. Its driver flow passed locally.
+
+| Platform | Sample | Queue (s) | Darwin CLI build (s) | Keyboard helper build (s) | Backend (s) | Boot/install (s) | LeetCode | Tamil | Upload (s) | Job (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: |
+| android | 1 | 2 | — | — | 36 | 71 | 12/15 in 545.7 s | 13/15 in 437.1 s | 4 | 1275 |
+| android | 2 | 2 | — | — | 38 | 90 | 13/15 in 569.3 s | 13/15 in 440.3 s | 3 | 1319 |
+| android | 3 | 2 | — | — | 35 | 71 | 13/15 in 461.6 s | 13/15 in 368.5 s | 4 | 1121 |
+| ios | 1 | 2 | 180 | 27 | 68 | 504 | 13/15 in 621.8 s | 15/15 in 453.4 s | 6 | 2126 |
+| ios | 2 | 2 | 142 | 23 | 67 | 483 | 11/15 in 699.3 s | 13/15 in 619.2 s | 11 | 2272 |
+| ios | 3 | 3 | 218 | 31 | 82 | 469 | 11/15 in 653.7 s | 12/15 in 630.4 s | 18 | 2403 |
+
+Shared Linux wf build job: 119 s.
+Android test update publishing job took 187 seconds.
+iOS test update publishing job took 169 seconds.

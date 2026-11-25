@@ -186,10 +186,12 @@ rm -f -- databases/RKStorage*
 """], check=True)
     configure_android_dev_menu(shell)
     preflight = directory / "preflight"
-    subprocess.run(["wf", "android", "test", "e2e/support/native-ready.lua", "--device", device,
-                    "--env", f"base={base}", "--test-output-dir", str(preflight), "--publish"], check=True,
-                   env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest),
-                        "WF_RUN_TIMING": str(preflight / "timing.jsonl")})
+    with (directory / "preflight.log").open("w") as logfile:
+        subprocess.run(["wf", "android", "test", "e2e/support/native-ready.lua", "--device", device,
+                        "--env", f"base={base}", "--test-output-dir", str(preflight), "--publish"],
+                       check=True, stdout=logfile, stderr=subprocess.STDOUT,
+                       env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest),
+                            "WF_RUN_TIMING": str(preflight / "timing.jsonl")})
     # The checkpoint contains the verified library and its empty learner data, including JS memory.
     snapshot("save")
     listed = subprocess.check_output([*adb, "emu", "avd", "snapshot", "list"], text=True)
@@ -223,7 +225,14 @@ def run_case(args):
     manifest = {"udid": args.device, "model": prop("ro.product.model"), "runtime": prop("ro.build.version.release"),
                 "sdk": prop("ro.build.version.sdk"), "expoGo": version}
     prepare_android_learner(args.device, os.environ["WF_NATIVE_UPDATE_BASE"], manifest)
-    return subprocess.call(args.command, env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)})
+    status = subprocess.call(args.command, env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)})
+    if status and os.getenv("WF_RUN_TIMING"):
+        diagnostics = Path(os.environ["WF_RUN_TIMING"]).with_name("android-process.log")
+        with diagnostics.open("w") as output:
+            for command in (["dumpsys", "activity", "exit-info", "host.exp.exponent"],
+                            ["logcat", "-b", "crash", "-d", "-t", "100"]):
+                subprocess.run([*adb, *command], stdout=output, stderr=subprocess.STDOUT)
+    return status
 
 
 def main():
