@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-8-2026-10-06-agent-config-sync-in-rust-first-port-beside-the-typesc",
+  "subject": "Engineering decisions",
+  "title": "agent-config-sync in Rust (first port, beside the TypeScript)",
+  "question": "What was measured for agent-config-sync in Rust (first port, beside the TypeScript)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: agent-config-sync in Rust (first port, beside the TypeScript)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release build, same container, n=5, python3 rusage; the guard row",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "command",
+        "TypeScript",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "`sync --check` wall / peak RSS",
+          "270.3 ms / 68.0 MB",
+          "30.0 ms / 11.0 MB"
+        ],
+        [
+          "`mcp-guard` wall / peak RSS",
+          "162.6 ms / 57.4 MB",
+          "10.5 ms / 10.9 MB"
+        ],
+        [
+          "binary",
+          "0.58 MB bundle plus node",
+          "1.88 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release build, same container, n=5, python3 rusage; the guard row"
+        ],
+        [
+          "The guard runs on every MCP tool call, so its 150 ms and 46 MB are paid per"
+        ],
+        [
+          "bring Unicode tables; the bundle needs a 40 MB runtime on top of it."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 285–334",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

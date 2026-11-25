@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-49-2026-10-06-wf-report-health-markdown-snapshot-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf report-health` (markdown snapshot) in Rust",
+  "question": "What was measured for `wf report-health` (markdown snapshot) in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf report-health` (markdown snapshot) in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (same slice): `wf bench compare` 696 ms / 84 MB to 26 ms / 11 MB, `wf auth list` 235 ms / 65 MB to 5 ms / 11 MB, `wf verify HEAD --dry-run --skip-tier1` 249 ms / 65 MB to 14 ms / 11 MB (n=5 medians, fresh process per run); table in `docs/audits/2026-10-06-rust-cli-consolidated-benchmark.md`.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (same slice): `wf bench compare` 696 ms / 84 MB to 26 ms / 11 MB, `wf auth list` 235 ms / 65 MB to 5 ms / 11 MB, `wf verify HEAD --dry-run --skip-tier1` 249 ms / 65 MB to 14 ms / 11 MB (n=5 medians, fresh process per run); table in `docs/audits/2026-10-06-rust-cli-consolidated-benchmark.md`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1343–1350",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

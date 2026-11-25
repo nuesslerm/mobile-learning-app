@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-112-2026-10-09-done-when-1-grep-on-the-final-head-and-a-lockfile-chan",
+  "subject": "Engineering decisions",
+  "title": "done-when 1 grep on the final head, and a lockfile change that rebuilds both service images",
+  "question": "What was measured for done-when 1 grep on the final head, and a lockfile change that rebuilds both service images?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: done-when 1 grep on the final head, and a lockfile change that rebuilds both service images",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: The Deploy of that lockfile change (run 37974249978, head `42b1161`) rebuilt both service images: `plan` 19 s, `deploy (remote-chat-agent)` 1 min 43 s, `deploy (leetcode-backend)` 1 min 7 s, Metro skipped, 3 min 17 s end to end from the push, all green (the legs run one after the other on the one runner; the dependency cache mounts were warm, the changed crate and everything that depends on it compiled again). It is the worst warm case for the five-minute ta…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "The Deploy of that lockfile change (run 37974249978, head `42b1161`) rebuilt both service images: `plan` 19 s, `deploy (remote-chat-agent)` 1 min 43 s, `deploy (leetcode-backend)` 1 min 7 s, Metro skipped, 3 min 17 s end to end from the push, all green (the legs run one after the other on the one runner; the dependency cache mounts were warm, the changed crate and everything that depends on it compiled again). It is the worst warm case for the five-minute target: a change that invalidates the dependency layer of both Rust images; a cold cache fill (about 15 min) is the only slower case measured."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2052–2061",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

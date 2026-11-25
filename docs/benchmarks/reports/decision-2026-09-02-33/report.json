@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-33",
+  "subject": "Engineering decisions",
+  "title": "Shipped",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Shipped",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Shipped: 26 skills removed (22 locked incl. caveman, 4 ungated repo skills), `paths: frontend/**` on workflow-cli, CLAUDE.md 11.7 → 5.9 KB, hard `token-diet` style on via `.agents/config/claude-settings.json`, caveman reminder hook + flag + script removed, `agentation` MCP off by default. Applies to new sessions; this session after `/clear`",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 16 | 2026-09-02 22:50 | Shipped: 26 skills removed (22 locked incl. caveman, 4 ungated repo skills), `paths: frontend/**` on workflow-cli, CLAUDE.md 11.7 → 5.9 KB, hard `token-diet` style on via `.agents/config/claude-settings.json`, caveman reminder hook + flag + script removed, `agentation` MCP off by default. Applies to new sessions; this session after `/clear` | ladder 1 T3 (−27% chat, −12% agentic), decisions 14–15 | `d7fc7b8b` |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 33",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

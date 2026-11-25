@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-06-70",
+  "subject": "Engineering decisions",
+  "title": "Model-routing ladder",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Model-routing ladder",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "model-routing ladder: `model-routing/ladders.implementer:unit` (catalog cell `cf-work/escalates-after-two-failures`, replay mock `MOCK_OPENCODE_MODE=escalate`, implementer:unit shape) — cell ran post arm n=1 Sonnet",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 53 | 2026-09-06 18:17 | model-routing ladder: `model-routing/ladders.implementer:unit` (catalog cell `cf-work/escalates-after-two-failures`, replay mock `MOCK_OPENCODE_MODE=escalate`, implementer:unit shape) — cell ran post arm n=1 Sonnet | `pnpm --filter @cli/agent-evals exec agent-evals skill-eval --arm post --runs 1 --model sonnet --id cf-work/escalates-after-two-failures --out-dir .agents/tmp/skill-eval-routing`. 1/1 ok, $0.0993, 23 s, 4 tool calls, 2 commits — replay mock so the cheap-model dispatch ladder was not actually called (deepseek and kimi-for-coding/kimi-for-coding returned text-only events, kimi-for-coding/k3 applied `replay/counter.patch` creating `src/counter.js`); the manifest printed `tiers: unit 1` and `UNITS_DISPATCHED: 1/1`, the cell's `file_contains`/`files_exist`/`files_glob_exist` checks (`src/counter.js`, `docs/plans/rotation/manifest.json`) all pass. End-to-end escalation is graded by this cell AND by `opencode-dispatch-ladder.integration.test.ts` | `.agents/tmp/skill-eval-routing/cf-work-escalates.log`, `clis/agent-evals/.agents/tmp/skill-eval-routing/{pack,summary}.json`; manifest at `/tmp/skill-eval-cf-work-post-Un7Dfc/docs/plans/rotation/manifest.json` | model-routing |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 70",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

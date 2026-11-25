@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-147-2026-10-25-one-deploy-flow-build-smoke-test-swap-bounded-health-c",
+  "subject": "Engineering decisions",
+  "title": "one deploy flow (build, smoke test, swap, bounded health check)",
+  "question": "What was measured for one deploy flow (build, smoke test, swap, bounded health check)?",
+  "date": "2026-10-25",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-25: one deploy flow (build, smoke test, swap, bounded health check)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Limits (to be replaced by 3x the slowest of three live timings once measured): serving check 120 s, the build step 90 min (a cold dependency layer).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "app",
+        "smoke test s",
+        "tailnet probe s",
+        "pull and swap s"
+      ],
+      "rows": [
+        [
+          "leetcode-backend",
+          "4, 3, 2",
+          "1, 1, 1",
+          "4, 4, 4"
+        ],
+        [
+          "remote-chat-agent",
+          "9, 5, 5",
+          "1, 0, 0",
+          "27, 8, 8"
+        ],
+        [
+          "reporting-service",
+          "3, 2, 2",
+          "1, 1, 1",
+          "4, 4, 4"
+        ],
+        [
+          "leetcode-auth-cookie-capture",
+          "6, 2, 3",
+          "0, 0, 0 (no `/health` route: probed inside only)",
+          "4, 4, 4"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Decision: vm-ops-api no longer builds itself. `wf ship vm-ops-api --ref <commit>` runs the build as a waited job (`--build-only vm-ops-api-rs watchdog --tag sha-<8>`), then `POST /redeploy?ref=&tag=` proves the pulled image and swaps. Deleted: the build supervisor, the pressure sampler, the agent-shell job launcher, the self-build script and its goldens, `wf vm ops redeploy-self`, the 3600 s `wait_serving` loop."
+        ],
+        [
+          "- Limits (to be replaced by 3x the slowest of three live timings once measured): serving check 120 s, the build step 90 min (a cold dependency layer)."
+        ],
+        [
+          "- 40159085189, flow-tests: only three wf-harness browser tests failed, on Chromium timeouts (`captureScreenshot` 5 s, `goto` 30 s) with the runner at load 7 on 2 OCPU: the change touched `wf-secrets`, so nearly every CLI crate re-ran at once. The other crates' passes are now in the Nx cache, so the next run replays them; `gh run rerun` and workflow dispatch answer 403 for this integration, so the next push is the re-run."
+        ],
+        [
+          "- Live proof of fail-fast (run 40162454403, vm-ops-api leg, before agent-shell carried the new name): the leg failed 24 s after it started with `DOCKERHUB_TOKEN: DOCKERHUB_TOKEN is not set` and `build failed with exit code 2`, where the same fault had held the old leg for 60 minutes."
+        ],
+        [
+          "The first three live `wf ship vm-ops-api --ref dd6ab6d6…` runs after the bootstrap all built in 14 to 16 s and were refused by the smoke test"
+        ],
+        [
+          "Live phases of vm-ops-api (integration of the new flow, the first run on the serving service, CI run 40171455726, deploy leg): build 64 s (a"
+        ],
+        [
+          "fresh image), smoke test 7 s, swap and serving 10 s. Other live builds: 54 s (CI leg) and 14 to 16 s (three manual re-tags). Limits are 3x the"
+        ],
+        [
+          "slowest live phase, rounded up: the redeploy request (pull, smoke test) 30 s, the serving check 30 s. The build keeps its job timeout"
+        ],
+        [
+          "Nine manual `wf ship <app> --ref ccb90114…` runs (three rounds; images of unchanged inputs, so each build is a 13 to 16 s re-tag). Phase"
+        ],
+        [
+          "three: the self-redeploy request 30 s (smoke 7 s x 3, rounded up) and its serving check 30 s (10 s x 3); an app redeploy is one synchronous"
+        ],
+        [
+          "sibling bounded by the 300 s HTTP timeout of its request, because remote-chat-agent took 29 s once (3x = 87 s, so 300 s is not the limit"
+        ],
+        [
+          "timeout: 3x 64 s would fail the cold dependency layer that has taken 52 min."
+        ],
+        [
+          "file calls it `app` (`no such service`). Nothing was swapped, the 502 carried the error, and all three runs ended in 14 s. Fixed in"
+        ],
+        [
+          "Three live runs at 583136f8f: \"pull, smoke test and swap\" 5, 4 and 4 s, each logging `[smoke] reporting-service healthy on port 18999`."
+        ],
+        [
+          "With the earlier timings the slowest swap phase of any app is remote-chat-agent at 29 s, so 3x is 87 s; the redeploy request keeps its 300 s"
+        ],
+        [
+          "Supersedes the two values above that were not at 3x. The app redeploy request is bounded at 90 s (3x the slowest live swap, 29 s,"
+        ],
+        [
+          "remote-chat-agent; was 180 s) and the build wait at 200 s (3x the slowest fresh build, 64 s; `WF_BUILD_LIMIT_MS` only seeds the flow test):"
+        ],
+        [
+          "goal: a cold dependency layer (52 min once) now fails the leg at 200 s; warm it with `wf ship --build-only <images> --no-wait`, then re-run."
+        ],
+        [
+          "Live smoke of leetcode-auth-cookie-capture at 4f49bc5e6 (`wf ship`, three runs): \"pull, smoke test and swap\" 7, 4 and 4 s, each logging"
+        ],
+        [
+          "`[smoke] leetcode-auth-cookie-capture healthy on port 18999`; below the 29 s the 90 s limit is built on. CI run 40176881051 green, report"
+        ],
+        [
+          "CI run 40183868073 (171ed6602), vm-ops-api: smoke test 6 s, tailnet probe 0 s (a signed `/health` of the throwaway container, which"
+        ],
+        [
+          "answered with the new commit), swap 4 s, serving 10 s. Twelve manual `wf ship <app> --ref 393f26ff5` runs, three per app, all exit 0:"
+        ],
+        [
+          "Limits at 3x the slowest: the smoke request 30 s (9 s x 3 = 27, was 90 s), the app swap request 90 s (27 s x 3 = 81), the build wait 200 s"
+        ],
+        [
+          "(64 s x 3), vm-ops-api's swap request 30 s and serving check 30 s. The phase-by-phase table is now the same for every deploy. Test type:"
+        ],
+        [
+          "Root cause: the check wanted a frame within 300 ms after the tap, but the marker lingers 1800 ms (`lingerMs`), so a recorder that drops frames"
+        ],
+        [
+          "under load failed a tap it does show. The window is now 1500 ms, inside the linger; the negative cases of the test (a dot elsewhere, none) are unchanged."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2551–2737",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

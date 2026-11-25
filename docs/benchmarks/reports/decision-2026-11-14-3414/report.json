@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-14-3414",
+  "subject": "Engineering decisions",
+  "title": "CI cache, warm run",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-14",
+  "revision": null,
+  "environment": null,
+  "workload": "CI cache, warm run",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "CI cache, warm run (issue #80 section 00; test type: live on GitHub-hosted runners, n=1, run 43561292866, `3fc495c`). Every layer read an exact or near hit: sccache `wf-build` 193 MB restored, 363 of 447 hits, `wf build` 28 s against 2m 03s cold; sccache `flow-tests` 188 MB, 312 hits, 0 misses; references 351 MB restored in four shards; nx 1 MB partial hit. Flow shards took 2m 10s to 3m 23s…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 14 Nov, CI cache, warm run (issue #80 section 00; test type: live on GitHub-hosted runners, n=1, run 43561292866, `3fc495c`). Every layer read an exact or near hit: sccache `wf-build` 193 MB restored, 363 of 447 hits, `wf build` 28 s against 2m 03s cold; sccache `flow-tests` 188 MB, 312 hits, 0 misses; references 351 MB restored in four shards; nx 1 MB partial hit. Flow shards took 2m 10s to 3m 23s against 3m 21s to 4m 44s on baseline run `75b3310`; typecheck shards 1m 40s to 1m 59s. Decision: keep sccache, references, nx and metro on `gha`; pnpm, toolchain and cargo-fetch stay off. Detail: `docs/audits/2026-11-14-ci-cache-bench.md`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3414",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

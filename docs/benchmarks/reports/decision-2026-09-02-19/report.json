@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-19",
+  "subject": "Engineering decisions",
+  "title": "Prose compression is a readability lever, not a cost lever, here",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Prose compression is a readability lever, not a cost lever, here",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Prose compression is a readability lever, not a cost lever, here; the ladder scores `total_cost_usd`",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 2 | 2026-09-02 18:50 | Prose compression is a readability lever, not a cost lever, here; the ladder scores `total_cost_usd` | cost map above; JetBrains caveman −8.5% output; Max Taylor \"Be brief.\" ties caveman | docs/solutions entry `6478e030` |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 19",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

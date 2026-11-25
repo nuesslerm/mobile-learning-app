@@ -30,6 +30,7 @@ Commands:
     --env KEY=VALUE          Environment of the candidate arm (repeatable)
     --platform <name>        web (default) or ios
     --pairs <n>              Baseline/candidate pairs (default 3)
+  reports build | check      Build or verify the offline benchmark library in docs/benchmarks
   list                       Show suites, their metrics and recorded baselines
   --help
 ";

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-13-3402",
+  "subject": "Engineering decisions",
+  "title": "The t3-serve replay flake",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-13",
+  "revision": null,
+  "environment": null,
+  "workload": "The t3-serve replay flake",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "the t3-serve replay flake (issue #80 section A): run 43437239290 failed once in `recorded_r1` on three `t3-crawl` rows (`pullRequests.filterOptions-invalid-*`) that got no answer from the replay. Cause: the replay waited only `LOCAL_QUIET_MS` (120 ms) for the first answer to a request, which the chain behind t3-serve (t3-serve, rca-service, rca-exec) can exceed on a loaded runner. A request is…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 13 Nov, the t3-serve replay flake (issue #80 section A): run 43437239290 failed once in `recorded_r1` on three `t3-crawl` rows (`pullRequests.filterOptions-invalid-*`) that got no answer from the replay. Cause: the replay waited only `LOCAL_QUIET_MS` (120 ms) for the first answer to a request, which the chain behind t3-serve (t3-serve, rca-service, rca-exec) can exceed on a loaded runner. A request is always answered (a reply, an error or the close), so after a `Request` frame the replay now waits up to 3 s for the first thing the server sends, then applies the 120 ms quiet window as before. Integration: 65 `t3-serve` tests pass (360 s), no known-gaps change."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3402",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

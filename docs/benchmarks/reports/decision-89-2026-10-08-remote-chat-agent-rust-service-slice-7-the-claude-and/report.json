@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-89-2026-10-08-remote-chat-agent-rust-service-slice-7-the-claude-and",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, slice 7 (the Claude and Codex gateways: not ported, with the evidence)",
+  "question": "What was measured for remote-chat-agent Rust service, slice 7 (the Claude and Codex gateways: not ported, with the evidence)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, slice 7 (the Claude and Codex gateways: not ported, with the evidence)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Decision, said plainly because it narrows what \"ported\" means: the Rust service drives opencode only. `claudeGateway.ts` (1,494 lines, the Anthropic Agent SDK, which bundles a 263 MB `claude` executable and speaks its stream-json control protocol) and `codexGateway.ts` (1,220 lines, JSON-RPC to a `codex app-server` subprocess) are not ported, and the Rust service reports both CLIs as unavailable (`/api/agent-clis`, the WebSocket probe, `cli` in a chat body…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Decision, said plainly because it narrows what \"ported\" means: the Rust service drives opencode only. `claudeGateway.ts` (1,494 lines, the Anthropic Agent SDK, which bundles a 263 MB `claude` executable and speaks its stream-json control protocol) and `codexGateway.ts` (1,220 lines, JSON-RPC to a `codex app-server` subprocess) are not ported, and the Rust service reports both CLIs as unavailable (`/api/agent-clis`, the WebSocket probe, `cli` in a chat body), where the earlier slices reported them available when their executable was on `PATH`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1735–1741",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3456",
+  "subject": "Engineering decisions",
+  "title": "Opt-in CodeMirror timing",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Opt-in CodeMirror timing",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "opt-in CodeMirror timing (iPhone 17 Pro Max simulator, one development launch, one 17-character typing burst, no model). Buoy Console recorded 3,617 ms to hydrate the editor and 33 ms evaluating its bundle. Three input samples took 2–11 ms from `beforeinput` to CodeMirror update and 10–32 ms from update to the next WebView frame callback. The generated page bundle grows by 433 characters. Keep…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, opt-in CodeMirror timing (iPhone 17 Pro Max simulator, one development launch, one 17-character typing burst, no model). Buoy Console recorded 3,617 ms to hydrate the editor and 33 ms evaluating its bundle. Three input samples took 2–11 ms from `beforeinput` to CodeMirror update and 10–32 ms from update to the next WebView frame callback. The generated page bundle grows by 433 characters. Keep the development probe opt-in with a maximum of four reports per second and no document contents in the timing events."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3456",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

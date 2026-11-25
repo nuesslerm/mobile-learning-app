@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "id": "agent-proof",
+  "title": "Agent proof on the browser harness",
+  "subject": "Test harnesses",
+  "question": "What timings were recorded for Agent proof on the browser harness?",
+  "date": "2026-10-14",
+  "revision": null,
+  "environment": "local `export:web` of this branch with EXPO_PUBLIC_LEETCODE_FIXTURES=1 (Run Local answered by the fixture ports, no backend), served by frontend/mla-tamagui/e2e/lib/staticServer.mjs under the export's baseUrl; the shared 127.0.0.1:8080 export was not usable (python http.server at the root: /leetcode/two-sum 404s and the /mla-tamagui assets do not resolve)",
+  "workload": "open <base>/leetcode/two-sum; wait id:ProblemEditorRunLocalButton; tap it; wait id:ProblemEditorRunOutcomeTotals and assert it contains 'passed' (the autofocused editor's keyboard is lowered with Done first, as a user does: it covers Run Local)",
+  "method": "The source retains the original scenario names and measurement precision.",
+  "finding": "arms / 1 / runS measured 4.1.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Source measurement",
+        "Reported value"
+      ],
+      "rows": [
+        [
+          "arms / 1 / agentS",
+          "0.0"
+        ],
+        [
+          "arms / 1 / runS",
+          "4.1"
+        ],
+        [
+          "arms / 1 / wallS",
+          "4.1"
+        ],
+        [
+          "arms / 2 / agentS",
+          "12.0"
+        ],
+        [
+          "arms / 2 / runS",
+          "4.0"
+        ],
+        [
+          "arms / 2 / wallS",
+          "16.0"
+        ],
+        [
+          "arms / 2 / costUsd",
+          "0.0281004"
+        ],
+        [
+          "arms / 2 / tokens",
+          "6114.0"
+        ],
+        [
+          "arms / 3 / agentS",
+          "85.4"
+        ],
+        [
+          "arms / 3 / runS",
+          "3.9"
+        ],
+        [
+          "arms / 3 / wallS",
+          "89.3"
+        ],
+        [
+          "arms / 3 / costUsd",
+          "0.01119078"
+        ],
+        [
+          "arms / 3 / tokens",
+          "22249.0"
+        ],
+        [
+          "waitBudgetMs",
+          "10000"
+        ],
+        [
+          "waitEvidence / n",
+          "18"
+        ],
+        [
+          "waitEvidence / p50",
+          "53"
+        ],
+        [
+          "waitEvidence / p95",
+          "5187"
+        ],
+        [
+          "waitEvidence / p95x2",
+          "10374"
+        ],
+        [
+          "waitEvidence / byPlatform / browser / n",
+          "13"
+        ],
+        [
+          "waitEvidence / byPlatform / browser / p50",
+          "34"
+        ],
+        [
+          "waitEvidence / byPlatform / browser / p95",
+          "274"
+        ],
+        [
+          "waitEvidence / byPlatform / browser / budgetAlone",
+          "2000"
+        ],
+        [
+          "waitEvidence / byPlatform / android / n",
+          "5"
+        ],
+        [
+          "waitEvidence / byPlatform / android / p50",
+          "3545"
+        ],
+        [
+          "waitEvidence / byPlatform / android / p95",
+          "5187"
+        ],
+        [
+          "waitEvidence / byPlatform / android / budgetAlone",
+          "10000"
+        ],
+        [
+          "waitEvidence / byPlatform / android / samplesMs / 1",
+          "3215"
+        ],
+        [
+          "waitEvidence / byPlatform / android / samplesMs / 2",
+          "3545"
+        ],
+        [
+          "waitEvidence / byPlatform / android / samplesMs / 3",
+          "5187"
+        ],
+        [
+          "waitEvidence / byPlatform / android / samplesMs / 4",
+          "4213"
+        ],
+        [
+          "waitEvidence / byPlatform / android / samplesMs / 5",
+          "3237"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "agent-proof.json",
+      "path": "../../../runbooks/.results/agent-proof.json"
+    }
+  ]
+}

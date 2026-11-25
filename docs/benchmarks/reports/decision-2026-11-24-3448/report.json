@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3448",
+  "subject": "Engineering decisions",
+  "title": "Exact iOS visual comparison",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Exact iOS visual comparison",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "exact iOS visual comparison (n=1 per capture, no model). With the status bar masked, the Case 1 screenshot took 6.51 s before the color calibration and 10.25 s after it. Exact differences went from 2,319,675 to 848,492 pixels at 1284×2778. Keep exact mode alongside Pixelmatch so one-level differences in large surfaces are visible without changing the approval regression tolerance.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, exact iOS visual comparison (n=1 per capture, no model). With the status bar masked, the Case 1 screenshot took 6.51 s before the color calibration and 10.25 s after it. Exact differences went from 2,319,675 to 848,492 pixels at 1284×2778. Keep exact mode alongside Pixelmatch so one-level differences in large surfaces are visible without changing the approval regression tolerance."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3448",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

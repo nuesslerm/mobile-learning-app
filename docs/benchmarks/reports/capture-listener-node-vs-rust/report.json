@@ -1,0 +1,383 @@
+{
+  "schemaVersion": 1,
+  "id": "capture-listener-node-vs-rust",
+  "subject": "Services and CLI",
+  "title": "capture listener node vs rust",
+  "question": "What did the capture listener node vs rust measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": "x86_64",
+  "workload": "capture listener node vs rust",
+  "method": "n=5 rounds of the capture listener's cold start, idle RSS and refusal latency, implementations interleaved per round.\n\nusage: capture-listener-bench.py OUT.json label=cwd::command [label=cwd::command ...]\nPer run: spawn the listener with a complete configuration (nothing is triggered), wait until the port accepts (start-up ms), wait 1 s,\nread VmRSS from /proc (idle RSS), then send 200 `POST /trigger` with a wrong secret and take the median latency of the 401 (hot route).\nA round's value is the median of its RUNS runs; the result is the median of the round medians.\n",
+  "finding": "node recorded 1022.7 ms for start_ms.",
+  "variants": [
+    {
+      "id": "node",
+      "label": "node"
+    },
+    {
+      "id": "rust",
+      "label": "rust"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "start-ms",
+      "label": "start_ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idle-rss-kb",
+      "label": "idle_rss_kb",
+      "unit": "KB",
+      "direction": "lower"
+    },
+    {
+      "id": "refusal-p50-ms",
+      "label": "refusal_p50_ms",
+      "unit": "ms",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 1022.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 137788,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.659,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 1029.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 137472,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 0.616,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 999.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 137636,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 0.659,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 1022.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 137788,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 0.667,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 1049.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 138760,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 0.606,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 1017.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 138088,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 0.685,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 14.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6572,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.52,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 14.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 6648,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 0.511,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 14.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 6552,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 0.538,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 14.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 6580,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 0.52,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 14.3,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 6568,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 0.498,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 14.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 6572,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "refusal-p50-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 0.589,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "capture-listener-node-vs-rust.json",
+      "path": "evidence/capture-listener-node-vs-rust.json"
+    }
+  ],
+  "sampleSize": "n=5 rounds of the capture listener's cold start, idle RSS and refusal latency, implementations interleaved per round."
+}

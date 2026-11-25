@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "id": "rca-rust-slice5",
+  "subject": "Services and CLI",
+  "title": "rca rust slice5",
+  "question": "What did the rca rust slice5 measurements show?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "rca rust slice5",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "rust-slice5 recorded 30.329271999999037 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "rust-slice5",
+      "label": "rust-slice5"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    },
+    {
+      "id": "convert-pdf",
+      "label": "convert pdf"
+    },
+    {
+      "id": "convert-pdf-chromium",
+      "label": "convert pdf (chromium)"
+    },
+    {
+      "id": "convert-docx",
+      "label": "convert docx"
+    },
+    {
+      "id": "tamil-check",
+      "label": "tamil check"
+    },
+    {
+      "id": "voice-transcribe",
+      "label": "voice transcribe"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "artifactbytes",
+      "label": "artifactBytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafterhealthmb",
+      "label": "rssAfterHealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthp50ms",
+      "label": "healthP50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "p50ms",
+      "label": "p50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "rssaftermb",
+      "label": "rssAfterMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "finalrssmb",
+      "label": "finalRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmaxmb",
+      "label": "peakRssMaxMb",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "artifactbytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 17205296,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 30.329271999999037,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 5.51953125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "rssafterhealthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 5.62109375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "healthp50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.46585899999990943,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "convert-pdf",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 14.670381000000816,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "convert-pdf",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6.171875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "convert-pdf-chromium",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 14.127826500000083,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "convert-pdf-chromium",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6.3203125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "convert-docx",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 1.2842780000000857,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "convert-docx",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6.58984375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "tamil-check",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 158.06089100000008,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "tamil-check",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 44.41015625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "voice-transcribe",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.233651999999893,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "voice-transcribe",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 44.45703125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "finalrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 44.45703125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 44.45703125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice5",
+      "scenario": "service",
+      "metric": "peakrssmaxmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 56.20703125,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "rca-rust-slice5.json",
+      "path": "evidence/rca-rust-slice5.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

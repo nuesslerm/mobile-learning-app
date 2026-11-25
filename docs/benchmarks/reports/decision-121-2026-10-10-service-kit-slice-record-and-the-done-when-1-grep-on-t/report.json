@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-121-2026-10-10-service-kit-slice-record-and-the-done-when-1-grep-on-t",
+  "subject": "Engineering decisions",
+  "title": "service-kit slice record and the done-when 1 grep on the head of `claude/ts-removal`",
+  "question": "What was measured for service-kit slice record and the done-when 1 grep on the head of `claude/ts-removal`?",
+  "date": "2026-10-10",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-10: service-kit slice record and the done-when 1 grep on the head of `claude/ts-removal`",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: `backend/service-kit` (PR #332, report `docs/audits/reports/backend-service-kit.md`): one crate replaces the telemetry, log, limiter and heartbeat code both backends carried by hand (490 lines in each service) with 579 shared lines (tracing + OTLP, the redaction layer, the request trace layer, the tower_governor rate limit, heartbeat, shutdown; since then also the secret loader and a JSON refusal helper). Cost per service: about 3.5 MB of binary and 4 MB of …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "`backend/service-kit` (PR #332, report `docs/audits/reports/backend-service-kit.md`): one crate replaces the telemetry, log, limiter and heartbeat code both backends carried by hand (490 lines in each service) with 579 shared lines (tracing + OTLP, the redaction layer, the request trace layer, the tower_governor rate limit, heartbeat, shutdown; since then also the secret loader and a JSON refusal helper). Cost per service: about 3.5 MB of binary and 4 MB of resident memory. Verified through its users: leetcode-backend black box 79 of 79, remote-chat-agent 314 of 314, capture 20 of 20 and reporting-service 39 of 39 on deploy-profile binaries. The one documented exception to \"no hand-rolled code\" is its redaction layer."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2149–2154",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

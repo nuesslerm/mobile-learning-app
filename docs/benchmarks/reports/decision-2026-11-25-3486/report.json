@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3486",
+  "subject": "Engineering decisions",
+  "title": "Three fresh iOS 27 hosts measured the expanded learner suites",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "Three fresh iOS 27 hosts measured the expanded learner suites",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Three fresh iOS 27 hosts measured the expanded learner suites. The slowest cumulative ten LeetCode cases took 596.5 s and eleven took 651.3 s. Twelve Tamil cases took 549.8 s and thirteen took 627.8 s on that host. Qualify ten and twelve respectively, preserving later candidates for explicit selection. A focused case-selection test and an Android process-relaunch flow passed. Direct Tamil…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — Three fresh iOS 27 hosts measured the expanded learner suites. The slowest cumulative ten LeetCode cases took 596.5 s and eleven took 651.3 s. Twelve Tamil cases took 549.8 s and thirteen took 627.8 s on that host. Qualify ten and twelve respectively, preserving later candidates for explicit selection. A focused case-selection test and an Android process-relaunch flow passed. Direct Tamil keyboard submission passed on the local iPhone in 9.7 s. [Timings and runner costs](2026-11-25-native-learner-suites.md#choosing-the-timed-suites)"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3486",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

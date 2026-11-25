@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-105-2026-10-09-the-wf-black-box-suite-no-longer-flakes-test-infrastru",
+  "subject": "Engineering decisions",
+  "title": "the wf black-box suite no longer flakes (test infrastructure)",
+  "question": "What was measured for the wf black-box suite no longer flakes (test infrastructure)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: the wf black-box suite no longer flakes (test infrastructure)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: The stop check rightly objected that the `wf` suite passed only at a reduced worker count. Looping single files showed real races in the tests and mock helpers, several of them mine from the curl-to-server conversion: port files written in place and read while empty, one fixed port bound by two parallel files (and seeded as \"nobody answers\" in a third), a per-test server on a pid-derived port that the previous test's server could still hold, stub logs read b…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "The stop check rightly objected that the `wf` suite passed only at a reduced worker count. Looping single files showed real races in the tests and mock helpers, several of them mine from the curl-to-server conversion: port files written in place and read while empty, one fixed port bound by two parallel files (and seeded as \"nobody answers\" in a third), a per-test server on a pid-derived port that the previous test's server could still hold, stub logs read before the stub wrote them, and a Chromium `beforeAll` that outlasted vitest's 10 s hook timeout under load. Each is fixed at its cause (atomic port files, unique ports or a free port chosen by the mock, `vi.waitFor` on the stub logs, `hookTimeout` 45 s, workers capped at cores minus one); the details are in `docs/audits/reports/tooling-wf-blackbox.md`. Tier: integration. The default `npx vitest run` passed 1153 of 1153 four times in a row (about 170 s each); before, most runs failed one to five tests, a different set each time. No behaviour of `wf` changed."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1971–1974",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

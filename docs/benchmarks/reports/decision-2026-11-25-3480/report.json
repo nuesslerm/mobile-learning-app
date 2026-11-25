@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3480",
+  "subject": "Engineering decisions",
+  "title": "On the named iPhone the prepared device identity and revised NeetCode assertion passed",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "On the named iPhone the prepared device identity and revised NeetCode assertion passed",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "On the named iPhone the prepared device identity and revised NeetCode assertion passed all fifteen LeetCode cases in 201.4 s. The unchanged screen recorder retained every case. A lower-resolution idb stream produced corrupted frames and was discarded. The hosted iOS sample recorded 771.4 s for LeetCode and 1,633.2 s for Tamil with a missing keyboard hit, a developer overlay, and disabled app…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — On the named iPhone the prepared device identity and revised NeetCode assertion passed all fifteen LeetCode cases in 201.4 s. The unchanged screen recorder retained every case. A lower-resolution idb stream produced corrupted frames and was discarded. The hosted iOS sample recorded 771.4 s for LeetCode and 1,633.2 s for Tamil with a missing keyboard hit, a developer overlay, and disabled app accessibility after Unicode entry. Target these measured failures during the next qualification."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3480",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

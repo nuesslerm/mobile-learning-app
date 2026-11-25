@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-192-run-41365175856-ade70b455-16-m-42-s-red-on-the-first-libs-proxy-d",
+  "subject": "Engineering decisions",
+  "title": "Run 41365175856 (ade70b455): 16 m 42 s, red on the first libs-proxy deploy (2026-11-02)",
+  "question": "What was measured for Run 41365175856 (ade70b455): 16 m 42 s, red on the first libs-proxy deploy (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 41365175856 (ade70b455): 16 m 42 s, red on the first libs-proxy deploy (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - A wf-crates-only push (trace flags in `pipeline` and `blob-cache`): `flow-tests` 5 m 02 s, `typecheck-lint-unit-tests` 8 m 07 s (the silent Nx gap is still in it; the jobs run the wf the previous push published, so the new `WF_NX_TRACE` output exists only from the next run), `clis` 7 s, then `deploy (libs-proxy)` failed after 44 s and skipped every later tier. No queueing this time: the runner was free, so the wall clock is the sum of the jobs.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- A wf-crates-only push (trace flags in `pipeline` and `blob-cache`): `flow-tests` 5 m 02 s, `typecheck-lint-unit-tests` 8 m 07 s (the silent Nx gap is still in it; the jobs run the wf the previous push published, so the new `WF_NX_TRACE` output exists only from the next run), `clis` 7 s, then `deploy (libs-proxy)` failed after 44 s and skipped every later tier. No queueing this time: the runner was free, so the wall clock is the sum of the jobs."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3250–3254",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

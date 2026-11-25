@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-72-2026-10-08-remote-chat-agent-baseline-before-its-rust-port-rust-s",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent baseline before its Rust port (rust-services plan, phase 0 part one)",
+  "question": "What was measured for remote-chat-agent baseline before its Rust port (rust-services plan, phase 0 part one)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent baseline before its Rust port (rust-services plan, phase 0 part one)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Compared with leetcode-backend (78 MB, 252 ms for 1.4k source lines), this service pays about 56 MB more resident and 260 ms more start-up for loading 21.6k lines and its dependency graph, which is the part a port removes only if the media dependencies leave the resident process (the plan's decision 1, still the owner's).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier: measurement, no code changed. The service as production runs it (`dist/bundle/index.mjs`, 14.9 MB from `pnpm --filter @app/remote-chat-agent run bundle`, its native and heavy packages left external), `AGENT_CLI=opencode`, the secrets loader stubbed with a no-op `WF_BIN`, a throwaway HOME, only `/health` exercised, x86_64 4-core sandbox, node 22, n=5, medians: cold start to the first `/health` 513 ms; idle RSS 133.7 MB; RSS after 300 sequential `/health` requests 137.4 MB; `/health` p50 0.94 ms, p99 3.99 ms."
+        ],
+        [
+          "- Reading it: that is the floor, not the working set. `sharp`, `ffmpeg-static`, `tesseract.js`, `whisper-node`, the PDF and DOCX parsers and Playwright load on the first request that needs them, so a chat session with attachments sits well above 137 MB; that is the number the Rust service has to be compared with, and it still has to be measured (phase 0 proper: a scripted chat session through the mock opencode). The front door `rca-edge` is 354,912 bytes."
+        ],
+        [
+          "- Compared with leetcode-backend (78 MB, 252 ms for 1.4k source lines), this service pays about 56 MB more resident and 260 ms more start-up for loading 21.6k lines and its dependency graph, which is the part a port removes only if the media dependencies leave the resident process (the plan's decision 1, still the owner's)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1577–1583",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-96-2026-10-09-remote-chat-agent-on-standard-crates-standard-crates-p",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent on standard crates (standard-crates plan, phase 3, slices A to C)",
+  "question": "What was measured for remote-chat-agent on standard crates (standard-crates plan, phase 3, slices A to C)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: remote-chat-agent on standard crates (standard-crates plan, phase 3, slices A to C)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measure: Binary · pre (std-only, curl): 17.67 MB · post (axum, reqwest, tracing): 21.61 MB",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "pre (std-only, curl)",
+        "post (axum, reqwest, tracing)"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "17.67 MB",
+          "21.61 MB"
+        ],
+        [
+          "Cold start to `/health`",
+          "32.54 ms",
+          "33.76 ms"
+        ],
+        [
+          "Idle RSS",
+          "6.53 MB",
+          "10.26 MB"
+        ],
+        [
+          "RSS after 300 health calls",
+          "6.61 MB",
+          "10.35 MB"
+        ],
+        [
+          "`GET /health` p50",
+          "0.40 ms",
+          "0.39 ms"
+        ],
+        [
+          "chat turn p50",
+          "105.52 ms",
+          "104.97 ms"
+        ],
+        [
+          "run once p50",
+          "106.18 ms",
+          "107.45 ms"
+        ],
+        [
+          "convert pdf p50",
+          "12.27 ms",
+          "11.33 ms"
+        ],
+        [
+          "convert docx p50",
+          "1.12 ms",
+          "1.14 ms"
+        ],
+        [
+          "diff register and page p50",
+          "7.90 ms",
+          "8.00 ms"
+        ],
+        [
+          "file preview (markdown) p50",
+          "0.83 ms",
+          "0.68 ms"
+        ],
+        [
+          "tamil check p50",
+          "151.73 ms",
+          "149.41 ms"
+        ],
+        [
+          "voice transcribe p50 (one call to a local fake STT)",
+          "8.57 ms",
+          "2.00 ms"
+        ],
+        [
+          "ws request p50",
+          "0.06 ms",
+          "0.09 ms"
+        ],
+        [
+          "ws, 100 connections p50",
+          "0.90 ms",
+          "0.81 ms"
+        ],
+        [
+          "Peak RSS over the whole session",
+          "54.69 MB",
+          "54.08 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Measured on the real service, n=5 medians, one fresh process per run, the same scripted session (`backend/remote-chat-agent/tests/bench/service.benchmark.test.ts`, `bench:service`). pre = the std-only binary built from this branch's parent before the work started (17,671,312 bytes), post = the release build of #336 plus the `TCP_NODELAY` fix. Records: `docs/audits/benchmarks/rca-pre-std.json` and `rca-post-std.json`. Both runs read the same code fixture (`tests/blackbox/vcs.blackbox.test.ts`, because the Node `vcs.ts` the harness used to read was removed with the Node service), so they are comparable with each other but not with `rca-post-rust.json`."
+        ],
+        [
+          "Reading: the standard stack costs 3.9 MB of binary and 3.7 MB of idle resident memory, which matches the dependency-cost spike of the pilot (4.1 MB, 4 MB) and which the owner accepted as the price of not maintaining the infrastructure. Start-up and every route are unchanged within noise, and the whole session peaks no higher. The one clear gain is voice transcribe (about four times faster) because the call to the STT sidecar is a pooled reqwest request and no longer a spawned `curl`."
+        ],
+        [
+          "A regression the benchmark caught and the fix: the first post run showed `ws, 100 connections` at 44.0 ms against 0.9 ms, the 40 ms of a delayed ACK meeting Nagle's algorithm on the small handshake and hello writes. `axum::serve` does not set `TCP_NODELAY` and the old server did. Both services now set it on every accepted connection (`ListenerExt::tap_io`); the ws figure is 0.81 ms after. The leetcode-backend numbers recorded for the pilot were taken before the fix and move by noise only (run 33.27 ms to 28.75 ms, format 35.42 ms to 33.25 ms)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1816–1850",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

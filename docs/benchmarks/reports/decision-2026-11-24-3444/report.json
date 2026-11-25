@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3444",
+  "subject": "Engineering decisions",
+  "title": "IOS visual check",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "IOS visual check",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "iOS visual check (n=1, no model). `wf test ios-visual` captured and compared the approval picker at native resolution in 4.35 s on iPhone 17 Pro Max. It reported 174 differing pixels after masking the status bar and Expo Go gear. Closing the sheet produced 694,439 differing pixels and exit 1. Keep the local check for native glass and shared controls.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, iOS visual check (n=1, no model). `wf test ios-visual` captured and compared the approval picker at native resolution in 4.35 s on iPhone 17 Pro Max. It reported 174 differing pixels after masking the status bar and Expo Go gear. Closing the sheet produced 694,439 differing pixels and exit 1. Keep the local check for native glass and shared controls."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3444",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

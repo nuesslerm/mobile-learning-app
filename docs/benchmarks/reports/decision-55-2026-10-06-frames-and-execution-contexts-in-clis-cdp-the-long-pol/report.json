@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-55-2026-10-06-frames-and-execution-contexts-in-clis-cdp-the-long-pol",
+  "subject": "Engineering decisions",
+  "title": "frames and execution contexts in `clis/cdp` (the long pole of launched sessions)",
+  "question": "What was measured for frames and execution contexts in `clis/cdp` (the long pole of launched sessions)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: frames and execution contexts in `clis/cdp` (the long pole of launched sessions)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Addendum (frames in `clis/cdp`): the harness-facing helpers on top of the frame layer. `find_frame_named` (the harness names its app frame `device-frame-app`; waits up to a timeout, as `findDeviceFrame` does for 10 s), `find_editable_frame(root, depth)` (depth first through the descendants of a frame for a contenteditable or textarea, as `findEditableFrame`), `device_frame_url` (the harness URL with `URLSearchParams` encoding: spaces as `+`, UTF-8 percent-en…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Addendum (frames in `clis/cdp`): the harness-facing helpers on top of the frame layer. `find_frame_named` (the harness names its app frame `device-frame-app`; waits up to a timeout, as `findDeviceFrame` does for 10 s), `find_editable_frame(root, depth)` (depth first through the descendants of a frame for a contenteditable or textarea, as `findEditableFrame`), `device_frame_url` (the harness URL with `URLSearchParams` encoding: spaces as `+`, UTF-8 percent-encoded) and `fitted_shell_size` (box plus the 24 px margin and 40 px label allowance, each rounded up to an even number; the arithmetic was checked against `fittedShellSize` by hand and a first wrong expectation of mine was corrected). `clis/cdp/tests/attached.rs` is 14 tests, 14/14 on two consecutive runs against a real Chromium. Next: launching a Chromium with the device-emulation flags and creating a device-frame session in the Rust daemon."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1393–1400",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-11-06-nx-cache-and-ci-time-audit",
+  "subject": "Engineering measurements",
+  "title": "Nx cache and CI time audit, 2026-11-06",
+  "question": "What did the Nx cache and CI time audit, 2026-11-06 measurements show?",
+  "date": "2026-11-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Nx cache and CI time audit, 2026-11-06",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "4. It cannot fail. `continue-on-error: true` (deploy.yml:355), a 3 minute timeout, and no verdict. Also the step runs in the typecheck job, whose environment has none of the `EXPO_PUBLIC_*` values the browser job exports (set in `e2e-tests.yml:222-239` and `pushed.rs:88-101`), so its export:web and e2e-browser rows are \"env unset\" hashes that no real run produces.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Dimension",
+        "Id",
+        "Severity",
+        "Confidence",
+        "Min saved",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "CI waste",
+          "pnpm store save (F1/F4/NX-11/S7)",
+          "high",
+          "proven",
+          "25",
+          "`wf cache save pnpm` runs in 7-8 jobs, about 180-200 s each (8 jobs = 1502 s in run 42261055980), result `{\"saved\":false,\"reason\":\"store not used, rejected\"}` every time. Corr.: the \"skip when lockfile unchanged\" check already exists (`clis/blob-cache/src/pnpm.rs:158-176`) but needs a sidecar, which is only written after a successful archive put (line 194); the put is rejected, so no sidecar exists and every job packs first (`tar -czf`, single thread, `adapters/tar.rs:18-22`). Fix: probe the write link (HEAD or tiny PUT) before packing; write a per-lockfile failure marker so a failed save costs seconds once; carry `StoreError::Rejected` text (HTTP status) into the reason (`par.rs:92-97`, `cache.rs:32`); save from one job only. Real HTTP status unknown."
+        ],
+        [
+          "Measured",
+          "golden dir in production inputs (F3)",
+          "high",
+          "strong",
+          "22",
+          "Exclude `!{projectRoot}/.flow-goldens*/**` in nx.json `production` (not a blanket `**/snapshots/**`); add an `nx_contract.rs` case that editing a golden leaves e2e-browser and export:web hashes unchanged. Keep `docs/runbooks/goldens/<platform>/**` as an explicit e2e input."
+        ],
+        [
+          "Drift",
+          "table never compared (F1/F5/S2/NX-6/F7)",
+          "high",
+          "proven",
+          "12",
+          "Gate writes `wf test drift --save` keyed by commit next to its cache writes; CI compares with `--against`; CI publishes its own table to the bucket or run bundle. Fail only on non-platform causes (runtime, env, files) for tasks the sandbox seeded; missing sandbox table is reported as a finding."
+        ],
+        [
+          "Seeding",
+          "Chromium input (F1/NX-1/S1)",
+          "high",
+          "proven",
+          "12.5",
+          "Push e0474576, then verify (section 6). Do not also install chromium-1234 in setup.sh."
+        ],
+        [
+          "Drift",
+          "table computed in wrong job/env (F3)",
+          "high",
+          "strong",
+          "13 (overlaps)",
+          "Compute the browser rows in the browser job after \"Export the web app\" with the real `EXPO_PUBLIC_*`. Drop or relabel the typecheck-job rows. Print per-input diffs, masking the token (digest or length). Chromium half is stale (fixed by e0474576)."
+        ],
+        [
+          "Drift",
+          "step cannot fail (F2)",
+          "high",
+          "proven",
+          "10 (overlaps)",
+          "Separate gating step without continue-on-error, placed before the export and e2e jobs. `wf test drift` has no `--require` flag (SPEC at `nx_drift.rs:18`): use `--projects/--targets` or add it. Warn-only for a week for non-seeded tasks."
+        ],
+        [
+          "Drift",
+          "coverage 4 of about 15 target kinds (F5/F7)",
+          "high",
+          "proven",
+          "10 (overlaps)",
+          "Drop `--projects/--targets` in deploy.yml:358 (`nx_hashes.mjs:22` defaults to all graph nodes); add `export:web`, `export:eas`, `cargo-contract`, `cargo-verify-deployed`, `cargo-flow-<group>`, `check:editor-bundle` to TARGETS at `nx_drift.rs:14-16`, derived from the plan or crate manifests. `test:verify:deployed` needs none."
+        ],
+        [
+          "Seeding",
+          "android/deploy-verify/eas never seeded (F6)",
+          "medium",
+          "proven (corr.)",
+          "about 1",
+          "Corr.: seeding `export:eas` would not make any Android e2e replay (e2e-android has no dependsOn export:eas and no env inputs); it only could speed the eas-update job. Add `e2e-android` and `export:eas` to the drift table; keep deployment verification unseeded."
+        ],
+        [
+          "Nx",
+          "export:web outside Nx (F2/NX-3)",
+          "high",
+          "proven",
+          "4.5",
+          "Route `build()` through `nx run mla-tamagui:export:web`. Needs: stamp rewritten after a restore, env inputs covering every baked `EXPO_PUBLIC_*` (`baked_env()` bakes all non-empty ones, nx.json lists six), and narrower inputs than `default` (node/pnpm runtime and AllExternalDependencies make any lockfile edit or node bump a miss). Alternative: delete export:web from the drift table."
+        ],
+        [
+          "Seeding",
+          "node off pin in sandbox (F4/NX-2/F2)",
+          "medium",
+          "proven",
+          "3",
+          "In `step_mise` compare PATH node with the pin and prepend the mise 22.22.0 bin dir; `wf check --pushed` runs `wf test drift --pins` first and exits before any stage. Do not hash only the major version."
+        ],
+        [
+          "CI waste",
+          "no cargo-chef in `clis/t3` and `clis/orca-serve` Dockerfiles",
+          "medium",
+          "strong",
+          "2 (estimate)",
+          "Add planner/cook stages as in `backend/vm-ops-api/Dockerfile:12-37`. Builds were 149 s and 95 s in run 42261055980. Workspace `sed` trim must precede `cargo chef prepare`; scope with `--bin`. Fix `docs/solutions/ci/cache-layers.md:16` (claims chef for all Rust images; the 14 s figure was measured on another image)."
+        ],
+        [
+          "Drift",
+          "unit test only simulates (F8)",
+          "medium",
+          "strong",
+          "0",
+          "Keep it; add the real runner `--against`; surface existing cause kinds (`nx_drift.rs:96-125`) in the failure message."
+        ],
+        [
+          "Drift",
+          "minimal representative set (F9)",
+          "medium",
+          "hypothesis",
+          "0",
+          "Simply compare all; failing set: non-platform kinds only. Task names are not uniform, derive from the graph."
+        ],
+        [
+          "Drift",
+          "sandbox env gaps in table (F7 coverage/F7 seeded-not-compared)",
+          "medium",
+          "strong",
+          "6",
+          "Covered by full-plan drift; add fixture tasks for a native crate with build.rs/env input, one cargo-e2e, one export:web with env on one side only."
+        ],
+        [
+          "Nx",
+          "export:web omits `EXPO_PUBLIC_BETTERSTACK_TOKEN/HOST` (F4)",
+          "medium",
+          "strong",
+          "0",
+          "Both baked (`lib/logger.ts:80-81`; `pushed.rs:95-100`, `e2e-tests.yml:232-240`) but not inputs. Add a presence flag (not the raw token) as an env input to export:web and export:eas. Not a cause of the cold run."
+        ],
+        [
+          "Nx",
+          "e2e-browser ignores backends; help text stale (F5)",
+          "medium",
+          "strong",
+          "0",
+          "Delete \"backends (header `backends:`)\" from `clis/wf/src/help/wf__test.txt:32-33`; do not implement it (would reduce replay). Note that baked URLs do not invalidate a pass."
+        ],
+        [
+          "Seeding",
+          "dropped puts invisible to the gate (S5)",
+          "medium",
+          "strong",
+          "0",
+          "`nx_server.rs:178` discards the put result and always answers 200; oversize bodies (`read_body_of` returns None) move no counter. Add a `dropped_puts` counter, log hash and reason, make `seeding()` fail on `dropped_puts > 0`. Not `skipped > 0` (Exists counts) and not `puts < misses` (failed tasks)."
+        ],
+        [
+          "Nx",
+          "shim budget 400 requests, `kinds.nx` dead (NX-4)",
+          "medium",
+          "strong",
+          "0",
+          "`cache.rs:122` uses the global budget; `for_kind_run` only called for Sccache (cache.rs:179). Apply `for_kind_run(Kind::Nx)` and add `requestsPerRun` to the nx row (one line alone leaves 400). Confirm from a stats line before claiming it explains a cold run."
+        ],
+        [
+          "Nx",
+          "silent shim None (NX-5)",
+          "medium",
+          "strong",
+          "0",
+          "Print a line for both silent paths (kill switch `cache.rs:108`, missing link `cache.rs:113`), mirroring `wf-bucket/src/cache/pnpm.rs:55`. Update the flow assertion at `clis/pipeline/tests/flow/check.rs:361-365`."
+        ],
+        [
+          "Nx",
+          "tasks read non-input files (NX-7)",
+          "medium",
+          "proven",
+          "0",
+          "`@lib/logging` integration reads `clis/telemetry/contract/callsite.json` and runs cargo on telemetry with no dependency or input; `nativeConfig.test.ts:54` reads `docs/solutions/workflow/eas-publishing.md` outside the app inputs. Add implicit dependency plus fileset inputs; teach `cargo-crates.js:437-451` to scan test sources for `-p <crate>`."
+        ],
+        [
+          "Nx",
+          "mla-tamagui has no `test:unit` (NX-8)",
+          "medium",
+          "hypothesis",
+          "0",
+          "27 non-flow vitest files never run by Nx (package.json scripts, `vitest.config.ts:117-126`). Add `\"test:unit\": \"vitest run --passWithNoTests\"` only after running them once and fixing or excluding the flaky vision-model tamil-writing unit. Could not run `wf test drift` here (needs `pnpm install`)."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "4. It cannot fail. `continue-on-error: true` (deploy.yml:355), a 3 minute timeout, and no verdict. Also the step runs in the typecheck job, whose environment has none of the `EXPO_PUBLIC_*` values the browser job exports (set in `e2e-tests.yml:222-239` and `pushed.rs:88-101`), so its export:web and e2e-browser rows are \"env unset\" hashes that no real run produces."
+        ],
+        [
+          "1. Chromium build name in the e2e-browser hash (proven, about 12.5 min per run). The `browser` input ran `node tooling/nx/chromium-build.js`, which returned the newest installed `chromium-*` directory. Sandbox: `/opt/pw-browsers/chromium-1243` (Chrome 153). CI: `chromium-1234` (Chrome 151, the build Playwright 1.62.1 pins in browsers.json, installed by `e2e-tests.yml:134-140`). Evidence: a python diff of the sandbox and CI tables for `e2e-tamil-writing:e2e-browser` (1157 inputs each) shows exactly one differing input, `runtime:node tooling/nx/chromium-build.js` (hash 13543833548771094224 sandbox vs CI 5424851643987376542); with a fake `chromium-1234` dir the sandbox reproduced all four CI hashes of run 42261055980 (5424851643987376542, 17464960375432082196, 6536750114746833865, 3124469331648520142). CI probe: `build cache {hits:0,misses:4}`, `\"ran\":[app-routes,editor-typing,tamil-writing,voice-edit],\"cached\":[]`. The 15 minute timeout of run 42224720917 is assumed to be the same cause (not downloaded). Fix: already written as local commit e0474576 (\"nx: a browser test hashes on the pinned Playwright, not the installed Chromium build\"), one commit ahead of origin/dev and not an ancestor of 4781bb6. `chromium-build.js` now returns `playwright-core@1.62.1` from pnpm-lock.yaml (`WF_CHROMIUM` still overrides; installed build is only a fallback). Remaining work: push it and confirm. Caveat: the hash now names the Playwright version, not the browser binary. The sandbox still drives Chrome 153 and CI Chrome 151, so a sandbox pass counts for CI only through the goldens' 0.2% tolerance."
+        ],
+        [
+          "3. The export never goes through Nx (proven, 4.5 min per browser job with any miss). `wf test prepare --web` (`clis/pipeline/src/export_site.rs:137-139`) runs `pnpm --filter mla-tamagui run export:web` directly. The only `nx run mla-tamagui:export:web` is the benchmark step (deploy.yml:408-412). `export:web` is declared cacheable (`nx.json:88-104`) but no production path uses it, and the stamp (`wf-export.json` in one checkout's dist) is the only reuse. CI log: `reused:false`, `buildS:270.6`, step 274 s. Replaying e2e-browser skips the export step, so fixing cause 1 hides it; any real miss still pays it cold."
+        ],
+        [
+          "- \"Save the pnpm store is an unconditional upload that should compare the lockfile hash with the bucket\" (F6, F11). The compare already exists (`clis/blob-cache/src/pnpm.rs:158-176`, plus `save_precheck`). The real defect is different: the pack happens before a put that is rejected, the sidecar is never written, so the skip never fires. See the first row of section 3. F11's claim that the cost is not shown on every run is also wrong; 8 of 8 sampled jobs show about 180-200 s."
+        ],
+        [
+          "- \"Web export (274 s) and EAS publish (281 s) are two cold Metro bundles with no shared cache\" (F4). Both use the metro blob kind (`wf cache restore/save metro` in `e2e-tests.yml` around lines 211 and 252 and in deploy.yml around lines 798 and 845, same app-build tarball). Why each is still slow was not examined."
+        ],
+        [
+          "- Run 42224720917 (15 minute timeout) logs. Assumed same cause."
+        ],
+        [
+          "- Why `crate-wf:cargo-e2e` ran in 2 of 6 runs (55 s, 35 s, 23 s in one) while its siblings hit. Needed: the sandbox gate's hash for that task (`WF_PUSH_CLI_E2E`, `pushed.rs:16-31`)."
+        ],
+        [
+          "- Whether Chrome 153 vs 151 changes any golden beyond the 0.2% tolerance. Needed: one browser e2e run on each build, compare goldens; and the real Chrome version string from a CI log."
+        ],
+        [
+          "- Exact HTTP status behind pnpm \"rejected\", and whether the pack or the upload dominates the 180-200 s. Needed: run `wf cache save pnpm` on the VM runner (not in this sandbox), after the status text is carried into the reason."
+        ],
+        [
+          "- The real size of the runner's pnpm store (2.6 GB is the sandbox store)."
+        ],
+        [
+          "4. Stop the pnpm save cost: add the pre-pack write probe and per-lockfile failure marker, carry the HTTP status into the reason, and (until then) save from one job only. Verify: in a CI run the `Save the pnpm store` steps take seconds and the JSON `reason` names the status; total wall time drops by about 20-25 minutes."
+        ],
+        [
+          "7. Route the export through `nx run mla-tamagui:export:web` with narrowed inputs, the stamp rewritten after a restore and a BetterStack presence flag. Verify: a browser job where one e2e test misses shows the export step as an Nx replay (seconds, not 274 s) and the stamp matches."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-11-06-nx-cache-and-ci-time-audit.md",
+      "path": "../../../audits/2026-11-06-nx-cache-and-ci-time-audit.md"
+    }
+  ]
+}

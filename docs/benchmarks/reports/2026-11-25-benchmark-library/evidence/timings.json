@@ -1,0 +1,20 @@
+[
+  {
+    "action": "build",
+    "elapsedSeconds": 0.33876070799306035,
+    "output": {
+      "ok": true,
+      "reports": 311,
+      "updated": 0
+    }
+  },
+  {
+    "action": "check",
+    "elapsedSeconds": 0.2682658330304548,
+    "output": {
+      "ok": true,
+      "reports": 311,
+      "updated": 0
+    }
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-29-2026-10-06-wf-knowledge-for-index-stale-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf knowledge for|index|stale` in Rust",
+  "question": "What was measured for `wf knowledge for|index|stale` in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf knowledge for|index|stale` in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (`knowledge index` on this repo, n=5 median): TS 529 ms / 94 MB, Rust 28 ms / 13 MB.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (`knowledge index` on this repo, n=5 median): TS 529 ms / 94 MB, Rust 28 ms / 13 MB."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1225–1234",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

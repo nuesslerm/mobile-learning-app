@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-94-2026-10-08-remote-chat-agent-the-node-service-and-the-dependencie",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent: the Node service and the dependencies only it used are removed; `rca-edge` is retired",
+  "question": "What was measured for remote-chat-agent: the Node service and the dependencies only it used are removed; `rca-edge` is retired?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent: the Node service and the dependencies only it used are removed; `rca-edge` is retired",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Through the pipeline as well as by hand: the `dev` Deploy workflow rebuilt and redeployed the Rust service after the Node removal (run 300, the `remote-chat-agent` leg took 2 min 21 s with the Rust layers cached) and again after the `rca-edge` retirement (`remote-chat-agent:sha-7a7c3820`). The same live checks, rerun on that image, pass: `/health` reports `7a7c3820...`, the auth gates answer 401 and 400 as before, a real `POST /api/chat` turn streams throu…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Through the pipeline as well as by hand: the `dev` Deploy workflow rebuilt and redeployed the Rust service after the Node removal (run 300, the `remote-chat-agent` leg took 2 min 21 s with the Rust layers cached) and again after the `rca-edge` retirement (`remote-chat-agent:sha-7a7c3820`). The same live checks, rerun on that image, pass: `/health` reports `7a7c3820...`, the auth gates answer 401 and 400 as before, a real `POST /api/chat` turn streams through the live opencode, and a WebSocket thread is created, answered and deleted."
+        ],
+        [
+          "- Fidelity of the media routes against the Node output, route by route, on the VM (the goal's test for keeping a Node worker): the Node image (`sha-effbe7f8`) and the Rust image (`sha-7a7c3820`) were started side by side with no sidecar and no vault and fed the same files through the real routes. `POST /api/voice-transcribe` (whisper.cpp behind ffmpeg, the path with no sidecar): the transcripts of all seven recordings (five WAV, one WebM, one M4A, from `tests/fixtures/voice`) are identical between the two images, and match the manifest's phrases except where whisper itself hears \"dockstring\" for \"docstring\" in both. `POST /api/convert`: the DOCX text is identical; the plain PDF has the same 563 words, differing only in the reading order of one table's cells (the header row and the \"Idle RSS\" cells swap places); the Chromium PDF (two columns, ligatures, Tamil) has 114 words in Rust against 126 in Node, because `pdfjs` splits ligature words (\"con fi rming\") and mangles the Tamil, which `pdftotext` returns exactly. So no route fails a fidelity test in Rust's disfavour, and no Node worker is kept. The Tamil check raster was compared in the evaluation entry above: same 920x448 picture, 0.69% of pixels differing by more than 32/255, mean difference 0.80/255; the two pictures were sent to the owner (again with this run)."
+        ],
+        [
+          "- `rca-edge` is retired (commit `bac2cec`): the Rust front door written on 2026-10-06 to tunnel to the Node service, one route at a time. The whole service is Rust, so it fronted nothing; it was never part of any image's command, only compiled into the workspace and copied by three Dockerfiles (`remote-chat-agent`, `agent-shell`, `wf-cli`) and listed in the deploy plan's paths. It is 246 lines of code and 206 of socket tests, a 355 kB binary, removed with its workspace member and lock entry; `wf` builds with `--locked` from exactly the files the Dockerfiles now copy (checked in a clean tree), and the plan test pins the shorter path list. Its two jobs, the CORS policy and the 120 per minute limiter, are in `rca-service` and pinned by `http.blackbox.test.ts`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1772–1787",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

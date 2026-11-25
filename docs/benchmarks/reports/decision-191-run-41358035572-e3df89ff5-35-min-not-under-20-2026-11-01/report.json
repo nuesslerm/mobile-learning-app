@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-191-run-41358035572-e3df89ff5-35-min-not-under-20-2026-11-01",
+  "subject": "Engineering decisions",
+  "title": "Run 41358035572 (e3df89ff5): 35 min, not under 20 (2026-11-01)",
+  "question": "What was measured for Run 41358035572 (e3df89ff5): 35 min, not under 20 (2026-11-01)?",
+  "date": "2026-11-01",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 41358035572 (e3df89ff5): 35 min, not under 20 (2026-11-01)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "The push carried the versioned-libraries, health-metrics and T3 work, so it was not a single-service change; two services deployed (vm-ops-api 1 m 40 s, vnc-auth-session 1 m 22 s), the other four kept their images.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- The push carried the versioned-libraries, health-metrics and T3 work, so it was not a single-service change; two services deployed (vm-ops-api 1 m 40 s, vnc-auth-session 1 m 22 s), the other four kept their images."
+        ],
+        [
+          "- Wall clock 22:37:07 to 23:11:57. `flow-tests` (13 m 04 s, of which 3 m 11 s was `Save the pnpm store`) held the one runner, so `typecheck-lint-unit-tests` waited 13 m 08 s for it (the budget job's `runner-wait`, the only breach). That job then took 9 m 37 s with 32 of 32 Nx lookups hits."
+        ],
+        [
+          "- In that job the log is silent for exactly 6 m 00 s between `hashMultipleTasks` (22:52:59.4) and the first replayed `cargo-unit` task (22:58:59.7); hashing itself takes 2 s (`wf test drift`), and the same `nx run-many` on a local cache runs the tasks in 17 s. It is the same gap as the 26 Oct entry, and it also cost run 1024 (a plan-doc-only push, 9 m 36 s in that job). Not yet explained: the cache shim reports 32 gets, 4.9 s in total."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3243–3249",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

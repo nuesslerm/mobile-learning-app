@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-66-2026-10-08-later-the-js-bundle-and-every-typescript-command-are-g",
+  "subject": "Engineering decisions",
+  "title": "(later): the JS bundle and every TypeScript command are gone; the Rust `wf` is the whole CLI",
+  "question": "What was measured for (later): the JS bundle and every TypeScript command are gone; the Rust `wf` is the whole CLI?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08 (later): the JS bundle and every TypeScript command are gone; the Rust `wf` is the whole CLI",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Removed: `clis/workflow-cli/src` (all 120 TypeScript files), `bundle/wf.js` (1.7 MB), the 90 unit tests and fakes that exercised that code, and the two e2e tests whose only subject was the TypeScript worker. `legacy()` is replaced by a refusal: an unknown command gets commander's `error: unknown command 'x'` (exit 1), a known command given arguments no port serves gets `wf <cmd>: the Rust wf does not support these arguments (see wf <cmd> --help)` (exit 2).…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Removed: `clis/workflow-cli/src` (all 120 TypeScript files), `bundle/wf.js` (1.7 MB), the 90 unit tests and fakes that exercised that code, and the two e2e tests whose only subject was the TypeScript worker. `legacy()` is replaced by a refusal: an unknown command gets commander's `error: unknown command 'x'` (exit 1), a known command given arguments no port serves gets `wf <cmd>: the Rust wf does not support these arguments (see wf <cmd> --help)` (exit 2). The help tests now check the committed texts against the binary instead of regenerating them from the commander tree."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1487–1495",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

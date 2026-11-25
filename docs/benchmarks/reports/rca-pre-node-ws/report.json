@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "id": "rca-pre-node-ws",
+  "subject": "Services and CLI",
+  "title": "rca pre node ws",
+  "question": "What did the rca pre node ws measurements show?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "rca pre node ws",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "pre-ws recorded 482.91505700000016 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "pre-ws",
+      "label": "pre-ws"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    },
+    {
+      "id": "ws-request",
+      "label": "ws request"
+    },
+    {
+      "id": "ws-100-connections",
+      "label": "ws 100 connections"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "artifactbytes",
+      "label": "artifactBytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafterhealthmb",
+      "label": "rssAfterHealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthp50ms",
+      "label": "healthP50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "p50ms",
+      "label": "p50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "rssaftermb",
+      "label": "rssAfterMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "finalrssmb",
+      "label": "finalRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmaxmb",
+      "label": "peakRssMaxMb",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "artifactbytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 14869215,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 482.91505700000016,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 134.015625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "rssafterhealthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 140.1328125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "healthp50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.9345254999989265,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "ws-request",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.1297500000000582,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "ws-request",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 141.2109375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "ws-100-connections",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.9909929999998894,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "ws-100-connections",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 143.40234375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "finalrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 143.50390625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 143.50390625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "pre-ws",
+      "scenario": "service",
+      "metric": "peakrssmaxmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 143.76953125,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "rca-pre-node-ws.json",
+      "path": "evidence/rca-pre-node-ws.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

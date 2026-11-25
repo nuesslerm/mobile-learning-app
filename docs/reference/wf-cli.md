@@ -3419,6 +3419,10 @@ Options:
 
 ## bench
 
+### `wf bench reports`
+
+Run `wf bench reports build` to generate the offline benchmark library. Run `wf bench reports check` to validate the canonical JSON, evidence paths and generated views. Both return JSON and exit nonzero on failure.
+
 ### `wf bench agent-proof`
 
 Agent proof: an agent gets a fixed four-step task (open <base>/leetcode/two-sum, wait for the Run Local button, tap it, wait for the outcome totals and assert they say "passed"; the autofocused editor's keyboard is lowered with Done first) plus the full `wf <harness> test --api` text, answers with one Lua script, and the script runs recorded: `wf <p> test <lua> --env base=<url>`. Pass = the script exits 0. Exit 0 when it passed, 1 otherwise.

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3442",
+  "subject": "Engineering decisions",
+  "title": "Install-skills migration",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Install-skills migration",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "install-skills migration (n=1, read-only discovery). `pnpm exec skills list` found the new skill in 0.93 s. The existing command is 3,284 bytes, the skill is 3,411 bytes, and its discovery description is 121 bytes. The command instructions match byte for byte. Keep the skill discoverable with the full instructions loaded on demand. No model ran.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, install-skills migration (n=1, read-only discovery). `pnpm exec skills list` found the new skill in 0.93 s. The existing command is 3,284 bytes, the skill is 3,411 bytes, and its discovery description is 121 bytes. The command instructions match byte for byte. Keep the skill discoverable with the full instructions loaded on demand. No model ran."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3442",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

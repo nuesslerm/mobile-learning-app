@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-208-6-nov-mimic-x7-harness-goldens-stay-flow-goldens-baseline-deleted",
+  "subject": "Engineering decisions",
+  "title": "6 Nov: mimic X7, harness goldens stay, `.flow-goldens-baseline` deleted",
+  "question": "What was measured for 6 Nov: mimic X7, harness goldens stay, `.flow-goldens-baseline` deleted?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "6 Nov: mimic X7, harness goldens stay, `.flow-goldens-baseline` deleted",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Decision (D10): `.flow-goldens-baseline` (3 HTML files, 3.1 MB) deleted; no reader anywhere (the harness writes `.flow-goldens`). `wf mimic import` kept for `t3-golden` because a committed lossless proof imports the goldens again; no spend, no benchmark (no skill, hook or lever changed).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision (D10): `.flow-goldens-baseline` (3 HTML files, 3.1 MB) deleted; no reader anywhere (the harness writes `.flow-goldens`). `wf mimic import` kept for `t3-golden` because a committed lossless proof imports the goldens again; no spend, no benchmark (no skill, hook or lever changed)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3348–3353",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

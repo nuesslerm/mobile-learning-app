@@ -5,6 +5,7 @@ mod agent_proof;
 mod app_bench;
 mod bench;
 mod help_table;
+mod reports;
 
 pub use help_table::HELP;
 
@@ -14,6 +15,7 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("bench", run), ("browse
 /// Runs the selected benchmark with the words after `bench`.
 pub fn run(args: &[String]) -> Option<i32> {
     match args.split_first() {
+        Some((kind, more)) if kind == "reports" => reports::run(more),
         Some((kind, more)) if kind == "cli" => bench::run(more),
         Some((kind, more)) if kind == "agent-proof" => agent_proof::run(more),
         _ => app_bench::run(args),

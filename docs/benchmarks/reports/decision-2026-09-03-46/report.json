@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-46",
+  "subject": "Engineering decisions",
+  "title": "Compound re-run with the document check",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "Compound re-run with the document check",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Compound re-run with the document check: the first reply was narration again, the one re-ask returned the real 97-line entry with frontmatter; both attempts $0.0187 / 163s. Facts fixed by hand: skill paths, the dispatch file, the verification claims. The tree is proven end to end on a real feature (research, plan check, 3 units, review, compound); `claude plugin validate --strict` and…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 29 | 2026-09-03 10:15 | Compound re-run with the document check: the first reply was narration again, the one re-ask returned the real 97-line entry with frontmatter; both attempts $0.0187 / 163s. Facts fixed by hand: skill paths, the dispatch file, the verification claims. The tree is proven end to end on a real feature (research, plan check, 3 units, review, compound); `claude plugin validate --strict` and `plugins:check` pass. Phase C closes; B2 runs per decision 25 | `docs/archive/solutions/workflow/cf-check.md`, dispatch run `1a58f21b` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 46",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

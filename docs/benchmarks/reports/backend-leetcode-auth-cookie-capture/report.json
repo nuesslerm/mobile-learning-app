@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "backend-leetcode-auth-cookie-capture",
+  "subject": "Engineering measurements",
+  "title": "backend/leetcode-auth-cookie-capture: the dependency stages of its image",
+  "question": "What did the backend/leetcode-auth-cookie-capture: the dependency stages of its image measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "backend/leetcode-auth-cookie-capture: the dependency stages of its image",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (`docs/audits/benchmarks/capture-listener-bench.py`, record `capture-listener-node-vs-rust.json`): start to listening 1,022.7 ms to 14.2 ms; idle RSS 137,788 KB to 6,572 KB; refused request p50 0.659 ms to 0.520 ms; Rust release binary 4,191,112 B.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "`deploy (leetcode-auth-cookie-capture)` when all four deploy targets change (run 317, then run 37966325120)",
+          "about 2 min 40 s",
+          "54 s"
+        ],
+        [
+          "The same job when only this Dockerfile changes (run 37965945128, the layer rebuilt)",
+          "n/a",
+          "67 s"
+        ],
+        [
+          "Whole Deploy, all four targets changed",
+          "7 min 06 s",
+          "3 min 17 s (with the Rust `deploy` profile, see `workspace-root-and-infra.md`)"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "One file changed: `Dockerfile`. The `libs` and `proddeps` stages copied the whole `scripts/` directory for the workspace root's postinstall hook, which does nothing under `DOCKER_BUILD=true`; any change under `scripts/` (the approve guard, for one) invalidated the layer that runs `pnpm deploy` (84 s on a miss). Both stages now copy `scripts/postinstall.mjs` and `scripts/prepare.mjs`, the two files pnpm's lifecycle hooks name. The `build` stage still copies the whole tree. The service itself, its entrypoint and its compose file are unchanged (a comment line added to the entrypoint and a comment added to `metro.config.js` to time a deploy were reverted in the same series)."
+        ],
+        [
+          "Benchmark (`docs/audits/benchmarks/capture-listener-bench.py`, record `capture-listener-node-vs-rust.json`): start to listening 1,022.7 ms to 14.2 ms; idle RSS 137,788 KB to 6,572 KB; refused request p50 0.659 ms to 0.520 ms; Rust release binary 4,191,112 B."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "backend-leetcode-auth-cookie-capture.md",
+      "path": "../../../audits/reports/backend-leetcode-auth-cookie-capture.md"
+    }
+  ]
+}

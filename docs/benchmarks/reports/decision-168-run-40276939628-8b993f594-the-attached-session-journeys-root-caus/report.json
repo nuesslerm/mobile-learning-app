@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-168-run-40276939628-8b993f594-the-attached-session-journeys-root-caus",
+  "subject": "Engineering decisions",
+  "title": "Run 40276939628 (8b993f594): the attached-session journeys, root cause (2026-10-26)",
+  "question": "What was measured for Run 40276939628 (8b993f594): the attached-session journeys, root cause (2026-10-26)?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 40276939628 (8b993f594): the attached-session journeys, root cause (2026-10-26)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - The Chromium log the test now keeps shows the cause in `chromium.log`: `FATAL: components/services/font_data/font_data_service_impl.cc:379] Check failed: . : No space left on device (28)`. The renderer's font service died on the runner's small `/dev/shm` (the runner is a container; this sandbox has a 16 GB one, which is why nothing reproduced locally), so the page never answered and `page.goto` waited its 30 s. The harness's own launch (`harness-browser/sr…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- The Chromium log the test now keeps shows the cause in `chromium.log`: `FATAL: components/services/font_data/font_data_service_impl.cc:379] Check failed: . : No space left on device (28)`. The renderer's font service died on the runner's small `/dev/shm` (the runner is a container; this sandbox has a 16 GB one, which is why nothing reproduced locally), so the page never answered and `page.goto` waited its 30 s. The harness's own launch (`harness-browser/src/browser_launch.rs`) already passes `--disable-dev-shm-usage`; the Chromium that `Attached::start` spawns itself in `wf-harness/tests/e2e/browser.rs` did not. It does now. One of the two journeys that failed in run 40267446218 passed here by luck of what else held shared memory; the other failed with this FATAL. The 30 s wait is unchanged."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2864–2867",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

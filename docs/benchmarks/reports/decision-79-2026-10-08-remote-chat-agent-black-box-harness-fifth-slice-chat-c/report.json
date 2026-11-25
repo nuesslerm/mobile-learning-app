@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-79-2026-10-08-remote-chat-agent-black-box-harness-fifth-slice-chat-c",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent black-box harness, fifth slice (chat, control and question against a fake opencode), and what it found",
+  "question": "What was measured for remote-chat-agent black-box harness, fifth slice (chat, control and question against a fake opencode), and what it found?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent black-box harness, fifth slice (chat, control and question against a fake opencode), and what it found",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Pinned in `/api/control` and `/api/question`: the 400s; for a session the service never ran, stop, queue and steer reach opencode as an abort and as deferred and immediate prompts for that very session; a question asked during a turn and one the service never saw are both answered with the same matrix of answers and a 204.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier run: black-box integration through a real socket against the production bundle: 7 files, 151 passed and 6 skipped (about 55 s); prettier, eslint and typecheck clean. The new piece is `tests/blackbox/fakeOpencode.ts`, a fake `opencode serve` that speaks what the service's gateway speaks (`POST /session`, `PATCH /session/:id`, `POST /session/:id/prompt_async`, the `GET /event` server-sent stream, the v2 prompt, `/question/:id/reply`, `/find/file`), records every request and runs a per-test script of events once the service has subscribed. The chat, control and question routes are therefore pinned at both ends: the frames a client sees and the calls opencode receives. The service's own mock gateway is not used, so the Rust service needs none."
+        ],
+        [
+          "- Pinned in `/api/control` and `/api/question`: the 400s; for a session the service never ran, stop, queue and steer reach opencode as an abort and as deferred and immediate prompts for that very session; a question asked during a turn and one the service never saw are both answered with the same matrix of answers and a 204."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1628–1636",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

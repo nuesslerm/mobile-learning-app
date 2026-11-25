@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-14-3412",
+  "subject": "Engineering decisions",
+  "title": "CI cache bench",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-14",
+  "revision": null,
+  "environment": null,
+  "workload": "CI cache bench",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "CI cache bench (issue #80 section 00; test type: live on GitHub-hosted runners, n=1 per layer, run 43558013495, `bf157f1`). Seconds saved per use / compressed size: sccache 96.1 s / 268 MB, metro 69.8 s / 17 MB, nx 38.2 s identical rerun (8.0 narrow change) / 1 MB, rust target dir 85.9 s / 348 MB, playwright 20.1 s / 269 MB, pnpm store+node_modules 17.0 s / 736 MB, pnpm store 12.9 s / 705 MB,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 14 Nov, CI cache bench (issue #80 section 00; test type: live on GitHub-hosted runners, n=1 per layer, run 43558013495, `bf157f1`). Seconds saved per use / compressed size: sccache 96.1 s / 268 MB, metro 69.8 s / 17 MB, nx 38.2 s identical rerun (8.0 narrow change) / 1 MB, rust target dir 85.9 s / 348 MB, playwright 20.1 s / 269 MB, pnpm store+node_modules 17.0 s / 736 MB, pnpm store 12.9 s / 705 MB, toolchain 4.3 s, cargo-fetch 0.5 s; compile baseline 172.1 s, sccache cold 182.2 s (10 s tax) and warm 84.6 s (444 of 555 hits). Real pipeline: pnpm restore 14 s plus install 35 s equals a cold install, so the pnpm store is off. Everything kept is about 0.6 GB, so the 10 GB budget is not the constraint; key churn is. Submodules (58 s x 12 jobs) not measured: the bench save raced a git auto gc (`gc.auto=0` now). Report: `docs/audits/2026-11-14-ci-cache-bench.md`. Defect found on the way: the first bench run (1050c20) set `CI=1`, and `scripts/postinstall.mjs` skips the dev-machine Rust build only on `CI=true`, so every job's `pnpm install` built wf with cargo and failed without it. Pipeline runs for the same change: cold 43550451832 24m24s, warm 43552129531 21m08s, warm 43552757919 15m50s, green 43556008053 15m34s."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3412",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

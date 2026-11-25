@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-24",
+  "subject": "Engineering decisions",
+  "title": "Per-turn hooks print nothing on a healthy turn",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Per-turn hooks print nothing on a healthy turn",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Per-turn hooks print nothing on a healthy turn (env-bootstrap ok lines, caveat-guard receipts)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 7 | 2026-09-02 20:10 | Per-turn hooks print nothing on a healthy turn (env-bootstrap ok lines, caveat-guard receipts) | 207 hook injections / 90 KB in this session's transcript; kept: failures, blocks, judge outages, dead-guard alarm | `bfbc472a` |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 24",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

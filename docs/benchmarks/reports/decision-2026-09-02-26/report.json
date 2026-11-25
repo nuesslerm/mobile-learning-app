@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-26",
+  "subject": "Engineering decisions",
+  "title": "Squeez not shipped",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Squeez not shipped",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "squeez not shipped; rtk still to be measured on the user's request",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 9 | 2026-09-02 21:20 | squeez not shipped; rtk still to be measured on the user's request | decision 8 + JetBrains rtk +7.6% | — |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 26",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

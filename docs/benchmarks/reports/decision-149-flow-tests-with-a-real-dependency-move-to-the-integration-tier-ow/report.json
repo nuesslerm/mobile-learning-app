@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-149-flow-tests-with-a-real-dependency-move-to-the-integration-tier-ow",
+  "subject": "Engineering decisions",
+  "title": "Flow tests with a real dependency move to the integration tier (owner, 25 Oct)",
+  "question": "What was measured for Flow tests with a real dependency move to the integration tier (owner, 25 Oct)?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "Flow tests with a real dependency move to the integration tier (owner, 25 Oct)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "CI: `cargo-integration` Nx task per crate with `tests/integration.rs` (one test thread); `wf test plan` plans `test:integration` and the crates' integration in `service-e2e-tests` (after the CLIs are built and the services deployed), not `flow-tests`; the job installs Chromium and ffmpeg, publishes the integration run bundles, and its timeout grew from 10 to 35 minutes.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- CI: `cargo-integration` Nx task per crate with `tests/integration.rs` (one test thread); `wf test plan` plans `test:integration` and the crates' integration in `service-e2e-tests` (after the CLIs are built and the services deployed), not `flow-tests`; the job installs Chromium and ffmpeg, publishes the integration run bundles, and its timeout grew from 10 to 35 minutes."
+        ],
+        [
+          "- Not proven: that the earlier Chromium timeouts came from parallel launches (the error only said `goto` did not finish in 30 s). Moving the tests removes real browsers from `flow-tests`; the first `service-e2e-tests` run measures them."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2744–2750",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

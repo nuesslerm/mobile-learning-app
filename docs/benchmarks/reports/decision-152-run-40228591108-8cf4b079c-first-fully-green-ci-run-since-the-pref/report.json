@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-152-run-40228591108-8cf4b079c-first-fully-green-ci-run-since-the-pref",
+  "subject": "Engineering decisions",
+  "title": "Run 40228591108 (8cf4b079c): first fully green CI run since the preflight push; plan round 1 found invalid",
+  "question": "What was measured for Run 40228591108 (8cf4b079c): first fully green CI run since the preflight push; plan round 1 found invalid?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "Run 40228591108 (8cf4b079c): first fully green CI run since the preflight push; plan round 1 found invalid",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Green: every job, all six deploy legs (vnc-auth-session: build 196 s, smoke 14 s, tailnet probe 0 s, swap 8 s; `smoke: inside passed, tailnet none` because it has no `/health`), flow-tests 1 min 23 s on this push (Nx replays), report posted.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Green: every job, all six deploy legs (vnc-auth-session: build 196 s, smoke 14 s, tailnet probe 0 s, swap 8 s; `smoke: inside passed, tailnet none` because it has no `/health`), flow-tests 1 min 23 s on this push (Nx replays), report posted."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2762–2768",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

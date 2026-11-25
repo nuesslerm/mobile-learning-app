@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-206-3-nov-the-nx-cache-shim-under-load-no-stall",
+  "subject": "Engineering decisions",
+  "title": "3 Nov: the Nx cache shim under load, no stall",
+  "question": "What was measured for 3 Nov: the Nx cache shim under load, no stall?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "3 Nov: the Nx cache shim under load, no stall",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "The 90 s stalls of run af52e39f5 (810 s across an 11-commit batch) came from the shim's keep-alive handling; the thread-per-connection server with a real `Connection: close` and a 120 s idle timeout replaced it. CI runs since made too few cache requests to prove it.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- The 90 s stalls of run af52e39f5 (810 s across an 11-commit batch) came from the shim's keep-alive handling; the thread-per-connection server with a real `Connection: close` and a 120 s idle timeout replaced it. CI runs since made too few cache requests to prove it."
+        ],
+        [
+          "- Load test through the real `wf cache nx` against the bucket, Node `fetch` (keep-alive, as Nx's client): 400 GETs at concurrency 16 with idle gaps: p50 708 ms, p95 854 ms, max 1008 ms, 0 over 10 s. Then 16 concurrent GETs after idles of 0, 30, 95 and 130 s on the same pooled sockets (130 s is past the server's idle timeout, the stale-socket case): max 868, 779, 800 and 956 ms. No stall. Scripts in the session scratchpad (`nxload/load.mjs`, `nxload/idle.mjs`), n=1 each."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3336–3340",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

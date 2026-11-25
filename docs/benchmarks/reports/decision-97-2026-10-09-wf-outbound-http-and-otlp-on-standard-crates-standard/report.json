@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-97-2026-10-09-wf-outbound-http-and-otlp-on-standard-crates-standard",
+  "subject": "Engineering decisions",
+  "title": "wf outbound HTTP and OTLP on standard crates (standard-crates plan, phase 4, slices A to D)",
+  "question": "What was measured for wf outbound HTTP and OTLP on standard crates (standard-crates plan, phase 4, slices A to D)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf outbound HTTP and OTLP on standard crates (standard-crates plan, phase 4, slices A to D)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measure: Binary · pre (curl): 5.71 MB · post (ureq, opentelemetry-proto): 6.97 MB",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "pre (curl)",
+        "post (ureq, opentelemetry-proto)"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "5.71 MB",
+          "6.97 MB"
+        ],
+        [
+          "`wf --help` cold start p50",
+          "1.57 ms",
+          "1.99 ms"
+        ],
+        [
+          "`wf --help` peak RSS p50",
+          "12.1 MB",
+          "12.2 MB"
+        ],
+        [
+          "one command that posts telemetry, wall p50",
+          "11.9 ms",
+          "5.6 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Measured with the release binary, n=5 medians after a warm-up, against the std-only binary built from this branch's parent (`wf-pre-std`): the file size and startup of `wf --help`, and the wall time of one `wf secrets get` that posts its telemetry event to a local HTTPS ingest (the old binary through curl, the new one in process; the script is `wf-telemetry-bench.py` in the session scratchpad)."
+        ],
+        [
+          "Reading: the standard stack costs 1.26 MB of binary (rustls, ureq and the proto types) and 0.4 ms of startup, which the owner accepted; every command that made an outbound call is faster because it no longer forks and execs `curl`. Peak resident memory of a plain command is unchanged. The peak RSS of the telemetry run is not reported: `wait4` returned the parent's high-water mark for both binaries."
+        ],
+        [
+          "Tests, by tier. Integration: the TypeScript black-box suite for `wf` (`tooling/wf-blackbox`) kept its expectations about what is sent and what is reported, but its fakes moved from stub `curl` binaries to servers: a mock HTTP service, a mock tailnet (a SOCKS5 proxy that records each `host:port` it is asked for and joins the connection to a local service, `helpers/mock-tailnet.ts`), and a mock HTTPS server with a throwaway CA (`helpers/mock-https-server.ts`, a CA and a leaf because rustls refuses a certificate that is its own CA), each a separate process because the tests spawn the CLI synchronously. Converted: ios, ios-launch, ios-dev-client, ios-expo-go, metro-forward, metro-link, metro-teardown, agent-deps-install, deploy, deploy-run, verify-tier3, dispatch-stats, dispatch-run (preflight and `--live`), vm-ops, vm-exec, vm-logs, vm-recover, report-health, and the telemetry cases that were a Rust test with a curl stub (now `secrets-telemetry`). The full suite after the change: 1141 of 1142 on the debug binary. The one failure, `dispatch-batch` \"a file whose dispatch fails ... FAIL 0s\", reads `FAIL 1s` or `FAIL 2s` on this sandbox with the std-only binary as well (three of three runs), so it is this machine's speed against a test that asserts a rounded duration, not this change. Unit: 47 in the `wf` binary; the golden OTLP payloads of the caveat guard are now compared as typed `ExportLogsServiceRequest` values, so the standard types are the check."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1851–1871",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

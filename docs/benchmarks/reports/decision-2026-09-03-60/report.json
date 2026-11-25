@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-60",
+  "subject": "Engineering decisions",
+  "title": "The compound → plan loop is measured",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "The compound → plan loop is measured",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "The compound → plan loop is measured (user asked whether cf-compound's output reaches later plans; it had not been tested). New cell `cf-plan/consults-compounded-learning`: the fixture's seeded learning has the exact shape `cf-compound` writes and the follow-on plan extends the same function; `/cf-plan next mode:non-interactive` ran `learnings`, wrote `learnings.md`, `contract.md`,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 43 | 2026-09-03 18:50 | The compound → plan loop is measured (user asked whether cf-compound's output reaches later plans; it had not been tested). New cell `cf-plan/consults-compounded-learning`: the fixture's seeded learning has the exact shape `cf-compound` writes and the follow-on plan extends the same function; `/cf-plan next mode:non-interactive` ran `learnings`, wrote `learnings.md`, `contract.md`, `units.jsonl` with `Read first: docs/solutions/workflow/seeded-learning.md` in the unit brief, committed 3 times, no question asked — ok at $0.29, 84 s, n=1, post arm only. Also fixed: `.agents/skills` still linked the pre-merge `cf` and `opencode-dispatch` directories and lacked `cf-lfg`/`cf-dispatch`, which is why those two never appeared in the skill listing; the links are hand-maintained, not derived from the plugin's `skills/` dir (candidate for the sync to own) | `.agents/tmp/skill-eval/live4-cf-plan-consults/pack.json` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 60",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

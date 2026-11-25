@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-184-2026-10-31-why-no-job-log-was-stored-since-00-19-utc",
+  "subject": "Engineering decisions",
+  "title": "why no job log was stored since 00:19 UTC",
+  "question": "What was measured for why no job log was stored since 00:19 UTC?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: why no job log was stored since 00:19 UTC",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "`wf ship --changed` read every file of every image at both commits again for each image (364 `git show` spawns); `Tree::show` now keeps what it read for the life of the process. Deploy flow tests in the 4-core sandbox: 83 s -> 51-58 s (all 43 pass).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Run",
+        "What it changed",
+        "Wall",
+        "flow-tests (step)",
+        "preflight",
+        "CPU avg / peak",
+        "CPU iowait peak"
+      ],
+      "rows": [
+        [
+          "c3f0924",
+          "git show cache, live comment on (first run on a fresh runner 2.338.2 container)",
+          "10m 29s",
+          "4m 38s (3m 29s)",
+          "1m 21s",
+          "92% / 100%",
+          "3%"
+        ],
+        [
+          "6cb68c5",
+          "`tidy` removes stale artifacts of a live target",
+          "**8m 17s**",
+          "3m 23s (2m 53s)",
+          "51 s",
+          "93% / 100%",
+          "0%"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Gate 0 (31 Oct 11:50 UTC): the eight successful jobs of run 85e946b (runner 2.338.2) store logs of 16-680 KB and the run's log zip is 459 KB. The preflight gains `runner-version` (warning only): the runner version compose pins against the latest `actions/runner` release, so a runner left a minor behind is named in the verdict before it costs a day of logs. The per-job live comment update is back on (`live` defaults to true in install-wf)."
+        ],
+        [
+          "- `wf ship --changed` read every file of every image at both commits again for each image (364 `git show` spawns); `Tree::show` now keeps what it read for the life of the process. Deploy flow tests in the 4-core sandbox: 83 s -> 51-58 s (all 43 pass)."
+        ],
+        [
+          "- Run c3f0924's preflight (the first with readable logs): `wf ci tidy` found the runner volume at 77% (high water 70%) and the checkout directory at 53 GB; it freed 116 MB and spent 24 s and 631 MB of reads walking the tree. Cargo never collects the test binaries of earlier versions of the code, so a live `target/*/deps` fills up. `tidy` now also removes files of `deps` directories that nothing has read or written for a week (one flat directory read per `deps`, no recursion into it or into `build`/`.fingerprint`), and the report breaks an entry over 5 GB down by what is inside it (three levels)."
+        ],
+        [
+          "- Unattributed CPU in the 6cb68c5 window: 0.44 cores, 24% of the busy time (kernel's own share 0.53 cores)."
+        ],
+        [
+          "- Playwright's `install --with-deps chromium` re-checks the browser and the system packages on every call (5-6 s in each of flow-tests, typecheck and cli-e2e); it now runs only when no marker for the installed Playwright version exists in `~/.cache/ms-playwright`."
+        ],
+        [
+          "- The checkouts after `plan` cost 11-12 s each (a fetch of all 316 refs and tags to learn nothing new: `plan` has already fetched the commit, and a depth-1 checkout by `preflight`/`deploy`/`clis` is what makes the next `fetch-depth: 0` one expensive). flow-tests, typecheck, integration, cli-e2e, service-e2e and the browser/android e2e workflow now check out the commit locally when it is already in the runner's repository and fall back to `actions/checkout` when it is not. The browser job's Chromium step uses the same Playwright version marker as the other three."
+        ],
+        [
+          "- Run 21410b6 (executing): preflight's \"This commit's wf\" took 3m 08s, against 26-42 s on the earlier executing runs. `wf ci tidy` ranked Rust incremental state as the cheapest to give up and removed it first on every run while the volume was over 70%, including the `wf` build's own 100 MB incremental state (`wf-cargo-target/.../deploy/incremental`), which is what keeps that build at 30 seconds. The stale `deps` artifacts (GBs) are now first, and the incremental directories last."
+        ],
+        [
+          "- Run c3cf90d (executing, after every cut above): **7m 28s**, 8 jobs passed (preflight 49 s, plan 29 s, flow-tests 3m 15s, typecheck 1m 04s, clis 7 s, cli-e2e 41 s). VM: CPU 96% avg / 100% peak, steal 4% / 18%, CPU iowait 0%, kernel share 26% / 44%, memory 4.8 GB avg / 5.2 GB peak. Best warm replay 2m 17s-2m 50s (0539be8: 2m 33s; host steal makes it noisy around the 2m 30s gate)."
+        ],
+        [
+          "- `wf ci budget` gains `cpuSecondsPerRun` (1000, `.github/ci-budget.json`): the VM's average busy share of its 2 cores times the run's wall time, from the host sampler. c3cf90d spent about 860 CPU-seconds (0.96 x 2 x 448 s); the ceiling is 16% above it, so a run that burns more CPU for the same work is named. Report-only (`enforce` false) until about 20 runs are in the ledger (about 10-12 are judged now)."
+        ],
+        [
+          "- Run 348614b (executing, `cpuSecondsPerRun` added): **7m 46s**, 8 passed; VM CPU 96% avg / 100% peak, about 895 CPU-seconds (c3cf90d: 860, so not falling yet), kernel share 31% avg / 56% peak (over the 25% gate), CPU iowait 1% / 4%, memory 4.7 GB avg / 5.1 GB peak, flow-tests 3m 22s (waited 1m 17s for the runner behind the typecheck job)."
+        ],
+        [
+          "- Memory (Step 3, 31 Oct 12:55 UTC, BetterStack `docker.oom` rows of reporting-service): six `remote-chat-agent-opencode` OOM events between 01:26 and 05:27 UTC, none in the 7.5 hours since. The 5 GB cap was committed at 04:34 UTC; the deploy time of the cap is not recorded, so the 05:09 and 05:27 events may predate it. VM memory during c3cf90d and 348614b: 4.7-4.8 GB average, 5.1-5.2 GB peak, swap 0."
+        ],
+        [
+          "- Gate evidence (31 Oct 13:00 UTC): the preflight of run 348614b stores a 31 KB job log and prints `{\"check\":\"runner-version\",\"ok\":true,\"detail\":\"pinned 2.338.2, latest 2.338.2\"}`, so the version guard runs live. `cpuIowaitPeak` audit over the ten runs with samples (peaks 0, 0, 0, 4, 4, 9, 12, 17, 0, 4): a limit of 10 flags two of ten (20%, one of them the fixed `tidy` walk), 15 flags one (the `tidy` walk); it stays 15."
+        ],
+        [
+          "- Where the kernel share of the flow tests goes (`strace -f -e trace=execve` over `cargo test -p deploy --test flow`, 43 tests): 111,165 process spawns in one run, 93,682 of them `git` (19.8k `show <sha>:…`, 15.5k `ls-tree -r` and 15.5k `hash-object --stdin` from `image_hash`, 5.1k `ls-tree --name-only`, 3.7k `rev-parse --show-toplevel`, 3.5k `cat-file -e`), 16k `sed`. The binary reports user 2m 26s and sys 43 s (26% of the CPU, the same share as the VM's kernel figure). Hashing each image once per process (a memo in `image_hash::hash`) changed the count from 93,682 to 93,613: the repeats are not within a process, they are the 60-odd `wf ship --changed` invocations of the scenario tests, each hashing every image at two commits. Reverted; a real cut needs the stub's `hash-object` and `show` answers (`STUB_HASH`, `GIT_AS`) replaced by a fixture repository the tests commit to, so the hash can be computed in-process (sha2 is already a dependency) and `ls-tree` read once per commit."
+        ],
+        [
+          "- The deploy flow tests' `git` stub (`clis/deploy/tests/flow/ship.rs`) spawned a `sed` per argument of every git call (16k spawns) plus one for each `show`; it now rewrites the commit names and the `show` path with shell parameter expansion (same answers). `cargo test -p deploy --test flow` locally: 111k -> 80k process spawns, 56.5 s -> 46.4 s, user CPU 2m 26s -> 1m 30s, sys 43 s -> 32 s; all 43 pass. Run b336d29 (the `ls-tree` cut alone) took 8m 42s start to finish against 348614b's 8m 43s: flow-tests 3m 08s (was 3m 22s), but typecheck waited 3m 10s behind it."
+        ],
+        [
+          "- Run a616212 (the sed-free git stub; its clis tree was unchanged, so wf was not rebuilt and typecheck replayed part of the Nx cache, which makes it only partly comparable): **5m 10s**, 8 passed; flow-tests 2m 03s (the `Flow tests` step 1m 40s, was 2m 45s on b336d29 and 2m 59s on 348614b), deploy suite 1m 30s (was 2m 22s). VM: CPU 96% avg, about 595 CPU-seconds (0.96 x 2 x 310 s; 860 on c3cf90d, 895 on 348614b), kernel share 26% avg / 33% peak (was 31%), CPU iowait 0%, memory 4.8 GB avg / 4.9 GB peak."
+        ],
+        [
+          "- Run 5929744 (executing, wf rebuilt, typecheck cold; the stub and `ls-tree` cuts together): **7m 03s** (348614b: 7m 46s), 8 passed; flow-tests 2m 42s (the `Flow tests` step 2m 19s, was 2m 59s on 348614b) with the hypervisor taking 6% avg / 16% peak; deploy suite 1m 41s (2m 22s). VM: CPU 93% avg, about 787 CPU-seconds (0.93 x 2 x 423 s; 860 / 895 / 787 over c3cf90d / 348614b / 5929744), kernel share **23% avg** / 28% peak (gate 25%), CPU iowait 3% avg / 15% peak (at the limit, not over), memory 4.9 GB avg / 6.3 GB peak, swap 0."
+        ],
+        [
+          "- Warm-replay probe (docs-only push, no `[skip ci]`): the run after 5929744's log entry measures the replay gate (under 2m 30s) and adds a ledger row; its numbers follow."
+        ],
+        [
+          "- Run 7ce8086 (warm replay, docs-only push): **2m 24s**, under the 2m 30s gate (preflight 20 s, plan 29 s, typecheck 27 s, browser 27 s, android 24 s; flow-tests and the service legs skipped); hypervisor 7% avg / 13% peak, CPU iowait 4% avg / 9% peak, kernel share 13%, about 276 CPU-seconds (0.96 x 2 x 144 s). Both duration gates now have a measured pass: warm 2m 24s (7ce8086), executing 7m 03s (5929744)."
+        ],
+        [
+          "- Budget job verdicts of the last six runs (report-only, `cpuSecondsPerRun` 1000 active from 348614b): c3cf90d, 348614b, b336d29, a616212 and 7ce8086 \"no waste found\" (6-8 jobs, 9-18 Nx tasks each); 5929744 one `cpu-iowait` flag, \"up to 15% (limit 15%)\": a peak of 15.x rounded, the one flag in this window and not a real stall (CPU iowait averaged 3%). No `cpu-seconds`, `should-have-hit`, `key-drift` or `slower-same-work` breach in the six. The next docs-only pushes add ledger rows toward the 20 the ratchet wants."
+        ],
+        [
+          "- Run 35364db (second warm replay): **2m 24s** again (preflight 20 s, plan 31 s, typecheck 27 s, browser 27 s, android 23 s), hypervisor 0%, kernel share 17%, about 245 CPU-seconds."
+        ],
+        [
+          "- OOM window against the cap date (BetterStack `vm-ops-api redeploy.*` and `docker.oom` rows): the 5 GB cap (commit 37c654cf7, 04:34 UTC) is in tag `sha-4fd61b867`, which `remote-chat-agent` first ran at 05:35:29 UTC (redeployed again 06:09:35). The last `remote-chat-agent-opencode` OOM was 05:27:26 UTC, eight minutes before that deploy; there has been none in the 8.5 hours since (opencode peak 2.5 GB, VM memory 4.5-5.1 GB average, swap 0). Step 3's memory item is met."
+        ],
+        [
+          "- Correction to the spawn counts above: `strace -e execve` also logs each failed `PATH` lookup (ENOENT) of a spawn, so 111k / 80k / 75k overcounted. Counting only the execs that started a program (`grep -v ENOENT`), `cargo test -p deploy --test flow` went from **33,114** spawns before the three cuts (`ls-tree` once per commit, compose files from that listing, a stub without `sed`) to **13,055** after (11,997 of them `git`, 308 `deploy`, 216 `bws`, 110 `oci`, 80 `pnpm`): -61%, in line with the measured 56.5 s -> 46.4 s locally and the deploy suite 2m 22s -> 1m 30s-1m 41s in CI. For comparison the `wf` crate's flow tests start 2,364 programs in 55 s (718 `git`, 433 `wf`, 281 `adb`): they are harness-bound, not spawn-bound, so no spawn cut is left there."
+        ],
+        [
+          "- Ratchet (31 Oct, about 16 judged ledger runs): the one false flag of the window was the `cpu-iowait` peak of 5929744, \"15% (limit 15%)\": the peak was 15.x and the test compared the unrounded value with the limit. It is now judged on the whole percent the report shows (a 15.4 passes, a 15.6 breaches; unit test). With that, the budget job gave \"no waste found\" on every other judged run (no `cpu-seconds`, `should-have-hit`, `key-drift`, `slower-same-work`, `runner-wait`, `idle` or `io-wait` breach in the last eight; the earlier ones were the `tidy` walk and cold-cache runs, both fixed), so `.github/ci-budget.json` is set to `\"enforce\": true`: the soft breaches now fail the run's last step too. The ceilings: `cpuSecondsPerRun` 1000 (executing runs 860, 895, 787), `cpuIowaitPeak` 15 (10 would flag two of ten), `ioWaitPeak` 60. To revert, set `enforce` back to false; the hard breaches (`should-have-hit`, `cache-read-only`) fail the run either way."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3054–3112",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-75-2026-10-08-remote-chat-agent-black-box-harness-first-slice-rust-s",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent black-box harness, first slice (rust-services plan, phase 1 started)",
+  "question": "What was measured for remote-chat-agent black-box harness, first slice (rust-services plan, phase 1 started)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent black-box harness, first slice (rust-services plan, phase 1 started)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Tier run: black-box integration through a real socket against the production bundle (`node dist/bundle/index.mjs`): 1 file, 21 tests, all green in about 12 s with the bundle build. `RCA_BACKEND_CMD` names another implementation, so the same suite will run on the Rust service (`pnpm --filter @app/remote-chat-agent run test:blackbox`). The service starts with nothing but its environment: no opencode, no vault (a no-op `WF_BIN`), a throwaway HOME.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier run: black-box integration through a real socket against the production bundle (`node dist/bundle/index.mjs`): 1 file, 21 tests, all green in about 12 s with the bundle build. `RCA_BACKEND_CMD` names another implementation, so the same suite will run on the Rust service (`pnpm --filter @app/remote-chat-agent run test:blackbox`). The service starts with nothing but its environment: no opencode, no vault (a no-op `WF_BIN`), a throwaway HOME."
+        ],
+        [
+          "- What the slice pins, the layers every route shares: `/health` (status, `wsProtocolVersion`, commit); the origin policy (the configured origins with their trailing slash normalised, localhost on any port, `127.0.0.1`, the dev-bridge `metro-runner-*` hosts, and the refusals for an unlisted origin, a prefix lookalike and a public-domain metro-runner lookalike), with `Vary: Origin`, the method and header lists and the 86,400 s max age; preflights answered 204 for every path and not counted against the rate limit; the 120 per minute limit per caller, where the caller is the `X-Forwarded-For` address when the peer is loopback (the front door `rca-edge` relies on exactly that); 404, malformed JSON 400 and the 30 MB body limit 413; and the one secret in the service, `X-Bot-Secret` on `/api/worktree` (401 before the body is read, 400 with issue details after)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1598–1603",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-13-3395",
+  "subject": "Engineering decisions",
+  "title": "8a rerun on the final build",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-13",
+  "revision": null,
+  "environment": null,
+  "workload": "8a rerun on the final build",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "8a rerun on the final build (live): tmux session `leg-proof2` was started in `agent-shell-sessions` (container `73ad325833c9`, up since 11 Nov) at 14:47:53 UTC with a marker in container-local `/tmp`. CI run 43446268012 (`faf2e380`) then deployed `agent-shell` last. After it: `agent-shell` (the `app` container) Up 31 s on `sha-faf2e380`; `agent-shell-sessions` and `agent-shell-dind` untouched…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 13 Nov, 8a rerun on the final build (live): tmux session `leg-proof2` was started in `agent-shell-sessions` (container `73ad325833c9`, up since 11 Nov) at 14:47:53 UTC with a marker in container-local `/tmp`. CI run 43446268012 (`faf2e380`) then deployed `agent-shell` last. After it: `agent-shell` (the `app` container) Up 31 s on `sha-faf2e380`; `agent-shell-sessions` and `agent-shell-dind` untouched (Up 12 h, still on `sha-bb6e8dc5`); the tmux session and its marker file were still there, in the same container. Cleaned up afterwards (tmux session and marker removed, local key deleted)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3395",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

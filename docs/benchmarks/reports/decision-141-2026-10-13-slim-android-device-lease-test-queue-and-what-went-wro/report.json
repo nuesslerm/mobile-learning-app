@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-141-2026-10-13-slim-android-device-lease-test-queue-and-what-went-wro",
+  "subject": "Engineering decisions",
+  "title": "slim Android device, lease, test queue, and what went wrong on the way",
+  "question": "What was measured for slim Android device, lease, test queue, and what went wrong on the way?",
+  "date": "2026-10-13",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-13: slim Android device, lease, test queue, and what went wrong on the way",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Slim device: every package of the stock redroid image is core (kept), in a named feature (`--with` keeps it) or removed; a unit test fails on an unclassified package. Measured 792 to 517 MiB, idle CPU 13% to 0.1%, 85 to 67 processes. Decision: slim is the default for `wf android up`, `--stock` for anything touching system UI, `wf android features` shows what the device can do. Not slimmed: the launcher and Settings (the home activity must exist for `sys.bo…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Slim device: every package of the stock redroid image is core (kept), in a named feature (`--with` keeps it) or removed; a unit test fails on an unclassified package. Measured 792 to 517 MiB, idle CPU 13% to 0.1%, 85 to 67 processes. Decision: slim is the default for `wf android up`, `--stock` for anything touching system UI, `wf android features` shows what the device can do. Not slimmed: the launcher and Settings (the home activity must exist for `sys.boot_completed`), `sdksandbox`, `android.ext.services`."
+        ],
+        [
+          "- VM cost lesson: every push to `dev` that touches `clis/` schedules deploy builds on the single 2-OCPU runner, and a wf build on the same VM then competes with them (MemAvailable fell to 13 MB, load 9). Iterating by pushing every fix to `dev` made the VM slower for everyone. Decision: iterate on `claude/device-lab`, merge to `dev` at milestones. The shared `/workspace/repos/expo-hello-world-app-2` checkout is reset by deploy builds under any other build, so ad-hoc builds use their own checkout (`/workspace/repos/wf-sync`, `/workspace/repos/wf-test`)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2313–2320",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

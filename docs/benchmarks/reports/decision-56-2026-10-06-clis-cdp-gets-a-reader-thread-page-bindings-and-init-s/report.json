@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-56-2026-10-06-clis-cdp-gets-a-reader-thread-page-bindings-and-init-s",
+  "subject": "Engineering decisions",
+  "title": "`clis/cdp` gets a reader thread, page bindings and init scripts (the base for the mock keyboard)",
+  "question": "What was measured for `clis/cdp` gets a reader thread, page bindings and init scripts (the base for the mock keyboard)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `clis/cdp` gets a reader thread, page bindings and init scripts (the base for the mock keyboard)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Decision: the page bindings the Node daemon relies on (`__mcpFocusChange`, `__mcpOpenedUrl`, `__mcpSetColorScheme`) call back into the daemon at any time, not only while a command is in flight, so the synchronous connection (which read the socket only inside `call`) could not carry them. `Cdp` now owns a reader thread: replies are routed to the waiting caller by id over a channel, events go into a bounded queue (10,000, oldest dropped), pings are answered fr…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision: the page bindings the Node daemon relies on (`__mcpFocusChange`, `__mcpOpenedUrl`, `__mcpSetColorScheme`) call back into the daemon at any time, not only while a command is in flight, so the synchronous connection (which read the socket only inside `call`) could not carry them. `Cdp` now owns a reader thread: replies are routed to the waiting caller by id over a channel, events go into a bounded queue (10,000, oldest dropped), pings are answered from the reader, a lost connection wakes every waiting caller with an error, and a command times out after 60 s. `Attached` adds `add_binding` (`Runtime.addBinding`), `add_init_script` (`Page.addScriptToEvaluateOnNewDocument`) and `take_binding_calls`; execution-context tracking now reads the queue, which removed the peek-based `drain`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1401–1406",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

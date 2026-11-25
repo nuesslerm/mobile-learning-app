@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "audits-reports-clis-vnc-auth-capture",
+  "subject": "Engineering measurements",
+  "title": "clis/vnc-auth-capture: the image that runs `wf auth listener`",
+  "question": "What did the clis/vnc-auth-capture: the image that runs `wf auth listener` measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "clis/vnc-auth-capture: the image that runs `wf auth listener`",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measure: Child processes of the listener · Before: `curl`, `openssl` · After: none",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Child processes of the listener",
+          "`curl`, `openssl`",
+          "none"
+        ],
+        [
+          "Packages named in the image for the listener",
+          "`curl`, `openssl`, `ca-certificates`",
+          "`curl`, `ca-certificates`"
+        ],
+        [
+          "`wf` binary in the image",
+          "4,936,120 B (aarch64, `wf-cli:latest` then)",
+          "built natively on the VM from the branch (`sha-43261cb4`, pushed, not redeployed); its aarch64 size was not measured (the x86-64 release binary is 8.3 MB with the HTTP stack)"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "clis-vnc-auth-capture.md",
+      "path": "../../../audits/reports/clis-vnc-auth-capture.md"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-139-2026-10-12-why-a-deploy-took-25-80-minutes-vm-contention-vault-st",
+  "subject": "Engineering decisions",
+  "title": "why a deploy took 25-80 minutes (VM contention, vault stall) and what the wf build costs",
+  "question": "What was measured for why a deploy took 25-80 minutes (VM contention, vault stall) and what the wf build costs?",
+  "date": "2026-10-12",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-12 why a deploy took 25-80 minutes (VM contention, vault stall) and what the wf build costs",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measured on the VM (2 OCPU, 12 GB, the whole Always-Free A1 pool; no swap): 11.1 GB used, 0.8 GB available, load 9-11, CPU pressure \"some\" avg300 83 %, memory \"some\" avg300 2 %, io \"some\" avg60 38 % (the build supervisor admits below 20 %). Memory is tight but not thrashing; CPU is the bottleneck.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Measured on the VM (2 OCPU, 12 GB, the whole Always-Free A1 pool; no swap): 11.1 GB used, 0.8 GB available, load 9-11, CPU pressure \"some\" avg300 83 %, memory \"some\" avg300 2 %, io \"some\" avg60 38 % (the build supervisor admits below 20 %). Memory is tight but not thrashing; CPU is the bottleneck."
+        ],
+        [
+          "- Run 455 (`ff550f7`): `plan` job 4.5 min (`install-wf` 3 m 44 s, cache miss), `deploy (remote-chat-agent)` 6.5 min wait + 6 min, `deploy (vnc-auth-session)` 36 min waiting for the single runner + 24 min (wf carrier cargo build 8 min, image build, a Bitwarden 503 stall of 13 min inside the poll loop, a 111 s layer extraction). Quiet periods deploy in 3 min (runs 451, 452); stacked pushes queue behind one runner for 40-80 min."
+        ],
+        [
+          "- Build benchmark (`cargo build --profile deploy -p wf`, 2 CPUs pinned, n=1, unloaded x86 sandbox, peak RSS summed over the process tree): current `opt-level z` 181 s clean / 29 s incremental / 936 MB; `opt-level 1` 195 s / 36 s / 954 MB; `opt-level 1` + lld 195 s / 33 s / 944 MB. Decision: keep the profile; the same incremental build took 3.5 min on the loaded VM, so contention, not codegen, is the cost."
+        ],
+        [
+          "- Changes: `vmops::resolve_credentials` is read once per process (a deploy polled the vault every 10 s; a failure is not cached); the redroid compose swaps `cpus: 1.5` (a 75 % hard quota on a 2-CPU machine) for `cpu_shares: 128`, which only yields under contention; the login browser drops the Selkies/XFCE/X/pulse/nginx desktop (deployed; its per-container memory could not be read from agent-shell, only `free`)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2297–2304",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

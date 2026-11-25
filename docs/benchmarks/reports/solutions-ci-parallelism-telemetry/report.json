@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "id": "solutions-ci-parallelism-telemetry",
+  "subject": "Engineering measurements",
+  "title": "parallelism-telemetry",
+  "question": "What did the parallelism-telemetry measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "parallelism-telemetry",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Hosted runners are 4 vCPU / 16 GB and the account runs at most 20 jobs at once, across every caller workflow (`ci-hosted-backend-core.yml`, `-mobile-core`, `-cli-core`, `-cli-build`, `-backend-build`, `-mobile-build`; all call `pipeline.yml`). Two things decide how fast a push is green and what it costs:",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Source",
+        "Writes",
+        "Where it runs"
+      ],
+      "rows": [
+        [
+          "`.github/actions/hosted-setup/sampler.sh`",
+          "`stats-<job>.jsonl` every 5 s",
+          "beside every hosted job (artifact `stats-<job>`)"
+        ],
+        [
+          "`wf ci resources [--send]`",
+          "`CI_JOB_RESOURCES`, `CI_TASK_RESOURCES`, `CI_STEP_RESOURCES`",
+          "report job, after the `stats-*` and `ci-db-*` artifacts are downloaded and before `wf ci db merge`"
+        ],
+        [
+          "`wf ci timings [--send]`",
+          "`CI_JOBS` (+ `QUEUED_S`, `RUNNER`), `CI_STEPS`, `CI_RUN_PROFILE`",
+          "report job (already runs)"
+        ],
+        [
+          "`wf ci concurrency [--phase start\\|end]`",
+          "`CI_CONCURRENCY`",
+          "any job; the first job and the report job of each workflow give a start and an end reading"
+        ],
+        [
+          "`wf test run --stage` (Nx ledger)",
+          "`NX_TASKS` with `STARTED_MS`, `ENDED_MS`, `CPU_S`",
+          "each test job's own database"
+        ],
+        [
+          "`wf test run --stage` (Nx output)",
+          "`CI_TESTS`, gauge `ci.test.duration_s`",
+          "each test job's own database"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "`BASIS`",
+        "Meaning"
+      ],
+      "rows": [
+        [
+          "`serial`",
+          "the target runs `--test-threads=1` (`cargo-integration*`, `cargo-e2e*`, `cargo-verify-deployed`, `replay-*`): the time since the previous result is the test's own"
+        ],
+        [
+          "`gap`",
+          "tests run in parallel: the time since the previous result of the same project (or since its binary started). It is the quiet stretch before the result, not the test's own time: a fast test that finishes after a long one's start shows that stretch, and the slow one that finishes right after shows almost none, so the test it names is unreliable (not a lower bound). A `gap` row is never a gauge, and an unknown start (a result before any `Running` line) reads 0"
+        ],
+        [
+          "`reported`",
+          "the runner printed the time (`<1.250s>` from `--report-time`, or a vitest `12ms`), exact"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Line in the comment",
+        "Source"
+      ],
+      "rows": [
+        [
+          "Headline: wall, runner time, peak and average jobs at once, parallel efficiency, jobs that ran; critical path in the verdict",
+          "`ci_timings::profile` over the jobs that ran (the `CI_RUN_PROFILE` numbers)"
+        ],
+        [
+          "Fixed cost table: `setup-job`, `install-test-deps` steps, the `wf-build` and `plan` jobs",
+          "`ci_timings::step_rows` (`CI_STEPS`)"
+        ],
+        [
+          "Queue wait, and a long wait with its concurrency group (workflow, shard index and key from `WF_CI_CORE_SHARD_KEYS`, `WF_CI_SHARD_KEYS`, `WF_CI_CLI_E2E_SHARD_KEYS`)",
+          "job `created_at` to `started_at` (`CI_JOBS.QUEUED_S`)"
+        ],
+        [
+          "Runner pool: repo busy / queued / headroom at plan and at report",
+          "the plan job's `CI_CONCURRENCY` start row; the end reading is taken in process"
+        ],
+        [
+          "Runner table: vCPU and memory as sampled, CPU avg/p95/peak, iowait, memory, swap, pressure, seconds idle and saturated",
+          "the sampler's `stats-<job>.jsonl` (`CI_JOB_RESOURCES`); cores come from the sampler, never a constant"
+        ],
+        [
+          "In-runner parallelism: tasks at once per job and the cores they used",
+          "`ci-db-<job>/rows.sqlite` `NX_TASKS` with the samples (`CI_TASK_RESOURCES`)"
+        ],
+        [
+          "Where the idle time is: the five steps with most idle seconds, their share and category; the overhead share against the median",
+          "this run's steps and the samples, recomputed as `CI_STEP_RESOURCES` is; the median from `CI_STEPS` of the last 20 successful runs"
+        ],
+        [
+          "What to do: one line per amber or red signal",
+          "`clis/pipeline/src/ci_actions.rs` (`RULES`)"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Part",
+        "Source"
+      ],
+      "rows": [
+        [
+          "A one-row table: this run's wall, critical path and queue against the median of the last 20 successful runs of the same workflow, each with an arrow (up slower, down faster, right within 10%)",
+          "this run's profile; `CI_RUN_PROFILE` `WALL_S`, `CRITICAL_PATH_S`, `QUEUE_S_TOTAL`"
+        ],
+        [
+          "`Longest:` the job of this run's critical path that ran longest, and its longest step (setup and post steps left out)",
+          "the run's jobs and their steps"
+        ],
+        [
+          "One mermaid `xychart-beta` line chart of this run's workflow only, minutes, the last 20 successful runs oldest first (at least 3 runs, else no chart): the total wall time first, then one line per job for the 8 longest jobs by their median, each line its own colour (`plotColorPalette` in an `init` directive that sets no theme, so GitHub's light and dark themes both apply). Mermaid draws no legend, so a line under the chart maps each emoji colour square to its series and median. Every job instance is its own line, a matrix shard named with its shard (`core-tests (3/6)`); the 8 longest instances by their median get a line. Mermaid has no hole to leave in a line (`categories.map` over the data, no null; checked in the 11.4 source), so no instance is ever plotted as 0. The chart covers a window: the instances to draw are the 8 longest (by median) of those with a time in each of the newest 3 runs, and the window is the longest stretch of the newest runs, at least 3, in which all of them have a time. After a shard count change (`core-tests (i/3)` to `core-tests (i/6)`) the new shards are lines over the runs since the change, the total wall time is cut to the same window, and the line under the chart says `The chart covers the last N of M runs` whenever N is under M. An instance with no time in even the newest 3 runs (an old shard name, a skipped job) gets no line: the note under the chart names it. The report and budget jobs have no line either",
+          "`CI_RUN_PROFILE` for the total, `CI_JOBS` (`JOB`, `SECS`) of the same runs for the jobs"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Signal",
+        "Measured as",
+        "Amber / red",
+        "Lever (action)"
+      ],
+      "rows": [
+        [
+          "Wall time",
+          "this run's wall against the median of the last 20 successful runs of the workflow",
+          "over 10% / 25% slower",
+          "the longest critical-path job and its slowest step; re-measure shard weights"
+        ],
+        [
+          "Overhead share",
+          "setup + install + teardown step seconds over all step seconds of the run",
+          "over 30% / 45%",
+          "make the install a cache hit (`install-test-deps`, `nx-cache`), trim `setup-job`; never merge jobs; names the biggest category"
+        ],
+        [
+          "Idle share",
+          "idle seconds over sampled seconds of all jobs",
+          "over 35% / 55%",
+          "raise `--parallel` of the idle step, drop the `needs` edge that holds the next stage back; names the category with most idle seconds"
+        ],
+        [
+          "Parallel efficiency",
+          "`CI_RUN_PROFILE`",
+          "under 0.75 / 0.6",
+          "drop the `needs` edge between independent jobs, re-measure the shard weights"
+        ],
+        [
+          "Queue wait in total",
+          "`CI_RUN_PROFILE.QUEUE_S_TOTAL`",
+          "over 20 s / 60 s",
+          "start the heavy stages in waves so the six `core-tests` shards get runners first"
+        ],
+        [
+          "Nx replay",
+          "the worst job's points under the median replay share that job reached in those runs (`NX_TASKS`; runs with under 3 tasks of the job are left out)",
+          "over 10 / 30 points",
+          "find the changed input hash; skip the runner of a shard with nothing to run"
+        ],
+        [
+          "I/O wait average",
+          "the worst job's `IOWAIT_AVG`",
+          "over 10% / 20%",
+          "shrink the `nx-cache` or `sccache-cache` entry, or work on tmpfs"
+        ],
+        [
+          "Sustained pressure",
+          "the worst job's share of seconds spent in stretches of 30 s or more with memory or I/O pressure (`psiMem`, `psiIo`, `avg10`) over 20%, whichever of the two stalled longer; recomputed from the sampler's file, since `CI_JOB_RESOURCES` keeps only the peaks, so the previous-run half has no such line",
+          "over 2% / 10%",
+          "lower `--parallel` in that job's test step (the shard count stays six); for I/O, shrink the cache entry it restores or saves"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Gauge",
+        "scope",
+        "name",
+        "From"
+      ],
+      "rows": [
+        [
+          "`ci.runners.busy`, `ci.runners.queued`, `ci.runners.headroom`",
+          "workflow (`all` for the account)",
+          "phase (`start`, `end`)",
+          "`wf ci concurrency`"
+        ],
+        [
+          "`ci.job.cpu_avg`, `cpu_p95`, `cpu_max`, `iowait_avg`, `mem_peak_mb`, `swap_peak_mb`, `psi_cpu_max`, `psi_mem_max`, `psi_io_max`, `idle_s`, `saturated_s`",
+          "job",
+          "workflow",
+          "`wf ci resources --send`"
+        ],
+        [
+          "`ci.step.idle_s` (steps over 30 s)",
+          "job",
+          "step",
+          "`wf ci resources --send`"
+        ],
+        [
+          "`ci.cache.events`",
+          "layer",
+          "`<phase>-<outcome>` (`restore-ok`, `restore-miss`, `save-skipped`...)",
+          "`wf cache event`"
+        ],
+        [
+          "`ci.cache.problems`",
+          "layer",
+          "`restore-error`, `restore-timeout`, `restore-empty`, `save-error`, `save-timeout`, `save-skipped-tasks-ran`",
+          "`wf cache event`"
+        ],
+        [
+          "`ci.nx.miss_tasks`, `ci.nx.miss_s`",
+          "stage",
+          "miss reason",
+          "`wf ci cache-misses --send`"
+        ],
+        [
+          "`ci.nx.exact_replay_ratio`",
+          "stage",
+          "`all`",
+          "`wf ci cache-misses --send`"
+        ],
+        [
+          "`ci.run.runner_s`, `peak_jobs`, `avg_jobs`, `queue_s_total`, `queue_s_max`, `critical_path_s`, `parallel_efficiency`",
+          "run id",
+          "workflow",
+          "`wf ci timings --send`"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "What the row says",
+        "Meaning",
+        "Move"
+      ],
+      "rows": [
+        [
+          "`idle_pct` high, `cpu_p95` under 60, `mem_peak_pct` under 60, `psi_cpu` near 0",
+          "the runner waits (serial phases, I/O)",
+          "raise `--parallel`, or fold a neighbour job into the idle stretch"
+        ],
+        [
+          "`saturated_pct` high, `psi_cpu` over 20, memory fine",
+          "CPU is the limit; more parallelism only queues",
+          "keep or lower `--parallel`; split the job across runners instead"
+        ],
+        [
+          "`psi_mem` over 10, `swap_mb` over 0, or `mem_peak_pct` over 85",
+          "memory pressure; processes are being reclaimed",
+          "lower `--parallel`, or split the heavy tasks across runners"
+        ],
+        [
+          "`psi_io` over 20 with `write_mb` large",
+          "disk bound (cache restore, `cargo` target, `node_modules`)",
+          "change the cache layout, not the parallelism"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Hosted runners are 4 vCPU / 16 GB and the account runs at most 20 jobs at once, across every caller workflow (`ci-hosted-backend-core.yml`, `-mobile-core`, `-cli-core`, `-cli-build`, `-backend-build`, `-mobile-build`; all call `pipeline.yml`). Two things decide how fast a push is green and what it costs:"
+        ],
+        [
+          "- **In-runner parallelism**: is `wf test run ... --parallel 2` right for 4 cores and 16 GB? Too low leaves the machine idle, too high thrashes it (CPU pressure, swap, memory peak)."
+        ],
+        [
+          "- **Cross-runner parallelism**: every extra job pays a fixed cost (checkout, toolchain, cache restore; measured: report 52 s, preflight 58 s, plan 104 s, wf-build 131 s) and takes one of the 20 slots; fewer, fuller jobs leave headroom for other runs, more, smaller jobs shorten the run until the cap makes them queue."
+        ],
+        [
+          "**`CI_JOB_RESOURCES`**, one row per job (`RUN_ID, JOB`): `WORKFLOW, RUNNER, CORES, SAMPLES, CPU_AVG, CPU_P95` (nearest rank), `CPU_MAX, IOWAIT_AVG, MEM_AVG_MB, MEM_PEAK_MB, MEM_TOTAL_MB, SWAP_PEAK_MB, LOAD1_MAX, PSI_CPU_MAX, PSI_MEM_MAX, PSI_IO_MAX, READ_MB, WRITE_MB, DURATION_S` (first to last sample plus one interval), `IDLE_S` (seconds with CPU under 25%), `SATURATED_S` (seconds with CPU over 90% or CPU pressure over 20). `JOB` is the artifact name (`core-tests`, `flow-tests-3`); join to `CI_JOBS` on `RUN_ID` and `RUNNER`, not on the job name."
+        ],
+        [
+          "**`CI_STEP_RESOURCES`**, one row per step of a job that a sample covers (`RUN_ID, JOB, STEP_NO`): `STEP`, `DURATION_S`, `IDLE_S` (seconds of the step over which the CPU was under 25%), `SATURATED_S` (CPU over 90% or CPU pressure over 20), `IOWAIT_AVG` (the samples' I/O wait, weighted by the seconds each covers of the step). `JOB` is the name `CI_STEPS` has. A sample at `t` covers the `dt` seconds before it (`dt` the median gap), and its overlap with the step's interval is what counts, so a step shorter than 5 s gets a fraction of a sample. `wf ci resources` joins the steps `wf ci timings` kept in the job-local database (`CI_STEPS`, so timings runs first in the report job) with the samples of the file `stats_key(job)` names (`core-tests (1/3)` is `core-tests-1`, `build (app)` is `build-app`, the arm `wf-build` is `clis-arm`). The samples were already timestamped and reach the report job as the `stats-<job>` artifact, so the sampler is unchanged. Gauge `ci.step.idle_s{job, step}` is sent for steps over 30 s."
+        ],
+        [
+          "Passing tests under 250 ms are not rows (a crate has thousands); every failed test is, until a later call of the stage passes it (that row replaces it). A task Nx replayed from its cache has no rows (its output is old), the output of a failed test's `---- name stdout ----` section is not read, and the same title twice in one file keeps the failed or longer one. Nx's `project: ` prefix is the only handle on a line, so two targets of one crate running at once share a lane: their rows can carry the wrong suite or time. A test of 10 s or more is also the gauge `ci.test.duration_s{stage, unit::test}`, a row of `CI_METRICS`. The rows are job-local and the report job's `wf ci db merge` folds them in, like `CI_UNITS`. A vitest line carries its time only when the reporter prints it (the default prints one line per file, `verbose` one per test); `--reporter=json` is not wired, since the commands are the packages' scripts and a changed script moves the Nx hash."
+        ],
+        [
+          "**`CI_RUN_PROFILE`**, one row per run (`RUN_ID`): `WORKFLOW, WALL_S` (run start to the last job's end), `RUNNER_S` (sum of job durations), `PEAK_JOBS` (most jobs running at once inside the run), `AVG_JOBS` (`RUNNER_S / WALL_S`), `QUEUE_S_TOTAL, QUEUE_S_MAX, JOBS, CRITICAL_PATH_JOB, CRITICAL_PATH_S, PARALLEL_EFFICIENCY` (`RUNNER_S / (WALL_S * PEAK_JOBS)`). Skipped jobs are left out. The Actions API does not say which job needs which, so the critical path is the chain from the last job to finish back through whichever job ended last at or before each one's start (a 2 s hand-over tolerance), joined with ` > `; `CRITICAL_PATH_S` is its first start to the last end. The report job itself is not finished when `wf ci timings` runs, so a profile covers the jobs before it."
+        ],
+        [
+          "A successful run is one with no job whose `CONCLUSION` is `failure`, `cancelled` or null (skipped is fine), the same rule as the `wf ci db query` analyses. The tables keep no branch: only the pipeline of `dev` merges rows, so the history is dev's. The database is opened as `wf ci db query` opens it (`CI_DB_KEY`, from the environment or the vault, then the sealed file on `refs/wf/state`; `WF_CI_SEALED_FILE` names a sealed file instead, for tests and offline replay). When it cannot be read or holds no history for the run's workflow, or the workflow is not a hosted one, the section is left out of every render and nothing else in the comment changes. A run that is still going has the section from its first render: the history chart and the median are known, this run's critical path and queue cells say `pending (median ...)`, its wall says `... so far`, and `Longest:` says it waits for the run to finish; the finished run fills the cells in place. The workflow is read from the run (`GET /actions/runs/<id>`, once per update) rather than from the profile, which only exists once the run is over. The chart and table together are about 3 KB, far under the 60,000 character cap."
+        ],
+        [
+          "- Samples are 5 s apart: a task shorter than that sees one sample, so `CPU_AVG` is a coarse number for it."
+        ],
+        [
+          "- `CI_TESTS` is written when the stage's Nx run ends, so a shard cancelled while hung leaves no test rows; the run's last printed `test ... ok` line in the job log is then the nearest evidence of which test it was in. A process a test leaves running can hold Nx's output open: the capture stops waiting 2 s after Nx exits."
+        ],
+        [
+          "- A job cancelled while pending ran 0 s: it is in `CI_JOBS` with `STARTED` 0, and in no timeline."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "parallelism-telemetry.md",
+      "path": "../../../solutions/ci/parallelism-telemetry.md"
+    }
+  ]
+}

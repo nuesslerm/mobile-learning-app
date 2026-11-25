@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-151-ci-findings-of-runs-40221821928-5c085220e-and-40222665848-12a4ceb",
+  "subject": "Engineering decisions",
+  "title": "CI findings of runs 40221821928 (5c085220e) and 40222665848 (12a4ceb44)",
+  "question": "What was measured for CI findings of runs 40221821928 (5c085220e) and 40222665848 (12a4ceb44)?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "CI findings of runs 40221821928 (5c085220e) and 40222665848 (12a4ceb44)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "`flow-tests` is green for the first time since the preflight push, in 19 minutes (the real-Chromium journeys left it). That is the measure that the Chromium timeouts came from real browsers in the flow tier; whether they were parallel launches or just load is still not proven.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `flow-tests` is green for the first time since the preflight push, in 19 minutes (the real-Chromium journeys left it). That is the measure that the Chromium timeouts came from real browsers in the flow tier; whether they were parallel launches or just load is still not proven."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2756–2761",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

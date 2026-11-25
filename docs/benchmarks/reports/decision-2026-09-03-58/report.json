@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-58",
+  "subject": "Engineering decisions",
+  "title": "First skill-eval run",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "First skill-eval run",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "First skill-eval run (7 cases × pre@`3dbf31f6` + post, n=1, Sonnet, 14 cells, $3.58): post 4/7 ok, pre 0/7, improved on `cf-lfg/plan-first` ($0.81, 241 s, 11 commits, all trailers, DONE), `cf-lfg/non-interactive-no-questions` ($0.71, no `AskUserQuestion`), `cf-brainstorm/consults-learnings` (learnings step ran, requirements committed) and `cf-dispatch/relay-verbatim` (pre hand-edited the file,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 41 | 2026-09-03 17:20 | First skill-eval run (7 cases × pre@`3dbf31f6` + post, n=1, Sonnet, 14 cells, $3.58): post 4/7 ok, pre 0/7, improved on `cf-lfg/plan-first` ($0.81, 241 s, 11 commits, all trailers, DONE), `cf-lfg/non-interactive-no-questions` ($0.71, no `AskUserQuestion`), `cf-brainstorm/consults-learnings` (learnings step ran, requirements committed) and `cf-dispatch/relay-verbatim` (pre hand-edited the file, post relayed the meta line for $0.10); no regression. The three post failures were the catalog's, not the skills': `cf-compound` in non-interactive mode correctly answered `Documentation skipped: no solved problem found in this session` on a fixture that carried no finished work (the pre skill wrote a doc anyway, which is the behaviour the CE preconditions exist to stop), and `cf-work/failed-unit-stops` graded a stop the skill's own rule does not require (after two repair rounds it may implement by hand and say so; post reported `UNITS_DISPATCHED: 0/2` truthfully). Fixtures and expectations corrected (a shipped demo plan in the tiny fixture; a replay patch for u2 and honesty-based grading for cf-work); the three cells re-run post-only. Harness defects found by the run and fixed first: `analyzeTranscript` wants the JSONL text, the mock applied the replay patch on prose dispatches, `--out-dir` had to be absolute | `.agents/tmp/skill-eval/live1/{pack,summary}.json`, `rows.csv` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 58",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

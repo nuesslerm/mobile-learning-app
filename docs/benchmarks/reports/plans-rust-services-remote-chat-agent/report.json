@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "id": "plans-rust-services-remote-chat-agent",
+  "subject": "Engineering measurements",
+  "title": "Port `remote-chat-agent` (rca) to Rust, library first, then the service",
+  "question": "What did the Port `remote-chat-agent` (rca) to Rust, library first, then the service measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "Port `remote-chat-agent` (rca) to Rust, library first, then the service",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Debian's `ffmpeg` made the first image 209 MB larger than Node's**; the static build made it 67 MB smaller (837,936,988 against 904,610,891 bytes).",
+  "variants": [
+    {
+      "id": "node",
+      "label": "Node"
+    },
+    {
+      "id": "rust",
+      "label": "Rust"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "Cold start to `/health`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "Idle resident set",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "Peak resident set after every media path ran",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-4",
+      "label": "Tamil check p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-5",
+      "label": "DOCX conversion p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-6",
+      "label": "Container start to first answered `/health` (VM)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-7",
+      "label": "Container idle resident set (VM)",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-8",
+      "label": "Image, unpacked (VM)",
+      "unit": "MB",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 503.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 32.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 133.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 491.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 43.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 479.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 156.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 61.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 1.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 1183,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 307,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-7",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 131.4,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-7",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-8",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 904.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-8",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 837.9,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Node",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "Cold start to `/health`",
+          "503.4 ms",
+          "32.4 ms"
+        ],
+        [
+          "Idle resident set",
+          "133.6 MB",
+          "6.5 MB"
+        ],
+        [
+          "Peak resident set after every media path ran",
+          "491.6 MB",
+          "43.4 MB"
+        ],
+        [
+          "Tamil check p50",
+          "479.9 ms",
+          "156.8 ms"
+        ],
+        [
+          "DOCX conversion p50",
+          "61.7 ms",
+          "1.1 ms"
+        ],
+        [
+          "Container start to first answered `/health` (VM)",
+          "1,183 ms",
+          "307 ms"
+        ],
+        [
+          "Container idle resident set (VM)",
+          "131.4 MB",
+          "5.1 MB"
+        ],
+        [
+          "Image, unpacked (VM)",
+          "904.6 MB",
+          "837.9 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- **Debian's `ffmpeg` made the first image 209 MB larger than Node's**; the static build made it 67 MB smaller (837,936,988 against 904,610,891 bytes)."
+        ],
+        [
+          "Numbers (n=5 medians on one harness; the VM figures are containers on arm64, 3 trials):"
+        ],
+        [
+          "3. **Media in Rust, no Node worker (decided 2026-10-08, owner: Rust first).** `sharp` becomes `resvg` + `tiny-skia` + `image` (0.69% of pixels differ on the Tamil check picture), `shiki` becomes `tree-sitter-highlight` with compiled-in grammars, `mammoth` becomes `zip` + `quick-xml` (byte-identical), PDF text becomes `pdftotext` spawned from Rust (exact on Tamil and ligatures, where `pdfjs` mangles them) with `pdf-extract` as the fallback, OCR becomes the `tesseract` binary (identical text, 37 MB against 136 MB), speech to text keeps its whisper.cpp binary, ffmpeg, sidecar and Groq paths called from Rust, and `busboy` becomes a small multipart parser. `playwright`, `diff2html` and `pdf-parse` are dropped. An on-demand Node worker is kept only for a route whose Rust output fails a fidelity test; none has so far. Numbers: `docs/audits/2026-09-02-token-diet-decision-log.md`, entry \"remote-chat-agent media evaluation\"."
+        ],
+        [
+          "Same tier order as the other plans: runbook checks against the deployed service, black-box through the real socket (including a WebSocket conversation), contract validation against `@app/remote-chat-agent-contracts`, then Rust unit tests for pure logic. A change that touches the run path is exercised with the mock opencode first, then one real dispatch through the ladder. Benchmarks per slice, n=1 smoke then n=5, logged in the decision log."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "remote-chat-agent.md",
+      "path": "../../../plans/rust-services/remote-chat-agent.md"
+    }
+  ]
+}

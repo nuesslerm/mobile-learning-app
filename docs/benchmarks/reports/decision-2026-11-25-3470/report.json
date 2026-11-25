@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3470",
+  "subject": "Engineering decisions",
+  "title": "Native simulator harness",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "Native simulator harness",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Native simulator harness. On the booted Tamil iPhone 17 simulator, single uncached runs including fixture isolation and recording took 12.088 s for LeetCode search and 23.798 s for Tamil word tiles. Keep a single simulator boot per job and time each journey. These local samples do not establish a hosted suite cutoff.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — Native simulator harness. On the booted Tamil iPhone 17 simulator, single uncached runs including fixture isolation and recording took 12.088 s for LeetCode search and 23.798 s for Tamil word tiles. Keep a single simulator boot per job and time each journey. These local samples do not establish a hosted suite cutoff."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3470",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

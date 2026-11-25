@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-170-timings-of-the-first-run-with-the-integration-tier-run-4026744621",
+  "subject": "Engineering decisions",
+  "title": "Timings of the first run with the integration tier, run 40267446218 (2026-10-26)",
+  "question": "What was measured for Timings of the first run with the integration tier, run 40267446218 (2026-10-26)?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "Timings of the first run with the integration tier, run 40267446218 (2026-10-26)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Stage times (start to end, one runner, one job at a time): flow-tests 04:07 to 04:43 (a cold build of every renamed crate; later runs replay the passed crates), typecheck-lint-unit-tests to 04:44, `clis` 8 s, the six deploy legs 04:44 to 04:56 (vm-ops-api 2:00, remote-chat-agent 2:24, leetcode-backend 1:02, capture listener 1:05, reporting-service 1:02, vnc-auth-session 3:53), `integration-tests` 2:01 (the black-box suites of vm-ops-api, reporting-service,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Stage times (start to end, one runner, one job at a time): flow-tests 04:07 to 04:43 (a cold build of every renamed crate; later runs replay the passed crates), typecheck-lint-unit-tests to 04:44, `clis` 8 s, the six deploy legs 04:44 to 04:56 (vm-ops-api 2:00, remote-chat-agent 2:24, leetcode-backend 1:02, capture listener 1:05, reporting-service 1:02, vnc-auth-session 3:53), `integration-tests` 2:01 (the black-box suites of vm-ops-api, reporting-service, the capture listener and leetcode-backend), `cli-e2e-tests` 7:02, `service-e2e-tests` 0:56, `browser-e2e-tests` 9:46, `eas-update` 4:52, `android-e2e-tests` 11:54, report 0:27."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2873–2877",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

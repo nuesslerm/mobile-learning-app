@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-156-run-815-and-the-tiers-redefined-25-oct",
+  "subject": "Engineering decisions",
+  "title": "Run 815 and the tiers redefined (25 Oct)",
+  "question": "What was measured for Run 815 and the tiers redefined (25 Oct)?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "Run 815 and the tiers redefined (25 Oct)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Run 40241664866 (26720f0fc), the first with the integration kind at `--parallel=1`: the crates ran one after another (wf-harness 176 s, then harness-flow, wf-bench, wf) and the same two wf-harness journeys failed again (`an_attached_session_proxies_stubs_and_forwards_network_and_feeds_fake_media`, `an_attached_session_reads_pages_and_manages_its_lifecycle`, `page.goto … did not finish loading within 30 s`). Contention is ruled out. browser-e2e and android-…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Run 40241664866 (26720f0fc), the first with the integration kind at `--parallel=1`: the crates ran one after another (wf-harness 176 s, then harness-flow, wf-bench, wf) and the same two wf-harness journeys failed again (`an_attached_session_proxies_stubs_and_forwards_network_and_feeds_fake_media`, `an_attached_session_reads_pages_and_manages_its_lifecycle`, `page.goto … did not finish loading within 30 s`). Contention is ruled out. browser-e2e and android-e2e passed on that run; flow-tests took 19 min, typecheck-lint-unit 9 min, clis 32 s."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2788–2796",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

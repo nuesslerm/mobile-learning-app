@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "device-lab-browser-cli-before-after",
+  "subject": "Engineering measurements",
+  "title": "`wf browser` on the device-lab runbooks: before the migration and at the head",
+  "question": "What did the `wf browser` on the device-lab runbooks: before the migration and at the head measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "`wf browser` on the device-lab runbooks: before the migration and at the head",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Runbook: G3 `two-sum` typed into CodeMirror (99 keys, 12 `type` calls, median key gap per call 234 ms before, 245 ms after) · Before: Run Local 12 / 12, `video-check` 14 of 14 · After: Run Local 12 / 12, `video-check` 14 of 14 (the first complete run said 13 of 14, no dot for the tap at 6,009 ms; the rerun passed)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Runbook",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "G3 `two-sum` typed into CodeMirror (99 keys, 12 `type` calls, median key gap per call 234 ms before, 245 ms after)",
+          "Run Local 12 / 12, `video-check` 14 of 14",
+          "Run Local 12 / 12, `video-check` 14 of 14 (the first complete run said 13 of 14, no dot for the tap at 6,009 ms; the rerun passed)"
+        ],
+        [
+          "G1 `two-sum` by six spoken turns",
+          "identical transcripts; first step only on turn 1; 12 / 12 after turn 5 and 6; `video-check` 30 of 30",
+          "the same; `video-check` 30 of 30"
+        ],
+        [
+          "G2 Tamil, seven letters traced on the lesson pad",
+          "99, 99, 97, 100, 99, 99, 99 % on the line; `video-check` 8 of 8",
+          "the same scores; `video-check` 8 of 8"
+        ],
+        [
+          "G2 அ written large, live marker",
+          "NOT YET · 55, then LOOKS RIGHT · 88",
+          "NOT YET · 40, then LOOKS RIGHT · 92"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "device-lab-browser-cli-before-after.md",
+      "path": "evidence/device-lab-browser-cli-before-after.md"
+    }
+  ]
+}

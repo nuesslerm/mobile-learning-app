@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-99-2026-10-09-wf-signals-dates-and-temp-files-on-standard-crates-sta",
+  "subject": "Engineering decisions",
+  "title": "wf signals, dates and temp files on standard crates (standard-crates plan, phase 4, slice F)",
+  "question": "What was measured for wf signals, dates and temp files on standard crates (standard-crates plan, phase 4, slice F)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf signals, dates and temp files on standard crates (standard-crates plan, phase 4, slice F)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measured on the release build, n=7 after a warm-up (the same method as the previous two entries): binary 7.36 MB (7.31 MB after slice E, 5.71 MB before phase 4), `wf --help` cold start p50 2.0 ms (1.77 ms after slice E, 1.62 ms before phase 4; the spread between runs on this machine is about 0.2 ms, so the last step is within noise of the one before it).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Measured on the release build, n=7 after a warm-up (the same method as the previous two entries): binary 7.36 MB (7.31 MB after slice E, 5.71 MB before phase 4), `wf --help` cold start p50 2.0 ms (1.77 ms after slice E, 1.62 ms before phase 4; the spread between runs on this machine is about 0.2 ms, so the last step is within noise of the one before it)."
+        ],
+        [
+          "Tests, by tier. Black box, the real `wf` release binary: 1141 of 1142. The one failure, `dispatch-batch` \"a file whose dispatch fails ... FAIL 0s\", is the one the std-only binary fails three of three times on this machine (rounded duration of a stub dispatch). The debug build fails a second `dispatch-batch` assertion (`ok 0s` reads `ok 1s`) because an unoptimised `wf` takes over half a second on a dispatch here; the release binary does not, so the suite is run on the release binary from now on. Unit: 44 in `wf`, 20 in `rca-core` (the date tests now cover `utc_date`, `date_ms` and the zone-less form), 7 in `cli-http`, 22 `cdp` against a real Chromium."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1886–1897",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -73,7 +73,7 @@ criteria:
     description: 'No record claims the deployed planner is broken, the new gaps are recorded (shared Metro restarts, closed with the Metro on 23 Oct; VM memory saturation), and dev carries the work.'
     command: |-
       ! grep -rqiE 'deployed planner (still|is still) (broken|times out)|deployed one still times out' \
-          docs/plans/device-test-process docs/audits/2026-10-06-app-bench-report.md docs/audits/2026-10-06-app-bench-baseline.md docs/runbooks/.results \
+          docs/plans/device-test-process docs/benchmarks/reports/2026-10-06-app-bench-report/evidence/2026-10-06-app-bench-report.md docs/benchmarks/reports/2026-10-06-app-bench-baseline/evidence/2026-10-06-app-bench-baseline.md docs/runbooks/.results \
         && test -f docs/archive/gaps/shared-metro-restarts-on-app-push.md && grep -q 'vm-memory-saturation' docs/known-gaps.md \
         && git fetch -q origin dev && git merge-base --is-ancestor HEAD origin/dev
   - id: p8.agent-proof

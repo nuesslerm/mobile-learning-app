@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3458",
+  "subject": "Engineering decisions",
+  "title": "Encrypted EAS source maps",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Encrypted EAS source maps",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "encrypted EAS source maps (n=1, no model). With the network publish doubled, archiving the 20,630,792-byte iOS map took 0.29 s and produced 6,542,052 bytes. Authenticating, decompressing, and parsing it through `wf android stack` took 0.18 s locally. A thrown exception from a minified Expo bundle resolved to its original TypeScript line. Keep gzip before encryption and retain only encrypted…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, encrypted EAS source maps (n=1, no model). With the network publish doubled, archiving the 20,630,792-byte iOS map took 0.29 s and produced 6,542,052 bytes. Authenticating, decompressing, and parsing it through `wf android stack` took 0.18 s locally. A thrown exception from a minified Expo bundle resolved to its original TypeScript line. Keep gzip before encryption and retain only encrypted maps in the CI archive."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3458",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

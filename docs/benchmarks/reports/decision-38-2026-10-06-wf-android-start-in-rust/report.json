@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-38-2026-10-06-wf-android-start-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf android start` in Rust",
+  "question": "What was measured for `wf android start` in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf android start` in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Decision: port the whole command: slot auto-creation with the next metro and android ports, the AVD (`avdmanager create ... --force` with `no` on stdin, deleted again on failure), the detached `emulator`, the two adb waits (online, then `sys.boot_completed` and `init.svc.bootanim`), the unlock keyevent and the claim. Failed tool calls are logged to stderr in the TS's `command failed` form. TS seam: `WF_ANDROID_POLL_MS` shrinks the 2 s poll (unset in producti…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision: port the whole command: slot auto-creation with the next metro and android ports, the AVD (`avdmanager create ... --force` with `no` on stdin, deleted again on failure), the detached `emulator`, the two adb waits (online, then `sys.boot_completed` and `init.svc.bootanim`), the unlock keyevent and the claim. Failed tool calls are logged to stderr in the TS's `command failed` form. TS seam: `WF_ANDROID_POLL_MS` shrinks the 2 s poll (unset in production). Oracle: `android-start.integration.test.ts` (10 tests with `avdmanager`, `emulator` and `adb` stubs) plus the other Android suites, 25/25 on the TS bundle and the Rust binary unchanged. Not exercised: a real emulator or AVD. `android build|dev-client|expo-go` stay in the TS."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1289–1292",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

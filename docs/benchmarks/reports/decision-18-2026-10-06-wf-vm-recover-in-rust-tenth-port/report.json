@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-18-2026-10-06-wf-vm-recover-in-rust-tenth-port",
+  "subject": "Engineering decisions",
+  "title": "`wf vm recover` in Rust (tenth port)",
+  "question": "What was measured for `wf vm recover` in Rust (tenth port)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf vm recover` in Rust (tenth port)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "`WF_RECOVER_GRACE_MS` and `WF_OCI_POLL_MS` (defaults unchanged: 30 s, 180 s,",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "`WF_RECOVER_GRACE_MS` and `WF_OCI_POLL_MS` (defaults unchanged: 30 s, 180 s,"
+        ],
+        [
+          "5 s); the Rust version reads them too."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 650–682",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

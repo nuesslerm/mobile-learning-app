@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "id": "audits-reports-backend-leetcode-backend",
+  "subject": "Engineering measurements",
+  "title": "backend/leetcode-backend: moved onto standard crates, in two layers (core and service)",
+  "question": "What did the backend/leetcode-backend: moved onto standard crates, in two layers (core and service) measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "backend/leetcode-backend: moved onto standard crates, in two layers (core and service)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measure: Binary · Before: 0.63 MB · After: 4.10 MB",
+  "variants": [
+    {
+      "id": "before",
+      "label": "Before"
+    },
+    {
+      "id": "after",
+      "label": "After"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "Binary",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "Cold start to `/health`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "Idle RSS",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-4",
+      "label": "RSS after 60 health calls",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-5",
+      "label": "Peak RSS",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-6",
+      "label": "`GET /health` p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-7",
+      "label": "`GET /api/leetcode/user-status` p50 (one relay)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-8",
+      "label": "`POST /api/leetcode/run` p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-9",
+      "label": "`POST /api/leetcode/format` p50",
+      "unit": "ms",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.63,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5.12,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 12.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 2.59,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.42,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 2.63,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.49,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.01,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.85,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.46,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-6",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.46,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-7",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 6.66,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-7",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 1.08,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-8",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 33.89,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-8",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 33.27,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-9",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 37.09,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-9",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 35.42,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "0.63 MB",
+          "4.10 MB"
+        ],
+        [
+          "Cold start to `/health`",
+          "5.12 ms",
+          "12.10 ms"
+        ],
+        [
+          "Idle RSS",
+          "2.59 MB",
+          "6.42 MB"
+        ],
+        [
+          "RSS after 60 health calls",
+          "2.63 MB",
+          "6.49 MB"
+        ],
+        [
+          "Peak RSS",
+          "3.01 MB",
+          "6.85 MB"
+        ],
+        [
+          "`GET /health` p50",
+          "0.46 ms",
+          "0.46 ms"
+        ],
+        [
+          "`GET /api/leetcode/user-status` p50 (one relay)",
+          "6.66 ms",
+          "1.08 ms"
+        ],
+        [
+          "`POST /api/leetcode/run` p50",
+          "33.89 ms",
+          "33.27 ms"
+        ],
+        [
+          "`POST /api/leetcode/format` p50",
+          "37.09 ms",
+          "35.42 ms"
+        ],
+        [
+          "Direct runtime dependencies",
+          "1 (`serde_json`)",
+          "14 in the service, 4 in core"
+        ],
+        [
+          "Hand-written infrastructure",
+          "HTTP server, HTTP client via `curl`, limiter, CORS, OTLP exporter, logger, zod issue builder",
+          "none; the redacting log layer lives in `service-kit`"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Deploy leg on `dev`",
+          "failed, runs 291 to 297",
+          "passed, run 298 onward; the VM runs `leetcode-backend:sha-effbe7f8`, healthy"
+        ],
+        [
+          "Runtime numbers (start, memory, latency, image)",
+          "16 ms start, 2.3 MB idle, 266 MB image (recorded for the port)",
+          "unchanged: no source or runtime change; not re-measured"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "backend-leetcode-backend.md",
+      "path": "../../../audits/reports/backend-leetcode-backend.md"
+    }
+  ]
+}

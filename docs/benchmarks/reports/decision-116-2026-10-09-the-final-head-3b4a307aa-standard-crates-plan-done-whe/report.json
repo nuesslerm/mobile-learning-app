@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-116-2026-10-09-the-final-head-3b4a307aa-standard-crates-plan-done-whe",
+  "subject": "Engineering decisions",
+  "title": "the final head, `3b4a307aa` (standard-crates plan, done-when 1 to 3 re-shown on it)",
+  "question": "What was measured for the final head, `3b4a307aa` (standard-crates plan, done-when 1 to 3 re-shown on it)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: the final head, `3b4a307aa` (standard-crates plan, done-when 1 to 3 re-shown on it)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Done-when 3 on the pipeline images of the head: `remote-chat-agent` (Deploy run 342, 2 min 17 s) and `leetcode-backend` report the head at `/health`. The `leetcode-backend` image was first started by hand with `wf deploy run leetcode-backend --ref 3b4a307aa` because its package had not changed since `42b1161` and the plan would not rebuild it; commit `1534e1a36` (one comment line in its `main.rs`) then made the Deploy plan build it, so the running image is p…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Done-when 3 on the pipeline images of the head: `remote-chat-agent` (Deploy run 342, 2 min 17 s) and `leetcode-backend` report the head at `/health`. The `leetcode-backend` image was first started by hand with `wf deploy run leetcode-backend --ref 3b4a307aa` because its package had not changed since `42b1161` and the plan would not rebuild it; commit `1534e1a36` (one comment line in its `main.rs`) then made the Deploy plan build it, so the running image is pipeline-built: Deploy run 344 (68 s), `/health` reports `1534e1a36818bfc5c2d555df8aa0db0f4591a0d5` while `remote-chat-agent` stays at `3b4a307aa797eb542d7b71deca7996b6451b4ae8` (its package is unchanged). BetterStack: `server.listening` and `health.heartbeat uptimeSec=0` for `remote-chat-agent` at 22:25:19Z and for `leetcode-backend` at 22:47:51Z. Authenticated through the tailnet on the pipeline images: WebSocket 7 of 7, `leetcode-backend` routes 8 of 8 (run again on the run 344 image); the vnc gate probe all pass. The head images started on the VM host's architecture have no Node process, convert two documents (200) and transcribe five clips (200)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2105–2118",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

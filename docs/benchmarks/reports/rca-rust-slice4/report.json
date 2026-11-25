@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "id": "rca-rust-slice4",
+  "subject": "Services and CLI",
+  "title": "rca rust slice4",
+  "question": "What did the rca rust slice4 measurements show?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "rca rust slice4",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "rust-slice4 recorded 30.76546199999939 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "rust-slice4",
+      "label": "rust-slice4"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    },
+    {
+      "id": "chat-turn",
+      "label": "chat turn"
+    },
+    {
+      "id": "diff-register-and-page",
+      "label": "diff register and page"
+    },
+    {
+      "id": "file-preview-markdown",
+      "label": "file preview (markdown)"
+    },
+    {
+      "id": "file-preview-typescript",
+      "label": "file preview (typescript)"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "artifactbytes",
+      "label": "artifactBytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafterhealthmb",
+      "label": "rssAfterHealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthp50ms",
+      "label": "healthP50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "p50ms",
+      "label": "p50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "rssaftermb",
+      "label": "rssAfterMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "finalrssmb",
+      "label": "finalRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmaxmb",
+      "label": "peakRssMaxMb",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "artifactbytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 14995376,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 30.76546199999939,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 4.5390625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "rssafterhealthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 4.640625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "healthp50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.4311344999996436,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "chat-turn",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 106.50277600000004,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "chat-turn",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6.34375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "diff-register-and-page",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 9.159501499999351,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "diff-register-and-page",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 11.6640625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "file-preview-markdown",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.9942809999993187,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "file-preview-markdown",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.12890625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "file-preview-typescript",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.6447190000017144,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "file-preview-typescript",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.12890625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "finalrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.12890625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.12890625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice4",
+      "scenario": "service",
+      "metric": "peakrssmaxmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.25,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "rca-rust-slice4.json",
+      "path": "evidence/rca-rust-slice4.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

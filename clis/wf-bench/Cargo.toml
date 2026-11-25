@@ -8,7 +8,7 @@ description = "`wf bench`: the cold start and footprint of a CLI binary (`cli`),
 # The test kit hides every registry secret from the binary; list, compare and suite read the committed scenarios and baselines
 # (tooling/browser-harness/dist is a build output the flow job lacks, so no input).
 [package.metadata.flow]
-inputs = ["../secrets/src/data/registry.json", "../app-bench/*/*.json"]
+inputs = ["../secrets/src/data/registry.json", "../app-bench/*/*.json", "../../docs/benchmarks/**"]
 
 # The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
 [lib]

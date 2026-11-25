@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-195-run-41405214719-a97dea1a6-the-offload-e2e-suite-is-the-20-min-pro",
+  "subject": "Engineering decisions",
+  "title": "Run 41405214719 (a97dea1a6): the offload e2e suite is the 20 min problem now (2026-11-02)",
+  "question": "What was measured for Run 41405214719 (a97dea1a6): the offload e2e suite is the 20 min problem now (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 41405214719 (a97dea1a6): the offload e2e suite is the 20 min problem now (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Stages: preflight 31 s, plan 30 s, flow-tests 30 s, typecheck-lint-unit-tests 39 s, clis 8 s, deploy (vm-ops-api, image already built) 1 m 28 s, integration-tests 1 m 46 s, then `cli-e2e-tests` 41 m 47 s and red, deployment-verification 1 m 46 s, browser e2e 9 m 57 s. Everything before the e2e tiers took 7 min.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Stages: preflight 31 s, plan 30 s, flow-tests 30 s, typecheck-lint-unit-tests 39 s, clis 8 s, deploy (vm-ops-api, image already built) 1 m 28 s, integration-tests 1 m 46 s, then `cli-e2e-tests` 41 m 47 s and red, deployment-verification 1 m 46 s, browser e2e 9 m 57 s. Everything before the e2e tiers took 7 min."
+        ],
+        [
+          "- `cli-e2e-tests` is `crate-rca`'s `tests/e2e`: 62 tests in 2227 s that drive the real opencode with a live model (parity_features: each test 14 to 90 s). It reran because the library migration changed `clis/Cargo.lock`, an input of every clis crate's tasks: this was the first run since then that got past the deploy legs (`cargo tree` shows `offload` does not depend on `blob-cache`). One test, `a_subagent_is_called_through_the_task_tool_with_its_own_session_and_its_own_rules_on_both`, failed because the model did not say the word the test waits for: a live-model assertion, not a code failure."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3269–3275",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

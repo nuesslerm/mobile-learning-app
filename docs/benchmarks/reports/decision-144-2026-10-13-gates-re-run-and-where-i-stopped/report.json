@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-144-2026-10-13-gates-re-run-and-where-i-stopped",
+  "subject": "Engineering decisions",
+  "title": "gates re-run, and where I stopped",
+  "question": "What was measured for gates re-run, and where I stopped?",
+  "date": "2026-10-13",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-13: gates re-run, and where I stopped",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Decision: G1 uses the planner from the checkout, because the deployed one still times out on every planner turn (22 spoken turns on the checkout planner, 10 to 22 s each). Not fixed: the cause is the VM's stale model setting, which a sandbox cannot read. Corrected on 2026-10-14: the deployed planner was not broken; see the 2026-10-14 entry.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Decision: G1 uses the planner from the checkout, because the deployed one still times out on every planner turn (22 spoken turns on the checkout planner, 10 to 22 s each). Not fixed: the cause is the VM's stale model setting, which a sandbox cannot read. Corrected on 2026-10-14: the deployed planner was not broken; see the 2026-10-14 entry."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2331–2336",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

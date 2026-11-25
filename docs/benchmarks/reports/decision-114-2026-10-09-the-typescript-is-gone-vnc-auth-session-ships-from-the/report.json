@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-114-2026-10-09-the-typescript-is-gone-vnc-auth-session-ships-from-the",
+  "subject": "Engineering decisions",
+  "title": "the TypeScript is gone, vnc-auth-session ships from the pipeline, and the browser CLI is compared on the runbooks (standard-crates plan, final checks)",
+  "question": "What was measured for the TypeScript is gone, vnc-auth-session ships from the pipeline, and the browser CLI is compared on the runbooks (standard-crates plan, final checks)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: the TypeScript is gone, vnc-auth-session ships from the pipeline, and the browser CLI is compared on the runbooks (standard-crates plan, final checks)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: The browser CLI on the device-lab runbooks, before (`9a08c6a2`) and after (`ba089e948`), device frame, `--video` (`docs/audits/benchmarks/device-lab-browser-cli-before-after.md`): Two Sum typed into CodeMirror, Run Local 12 / 12 on both, `video-check` 14 of 14 on both (one earlier 13 of 14 on the new build, not repeated); Two Sum by six spoken turns, identical transcripts and final code, 12 / 12 on both; seven Tamil letters at identical scores (97 to 100 % o…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "The browser CLI on the device-lab runbooks, before (`9a08c6a2`) and after (`ba089e948`), device frame, `--video` (`docs/audits/benchmarks/device-lab-browser-cli-before-after.md`): Two Sum typed into CodeMirror, Run Local 12 / 12 on both, `video-check` 14 of 14 on both (one earlier 13 of 14 on the new build, not repeated); Two Sum by six spoken turns, identical transcripts and final code, 12 / 12 on both; seven Tamil letters at identical scores (97 to 100 % on the line), the large letter LOOKS RIGHT on the second attempt on both (88 and 92). One run per runbook per build. Two findings, both gap records: the usage line of a refused `wf browser` command omits the subcommand, and `trace --source template` does not follow the template on the write pad (same with the old binary). The old binary renders the device frame only inside a checkout."
+        ],
+        [
+          "Checks on code head `ba089e948`. Integration: the `wf` suite 1,186 of 1,186, no skips; the `remote-chat-agent` black-box suite 314 of 314 and the `leetcode-backend` suite 79 of 79 on the deploy-profile binaries, no skips. Unit: `cargo test --workspace` 229 passed in 18 suites in `backend/`, and 148 passed in 16 suites in `clis/` (a first run, concurrent with the black-box suites, had one real-Chromium `cdp` test fail; a test that read the title before `Page.navigate` had committed the new document; fixed in the test, recorded in `clis-cdp.md`); `cargo clippy --workspace --all-targets -- -D warnings` exits 0 in `clis/` and `backend/`. One report per changed package under `docs/audits/reports/`, including the two TypeScript packages touched (`backend-remote-chat-agent-contracts.md`, `backend-reporting-service.md`). The done-when 1 grep over `backend/` and `clis/` finds only the `cdp` test's fake HTTP server. Deploy (VM runner): run 334 (`7805f81f1`) green in 16 min 2 s (plan 59 s, metro 1 min 29 s, `remote-chat-agent` 6 min 55 s, `vnc-auth-session` 6 min 32 s); run 335 (`ba089e948`) green in 10 min 20 s (`remote-chat-agent` 1 min 49 s, `vnc-auth-session` about 5 min 36 s, metro skipped). The vnc leg is over the five-minute target and was not profiled. E2E on the VM: `/health` of `remote-chat-agent` reports `ba089e948`, of `leetcode-backend` `42b11613` (its package is unchanged; the plan is empty); the pipeline images started on the VM host's architecture have no Node process, convert two documents (200) and transcribe five clips (200, the same text as before); the vnc gate probe through the tailnet passes 15 of 15 (403 without a valid token, 202 and a link from the control channel, 200 through the gate with the token, the desktop's own 401, a session cookie, a WebSocket 101 with it and 403 without). The authenticated `leetcode-backend` and WebSocket probes were last run on the `846130f` images; their service code has not changed since."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2074–2085",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

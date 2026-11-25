@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-25",
+  "subject": "Engineering decisions",
+  "title": "Ladder 1 read",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Ladder 1 read",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Ladder 1 read: prefix diet is the money rung (chat −27%, agentic −12% at judge −0.03, gates 3/3); style and quiet hooks flat on cost; squeez +11% on chat, +2% agentic, agentic output 2.8×; effort medium judge 0.78; cumulative code diet judge 0.72",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 8 | 2026-09-02 21:05 | Ladder 1 read: prefix diet is the money rung (chat −27%, agentic −12% at judge −0.03, gates 3/3); style and quiet hooks flat on cost; squeez +11% on chat, +2% agentic, agentic output 2.8×; effort medium judge 0.78; cumulative code diet judge 0.72 | `.agents/tmp/token-diet/ladder1/rows.csv`, 384 sessions, $34.16, 0 errors | `612bbb80` |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 25",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

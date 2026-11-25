@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-26-rca-core-the-ladder-and-the-pool-ledger-in-rust-2026-10-06",
+  "subject": "Engineering decisions",
+  "title": "rca-core: the ladder and the pool ledger in Rust (2026-10-06)",
+  "question": "What was measured for rca-core: the ladder and the pool ledger in Rust (2026-10-06)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "rca-core: the ladder and the pool ledger in Rust (2026-10-06)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release build, n=5, a 5,000-row, 3.9 MB run log, `--stats --log <file>`):",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "wall (median)",
+        "peak RSS (median)"
+      ],
+      "rows": [
+        [
+          "TypeScript bundle",
+          "419.7 ms",
+          "95.9 MB"
+        ],
+        [
+          "Rust",
+          "71.1 ms",
+          "16.0 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release build, n=5, a 5,000-row, 3.9 MB run log, `--stats --log <file>`):"
+        ],
+        [
+          "Benchmark (release, n=5, one pool in a one-entry ledger): TypeScript 253.8 ms / 65.4 MB, Rust 6.7 ms / 11.1 MB."
+        ],
+        [
+          "Benchmark (release build, n=5, the same 5,000-row log, `--report` absent): TypeScript 340.3 ms / 81.9 MB, Rust"
+        ],
+        [
+          "53.3 ms / 13.1 MB. `--savings --json` output is byte-identical on that log. Black-box:"
+        ],
+        [
+          "One run of the Rust pass showed a single failure in `worker.integration.test.ts` (real git worktrees, 2.2 s into a"
+        ],
+        [
+          "dependency is `yaml-rust2` for `lefthook.yml` (pure Rust, two small crates); the binary grew from about 2.50 MB to"
+        ],
+        [
+          "2.63 MB."
+        ],
+        [
+          "Benchmark (release build, n=5, this repository, `verify --budget`): TypeScript 288.2 ms / 65.5 MB, Rust 14.3 ms /"
+        ],
+        [
+          "11.0 MB; the output on the repo is the same six lines and values."
+        ],
+        [
+          "Round trip with a stub opencode, one run each: TypeScript 367 ms / 66 MB, Rust 11 ms / 10 MB. The real cost of a dispatch is"
+        ],
+        [
+          "Six files with an instant stub opencode, one run each: TypeScript 592 ms / 75 MB, Rust 83 ms / 10 MB (wrapper overhead"
+        ],
+        [
+          "Gate overhead with a non-code file (budget only), one run each: TypeScript 259 ms / 65 MB, Rust 8 ms / 10 MB. A real"
+        ],
+        [
+          "One hook invocation (judge allows; the mock opencode answers), including the 150 ms transcript settle: TypeScript 333 ms / 64"
+        ],
+        [
+          "MB, Rust 183 ms / 11 MB."
+        ],
+        [
+          "One hook invocation on a three-line transcript: TypeScript 149 ms / 57 MB, Rust 25 ms / 11 MB (this hook runs on every prompt)."
+        ],
+        [
+          "`wf secrets push-notes` with an empty vault, one run each: TypeScript 278 ms / 73 MB, Rust 9 ms / 10 MB."
+        ],
+        [
+          "`wf work p9 --check`: TypeScript 244 ms / 64 MB, Rust 12 ms / 10 MB."
+        ],
+        [
+          "- Build, web export: cold 120.6 to 103.7 s, warm 18.6 to 13.4 s, modules 5,682 to 4,033, JS 9.20 to 7.48 MB raw (1.94 to 1.74 MB gzip). Kept: the lucide barrel was imported by one screen (1,720 modules), now blocked by ESLint in features; the Skia web entry moved behind `lib/skiaWeb`, which also unblocked the iOS production export (11.08 MB Hermes bytecode)."
+        ],
+        [
+          "- Memory: cold-start app heap 23.94 to 18.95 MB (-21%) from Metro `inlineRequires`; the 50% target was not reached and the floor is documented. Loop growth is noise (five windows 22.6-23.2 MB). Ruled out without a run: async routes (no effect in the SDK 57 static export, reverted), a Tamil-canvas env default (no effect, reverted)."
+        ],
+        [
+          "- Runtime: within noise of `initial` (tap 32.5 vs 32.6 ms, long tasks 11 vs 12); runtime work stopped there by the priority order."
+        ],
+        [
+          "- Cost of the benchmark itself: n=3 per suite, the planted-leak e2e proves the memory suite fails a leak; no model calls."
+        ],
+        [
+          "the binary grew from 2.63 MB to 3.08 MB for the embedded text."
+        ],
+        [
+          "`wf --help`: TypeScript 264 ms / 64 MB, Rust 3 ms / 10 MB."
+        ],
+        [
+          "3. **30 seconds per call.** The TypeScript process stays alive about 30 s after a successful export, even against a local"
+        ],
+        [
+          "server (measured), so its suite takes 4.5 minutes for 9 tests and runs by default only with `WF_BIN`"
+        ],
+        [
+          "(`WF_SLOW_TESTS=1` for the bundle: 9/9 there too). The Rust run is 0.8 s for the same 9."
+        ],
+        [
+          "`wf log emit` against the local server: TypeScript 30,200 ms, Rust 36 ms / 12 MB (the TypeScript peak RSS was not recorded for this run)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 852–1206",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

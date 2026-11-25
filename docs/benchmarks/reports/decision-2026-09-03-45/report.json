@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-45",
+  "subject": "Engineering decisions",
+  "title": "Live compound step",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "Live compound step",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Live compound step: the read-only researcher agent narrated (\"wrote the draft to cf-check.md, 106 lines, moved it to the conventional path\") instead of printing the document, and `runProse` saved the 6-line narration as the docs/solutions entry ($0.0210, 166s). `runProse` now checks the reply is the document (line count, YAML frontmatter for compound, no first-person narration) and re-asks…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 28 | 2026-09-03 10:05 | Live compound step: the read-only researcher agent narrated (\"wrote the draft to cf-check.md, 106 lines, moved it to the conventional path\") instead of printing the document, and `runProse` saved the 6-line narration as the docs/solutions entry ($0.0210, 166s). `runProse` now checks the reply is the document (line count, YAML frontmatter for compound, no first-person narration) and re-asks once with \"you cannot write files, print the whole document\"; two narrations fail the step. Unit tests cover both paths | dispatch run `ee8d3a0e`; `clis/cheap-flow/tests/unit/run-prose.test.ts` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 45",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

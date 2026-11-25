@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "audits-2026-10-06-rca-baseline-and-rust-migration-plan",
+  "subject": "Engineering measurements",
+  "title": "remote-chat-agent: baseline and the Rust migration plan",
+  "question": "What did the remote-chat-agent: baseline and the Rust migration plan measurements show?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "remote-chat-agent: baseline and the Rust migration plan",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "The edge's 2.2 MB is only honest as a floor: until Node is gone the VM runs both.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "TypeScript service"
+      ],
+      "rows": [
+        [
+          "Source",
+          "21,855 non-test lines across 13 areas (`data` 6.6k, `routes` 4.3k, `lib` 2.4k, `orchestration` 2.4k, `di` 1.1k, `use-cases` 1.7k, `plugins` 1.2k, `contracts` 0.9k, `ws` 0.5k)"
+        ],
+        [
+          "Cold start to first `/health` answer",
+          "2.89 s, 2.96 s, 3.06 s"
+        ],
+        [
+          "Idle resident memory",
+          "237 to 238 MB (the service's own report said 214 MB at 10 s)"
+        ],
+        [
+          "`/health` latency, sequential",
+          "p50 1.09 ms, p99 37.6 ms"
+        ],
+        [
+          "`/health` under load",
+          "Express rate limiter (120 per minute) answers 429 after 120 calls, so a health probe can be refused"
+        ],
+        [
+          "Dependencies",
+          "22 direct runtime packages"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Node service",
+        "rca-edge"
+      ],
+      "rows": [
+        [
+          "`/health` p50 / p99, 100 vs 2000 sequential calls",
+          "1.09 ms / 37.6 ms",
+          "0.48 ms / 2.15 ms"
+        ],
+        [
+          "Resident memory",
+          "about 249 MB",
+          "about 2.2 MB"
+        ],
+        [
+          "Binary",
+          "`dist` 2.8 MB plus Node and `node_modules`",
+          "334 KB, no runtime"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "The edge's 2.2 MB is only honest as a floor: until Node is gone the VM runs both."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-10-06-rca-baseline-and-rust-migration-plan.md",
+      "path": "../../../audits/2026-10-06-rca-baseline-and-rust-migration-plan.md"
+    }
+  ]
+}

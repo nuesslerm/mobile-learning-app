@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3482",
+  "subject": "Engineering decisions",
+  "title": "Reusing the warm Android update yielded three 15-case Tamil samples in 188",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "Reusing the warm Android update yielded three 15-case Tamil samples in 188",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Reusing the warm Android update yielded three 15-case Tamil samples in 188.9–213.2 s. The three LeetCode samples took 240.0–352.3 s. The revised Blocks journey passed on the local iPhone in 16.7 s after moving its control above the system navigation area. Preapprove the pinned Expo handler on the disposable CI iPhone and disable the developer overlay on the disposable emulator.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — Reusing the warm Android update yielded three 15-case Tamil samples in 188.9–213.2 s. The three LeetCode samples took 240.0–352.3 s. The revised Blocks journey passed on the local iPhone in 16.7 s after moving its control above the system navigation area. Preapprove the pinned Expo handler on the disposable CI iPhone and disable the developer overlay on the disposable emulator."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3482",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

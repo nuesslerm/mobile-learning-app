@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-05-65",
+  "subject": "Engineering decisions",
+  "title": "Test-tiers",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-05",
+  "revision": null,
+  "environment": null,
+  "workload": "Test-tiers",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "test-tiers: `agent-evals delegation-benchmark` for `flow-test-composition-root` on condition W (opencode-direct, no Claude session, no replay/mock condition exists in `CONDITIONS` — the contract's \"replay/mock condition first\" is not a flag on `delegation-benchmark`; the `--mock-opencode` flag is on `opencode-eval` only, `clis/agent-evals/src/entrypoints/cli.ts:8`), runs 1, measures whether a…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 48 | 2026-09-05 22:17 | test-tiers: `agent-evals delegation-benchmark` for `flow-test-composition-root` on condition W (opencode-direct, no Claude session, no replay/mock condition exists in `CONDITIONS` — the contract's \"replay/mock condition first\" is not a flag on `delegation-benchmark`; the `--mock-opencode` flag is on `opencode-eval` only, `clis/agent-evals/src/entrypoints/cli.ts:8`), runs 1, measures whether a cheap model writes a real flow test | `node clis/agent-evals/bin/agent-evals.js delegation-benchmark --conditions=W --tasks=flow-test-composition-root --runs=1 --csv-dir=.agents/tmp/skill-eval-tiers/delegation-benchmark-flow`. 1/1 ok, claude_cost=$0.0000 opencode_cost=$0.0149 (minimax/MiniMax-M3, 164,514 tokens, 14 tool calls, dispatch run `cbae9698`), gate=true, success=true, 31 s; the cheap model wrote `tests/flow/cli.flow.test.ts` that boots `src/di/container.ts` with fake clock + fs adapters and the gate's `node --experimental-strip-types --test` runs green. Answer to \"does a cheap model write a real flow test\": yes, on the first attempt at $0.015 / 31 s | `.agents/tmp/skill-eval-tiers/delegation-benchmark-flow/results.csv`, run log `.agents/tmp/opencode-dispatch-runs.jsonl` run `cbae9698-2522-47fc-bc23-5943b8310094` | test-tiers |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 65",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

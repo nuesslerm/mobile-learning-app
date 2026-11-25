@@ -16,7 +16,7 @@ links: []
 The old navigate verb (`navigate --name phone --bogus x`) exited 2 with clap's error, then `Usage: wf browser --name <name>`.
 The usage line left out `navigate`. `wf ship mla-tamagui --bogus` prints `Usage: wf ship mla-tamagui`, so the commands
 that parse inside `browser::run` build their clap command without the sub-word. Seen in the device-lab
-before and after run (`docs/audits/benchmarks/device-lab-browser-cli-before-after.md`); the pre-migration
+before and after run (`docs/benchmarks/reports/device-lab-browser-cli-before-after/evidence/device-lab-browser-cli-before-after.md`); the pre-migration
 binary printed one line from `wf` itself.
 
 ## Why blocked

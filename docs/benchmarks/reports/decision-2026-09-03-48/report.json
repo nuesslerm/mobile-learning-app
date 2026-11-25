@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-48",
+  "subject": "Engineering decisions",
+  "title": "B2 arm T",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "B2 arm T",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "B2 arm T (headless tree, n=1, one task per size, 3/3 success): plan step ≈ $0.26 Sonnet flat; T = $0.263 small (A $0.097), $0.267 medium (A $0.179), $0.282 large (A $0.617, −54%, `go test` green, 5 units). Rule \"T default if ≥40% saved on ≥5/7 tasks\" not met; T stays the flow for large work and for the interactive brainstorm → plan → work path; W or Sonnet alone for small and medium. Phase D:…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 31 | 2026-09-03 11:25 | B2 arm T (headless tree, n=1, one task per size, 3/3 success): plan step ≈ $0.26 Sonnet flat; T = $0.263 small (A $0.097), $0.267 medium (A $0.179), $0.282 large (A $0.617, −54%, `go test` green, 5 units). Rule \"T default if ≥40% saved on ≥5/7 tasks\" not met; T stays the flow for large work and for the interactive brainstorm → plan → work path; W or Sonnet alone for small and medium. Phase D: report section, ledger artifact, known-gaps #51 closed | `.agents/tmp/delegation-benchmark/b2/results.csv` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 48",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

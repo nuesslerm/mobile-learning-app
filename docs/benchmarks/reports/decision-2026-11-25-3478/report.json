@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3478",
+  "subject": "Engineering decisions",
+  "title": "A job-scoped iOS accessibility companion served the JavaScript and custom-input journeys",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "A job-scoped iOS accessibility companion served the JavaScript and custom-input journeys",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "A job-scoped iOS accessibility companion served the JavaScript and custom-input journeys in 13.7 and 15.2 seconds on the local iPhone with separate learner data and recordings. The hosted Android window-driver sample passed 13/15 LeetCode journeys and 15/15 Tamil journeys in 411.7 and 288.0 seconds. Keep the shared companion and qualify the single-field and completion revisions.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — A job-scoped iOS accessibility companion served the JavaScript and custom-input journeys in 13.7 and 15.2 seconds on the local iPhone with separate learner data and recordings. The hosted Android window-driver sample passed 13/15 LeetCode journeys and 15/15 Tamil journeys in 411.7 and 288.0 seconds. Keep the shared companion and qualify the single-field and completion revisions."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3478",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

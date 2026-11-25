@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-197-run-41441721246-a10440d6e-the-seeded-e2e-replays-5-min-5-s-2026-1",
+  "subject": "Engineering decisions",
+  "title": "Run 41441721246 (a10440d6e): the seeded e2e replays, 5 min 5 s (2026-11-02)",
+  "question": "What was measured for Run 41441721246 (a10440d6e): the seeded e2e replays, 5 min 5 s (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 41441721246 (a10440d6e): the seeded e2e replays, 5 min 5 s (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - The pre-push gate (76 min, once) ran the live-model suite locally and wrote its passes to the shared Nx cache. CI replayed it: `cli-e2e-tests` 25 s (it was 42 to 52 min, red twice), `flow-tests` 27 s, `typecheck-lint-unit-tests` 44 s, `clis` 8 s, browser e2e 29 s, Android e2e 24 s, budget green. Wall clock 12:04:22 to 12:09:27 = 5 min 5 s, the whole pipeline, nothing redeployed.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- The pre-push gate (76 min, once) ran the live-model suite locally and wrote its passes to the shared Nx cache. CI replayed it: `cli-e2e-tests` 25 s (it was 42 to 52 min, red twice), `flow-tests` 27 s, `typecheck-lint-unit-tests` 44 s, `clis` 8 s, browser e2e 29 s, Android e2e 24 s, budget green. Wall clock 12:04:22 to 12:09:27 = 5 min 5 s, the whole pipeline, nothing redeployed."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3287–3292",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

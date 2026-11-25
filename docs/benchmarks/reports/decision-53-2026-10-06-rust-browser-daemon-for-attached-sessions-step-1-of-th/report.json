@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-53-2026-10-06-rust-browser-daemon-for-attached-sessions-step-1-of-th",
+  "subject": "Engineering decisions",
+  "title": "Rust browser daemon for attached sessions (step 1 of the multi-browser plan lands)",
+  "question": "What was measured for Rust browser daemon for attached sessions (step 1 of the multi-browser plan lands)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: Rust browser daemon for attached sessions (step 1 of the multi-browser plan lands)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (open, navigate, eval through the CLI against the same Chromium, then the daemon's own memory): wall 1657 ms with the Node daemon vs 370 ms with the Rust one; daemon resident set 184.5 MB vs 4.8 MB (about 38 times smaller). Binary size: 3,580,872 B (was 3,265,664 B; the CDP engine and daemon add about 315 KB).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (open, navigate, eval through the CLI against the same Chromium, then the daemon's own memory): wall 1657 ms with the Node daemon vs 370 ms with the Rust one; daemon resident set 184.5 MB vs 4.8 MB (about 38 times smaller). Binary size: 3,580,872 B (was 3,265,664 B; the CDP engine and daemon add about 315 KB)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1367–1378",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

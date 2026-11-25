@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-09-03-token-diet-ledger",
+  "subject": "Performance profiles",
+  "title": "Token Diet Ledger",
+  "question": "What did the Token Diet Ledger measurements show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "Token Diet Ledger",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "One remote session, 4,231 API calls over 524 turns, read from its own transcript. Median context per call 442 K tokens, p90 695 K; 74% of calls ran with more than 300 K in the window. Tool results totalled 7.5 MB and were re-read on every later call.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Published findings"
+      ],
+      "rows": [
+        [
+          "One remote session, 4,231 API calls over 524 turns, read from its own transcript. Median context per call 442 K tokens, p90 695 K; 74% of calls ran with more than 300 K in the window. Tool results totalled 7.5 MB and were re-read on every later call."
+        ],
+        [
+          "So terse prose can move at most the 7%. Fewer tokens per call, fewer calls per turn and a smaller fixed prefix (about 50 K tokens per session start) move the rest. Independent benchmarks agree: JetBrains measured caveman at −8.5% output tokens (advertised −65%), rtk at +7.6% cost, and Max Taylor found \"Be brief.\" ties caveman on 24 chat prompts."
+        ],
+        [
+          "Each arm adds one lever to the previous one. Scored on total_cost_usd, an opencode judge rubric for chat (required key points, forbidden claims), and the task gate for agentic cases. Ladder 1: 384 sessions, $34.16. Ladder 3 re-measured the add-ons on the shipped config: 77 sessions, $5.99."
+        ],
+        [
+          "Scripted chains replayed into one session with --resume, so context growth and compaction are real. Whole-conversation cost on the 30-turn mixed chain: baseline $0.899 → soft style $0.655 (🪨 fell to 8 of 23 turns on the second run) → prefix diet $0.664 → hard style + quiet hooks + prefix diet $0.612 (−32%, 🪨 on 30/30 turns). The soft style decays; the hard one does not."
+        ],
+        [
+          "7 tasks (4 in-repo, 3 thrifty greenfield specs), 4 arms, n=3, 84 cells, 0 errors. Cell = mean total_cost_usd / mean seconds / gate pass rate."
+        ],
+        [
+          "The whole task on deepseek-v4-flash passes every gate at 1/30 of Sonnet's cost and 10% less wall-clock in total. Haiku halves cost at equal gates. In-session dispatch is a wash on cost, 2.8× slower and drops 3 gates: the mechanics and the eagerness, not the cheap model, are the problem."
+        ],
+        [
+          "Arm T is the cheap-flow pipeline without a human: a Sonnet session writes contract.md and units.jsonl (plan only; the task gate is pinned as the last unit's gate), then cheap-flow work runs every unit on the opencode implementer agent. One task per size, n=1, against B1's arm A means."
+        ],
+        [
+          "Reading. The plan step costs about $0.26 of Sonnet whatever the task size ($0.257, $0.263, $0.260), and the implementation $0.004–$0.021 of opencode. The headless tree therefore loses on small (2.7×) and medium (1.5×) tasks and wins on the large one (−54%). The crossover sits where Sonnet alone would spend more than about $0.30. Below it, the whole task on opencode (arm W, $0.004–$0.026, 7/7 gates) or Sonnet alone is cheaper; the plan's adoption rule (≥40% saved on ≥5/7 tasks) is not met for small and medium work. n=1 per task."
+        ],
+        [
+          "Where the tree earns its keep is the interactive flow measured live on a real feature (section 6): Claude spends three short documents and one adjudication, and the implementation, research, review and documentation cost about $0.07 of opencode."
+        ],
+        [
+          "The L3 reminder stays the shipped nudge. No lever reached the 80% first-call target; the honest conclusion is that the cheap model is best reached by choosing it up front (/cheap, /cf-*, wf opencode batch) rather than by persuading a running Sonnet session."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-09-03-token-diet-ledger.html",
+      "path": "evidence/2026-09-03-token-diet-ledger.html"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3464",
+  "subject": "Engineering decisions",
+  "title": "CLI performance tracing",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "CLI performance tracing",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "CLI performance tracing. The integration runner now accepts `wf test run --performance`, and `wf --performance <command>` records ordinary commands. Four Orca/T3 workloads repeated 30 times produced 1,921 spans across 65 operations in the final macOS arm64 debug run. The Orca artifact-open p95 was 99.79 ms and T3 project-open was 138.60 ms. Thirteen of fourteen gates passed. Executor artifact…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-24 — CLI performance tracing. The integration runner now accepts `wf test run --performance`, and `wf --performance <command>` records ordinary commands. Four Orca/T3 workloads repeated 30 times produced 1,921 spans across 65 operations in the final macOS arm64 debug run. The Orca artifact-open p95 was 99.79 ms and T3 project-open was 138.60 ms. Thirteen of fourteen gates passed. Executor artifact stat reached 16.09 ms against a 3.76 ms limit. Keep the failure in history and the gate enabled. [Performance report](2026-11-24-cli-performance.html)"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3464",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

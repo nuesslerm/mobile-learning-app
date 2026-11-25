@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-67-2026-10-08-last-stretch-the-auth-listener-is-rust-no-typescript-i",
+  "subject": "Engineering decisions",
+  "title": "(last stretch): the auth listener is Rust; no TypeScript is left under `clis/`",
+  "question": "What was measured for (last stretch): the auth listener is Rust; no TypeScript is left under `clis/`?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08 (last stretch): the auth listener is Rust; no TypeScript is left under `clis/`",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Benchmark (listener, n=5, this sandbox, release build): startup to \"listening\" 11 to 21 ms (median 13 ms); idle RSS 5.8 to 5.95 MB. The TypeScript listener could not be rebuilt for a like-for-like run (its bundle needed the multi-browser build, which no longer builds from a fresh worktree), so the comparison is a floor: an empty `node` process alone idles at 43.1 MB RSS (n=5, 43.10 to 43.15 MB), more than seven times the whole Rust listener, before zod, th…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Benchmark (listener, n=5, this sandbox, release build): startup to \"listening\" 11 to 21 ms (median 13 ms); idle RSS 5.8 to 5.95 MB. The TypeScript listener could not be rebuilt for a like-for-like run (its bundle needed the multi-browser build, which no longer builds from a fresh worktree), so the comparison is a floor: an empty `node` process alone idles at 43.1 MB RSS (n=5, 43.10 to 43.15 MB), more than seven times the whole Rust listener, before zod, the logger or any request. The old image also carried `playwright-core` (14 MB) and sharp with its libvips (19.6 MB) installed by `npm install` only to satisfy imports the listener never used at idle; the new one adds a 5.7 MB binary and keeps `nodejs` only to install the tool CLIs."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1496–1507",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

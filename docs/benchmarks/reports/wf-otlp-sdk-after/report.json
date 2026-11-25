@@ -1,0 +1,673 @@
+{
+  "schemaVersion": 1,
+  "id": "wf-otlp-sdk-after",
+  "subject": "Services and CLI",
+  "title": "wf otlp sdk after",
+  "question": "What did the wf otlp sdk after measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": "x86_64",
+  "workload": "wf otlp sdk after",
+  "method": "5 rounds x 10 runs of `wf log emit --service bench --message bench.event --attr a=b --attr k=v` against a local HTTPS OTLP ingest; binaries interleaved per round; value = median of the round medians",
+  "finding": "before-release recorded 7.3 ms for emit_ms_median.",
+  "variants": [
+    {
+      "id": "before-release",
+      "label": "before-release"
+    },
+    {
+      "id": "after-release",
+      "label": "after-release"
+    },
+    {
+      "id": "before-deploy",
+      "label": "before-deploy"
+    },
+    {
+      "id": "after-deploy",
+      "label": "after-deploy"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "size-bytes",
+      "label": "size_bytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "emit-ms-median",
+      "label": "emit_ms_median",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "emit-ms-min",
+      "label": "emit_ms_min",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "emit-ms-max",
+      "label": "emit_ms_max",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "peak-rss-kb-median",
+      "label": "peak_rss_kb_median",
+      "unit": "KB",
+      "direction": "lower"
+    },
+    {
+      "id": "failures",
+      "label": "failures",
+      "unit": "count",
+      "direction": "contextual"
+    },
+    {
+      "id": "median-ms",
+      "label": "median_ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "median-peak-rss-kb",
+      "label": "median_peak_rss_kb",
+      "unit": "KB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "size-bytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 8381240,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "emit-ms-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 7.3,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "emit-ms-min",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6.99,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "emit-ms-max",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 7.84,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "peak-rss-kb-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "failures",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 7.84,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 7.56,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 7.14,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 6.99,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 7.3,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "size-bytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 8457848,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "emit-ms-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 7.19,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "emit-ms-min",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 6.96,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "emit-ms-max",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 8.73,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "peak-rss-kb-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "failures",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 7.14,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 7.19,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 8.73,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 6.96,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 7.77,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-release",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "size-bytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10957440,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "emit-ms-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 8.07,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "emit-ms-min",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 7.85,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "emit-ms-max",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 9.27,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "peak-rss-kb-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "failures",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 8.18,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 7.85,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 9.27,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 8.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 8.07,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "size-bytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 11111448,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "emit-ms-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 8.02,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "emit-ms-min",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 7.65,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "emit-ms-max",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 8.64,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "peak-rss-kb-median",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "failures",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 7.85,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 7.65,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 8.64,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 8.64,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 8.02,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after-deploy",
+      "scenario": "service",
+      "metric": "median-peak-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 22560,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "wf-otlp-sdk-after.json",
+      "path": "evidence/wf-otlp-sdk-after.json"
+    }
+  ],
+  "sampleSize": "5 rounds x 10 runs of `wf log emit --service bench --message bench.event --attr a=b --attr k=v` against a local HTTPS OTLP ingest; binaries interleaved per round; value = median of the round medians"
+}
