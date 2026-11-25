@@ -333,6 +333,8 @@ async def drive(socket, udid, info=None):
                             raise
                 elif op == "open":
                     await client.open_url(args[0])
+                elif op == "tap-labeled-button":
+                    result = bool(folder and xcui.call(folder, "tap-button", identifier=args[0], label=args[1]))
                 elif op == "tap":
                     await client.tap(*args)
                 elif op == "swipe":

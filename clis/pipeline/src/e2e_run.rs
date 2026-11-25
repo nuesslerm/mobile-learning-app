@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
+const NATIVE_SECTION_BUDGET_S: u64 = 15 * 60;
 const SPEC: Spec = Spec { values: &["base", "sha", "out", "serial", "platform", "device", "case"], flags: &["all", "changed", "json"], positional: Positional::Any, ..Spec::NONE };
 
 /// One run of an e2e test: the whole script, or one of its `units:`.
@@ -21,6 +22,12 @@ pub struct Unit {
     pub against: String,
     pub timeout_s: u64,
     pub args: Vec<String>,
+}
+
+impl Unit {
+    fn is_native_learner(&self) -> bool {
+        matches!(self.test.as_str(), "leetcode-native" | "tamil-native")
+    }
 }
 
 /// The units of the picked tests, in test order: one per `units:` entry, or one for a test without units.
@@ -158,7 +165,7 @@ fn run_on_harness(unit: &Unit, sha: &str, dir: &Path, serial: Option<&str>, flag
 fn spawn_and_wait(unit: &Unit, sha: &str, dir: &Path, serial: Option<&str>, flags: &[String], lease: Option<&str>, target: Option<&Target>) -> (&'static str, String, u64) {
     let mut words = device_run::runner();
     let program = words.remove(0);
-    let mut cmd = if matches!(unit.test.as_str(), "leetcode-native" | "tamil-native") {
+    let mut cmd = if unit.is_native_learner() {
         let mut wrapper = Command::new("python3");
         if unit.platform == "android" {
             if let Some(target) = target {
@@ -228,7 +235,8 @@ fn target_key(update: Option<&UpdateTarget>) -> String {
 /// Android units reuse the running app, started cold first when it is not known good: before the first, after a unit that did not
 /// pass, and when the update's group changed (16 Oct: a cold start was 57 to 76 s of every unit).
 fn needs_warm(unit: &Unit, warm: &Warm, key: &str) -> bool {
-    unit.platform == "android" && (!warm.ok || warm.at.as_deref() != Some(key))
+    // A native case restores the verified learner checkpoint before acting, including after a failed case.
+    unit.platform == "android" && (warm.at.as_deref() != Some(key) || (!warm.ok && !unit.is_native_learner()))
 }
 
 /// `WF_E2E_STATE`: the file a stage keeps the warm state in, so each test's own `wf test run` (one per Nx task) starts
@@ -319,7 +327,7 @@ pub fn run(rest: &[String]) -> i32 {
     let platform_update = |platform: &str| units.iter().any(|u| u.platform == platform && u.against == "update").then(|| device_run::update_target(&sha, platform));
     let android_update = platform_update("android");
     let ios_update = platform_update("ios");
-    let is_section = units.first().is_some_and(|first| matches!(first.test.as_str(), "tamil-native" | "leetcode-native")
+    let is_section = units.first().is_some_and(|first| first.is_native_learner()
         && units.iter().all(|u| u.test == first.test && u.platform == first.platform));
     let sample = std::env::var("WF_NATIVE_SAMPLE").ok().and_then(|s| s.parse::<usize>().ok()).unwrap_or(1);
     let mut results: Vec<Value> = Vec::new();
@@ -332,8 +340,8 @@ pub fn run(rest: &[String]) -> i32 {
     let mut fails_in_row = 0;
     let mut section_start: Option<Instant> = None;
     for (index, u) in units.iter().enumerate() {
-        if is_section && index >= 10 && section_start.is_some_and(|start| start.elapsed().as_secs_f64() > 600.0) {
-            let note = "section exceeded the 600-second budget before this candidate";
+        if is_section && index >= 10 && section_start.is_some_and(|start| start.elapsed().as_secs_f64() > NATIVE_SECTION_BUDGET_S as f64) {
+            let note = format!("section exceeded the {NATIVE_SECTION_BUDGET_S}-second budget before this candidate");
             println!("{}", json!({ "unit": slug(u), "verdict": "skipped", "durationS": 0.0, "note": note }));
             results.push(json!({ "test": u.test, "args": u.args, "sha": sha, "script": u.script, "platform": u.platform, "verdict": "skipped", "durationS": 0.0, "note": note }));
             continue;
@@ -395,13 +403,29 @@ pub fn run(rest: &[String]) -> i32 {
         results.push(r);
     }
     let seconds = section_start.map_or(0.0, |start| start.elapsed().as_secs_f64());
-    let passed = results.iter().all(|r| r["verdict"] == "pass") && (!is_section || seconds <= 600.0);
+    let passed = results.iter().all(|r| r["verdict"] == "pass") && (!is_section || seconds <= NATIVE_SECTION_BUDGET_S as f64);
     for unit in &mut results { unit["sample"] = json!(sample); }
-    let measurement = json!({ "sample": sample, "seconds": seconds, "budgetSeconds": is_section.then_some(600), "cases": results.len(), "ok": passed });
+    let measurement = json!({ "sample": sample, "seconds": seconds, "budgetSeconds": is_section.then_some(NATIVE_SECTION_BUDGET_S), "cases": results.len(), "ok": passed });
     if let Some(Ok((server, _))) = &export { server.stop(); }
     let summary = json!({ "ok": passed, "sha": sha, "out": root.display().to_string(), "units": results, "warms": warms, "measurements": [measurement] });
     let _ = std::fs::create_dir_all(&root);
     let _ = std::fs::write(root.join("summary.json"), serde_json::to_string_pretty(&summary).unwrap_or_default());
     println!("{summary}");
     i32::from(!passed)
+}
+
+#[cfg(test)]
+mod ready_device_tests {
+    use super::{needs_warm, warm_unit, Warm};
+
+    #[test]
+    fn given_a_failed_android_journey_when_the_next_learner_restores_the_checkpoint_then_only_a_new_update_needs_a_cold_start() {
+        let mut unit = warm_unit(1, "update");
+        let warm = Warm { ok: false, at: Some("update:A".into()) };
+        assert!(needs_warm(&unit, &warm, "update:A"));
+        unit.test = "tamil-native".into();
+        assert!(!needs_warm(&unit, &warm, "update:A"));
+        assert!(needs_warm(&unit, &warm, "update:B"));
+        assert!(needs_warm(&unit, &Warm::default(), "update:A"));
+    }
 }

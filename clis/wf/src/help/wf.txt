@@ -45,6 +45,7 @@ Commands:
                               sandbox and CI: status, gc, purge, restore, save
   lib                         Versioned shared libraries and their registries:
                               release, status, prune, retarget
+  rca-serve                   Pair devices and serve the RCA mobile API
   t3                          The T3-compatible server and its pairing codes:
                               serve, pair (the separate binary t3-serve)
   exec                        The executor of an rca workspace: serve (the

@@ -30,7 +30,7 @@ Library search, collection membership, navigation, Python and JavaScript executi
 
 ## Timing
 
-Start with ten core journeys per section. The acceptance threshold is 600 seconds per section on a ready device in each of three uncached hosted runs on each platform. Record queue, build, boot and artifact upload separately. A failed case or an incomplete sample cannot establish a cutoff.
+The current acceptance threshold is 900 seconds per section on a ready device in each of three uncached hosted runs on each platform. The initial benchmarks below used the original 600-second threshold. Record queue, build, boot and artifact upload separately. A failed case or an incomplete sample cannot establish a cutoff.
 
 On the booted local `tamil` simulator, the ten LeetCode cases passed in 142.3 seconds and the ten Tamil cases passed in 135.2 seconds. Both runs used the iOS test update published by CI for revision `7b895b05ddeb`. The elapsed times include the storage reset, assertions and recording.
 

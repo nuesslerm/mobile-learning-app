@@ -140,11 +140,16 @@ impl Device for Simulator {
     fn tap_at(&self, x: f64, y: f64) -> Result<(), String> {
         self.call(json!(["tap", x, y])).map(drop)
     }
-    fn tap_element(&self, el: &Element, _: &Sel) -> Result<(f64, f64), String> {
+    fn tap_element(&self, el: &Element, sel: &Sel) -> Result<(f64, f64), String> {
         let p = (
             (el.bounds.left + el.bounds.right) as f64 / 2.,
             (el.bounds.top + el.bounds.bottom) as f64 / 2.,
         );
+        if let (Some(id), Some(_), Some(label)) = (&sel.id, &sel.text, &el.text) {
+            if self.call(json!(["tap-labeled-button", id.source(), label]))? == true {
+                return Ok(p);
+            }
+        }
         self.tap_at(p.0, p.1)?;
         Ok(p)
     }

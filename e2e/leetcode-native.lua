@@ -2,8 +2,7 @@
 platform: android, ios
 against: update
 timeout: 180
-units: case=search; case=neetcode; case=one-editor; case=python; case=javascript; case=custom-input; case=repair-error; case=draft; case=symbol; case=keyboard
-candidates: case=settings; case=completion; case=blocks; case=two-drafts; case=voice
+units: case=search; case=neetcode; case=one-editor; case=python; case=javascript; case=custom-input; case=repair-error; case=draft; case=symbol; case=keyboard; case=settings; case=completion; case=blocks; case=two-drafts; case=voice
 focus: true
 features: leetcode
 ---]]
@@ -153,11 +152,15 @@ cases.symbol = function()
     device:extended_wait_until{condition=function() return device:get_element({id="ProblemEditorStartupInput"}) == nil end, timeout=12000}
   end
   input.focus_end(true)
-  local collapsed = {id="SymbolBarGroup-g4", text="Show symbols .*"}
-  if device:get_element(collapsed) then device:tap_on(collapsed) end
   local key = {id="SymbolBarKey-g4-0"}
-  if device:get_element(key) then device:tap_on(key) else device:tap_on({text="(Type )?\\+"}) end
-  if device.platform == "android" then
+  local group = {id="SymbolBarGroup-g4", text="Show symbols .*"}
+  if device.platform == "ios" then
+    device:tap_on(group)
+    visible("EditorExpandedSymbols")
+    device:tap_on(key)
+  else
+    if device:get_element(group) then device:tap_on(group) end
+    if device:get_element(key) then device:tap_on(key) else device:tap_on({text="(Type )?\\+"}) end
     device:assert_visible({id="CodeEditorText", text="v=8\\+.*"})
     input.focus_end(true)
   end
@@ -223,15 +226,15 @@ local function enable_list_setting(id)
 end
 cases.completion = function()
   enable_list_setting("LeetcodeListAutocompleteOn")
-  editor("v=Fal\n" .. py .. "79 if v == False else 0")
+  editor("const v=fal\nclass Solution { twoSum(nums, target) { return v === false ? 79 : 0; } }", "javascript")
   if device.platform == "ios" then
     device:extended_wait_until{condition=function() return device:get_element({id="ProblemEditorStartupInput"}) == nil end, timeout=15000}
   end
   input.focus_end(true)
   device:input_text("s")
-  if device.platform == "android" then device:assert_visible({text="False"}) end
+  if device.platform == "android" then device:assert_visible({text="false"}) end
   device:tap_on({text="Tab"})
-  device:assert_visible({text="v=False.*"})
+  device:assert_visible({text="const v=false.*"})
   input.hide_keyboard()
   output("79")
 end

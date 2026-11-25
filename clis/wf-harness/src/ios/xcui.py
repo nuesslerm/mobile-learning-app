@@ -1,7 +1,10 @@
 """Keep one XCTest accessibility and software-keyboard session on a selected simulator."""
+from contextlib import closing
 import json
 import os
 from pathlib import Path
+import select
+import signal
 import subprocess
 import tempfile
 import time
@@ -60,7 +63,7 @@ def start(udid, runner):
     log = state.with_suffix(".log")
     with log.open("w") as output:
         proc = subprocess.Popen(["xcodebuild", "test-without-building", "-xctestrun", runner, "-destination", "id=" + udid,
-                                 "-parallel-testing-enabled", "NO", "-test-timeouts-enabled", "NO"],
+                                 "-parallel-testing-enabled", "NO", "-test-timeouts-enabled", "NO", "-collect-test-diagnostics", "never"],
                                 env={**os.environ, "TEST_RUNNER_WF_UI_SESSION": session},
                                 stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
     try:
@@ -84,5 +87,16 @@ def start(udid, runner):
 def stop(udid):
     state = state_file(udid)
     if state.exists():
-        call(Path(json.loads(state.read_text())["folder"]), "stop")
+        session = json.loads(state.read_text())
+        pid = session["pid"]
+        # XCTest releases the simulator after replying to the final command.
+        with closing(select.kqueue()) as exits:
+            event = select.kevent(pid, filter=select.KQ_FILTER_PROC, flags=select.KQ_EV_ADD | select.KQ_EV_ONESHOT,
+                                  fflags=select.KQ_NOTE_EXIT)
+            exits.control([event], 0, 0)
+            call(Path(session["folder"]), "stop")
+            if not exits.control(None, 1, 30):
+                os.kill(pid, signal.SIGTERM)
+                if not exits.control(None, 1, 15):
+                    raise RuntimeError(f"XCTest process {pid} has not released simulator {udid}")
         state.unlink()

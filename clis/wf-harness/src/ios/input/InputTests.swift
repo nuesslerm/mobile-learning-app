@@ -35,6 +35,14 @@ final class InputTests: XCTestCase {
                     var rows = [[String: Any]]()
                     flatten(try app.snapshot(), into: &rows)
                     result = ["value": rows]
+                case "tap-button":
+                    let identifier = try XCTUnwrap(message["identifier"])
+                    let label = try XCTUnwrap(message["label"])
+                    let query = app.buttons.matching(NSPredicate(format: "identifier == %@ AND label == %@", identifier, label))
+                    let button = query.firstMatch
+                    let found = button.exists
+                    if found { button.tap() }
+                    result = ["value": found]
                 case "text":
                     app.typeText(try XCTUnwrap(message["text"]))
                     result = ["value": true]
