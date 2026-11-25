@@ -28,6 +28,9 @@ function backend() {
       update({ thread, messages });
       return {
         close() {},
+        async resolveImage() {
+          throw new Error('No fixture image');
+        },
         async send(id, text) {
           messages = [
             ...messages,

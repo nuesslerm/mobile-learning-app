@@ -26,3 +26,24 @@ export interface ComposerProps {
   onChangeText: (text: string) => void;
   onSend: () => void;
 }
+
+export interface ChatImageProps {
+  label: string;
+  uri?: string;
+  unavailable?: boolean;
+  onOpen: () => void;
+}
+export interface ChatImageViewerProps {
+  label: string;
+  uri: string;
+  topInset: number;
+  rightInset: number;
+  onClose: () => void;
+}
+
+export interface ChatToolActivityProps {
+  summary: string;
+  working: boolean;
+  rows: readonly {id:string; name:string; input:string; output:string; status:string}[];
+  children?: ReactNode;
+}

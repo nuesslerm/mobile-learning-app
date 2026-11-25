@@ -284,13 +284,16 @@ impl Service {
     }
 
     /// `GET /api/orchestration/threads/:threadId/bounded`: the thread's projection whole, which is no bigger than a window of it here.
-    pub fn thread_bounded_snapshot(&self, request: &EnvironmentRequest, thread: &str) -> Result<Value, Refusal> {
+    pub fn thread_bounded_snapshot(&self, request: &EnvironmentRequest, thread: &str, include_layout: bool) -> Result<Value, Refusal> {
         self.environment_gate("threadBoundedSnapshot", request)?;
         self.sync_thread(thread);
-        let (projection, sequence) = self.engine().read(|state| (state.thread_projection(thread), state.last_sequence));
-        match projection {
-            Some(projection) => Ok(json!({"snapshotSequence": sequence, "projection": projection, "hasMoreHistory": false})),
-            None => Err(self.history_refusal("threadBoundedSnapshot", crate::domain::history::HistoryError::ThreadNotFound)),
-        }
+        self.engine().read(|state| {
+            let projection = state.thread_projection(thread)?;
+            let mut result = json!({"snapshotSequence": state.last_sequence, "projection": projection, "hasMoreHistory": false});
+            if include_layout {
+                result["rcaToolTextOffsets"] = state.entities.get(thread).map_or_else(|| json!({}), |e| json!(e.tool_text_offsets));
+            }
+            Some(result)
+        }).ok_or_else(|| self.history_refusal("threadBoundedSnapshot", crate::domain::history::HistoryError::ThreadNotFound))
     }
 }

@@ -4,7 +4,7 @@ import type { Pairing } from '../../domain/mobile';
 import type { T3MobilePort } from '../../domain/t3Mobile';
 import { readPairing, savePairing } from '../rca/credentials';
 import { endpoint } from '../rca/endpoint';
-import { openConversation, threadSchema } from './session';
+import { boundedSchema, openConversation, threadSchema } from './session';
 
 const key = 'rca.mobile.connection.t3.v2';
 const shellSchema = z.object({
@@ -68,6 +68,20 @@ export function createT3MobileApi(): T3MobilePort {
     },
     async open(pair, thread, update, disconnected) {
       const base = endpoint(pair.endpoint);
+      const initial = boundedSchema.parse(
+        await json(
+          base,
+          '/api/orchestration/threads/' +
+            encodeURIComponent(thread) +
+            '/bounded?rcaChatLayout=1',
+          {
+            headers: {
+              ...authorization(pair),
+              'x-t3-orchestration-protocol': '2',
+            },
+          }
+        )
+      );
       const result = await json(base, '/api/auth/websocket-ticket/rpc', {
         method: 'POST',
         headers: authorization(pair),
@@ -75,12 +89,15 @@ export function createT3MobileApi(): T3MobilePort {
       const { ticket } = z.object({ ticket: z.string().min(1) }).parse(result);
       const url = new URL(base.replace(/^http/, 'ws') + '/ws');
       url.searchParams.set('orchestrationProtocol', '2');
+      url.searchParams.set('frameParts', '1');
       url.searchParams.set('wsTicket', ticket);
       return openConversation(
         new WebSocket(url.href),
+        base,
         thread,
         update,
-        disconnected
+        disconnected,
+        initial
       );
     },
   };

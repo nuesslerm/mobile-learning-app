@@ -15,6 +15,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [imageSession, setImageSession] = useState<T3Conversation>();
   const connection = useRef<T3Conversation | null>(null);
   const [generation, setGeneration] = useState(0);
   const [draft, setDraft] = useState('');
@@ -43,12 +44,15 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
   useEffect(() => {
     if (!pair) return;
     let active = true;
+    setConnected(false);
+    setImageSession(undefined);
     let current: T3Conversation | undefined;
     let timer: ReturnType<typeof setTimeout>;
     let failures = 0;
     function disconnected(reason: Error) {
       if (!active) return;
       setConnected(false);
+      setImageSession(undefined);
       setError(reason.message);
       timer = setTimeout(
         () => void open(),
@@ -84,6 +88,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
         }
         current = session;
         connection.current = session;
+        setImageSession(session);
       } catch (e) {
         Logger.warn('coding_agent.t3.connection_failed');
         disconnected(e instanceof Error ? e : new Error('Connection failed.'));
@@ -133,6 +138,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     connect,
     connected,
     snapshot,
+    imageSession: connected ? imageSession : undefined,
     shell,
     busy,
     error,

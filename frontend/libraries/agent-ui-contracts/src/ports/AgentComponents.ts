@@ -1,5 +1,5 @@
-import type { ComponentType } from 'react';
-import type { ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
+import type { ComponentType, ReactNode } from 'react';
+import type { ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
 export interface OnboardingChoiceProps {
   label: string;
@@ -37,6 +37,10 @@ export interface PairDesktopButtonProps {
 }
 
 export interface AgentComponents {
+  ChatToolActivity: ComponentType<ChatToolActivityProps>;
+  ChatSurface: ComponentType<{ children: ReactNode }>;
+  ChatImage: ComponentType<ChatImageProps>;
+  ChatImageViewer: ComponentType<ChatImageViewerProps>;
   MessageBubble: ComponentType<MessageBubbleProps>;
   Composer: ComponentType<ComposerProps>;
   ComposerSendButton: ComponentType<ComposerSendButtonProps>;

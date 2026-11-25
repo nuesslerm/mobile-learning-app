@@ -5,7 +5,6 @@ import { useAgentComponents } from '@lib/agent-ui-contracts';
 import {
   Button,
   ListItem,
-  Markdown,
   ScreenHeader,
   Text,
   TextField,
@@ -14,6 +13,7 @@ import {
 import type { T3MobilePort } from '../domain/t3Mobile';
 import { useCodingAgentPorts } from '../state/ports';
 import { ChatKeyboardArea } from './ChatKeyboardArea';
+import { T3Transcript } from './T3Transcript';
 import { ChatScroll } from './ChatScroll';
 import { useT3Mobile } from '../state/useT3Mobile';
 
@@ -25,11 +25,11 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const state = useT3Mobile(api, threadId);
-  const { MessageBubble, Composer } = useAgentComponents();
+  const { ChatSurface, Composer } = useAgentComponents();
   const [host, setHost] = useState('');
   const [code, setCode] = useState('');
   return (
-    <View flex={1} bg="$background">
+    <ChatSurface>
       <ScreenHeader
         testID="MobileT3Header"
         title={
@@ -76,14 +76,11 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
       ) : threadId ? (
         <ChatKeyboardArea>
           <ChatScroll>
-            {state.snapshot?.messages.map((message) =>
-              message.role === 'system' ? (
-                <Text key={message.id}>{message.text}</Text>
-              ) : (
-                <MessageBubble key={message.id} role={message.role}>
-                  <Markdown content={message.text} />
-                </MessageBubble>
-              )
+            {state.snapshot && (
+              <T3Transcript
+                snapshot={state.snapshot}
+                session={state.imageSession}
+              />
             )}
           </ChatScroll>
           <Composer
@@ -130,6 +127,6 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           </View>
         </ScrollView>
       )}
-    </View>
+    </ChatSurface>
   );
 }

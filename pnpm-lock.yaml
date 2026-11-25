@@ -1010,6 +1010,9 @@ importers:
       react-native-css-interop:
         specifier: 'catalog:'
         version: 0.2.5(patch_hash=0a96a2c1ec090bb7ae9bf642b870d14946b7950bfa6e0942102178d2449cb15b)(51741428c809f2cd3d5a0f20ee4c30b3)
+      react-native-safe-area-context:
+        specifier: ~5.11.1
+        version: 5.11.1(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
       tailwindcss:
         specifier: 'catalog:'
         version: 3.4.19(tsx@4.22.4)(yaml@2.9.0)

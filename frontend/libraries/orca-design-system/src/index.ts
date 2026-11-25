@@ -1,3 +1,5 @@
+import { ChatToolActivity } from './adapters/ChatToolActivity';
+import { ChatSurface, ChatImage, ChatImageViewer } from './adapters/ChatImages';
 import { Composer, ComposerSendButton } from './adapters/Composer';
 import { MessageBubble } from './adapters/MessageBubble';
 import { UnpairedHome } from './adapters/UnpairedHome';
@@ -10,6 +12,8 @@ import { OnboardingChoice } from './adapters/OnboardingChoice';
 export const orcaComponents: AgentComponents = {
   Composer,
   ComposerSendButton,
+  ChatToolActivity,
+  ChatSurface, ChatImage, ChatImageViewer,
   MessageBubble,
   BrandMark,
   PairDesktopButton,

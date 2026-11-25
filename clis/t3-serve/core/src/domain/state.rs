@@ -12,6 +12,8 @@ pub struct Entities {
     pub runs: Vec<Value>,
     pub messages: Vec<Value>,
     pub turn_items: Vec<Value>,
+    /// UTF-16 text position at the first tool frame, so a phone can reopen prose interrupted by tools.
+    pub tool_text_offsets: BTreeMap<String, usize>,
     pub provider_turns: Vec<Value>,
     pub runtime_requests: Vec<Value>,
 }
@@ -322,7 +324,10 @@ impl State {
             "message.updated" => {
                 if let Some(id) = &e.thread_id {
                     let entities = self.entities.entry(id.clone()).or_default();
+                    let same_preview = entities.messages.iter().any(|m| m["id"] == e.payload["id"]
+                        && m["role"] == e.payload["role"] && m["text"] == e.payload["text"] && m["updatedAt"] == e.payload["updatedAt"]);
                     upsert(&mut entities.messages, &e.payload);
+                    if same_preview { return applied }
                     if let Some(shell) = self.threads.get_mut(id) {
                         if e.payload["role"] == "user" {
                             shell.insert("latestUserMessageAt".into(), e.payload["createdAt"].clone());
@@ -340,6 +345,14 @@ impl State {
             "turn-item.updated" => {
                 if let Some(id) = &e.thread_id {
                     let entities = self.entities.entry(id.clone()).or_default();
+                    if e.payload["type"] == "command_execution" {
+                        if let Some(tool_id) = e.payload["id"].as_str() {
+                            entities.tool_text_offsets.entry(tool_id.to_owned()).or_insert_with(|| {
+                                entities.turn_items.iter().rev().find(|i| i["type"] == "assistant_message" && i["runId"] == e.payload["runId"])
+                                    .and_then(|i| i["text"].as_str()).map_or(0, |text| text.encode_utf16().count())
+                            });
+                        }
+                    }
                     let before = entities.turn_items.len();
                     upsert(&mut entities.turn_items, &e.payload);
                     let count = entities.turn_items.len();
