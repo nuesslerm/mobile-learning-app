@@ -30,4 +30,4 @@ export {
 
 export type { ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ports/ChatComponents';
 export type { PairingScreenProps, PairingCodeSheetProps } from './ports/PairingComponents';
-export type { ChatMessageTextProps, ChatMessageMetaProps } from './ports/ChatComponents';
+export type { ChatMessageTextProps, ChatMessageMetaProps, SessionHeaderProps, SessionTabsSheetProps } from './ports/ChatComponents';

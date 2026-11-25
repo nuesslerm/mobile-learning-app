@@ -276,6 +276,26 @@ impl Service {
         Ok(self.engine().read(|state| state.shell_snapshot()["snapshot"].clone()))
     }
 
+    /// The active chat's RCA workspace and its openable T3 sessions, in RCA activity order.
+    pub fn session_context_http(&self, request: &EnvironmentRequest, thread: &str) -> Result<Value, Refusal> {
+        const ROUTE: &str = "mobileSessionContext";
+        self.environment_gate(ROUTE, request)?;
+        let missing = || self.history_refusal(ROUTE, crate::domain::history::HistoryError::ThreadNotFound);
+        let active = self.row(thread).ok_or_else(missing)?;
+        let listed = self.agent().run(&Op::ThreadList).map_err(|e| Refusal { status: 502, body: wire::host_error(&e.message()) })?;
+        let rows = listed["threads"].as_array().ok_or_else(|| Refusal::bare(502))?;
+        let workspace = rows.iter().find(|row| row["id"] == thread).and_then(|row| row["workspace"].as_str()).filter(|name| !name.is_empty());
+        let sessions = self.engine().read(|state| {
+            rows.iter().filter(|row| row["id"] == thread || workspace.is_some_and(|name| row["workspace"] == name)).filter_map(|row| {
+                let id = row["id"].as_str()?;
+                let shell = state.threads.get(id)?;
+                if shell.get("projectId") != active.get("projectId") || crate::domain::state::is_archived(shell) { return None; }
+                Some(json!({"id": id, "title": shell.get("title")}))
+            }).collect::<Vec<_>>()
+        });
+        Ok(json!({"workspace": workspace, "sessions": sessions}))
+    }
+
     /// `GET /api/projects`: the live projects, as `projects.mutate` answers a row, behind the bearer and `orchestration:read`.
     pub fn projects_snapshot_http(&self, authorization: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("projectsSnapshot", authorization)?;

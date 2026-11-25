@@ -176,3 +176,31 @@ fn health_answers_without_a_credential_and_the_healthcheck_of_the_binary_is_gree
     assert_eq!((up.status.code(), down.status.code()), (Some(0), Some(1)), "{}", String::from_utf8_lossy(&down.stderr));
     assert!(String::from_utf8_lossy(&down.stderr).contains("no healthy server"));
 }
+
+#[test]
+fn session_context_shows_only_openable_threads_in_the_same_rca_workspace() {
+    // Given three T3 threads and an RCA session outside the T3 project
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    for thread in ["other", "sibling"] {
+        success(&rpc.call("orchestration.dispatchCommand", thread_create(thread, thread, "p1")));
+    }
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        t3_core::ports::Op::ThreadList => Some(Ok(json!({"threads": [
+            {"id": "unprojected", "workspace": "worktree"}, {"id": "sibling", "workspace": "worktree"},
+            {"id": "other", "workspace": "elsewhere"}, {"id": "t1", "workspace": "worktree"}
+        ]}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let get = |thread: &str, token: &str| http(h.addr, "GET", &format!("/api/orchestration/threads/{thread}/session-context"),
+        &[("Authorization", token), ("x-t3-orchestration-protocol", "2")], "");
+    // When the session picker opens, then the server preserves workspace activity order
+    let reply = get("t1", &reader);
+    assert_eq!(reply.status, 200);
+    assert_eq!(reply.body, json!({"workspace":"worktree","sessions":[{"id":"sibling","title":"Thread sibling"},{"id":"t1","title":"Thread t1"}]}));
+    assert_eq!(get("unprojected", &reader).status, 404);
+    assert_eq!(get("t1", "").status, 401);
+    assert_eq!(get("t1", &scoped(&h, &["relay:read"])).status, 403);
+}

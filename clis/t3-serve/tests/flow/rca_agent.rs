@@ -275,6 +275,7 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     let entries = json!({"entries": []});
     let rca = rca(Box::new(move |request| match request["method"].as_str().unwrap() {
         "service.status" => vec![answer(request, status.clone())],
+        "thread.list" => vec![answer(request, json!({"threads": [view(BEFORE)]}))],
         "thread.create" => vec![answer(request, view(BEFORE).to_result())],
         "turn.start" => vec![answer(request, json!({"thread": "t1", "turn": TURN})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
         "thread.subscribe" => vec![answer(request, json!({"topic": "thread/t1", "after_seq": BEFORE, "last_seq": BEFORE})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
@@ -405,6 +406,7 @@ fn every_op() -> Vec<Op> {
         Op::ThreadSettle { thread: t(), state: "snoozed", until_ms: Some(2), at_ms: None },
         Op::ThreadSearch { query: "needle".into(), limit: 5 },
         Op::ThreadFamily { thread: t() },
+        Op::ThreadList,
         Op::ThreadForceStop { thread: t(), turn: None },
         Op::ItemGet { thread: t(), seq: 3 },
         Op::WorkflowStop { thread: t(), turn: TURN.into(), workflow: None },

@@ -12,6 +12,7 @@ import {
 import type { T3MobilePort } from '../domain/t3Mobile';
 import { useCodingAgentPorts } from '../state/ports';
 import { ChatKeyboardArea } from './ChatKeyboardArea';
+import { T3SessionNavigation } from './T3SessionNavigation';
 import { T3Transcript } from './T3Transcript';
 import { ChatScroll } from './ChatScroll';
 import { OrcaHome } from './OrcaHome';
@@ -22,7 +23,7 @@ import { useT3Mobile } from '../state/useT3Mobile';
 export function T3MobileScreen({ threadId }: { threadId?: string }) {
   const { t3Mobile } = useCodingAgentPorts();
   if (!t3Mobile) throw new Error('Missing T3 mobile adapter');
-  return <Session api={t3Mobile} threadId={threadId} />;
+  return <Session key={threadId ?? 'home'} api={t3Mobile} threadId={threadId} />;
 }
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
@@ -95,13 +96,10 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
     );
   return (
     <ChatSurface>
-      <ScreenHeader
-        testID="MobileT3Header"
-        title={
-          state.snapshot?.thread.title ?? (threadId ? 'Thread' : 'Workspaces')
-        }
-        onBack={goBack}
-      />
+      {threadId ? <T3SessionNavigation key={threadId} api={api} pair={state.pair} id={threadId}
+        title={state.snapshot?.thread.id === threadId ? state.snapshot.thread.title : 'Thread'}
+        connected={state.connected} onBack={goBack} onReconnect={state.retry} /> :
+        <ScreenHeader testID="MobileT3Header" title="Workspaces" onBack={goBack} />}
       {state.error ? (
         <Text accessibilityRole="alert">{state.error}</Text>
       ) : null}

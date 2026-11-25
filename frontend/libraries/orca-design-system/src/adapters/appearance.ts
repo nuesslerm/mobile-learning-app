@@ -14,6 +14,7 @@ export const homePalettes = {
     surfaceBright: '#e5e5e5',
     accentBlue: '#3276f2',
     onAccent: '#ffffff',
+    statusGreen: '#86efac',
     statusAmber: '#eab308',
   },
   light: {
@@ -28,6 +29,7 @@ export const homePalettes = {
     surfaceBright: '#171717',
     accentBlue: '#225be3',
     onAccent: '#ffffff',
+    statusGreen: '#147638',
     statusAmber: '#ca8a04',
   },
 } as const;

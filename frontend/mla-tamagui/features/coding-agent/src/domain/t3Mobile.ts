@@ -34,6 +34,7 @@ export type T3Snapshot = {
   turnItems?: T3TurnItem[];
   toolTextOffsets?: Record<string, number>;
 };
+export type SessionContext = { workspace: string | null; sessions: { id: string; title: string }[] };
 export type T3Shell = {
   projects: { id: string; title: string }[];
   threads: T3Thread[];
@@ -48,6 +49,7 @@ export interface T3Conversation {
 export interface T3MobilePort {
   restore(): Promise<Pairing | null>;
   pair(endpoint: string, code: string, signal?: AbortSignal): Promise<Pairing>;
+  sessionContext(pairing: Pairing, threadId: string, signal: AbortSignal): Promise<SessionContext>;
   shell(pairing: Pairing): Promise<T3Shell>;
   open(
     pairing: Pairing,

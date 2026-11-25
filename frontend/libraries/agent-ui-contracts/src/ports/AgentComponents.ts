@@ -1,6 +1,6 @@
 import type { PairingScreenProps, PairingCodeSheetProps } from './PairingComponents';
 import type { ComponentType, ReactNode } from 'react';
-import type { ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
+import type { SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
 export interface OnboardingChoiceProps {
   label: string;
@@ -199,6 +199,8 @@ export interface HomeSettingsNoteProps {
 export interface AgentComponents {
   PairingScreen: ComponentType<PairingScreenProps>;
   PairingCodeSheet: ComponentType<PairingCodeSheetProps>;
+  SessionTabsSheet: ComponentType<SessionTabsSheetProps>;
+  SessionHeader: ComponentType<SessionHeaderProps>;
   ChatMessageText: ComponentType<ChatMessageTextProps>;
   ChatMessageMeta: ComponentType<ChatMessageMetaProps>;
   ChatToolActivity: ComponentType<ChatToolActivityProps>;

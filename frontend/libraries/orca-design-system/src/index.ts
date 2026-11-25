@@ -1,3 +1,5 @@
+import { SessionTabsSheet } from './adapters/SessionTabsSheet';
+import { SessionHeader } from './adapters/SessionHeader';
 import { ChatMessageText } from './adapters/ChatMessageText';
 import { ChatMessageMeta } from './adapters/ChatMessageMeta';
 import { HomeSurface } from './adapters/HomeSurface';
@@ -35,7 +37,7 @@ export const orcaComponents: AgentComponents = {
   HomeSettingsRow, HomeSettingsGroup, HomeSettingsNote, HomeSettingsScreen,
   Composer,
   ComposerSendButton,
-  ChatMessageText, ChatMessageMeta, ChatToolActivity,
+  SessionHeader, SessionTabsSheet, ChatMessageText, ChatMessageMeta, ChatToolActivity,
   ChatSurface, ChatImage, ChatImageViewer,
   MessageBubble,
   BrandMark,

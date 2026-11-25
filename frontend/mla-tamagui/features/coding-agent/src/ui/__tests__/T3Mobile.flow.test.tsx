@@ -19,6 +19,10 @@ function backend() {
   let messages: T3Snapshot['messages'] = [];
   const port: T3MobilePort = {
     restore: async () => pair,
+    sessionContext: async () => ({
+      workspace: 'Mobile checkout',
+      sessions: [thread, {id: 'thread-43', title: 'Fix the parser'}],
+    }),
     pair: async () => pair,
     shell: async () => ({
       projects: [{ id: 'project', title: 'Fixture repository' }],
@@ -102,6 +106,17 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(copies[0]);
     expect(await screen.findByRole('button', {name:'Copied'})).toBeTruthy();
     expect(copied).toEqual([progress]);
+  });
+
+  it('Given two chats in the workspace, when a reader picks its other tab, then that thread opens through the Orca T3 route', async () => {
+    await app.render('/coding-agent/thread-42', {
+      search: {presentation: 'orca', transport: 't3'},
+      overrides: {'coding-agent': {t3Mobile: backend()}},
+    });
+    expect(await screen.findByText('Mobile checkout')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', {name: '2 tabs'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Fix the parser'}));
+    await waitFor(() => expect(routerHarness().calls()).toContainEqual(['replace', '/coding-agent/thread-43?presentation=orca&transport=t3']));
   });
 
   it('Given a paired project, when opening a thread from its shell and sending, then the reply and cleared composer are visible', async () => {

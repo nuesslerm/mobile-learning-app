@@ -54,3 +54,26 @@ export interface ChatMessageMetaProps {
   accessibleTime?: string;
   onCopy?: () => Promise<boolean>;
 }
+
+export interface SessionHeaderProps {
+  workspace: string;
+  title: string;
+  connected: boolean;
+  tabCount: number;
+  topInset: number;
+  onBack: () => void;
+  onReconnect: () => void;
+  onShowTabs: () => void;
+}
+
+export interface SessionTabsSheetProps {
+  visible: boolean;
+  workspace: string;
+  sessions: readonly { id: string; title: string }[];
+  activeId: string;
+  bottomInset: number;
+  error?: string;
+  onClose: () => void;
+  onRetry: () => void;
+  onSelect: (id: string) => void;
+}

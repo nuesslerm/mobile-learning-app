@@ -58,6 +58,17 @@ export function createT3MobileApi(): T3MobilePort {
       await savePairing(pairing, key);
       return pairing;
     },
+    async sessionContext(pair, threadId, signal) {
+      const path = '/api/orchestration/threads/' + encodeURIComponent(threadId) + '/session-context';
+      const result = await json(endpoint(pair.endpoint), path, {
+        signal,
+        headers: { ...authorization(pair), 'x-t3-orchestration-protocol': '2' },
+      });
+      return z.object({
+        workspace: z.string().nullable(),
+        sessions: z.array(z.object({ id: z.string(), title: z.string() })),
+      }).parse(result);
+    },
     async shell(pair) {
       return shellSchema.parse(
         await json(endpoint(pair.endpoint), '/api/orchestration/shell', {

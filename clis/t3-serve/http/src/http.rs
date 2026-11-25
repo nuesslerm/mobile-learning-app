@@ -274,6 +274,7 @@ fn route_name(path: &str) -> &str {
             None => "/api/orchestration/threads/:threadId",
             Some((_, "history")) => "/api/orchestration/threads/:threadId/history",
             Some((_, "transcript")) => "/api/orchestration/threads/:threadId/transcript",
+            Some((_, "session-context")) => "/api/orchestration/threads/:threadId/session-context",
             Some((_, "bounded")) => "/api/orchestration/threads/:threadId/bounded",
             _ => "unknown",
         },
@@ -382,6 +383,7 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             let answer = match path[THREADS.len()..].split_once('/') {
                 Some((thread, "history")) => svc.thread_history_page(&env, &percent_decode(thread), &request.query),
                 Some((thread, "transcript")) => svc.thread_transcript(&env, &percent_decode(thread)),
+                Some((thread, "session-context")) => svc.session_context_http(&env, &percent_decode(thread)),
                 Some((thread, "bounded")) => svc.thread_bounded_snapshot(&env, &percent_decode(thread), request.query.iter().any(|(key, value)| key == "rcaChatLayout" && value == "1")),
                 _ => return respond(&mut stream, 404, &json!({"code": "not_found", "message": "No such route."})),
             };

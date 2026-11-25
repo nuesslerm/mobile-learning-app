@@ -38,9 +38,10 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 144] = [
+pub const USES: [Method; 145] = [
     STATUS,
     THREAD_CREATE,
+    agent_api_agent::THREAD_LIST,
     THREAD_SUBSCRIBE,
     THREAD_HISTORY,
     TURN_START,
@@ -515,6 +516,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
             (lifecycle::THREAD_SETTLE, lifecycle::SettleParams { thread: same(thread), state, until_ms: *until_ms, at_ms: *at_ms }.to_value())
         }
         Op::ThreadSearch { query, limit } => (lifecycle::THREAD_SEARCH, lifecycle::SearchParams { query: same(query), limit: Some(*limit) }.to_value()),
+        Op::ThreadList => (agent_api_agent::THREAD_LIST, agent_api_agent::ListParams::default().to_value()),
         Op::ThreadFamily { thread } => (lifecycle::THREAD_FAMILY, lifecycle::FamilyParams { thread: same(thread) }.to_value()),
         Op::ThreadForceStop { thread, turn } => (lifecycle::THREAD_FORCE_STOP, lifecycle::ForceStopParams { thread: same(thread), turn: turn.clone() }.to_value()),
         Op::ItemGet { thread, seq } => (lifecycle::ITEM_GET, lifecycle::ItemGetParams { thread: same(thread), seq: *seq }.to_value()),
