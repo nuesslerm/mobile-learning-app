@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "id": "clis-cdp",
+  "subject": "Engineering measurements",
+  "title": "clis/cdp: the DevTools client on a standard WebSocket and the shared HTTP client",
+  "question": "What did the clis/cdp: the DevTools client on a standard WebSocket and the shared HTTP client measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "clis/cdp: the DevTools client on a standard WebSocket and the shared HTTP client",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measure: `eval(\"1 + 1\")` round trip p50 (300 calls per run) · Before: 0.195 ms · After: 0.191 ms",
+  "variants": [
+    {
+      "id": "before",
+      "label": "Before"
+    },
+    {
+      "id": "after",
+      "label": "After"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "`eval(\"1 + 1\")` round trip p50 (300 calls per run)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "`eval` p95",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "Full screenshot p50 (20 per run)",
+      "unit": "ms",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.195,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.191,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.44,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.39,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 34.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 34.0,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "`eval(\"1 + 1\")` round trip p50 (300 calls per run)",
+          "0.195 ms",
+          "0.191 ms"
+        ],
+        [
+          "`eval` p95",
+          "0.44 ms",
+          "0.39 ms"
+        ],
+        [
+          "Full screenshot p50 (20 per run)",
+          "34.1 ms",
+          "34.0 ms"
+        ],
+        [
+          "Hand-written protocol code",
+          "WebSocket client, base64, `form_encode`, HTTP GET, `curl` spawn",
+          "none"
+        ],
+        [
+          "`curl` needed for the network proxy",
+          "yes",
+          "no"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `given_a_page_when_navigating_and_evaluating_then_the_script_sees_the_document` (real Chromium) failed once, with the page read as an empty string instead of `hello`, while the `wf` black-box suites were running on the same machine (2026-10-09, `cargo test --workspace`). Three isolated runs of `-p cdp --test chromium` and a full `cargo test --workspace --no-fail-fast` (16 suites, 148 passed, 0 failed) passed afterwards. Root cause: the test read `document.title` right after `Page.navigate`, which answers when the navigation starts, so until the new document commits the script still sees `about:blank`. The test now polls (up to 5 s) for the title; five runs of the file and the full workspace pass. The library was not at fault. A six-busy-loop stress could not reproduce the failure (0 of 20), so the fix is by the CDP contract, not by a red-to-green run."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "clis-cdp.md",
+      "path": "../../../audits/reports/clis-cdp.md"
+    }
+  ]
+}

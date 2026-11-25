@@ -1,0 +1,3409 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-11-25-tamil-harness-traces",
+  "date": "2026-11-25",
+  "subject": "Test harnesses",
+  "title": "Tamil driver costs and harness traces",
+  "question": "Where do the native, browser and flow harnesses spend time, and how does Maestro change driver cost?",
+  "revision": "7d0793bc95514c79e4c27669d65967b49c25d615",
+  "environment": "Apple Silicon Mac, tamil iPhone 17 simulator, iOS 27.0, Xcode 27.0. The controlled iOS timing pairs used the installed com.nuesslerm.mla-tamagui 1.0.0 (1) binary. The local case suites and the separate Buoy development-bundle recordings ran in Expo Go 58.0.7. The final paired web workload ran on a local Expo export with the same Chrome for Testing 147.0.7727.117 executable, Maestro 2.6.0 and matching ChromeDriver. wf launched Chrome with --use-mock-keychain, --password-store=basic and --enable-automation, flags also enabled by ChromeDriver. wf rendered its phone shell. Maestro used its standalone web viewport. The five standalone wf browser phase profiles used desktop Chrome 158. The three flow samples used Vitest.",
+  "workload": "Five paired native library → First steps → Practice → Back journeys from the original controlled iOS comparison. The browser comparison follows the same checkpoints. Independent operation traces cover five iOS and five framed browser runs. Three in-process flow samples run eight Tamil lesson tests with golden rendering. Integration suites exercise additional behaviors.",
+  "method": "The iOS pair data comes from the original Tamil iOS driver report; its RSS includes device-specific helpers, subtracts idle and samples app RSS independently. Browser pairs alternate driver order and launch fresh drivers. First and final PNG modification times bound startup and journey. Total includes shutdown. Host RSS sums sampled process trees including Chrome and the isolated wf daemon. Shared pages can be counted twice. Browser app RSS is inseparable from these renderer processes. Maestro web required integer-coordinate Back taps on the visible header icon. Both drivers requested recording; Maestro warned that the web recording produced no frames. The output workloads therefore differ. The wf collector stores OTLP span timestamps and parent IDs locally. Maestro command spans come from its recorded command timestamps, exported after process exit. Overlapping spans must not be added together. The headline subtracts the two group medians. The cards take the median of the within-pair differences. Driver internals and app attribution below are interpretations.",
+  "sampleSize": "Five original controlled iOS pairs, five iOS pairs after instrumentation, five matched Chrome pairs, three screenshots-only Chrome pairs, ten independent driver profiles and three flow runs. The Buoy SDK recorded three pairs on iOS and three in Chrome. Buoy Desktop measured three separate keyboard journeys. The Android table lists each hosted attempt and its outcome.",
+  "finding": "Median iOS wall time was 5.49 s for wf and 27.22 s for Maestro. Startup accounted for 15.23 s of the difference between medians. The browser journeys took 6.36 s and 19.13 s respectively. Across 3 completed hosted Android pairs, the medians were 5.93 s and 26.68 s.",
+  "variants": [
+    {
+      "id": "wf-ios",
+      "label": "wf ios"
+    },
+    {
+      "id": "wf-browser",
+      "label": "wf browser"
+    },
+    {
+      "id": "wf-android",
+      "label": "wf android"
+    },
+    {
+      "id": "maestro",
+      "label": "Maestro"
+    },
+    {
+      "id": "wf-flow",
+      "label": "wf flow"
+    },
+    {
+      "id": "buoy-desktop",
+      "label": "Buoy Desktop"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "ios-library",
+      "label": "iOS paired library journey"
+    },
+    {
+      "id": "web-library",
+      "label": "Web paired library journey"
+    },
+    {
+      "id": "traced-ios",
+      "label": "iOS operation profile"
+    },
+    {
+      "id": "traced-browser",
+      "label": "Framed browser operation profile"
+    },
+    {
+      "id": "flow",
+      "label": "Eight Tamil lesson flow tests"
+    },
+    {
+      "id": "android-initial",
+      "label": "Hosted Android before releasing the UI helper"
+    },
+    {
+      "id": "android-library",
+      "label": "Hosted Android with exclusive driver access"
+    },
+    {
+      "id": "ios-qualified",
+      "label": "Installed iOS build after instrumentation and input changes"
+    },
+    {
+      "id": "web-screens",
+      "label": "Web journey with three screenshots and video disabled"
+    },
+    {
+      "id": "buoy-web",
+      "label": "Browser app during instrumented library navigation"
+    },
+    {
+      "id": "buoy-keyboard",
+      "label": "Desktop Chromium, keyboard navigation from library to collection"
+    },
+    {
+      "id": "buoy-ios",
+      "label": "Buoy iOS development-build journey including driver startup and shutdown"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "startup",
+      "label": "Launch to library screenshot",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "journey",
+      "label": "Library to final screenshot",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "peak",
+      "label": "Incremental peak driver RSS",
+      "unit": "MiB",
+      "direction": "lower"
+    },
+    {
+      "id": "total",
+      "label": "Process elapsed",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "apppeak",
+      "label": "Peak simulator app RSS",
+      "unit": "MiB",
+      "direction": "lower"
+    },
+    {
+      "id": "host-rss",
+      "label": "Peak host process tree RSS",
+      "unit": "MiB",
+      "direction": "lower"
+    },
+    {
+      "id": "setup",
+      "label": "Harness setup",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "script",
+      "label": "Journey script",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "teardown",
+      "label": "Harness teardown",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "vitest",
+      "label": "Vitest",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "goldens",
+      "label": "Golden rendering",
+      "unit": "s",
+      "direction": "lower"
+    },
+    {
+      "id": "device-helper",
+      "label": "Peak on-device driver helper RSS",
+      "unit": "MiB",
+      "direction": "lower"
+    },
+    {
+      "id": "buoy-fps",
+      "label": "Buoy mean sampled frame rate",
+      "unit": "FPS",
+      "direction": "higher"
+    },
+    {
+      "id": "buoy-heap",
+      "label": "Buoy peak JavaScript heap (SDK units)",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "frame-gap",
+      "label": "Buoy p95 browser frame gap",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "main-thread",
+      "label": "Main thread busy",
+      "unit": "%",
+      "direction": "lower"
+    },
+    {
+      "id": "desktop-heap",
+      "label": "Chrome JavaScript heap",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "setup",
+      "sample": "1",
+      "value": 0.015989,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "script",
+      "sample": "1",
+      "value": 5.314338,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "teardown",
+      "sample": "1",
+      "value": 0.183521,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "total",
+      "sample": "1",
+      "value": 5.556593,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "setup",
+      "sample": "2",
+      "value": 0.018473,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "script",
+      "sample": "2",
+      "value": 5.59661,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "teardown",
+      "sample": "2",
+      "value": 0.188986,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "total",
+      "sample": "2",
+      "value": 5.850971,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "setup",
+      "sample": "3",
+      "value": 0.015017,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "script",
+      "sample": "3",
+      "value": 6.098966,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "teardown",
+      "sample": "3",
+      "value": 0.064306,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "total",
+      "sample": "3",
+      "value": 6.215107,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "setup",
+      "sample": "4",
+      "value": 0.017309,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "script",
+      "sample": "4",
+      "value": 5.450839,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "teardown",
+      "sample": "4",
+      "value": 0.179028,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "total",
+      "sample": "4",
+      "value": 5.693712,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "setup",
+      "sample": "5",
+      "value": 0.036533,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "script",
+      "sample": "5",
+      "value": 7.850849,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "teardown",
+      "sample": "5",
+      "value": 0.068606,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "traced-ios",
+      "metric": "total",
+      "sample": "5",
+      "value": 8.023113,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "setup",
+      "sample": "1",
+      "value": 0.015353,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "script",
+      "sample": "1",
+      "value": 4.35256,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "teardown",
+      "sample": "1",
+      "value": 2.019556,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "total",
+      "sample": "1",
+      "value": 6.426855,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "setup",
+      "sample": "2",
+      "value": 0.023442,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "script",
+      "sample": "2",
+      "value": 4.020793,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "teardown",
+      "sample": "2",
+      "value": 1.996722,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "total",
+      "sample": "2",
+      "value": 6.080958,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "setup",
+      "sample": "3",
+      "value": 0.021379,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "script",
+      "sample": "3",
+      "value": 4.071613,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "teardown",
+      "sample": "3",
+      "value": 1.928362,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "total",
+      "sample": "3",
+      "value": 6.076152,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "setup",
+      "sample": "4",
+      "value": 0.017258,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "script",
+      "sample": "4",
+      "value": 3.805553,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "teardown",
+      "sample": "4",
+      "value": 2.008487,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "total",
+      "sample": "4",
+      "value": 5.868512,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "setup",
+      "sample": "5",
+      "value": 0.016576,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "script",
+      "sample": "5",
+      "value": 4.826306,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "teardown",
+      "sample": "5",
+      "value": 1.351087,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "traced-browser",
+      "metric": "total",
+      "sample": "5",
+      "value": 6.239213,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "vitest",
+      "sample": "1",
+      "value": 14.308571,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "goldens",
+      "sample": "1",
+      "value": 6.868334,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "total",
+      "sample": "1",
+      "value": 21.21396,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "vitest",
+      "sample": "2",
+      "value": 15.875777,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "goldens",
+      "sample": "2",
+      "value": 6.122709,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "total",
+      "sample": "2",
+      "value": 22.044439,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "vitest",
+      "sample": "3",
+      "value": 12.13811,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "goldens",
+      "sample": "3",
+      "value": 6.247796,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-flow",
+      "scenario": "flow",
+      "metric": "total",
+      "sample": "3",
+      "value": 18.420863,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "1",
+      "value": 1.750175952911377,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "1",
+      "value": 3.2134318351745605,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "1",
+      "value": 5.404133666888811,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "1",
+      "value": 132.953125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "1",
+      "value": 451.265625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "1",
+      "value": 16.976134061813354,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "1",
+      "value": 6.967471361160278,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "1",
+      "value": 27.219461792032234,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "1",
+      "value": 951.84375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "1",
+      "value": 438.140625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "2",
+      "value": 20.714351654052734,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "2",
+      "value": 7.150051116943359,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "2",
+      "value": 35.97469916695263,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "2",
+      "value": 880.875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "2",
+      "value": 436.375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "2",
+      "value": 7.659149169921875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "2",
+      "value": 3.7778663635253906,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "2",
+      "value": 11.677966165938415,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "2",
+      "value": 143.515625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "2",
+      "value": 427.59375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "3",
+      "value": 1.7942123413085938,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "3",
+      "value": 3.5640735626220703,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "3",
+      "value": 5.547613541013561,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "3",
+      "value": 133.015625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "3",
+      "value": 449.96875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "3",
+      "value": 18.367720127105713,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "3",
+      "value": 7.428555965423584,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "3",
+      "value": 29.73625566693954,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "3",
+      "value": 884.765625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "3",
+      "value": 438.140625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "4",
+      "value": 15.390654802322388,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "4",
+      "value": 6.610578536987305,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "4",
+      "value": 24.503455374971963,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "4",
+      "value": 1021.21875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "4",
+      "value": 457.171875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "4",
+      "value": 1.7354307174682617,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "4",
+      "value": 3.219632387161255,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "4",
+      "value": 5.169262833078392,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "4",
+      "value": 130.5625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "4",
+      "value": 452.625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "5",
+      "value": 1.710519552230835,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "5",
+      "value": 3.3249170780181885,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "5",
+      "value": 5.485240999958478,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "5",
+      "value": 132.78125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "5",
+      "value": 452.0625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "startup",
+      "sample": "5",
+      "value": 14.940695762634277,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "journey",
+      "sample": "5",
+      "value": 6.452324628829956,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "total",
+      "sample": "5",
+      "value": 24.01466241700109,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "peak",
+      "sample": "5",
+      "value": 1017.125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-library",
+      "metric": "apppeak",
+      "sample": "5",
+      "value": 455.546875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "1",
+      "value": 7.039967750082724,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "1",
+      "value": 2.674125104,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "1",
+      "value": 2.745311223,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 1088.65625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "1",
+      "value": 19.665045417030342,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "1",
+      "value": 9.345686288,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "1",
+      "value": 9.465450236,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 1479.03125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "2",
+      "value": 25.788541916990653,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "2",
+      "value": 8.798411834,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "2",
+      "value": 10.755537368,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 1426.265625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "2",
+      "value": 7.717975583975203,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "2",
+      "value": 3.445387999,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "2",
+      "value": 2.642884342,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 984.171875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "3",
+      "value": 6.3562197090359405,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "3",
+      "value": 1.730639579,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "3",
+      "value": 2.602298867,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 1061.671875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "3",
+      "value": 19.12516279204283,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "3",
+      "value": 8.895787485,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "3",
+      "value": 9.257920296,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 1488.578125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "4",
+      "value": 17.008943875087425,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "4",
+      "value": 6.895133484,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "4",
+      "value": 9.248306086,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "4",
+      "value": 1496.140625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "4",
+      "value": 6.291536834090948,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "4",
+      "value": 1.536487915,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "4",
+      "value": 2.607364723,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "4",
+      "value": 1081.484375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "5",
+      "value": 6.020158666069619,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "5",
+      "value": 1.439180224,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "5",
+      "value": 2.47053902,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "5",
+      "value": 1081.90625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "total",
+      "sample": "5",
+      "value": 17.103766415966675,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "startup",
+      "sample": "5",
+      "value": 6.922644496,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "journey",
+      "sample": "5",
+      "value": 9.364914238,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-library",
+      "metric": "host-rss",
+      "sample": "5",
+      "value": 1609.1875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "total",
+      "sample": "1",
+      "value": 5.888224632999936,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "startup",
+      "sample": "1",
+      "value": 0.431244311,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "journey",
+      "sample": "1",
+      "value": 5.063042172,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 14.62890625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-initial",
+      "metric": "total",
+      "sample": "1",
+      "value": 13.404852774000005,
+      "outcome": "failed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-initial",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 266.015625,
+      "outcome": "failed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-initial",
+      "metric": "total",
+      "sample": "2",
+      "value": 20.886692174000018,
+      "outcome": "failed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-initial",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 264.12890625,
+      "outcome": "failed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "total",
+      "sample": "2",
+      "value": 6.233262577999994,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "startup",
+      "sample": "2",
+      "value": 0.570258063,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "journey",
+      "sample": "2",
+      "value": 5.133020805,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-initial",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 14.60546875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "device-helper",
+      "sample": "1",
+      "value": 151.49609375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "total",
+      "sample": "1",
+      "value": 5.925113570000008,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "startup",
+      "sample": "1",
+      "value": 0.42100562,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "journey",
+      "sample": "1",
+      "value": 4.918052435,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 14.61328125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "apppeak",
+      "sample": "1",
+      "value": 355.62109375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "device-helper",
+      "sample": "1",
+      "value": 184.8203125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "total",
+      "sample": "1",
+      "value": 26.676283837000028,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "startup",
+      "sample": "1",
+      "value": 7.303874841,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "journey",
+      "sample": "1",
+      "value": 12.194130011,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 316.28515625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "apppeak",
+      "sample": "1",
+      "value": 367.36328125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "device-helper",
+      "sample": "2",
+      "value": 182.11328125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "total",
+      "sample": "2",
+      "value": 30.206897300000037,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "startup",
+      "sample": "2",
+      "value": 8.431276869,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "journey",
+      "sample": "2",
+      "value": 14.174999689,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 276.19921875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "apppeak",
+      "sample": "2",
+      "value": 356.0546875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "device-helper",
+      "sample": "2",
+      "value": 150.51953125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "total",
+      "sample": "2",
+      "value": 6.238778949999983,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "startup",
+      "sample": "2",
+      "value": 0.393894549,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "journey",
+      "sample": "2",
+      "value": 5.336999665,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 14.57421875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "apppeak",
+      "sample": "2",
+      "value": 378.23046875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "device-helper",
+      "sample": "3",
+      "value": 151.625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "total",
+      "sample": "3",
+      "value": 5.929552832000013,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "startup",
+      "sample": "3",
+      "value": 0.444185471,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "journey",
+      "sample": "3",
+      "value": 4.834047086,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 14.7265625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-android",
+      "scenario": "android-library",
+      "metric": "apppeak",
+      "sample": "3",
+      "value": 356.5546875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "device-helper",
+      "sample": "3",
+      "value": 185.04296875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "total",
+      "sample": "3",
+      "value": 26.568493087000093,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "startup",
+      "sample": "3",
+      "value": 6.877502677,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "journey",
+      "sample": "3",
+      "value": 12.196115538,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 275.1796875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "android-library",
+      "metric": "apppeak",
+      "sample": "3",
+      "value": 370.015625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "1",
+      "value": 5.228300167014822,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "1",
+      "value": 1.793206527,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "1",
+      "value": 3.11476802,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 130.546875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "1",
+      "value": 23.660664584022015,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "1",
+      "value": 15.385157202,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "1",
+      "value": 6.462916389,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 629.78125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "2",
+      "value": 23.402767000021413,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "2",
+      "value": 15.153925535,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "2",
+      "value": 6.441407792,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 631.578125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "2",
+      "value": 5.1091935420408845,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "2",
+      "value": 1.789933713,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "2",
+      "value": 3.148694216,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 134.796875,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "3",
+      "value": 5.206781207933091,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "3",
+      "value": 1.700553567,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "3",
+      "value": 3.203666089,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 135.125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "3",
+      "value": 23.295147125027142,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "3",
+      "value": 15.340704765,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "3",
+      "value": 6.377879838,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 620.734375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "4",
+      "value": 23.728412332944572,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "4",
+      "value": 15.542653867,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "4",
+      "value": 6.474785485,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "4",
+      "value": 663.75,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "4",
+      "value": 5.162225541076623,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "4",
+      "value": 1.73118127,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "4",
+      "value": 3.193972546,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "4",
+      "value": 136.34375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "5",
+      "value": 5.384498165920377,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "5",
+      "value": 1.73612539,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "5",
+      "value": 3.296710094,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "5",
+      "value": 134.28125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "total",
+      "sample": "5",
+      "value": 23.143250416964293,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "startup",
+      "sample": "5",
+      "value": 14.92506931,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "journey",
+      "sample": "5",
+      "value": 6.436276769,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "ios-qualified",
+      "metric": "host-rss",
+      "sample": "5",
+      "value": 645.8125,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "total",
+      "sample": "1",
+      "value": 4.298359459033236,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "startup",
+      "sample": "1",
+      "value": 1.458817883,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "journey",
+      "sample": "1",
+      "value": 2.559227422,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 1058.375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "total",
+      "sample": "1",
+      "value": 16.833037958014756,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "startup",
+      "sample": "1",
+      "value": 6.802707235,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "journey",
+      "sample": "1",
+      "value": 9.235771362,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "host-rss",
+      "sample": "1",
+      "value": 1487.265625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "total",
+      "sample": "2",
+      "value": 17.57752720802091,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "startup",
+      "sample": "2",
+      "value": 7.398382917,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "journey",
+      "sample": "2",
+      "value": 9.315092846,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 1588.890625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "total",
+      "sample": "2",
+      "value": 4.3076199169736356,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "startup",
+      "sample": "2",
+      "value": 1.534019837,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "journey",
+      "sample": "2",
+      "value": 2.501922579,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "host-rss",
+      "sample": "2",
+      "value": 1057.984375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "total",
+      "sample": "3",
+      "value": 4.285085540963337,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "startup",
+      "sample": "3",
+      "value": 1.464898356,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "journey",
+      "sample": "3",
+      "value": 2.558151625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "web-screens",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 1066.640625,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "total",
+      "sample": "3",
+      "value": 17.488330916967243,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "startup",
+      "sample": "3",
+      "value": 7.254162326,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "journey",
+      "sample": "3",
+      "value": 9.319504449,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "web-screens",
+      "metric": "host-rss",
+      "sample": "3",
+      "value": 1481.34375,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "buoy-fps",
+      "sample": "1",
+      "value": 37.5,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "buoy-heap",
+      "sample": "1",
+      "value": 42.6,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "buoy-fps",
+      "sample": "1",
+      "value": 53.51724137931034,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "buoy-heap",
+      "sample": "1",
+      "value": 52.1,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "buoy-fps",
+      "sample": "2",
+      "value": 53.793103448275865,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "buoy-heap",
+      "sample": "2",
+      "value": 51.9,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "buoy-fps",
+      "sample": "2",
+      "value": 37.5,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "buoy-heap",
+      "sample": "2",
+      "value": 42.6,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "buoy-fps",
+      "sample": "3",
+      "value": 37.5,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "buoy-heap",
+      "sample": "3",
+      "value": 42.6,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "buoy-fps",
+      "sample": "3",
+      "value": 53.724137931034484,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "buoy-heap",
+      "sample": "3",
+      "value": 51.9,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "frame-gap",
+      "sample": "1",
+      "value": 16.8,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "frame-gap",
+      "sample": "1",
+      "value": 16.7,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "frame-gap",
+      "sample": "2",
+      "value": 16.8,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "frame-gap",
+      "sample": "2",
+      "value": 16.8,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-browser",
+      "scenario": "buoy-web",
+      "metric": "frame-gap",
+      "sample": "3",
+      "value": 16.8,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-web",
+      "metric": "frame-gap",
+      "sample": "3",
+      "value": 16.7,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "frame-gap",
+      "sample": "0",
+      "value": 9.9,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "main-thread",
+      "sample": "0",
+      "value": 2.9,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "desktop-heap",
+      "sample": "0",
+      "value": 23.4,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "frame-gap",
+      "sample": "1",
+      "value": 10,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "main-thread",
+      "sample": "1",
+      "value": 2.9,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "desktop-heap",
+      "sample": "1",
+      "value": 23.4,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "frame-gap",
+      "sample": "2",
+      "value": 10,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "main-thread",
+      "sample": "2",
+      "value": 2.9,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "buoy-desktop",
+      "scenario": "buoy-keyboard",
+      "metric": "desktop-heap",
+      "sample": "2",
+      "value": 23.3,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-ios",
+      "metric": "buoy-fps",
+      "sample": "1",
+      "value": 59.21568627450981,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-ios",
+      "metric": "buoy-heap",
+      "sample": "1",
+      "value": 75.4,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "buoy-ios",
+      "metric": "buoy-fps",
+      "sample": "1",
+      "value": 52.61538461538461,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "buoy-ios",
+      "metric": "buoy-heap",
+      "sample": "1",
+      "value": 62.6,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-ios",
+      "metric": "buoy-fps",
+      "sample": "2",
+      "value": 59.30612244897959,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-ios",
+      "metric": "buoy-heap",
+      "sample": "2",
+      "value": 86.2,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "buoy-ios",
+      "metric": "buoy-fps",
+      "sample": "2",
+      "value": 57.77777777777778,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "buoy-ios",
+      "metric": "buoy-heap",
+      "sample": "2",
+      "value": 87.9,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-ios",
+      "metric": "buoy-fps",
+      "sample": "3",
+      "value": 59.27835051546392,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "maestro",
+      "scenario": "buoy-ios",
+      "metric": "buoy-heap",
+      "sample": "3",
+      "value": 90.7,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "buoy-ios",
+      "metric": "buoy-fps",
+      "sample": "3",
+      "value": 57.925925925925924,
+      "outcome": "observed",
+      "statistic": "raw"
+    },
+    {
+      "variant": "wf-ios",
+      "scenario": "buoy-ios",
+      "metric": "buoy-heap",
+      "sample": "3",
+      "value": 87.8,
+      "outcome": "observed",
+      "statistic": "raw"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Workload",
+        "Measured difference",
+        "Likely explanation"
+      ],
+      "rows": [
+        [
+          "iOS startup",
+          "15.23 s longer with Maestro",
+          "Maestro starts a JVM and brings up an XCTest runner. wf uses a native CLI and reuses a simulator companion. Startup includes the readiness assertion and first screenshot."
+        ],
+        [
+          "iOS navigation",
+          "3.64 s longer between screenshots",
+          "Maestro waits for screen stabilization during interactions. Its command timings include those waits. The measurements do not isolate animation waiting from input and app work."
+        ],
+        [
+          "iOS memory",
+          "818.9 MiB more incremental peak driver RSS with Maestro",
+          "The gap is primarily outside the app. The difference in median peak app RSS was -13.1 MiB. Separate JVM, runner and bridge lifetimes plausibly explain the host-side gap."
+        ],
+        [
+          "Browser teardown",
+          "2.00 s median",
+          "The framed driver finalizes video and releases its browser session. Maestro web reported zero video frames. These measurements include that difference."
+        ],
+        [
+          "Flow tests",
+          "14.31 s Vitest and 6.25 s goldens",
+          "The flow runner starts a test worker, executes eight component tests and renders golden artifacts. This workload has no simulator journey."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Android revision",
+        "Hosted pair",
+        "Driver",
+        "Result"
+      ],
+      "rows": [
+        [
+          "2f6a701d",
+          "1",
+          "wf",
+          "Passed"
+        ],
+        [
+          "2f6a701d",
+          "1",
+          "maestro",
+          "journey exited 1"
+        ],
+        [
+          "2f6a701d",
+          "2",
+          "maestro",
+          "journey exited 1"
+        ],
+        [
+          "2f6a701d",
+          "2",
+          "wf",
+          "Passed"
+        ],
+        [
+          "7d0793bc",
+          "1",
+          "wf",
+          "Passed"
+        ],
+        [
+          "7d0793bc",
+          "1",
+          "maestro",
+          "Passed"
+        ],
+        [
+          "7d0793bc",
+          "2",
+          "maestro",
+          "Passed"
+        ],
+        [
+          "7d0793bc",
+          "2",
+          "wf",
+          "Passed"
+        ],
+        [
+          "7d0793bc",
+          "3",
+          "wf",
+          "Passed"
+        ],
+        [
+          "7d0793bc",
+          "3",
+          "maestro",
+          "Passed"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "After instrumentation",
+        "Result"
+      ],
+      "rows": [
+        [
+          "Five fresh iOS pairs",
+          "5 completed pairs on the installed app. Group medians were 5.21 s with wf and 23.40 s with Maestro. Here each native preflight reopened the Tamil library. The original series also terminated the app and settled it before timing; these cohorts cannot isolate tracing overhead."
+        ],
+        [
+          "OTLP and RSS",
+          "Both drivers exported spans, including Maestro commands imported from its own timestamps. This series used peak process-tree RSS. The original iOS series separately includes simulator helpers and measures the app."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Browser control",
+        "Observed difference",
+        "Interpretation"
+      ],
+      "rows": [
+        [
+          "Three screenshots, recording disabled",
+          "4.30 s wf vs 17.49 s Maestro across three pairs.",
+          "The gap persisted with equal artifacts. Maestro took 5.79 s longer to the first screenshot and 6.76 s longer between screenshots. Its JVM and Selenium session start, and its per-command readiness waits, are plausible contributors. Both drivers used the same Chrome executable."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Matched Chrome trace",
+        "Median duration",
+        "Measurement boundary"
+      ],
+      "rows": [
+        [
+          "Maestro element tap",
+          "2.26 s",
+          "Ten commands across five journeys. Recorded duration includes waiting around the tap."
+        ],
+        [
+          "Maestro coordinate tap",
+          "1.76 s",
+          "Ten Back taps. Command spans include driver-side synchronization."
+        ],
+        [
+          "Maestro screenshot",
+          "0.020 s",
+          "Fifteen commands. Screenshot capture accounts for little of the total difference."
+        ],
+        [
+          "wf teardown with recording",
+          "1.88 s",
+          "Includes finalizing the video and releasing the browser session."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Browser app measurement",
+        "Interpretation"
+      ],
+      "rows": [
+        [
+          "Frame cadence",
+          "Median p95 frame gaps were 16.8 ms with wf and 16.7 ms with Maestro. The display refresh interval was about 16.7 ms."
+        ],
+        [
+          "Observation time",
+          "Buoy collected 8–8 samples during wf navigation and 29–29 with Maestro. The startup sample weighs more heavily in the shorter runs."
+        ],
+        [
+          "Heap versus driver memory",
+          "Buoy measured JavaScript heap peaks inside the app document. The separate host RSS samples count processes outside that document, including the driver and browser helpers."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Buoy collection",
+        "Result"
+      ],
+      "rows": [
+        [
+          "Web perf-monitor 7.0.103",
+          "6 recordings. A separate copy of the same exported page loaded the official /web recorder. Capture started on the First steps click and stopped after the lesson was visible and the library returned. The polling interval was 50 ms. Samples include initial acquisition and different exposure times."
+        ],
+        [
+          "iOS Expo Go",
+          "The interactive Bench panel terminated Expo Go with SIGABRT. The official in-app recorder succeeded through its programmatic API: 3 wf and 3 Maestro recordings on the same local Tamil development bundle. Capture covered the entire driver process, including idle time during startup and teardown."
+        ],
+        [
+          "Desktop MCP 7.0.107",
+          "The official CLI identified the free project account. The Desktop broker initially refused the benchmark and later reported the account admitted. The six web journey recordings came from the in-app recorder."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Buoy Desktop MCP",
+        "Outcome"
+      ],
+      "rows": [
+        [
+          "Three keyboard navigation runs",
+          "Headless Chromium 151, 390 × 844, three seconds per fresh context. Two Tab presses and Enter opened First steps. Buoy verified the Practice control afterwards. Median main-thread utilization was 2.9%."
+        ],
+        [
+          "Click pilot",
+          "Three pilot runs failed the runner’s requirement that its click target remain on screen after navigation. The successful keyboard run checks the destination. This shorter workload has no driver timing comparison."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Buoy iOS measurement",
+        "Scope"
+      ],
+      "rows": [
+        [
+          "Expo Go fallback",
+          "The SDK reported JavaScript heap, JavaScript frame rate and an approximation of UI frame rate. Its native CPU sensor was unavailable. The recorded CPU zero is a sentinel."
+        ],
+        [
+          "Interpretation",
+          "Each driver had a different observation window. These development-bundle samples describe the app as seen by each run; they cannot isolate an effect on application memory or frame rate. Controlled driver RSS was measured separately on the pinned build."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Initial Android",
+        "Observed result"
+      ],
+      "rows": [
+        [
+          "Completed pairs",
+          "No pair completed with both drivers. A difference in elapsed time or memory cannot be estimated from these attempts."
+        ],
+        [
+          "Driver diagnostic",
+          "io.grpc.StatusRuntimeException: UNAVAILABLE; Maestro Android driver did not start up in time  ---  emulator [ emulator-5554 ] & port  [ dadb.open( tcp:43319 ) ]"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Android after helper release",
+        "Matched observations"
+      ],
+      "rows": [
+        [
+          "Total elapsed",
+          "3 completed pairs. wf 5.93 s and Maestro 26.68 s."
+        ],
+        [
+          "Driver startup",
+          "wf reached the first screenshot in 0.42 s and Maestro in 7.30 s. Starting the JVM and Android instrumentation service plausibly accounts for some of the additional time."
+        ],
+        [
+          "Interaction",
+          "Between the first and final screenshots the medians were 4.92 s and 12.20 s. The Maestro tap spans include its stabilization waits. The end of the process also includes pulling and finalizing the video."
+        ],
+        [
+          "Resource scope",
+          "Host RSS includes the driver process tree. Android app RSS is sampled separately on-device. The shared emulator and persistent ADB server are outside the host driver RSS."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reproduce a series",
+        "Entry point"
+      ],
+      "rows": [
+        [
+          "Installed iOS app",
+          "wf --performance bench drivers --platform ios --device <simulator-udid> --app-id com.nuesslerm.mla-tamagui --url mla-tamagui:///tamil --pairs 5 --out <new-directory>"
+        ],
+        [
+          "Local web export",
+          "wf --performance bench drivers --platform browser --url <export-origin>/mla-tamagui/tamil/ --pairs 5 --out <new-directory>. Point both drivers at the same Chromium version, including the matching ChromeDriver."
+        ],
+        [
+          "Hosted Android",
+          "The CI Android job runs the paired comparison on its already-prepared emulator after the native suites. Native-Samples: 3 requests three independent hosted samples."
+        ],
+        [
+          "Buoy",
+          "The two observer source files record the SDK sample windows. buoy-desktop-web.json includes the separate keyboard workload, options and raw Desktop runs."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Verification run",
+        "Outcome",
+        "Evidence or failure"
+      ],
+      "rows": [
+        [
+          "Orca and T3 traced file, session and thread tests",
+          "4 integration tests passed",
+          "30 observations per budget. All 14 p95 values were within the declared limits."
+        ],
+        [
+          "RCA protocol catalog",
+          "1,657 endpoints sampled",
+          "Five rounds produced 8,285 observations. Seven external endpoints had no local probe. This database has no earlier comparable run."
+        ],
+        [
+          "RCA service DSL replay",
+          "Integration passed",
+          "All cases in the service cassette replayed cleanly."
+        ],
+        [
+          "Initial iOS tamil-native",
+          "14/15 passed",
+          "Failed: library"
+        ],
+        [
+          "Initial iOS leetcode-native",
+          "14/15 passed",
+          "Failed: custom-input"
+        ],
+        [
+          "Intermediate iOS tamil-native",
+          "14/15 passed",
+          "Failed: library"
+        ],
+        [
+          "Intermediate iOS leetcode-native",
+          "14/15 passed",
+          "Failed: neetcode"
+        ],
+        [
+          "Rebuilt driver iOS tamil-native",
+          "14/15 passed",
+          "Failed: library"
+        ],
+        [
+          "Rebuilt driver iOS leetcode-native",
+          "14/15 passed",
+          "Failed: neetcode"
+        ],
+        [
+          "Qualified input iOS tamil-native",
+          "15/15 passed",
+          "All case assertions passed."
+        ],
+        [
+          "Qualified input iOS leetcode-native",
+          "15/15 passed",
+          "All case assertions passed."
+        ],
+        [
+          "Orca full integration",
+          "35 passed, 2 failed, 3 ignored",
+          "browser::the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_in_the_executors_chromium, replay_features::orca_map_settings::the_answers_the_real_host_recorded_for_these_rows_replay_through_orca_serve_and_every_difference_is_a_listed_adapter_bug"
+        ],
+        [
+          "T3 full integration",
+          "40 passed, 5 failed, 6 ignored",
+          "chain::a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_longer_lists_it, chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor, replay_features::t3_core_core::the_answers_the_real_server_recorded_for_these_rows_replay_through_t3_serve_and_every_difference_is_a_listed_adapter_bug, terminal_pty::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell, terminal_pty::a_terminal_is_attached_typed_into_resized_observed_cleared_listed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell"
+        ],
+        [
+          "T3 failure investigation",
+          "Five failed cases",
+          "Two terminal cases returned TerminalCwdStatError, one chain case returned workspace_root_not_found, one project deletion case missed its expected state event and the replay found two unexpected process resource history differences."
+        ],
+        [
+          "Orca failure investigation",
+          "Chromium and cassette",
+          "The initial browser test could not discover Chromium. With an explicit Chromium cache, browser.tabCreate returned connection lost. The Darwin replay differed on orca-host.platform. The Linux replay also reported unexpected cassette differences."
+        ],
+        [
+          "Linux harness flow suite",
+          "39 passed, 5 failed on first run",
+          "Two focused retests passed after fixing a stale Lua JSON contract assertion and installing Java. Three Android editor stub tests hit the 180 s limit."
+        ],
+        [
+          "Focused iOS library",
+          "Passed",
+          "15.70 s with synchronized input."
+        ],
+        [
+          "Focused iOS neetcode",
+          "Passed",
+          "13.18 s with synchronized input."
+        ],
+        [
+          "Focused iOS custom-input",
+          "Passed",
+          "15.72 s with synchronized input."
+        ],
+        [
+          "2f6a701d test-runs-android-e2e-1-sample-1",
+          "29/30 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "2f6a701d test-runs-android-e2e-1-sample-2",
+          "29/30 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "2f6a701d test-runs-android-e2e-1-sample-3",
+          "1/30 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "2f6a701d test-runs-browser-e2e-1-sample-1",
+          "6/10 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "2f6a701d test-runs-browser-e2e-2-sample-1",
+          "9/14 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "2f6a701d test-runs-ios-e2e-sample-1",
+          "6/30 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "7d0793bc test-runs-android-e2e-1-sample-1",
+          "29/30 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "7d0793bc test-runs-android-e2e-1-sample-2",
+          "30/30 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "7d0793bc test-runs-android-e2e-1-sample-3",
+          "29/30 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "7d0793bc test-runs-browser-e2e-1-sample-1",
+          "6/10 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "7d0793bc test-runs-browser-e2e-2-sample-1",
+          "9/14 passed",
+          "See hosted-suites.json for each recorded unit and verdict."
+        ],
+        [
+          "2f6a701d Android pair 3",
+          "No completed measurement",
+          "The artifact contains only the preparation log. Neither driver produced a timed observation."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "android-pairs.json",
+      "path": "evidence/android-pairs.json"
+    },
+    {
+      "label": "android-process-rss.csv.gz",
+      "path": "evidence/android-process-rss.csv.gz"
+    },
+    {
+      "label": "android-qualified-pairs.json",
+      "path": "evidence/android-qualified-pairs.json"
+    },
+    {
+      "label": "buoy-desktop-web.json",
+      "path": "evidence/buoy-desktop-web.json"
+    },
+    {
+      "label": "buoy-ios-samples.json",
+      "path": "evidence/buoy-ios-samples.json"
+    },
+    {
+      "label": "buoy-native-observer.js",
+      "path": "evidence/buoy-native-observer.js"
+    },
+    {
+      "label": "buoy-observer.js",
+      "path": "evidence/buoy-observer.js"
+    },
+    {
+      "label": "buoy-web-samples.json",
+      "path": "evidence/buoy-web-samples.json"
+    },
+    {
+      "label": "final-leetcode-native.json",
+      "path": "evidence/final-leetcode-native.json"
+    },
+    {
+      "label": "final-tamil-native.json",
+      "path": "evidence/final-tamil-native.json"
+    },
+    {
+      "label": "hosted-suites.json",
+      "path": "evidence/hosted-suites.json"
+    },
+    {
+      "label": "hosts-tests-results.json",
+      "path": "evidence/hosts-tests-results.json"
+    },
+    {
+      "label": "ios-after-instrumentation.json",
+      "path": "evidence/ios-after-instrumentation.json"
+    },
+    {
+      "label": "ios-maestro-commands.json",
+      "path": "evidence/ios-maestro-commands.json"
+    },
+    {
+      "label": "ios-pairs.json",
+      "path": "evidence/ios-pairs.json"
+    },
+    {
+      "label": "leetcode-native.json",
+      "path": "evidence/leetcode-native.json"
+    },
+    {
+      "label": "operation-timings.csv.gz",
+      "path": "evidence/operation-timings.csv.gz"
+    },
+    {
+      "label": "otel-spans.csv.gz",
+      "path": "evidence/otel-spans.csv.gz"
+    },
+    {
+      "label": "provenance.json",
+      "path": "evidence/provenance.json"
+    },
+    {
+      "label": "qualified-leetcode-native.json",
+      "path": "evidence/qualified-leetcode-native.json"
+    },
+    {
+      "label": "qualified-tamil-native.json",
+      "path": "evidence/qualified-tamil-native.json"
+    },
+    {
+      "label": "rca-budgets.json",
+      "path": "evidence/rca-budgets.json"
+    },
+    {
+      "label": "rca-catalog.json",
+      "path": "evidence/rca-catalog.json"
+    },
+    {
+      "label": "rebuilt-leetcode-native.json",
+      "path": "evidence/rebuilt-leetcode-native.json"
+    },
+    {
+      "label": "rebuilt-tamil-native.json",
+      "path": "evidence/rebuilt-tamil-native.json"
+    },
+    {
+      "label": "t3-tests-results.json",
+      "path": "evidence/t3-tests-results.json"
+    },
+    {
+      "label": "tamil-native.json",
+      "path": "evidence/tamil-native.json"
+    },
+    {
+      "label": "trace-coverage.json",
+      "path": "evidence/trace-coverage.json"
+    },
+    {
+      "label": "web-pairs.json",
+      "path": "evidence/web-pairs.json"
+    },
+    {
+      "label": "web-pilots.json",
+      "path": "evidence/web-pilots.json"
+    },
+    {
+      "label": "web-process-rss.csv.gz",
+      "path": "evidence/web-process-rss.csv.gz"
+    },
+    {
+      "label": "web-screenshots-only.json",
+      "path": "evidence/web-screenshots-only.json"
+    },
+    {
+      "label": "web-version-pilot.json",
+      "path": "evidence/web-version-pilot.json"
+    },
+    {
+      "label": "Original five iOS pairs and process samples",
+      "path": "../2026-11-25-tamil-ios-drivers/report.json"
+    }
+  ]
+}

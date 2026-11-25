@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-140-2026-10-13-viewer-viewport-stats-probe-secrets-cache-memory-caps",
+  "subject": "Engineering decisions",
+  "title": "viewer viewport, `/stats` probe, secrets cache, memory caps",
+  "question": "What was measured for viewer viewport, `/stats` probe, secrets cache, memory caps?",
+  "date": "2026-10-13",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-13: viewer viewport, `/stats` probe, secrets cache, memory caps",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Probe: `vm-ops-api` `GET /stats` (host meminfo/load + per-container working set and CPU%), surfaced as `wf vm ops stats`. First reading under load: 11.9 GB host, no swap, 973 MB available, load 17-18; `agent-shell-dind` 1.9 GB at 136-152% CPU, `gh-runner` 0.96 GB, `metro-runner` 0.94 GB idle, `android-emulator` 0.40 GB idle.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Probe: `vm-ops-api` `GET /stats` (host meminfo/load + per-container working set and CPU%), surfaced as `wf vm ops stats`. First reading under load: 11.9 GB host, no swap, 973 MB available, load 17-18; `agent-shell-dind` 1.9 GB at 136-152% CPU, `gh-runner` 0.96 GB, `metro-runner` 0.94 GB idle, `android-emulator` 0.40 GB idle."
+        ],
+        [
+          "- Memory-for-CPU trade: rejected. Available RAM is about 1 GB and there is no swap, so there is nothing to spend on caches or tmpfs build dirs; the bottleneck is 2 OCPUs shared by builds."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2305–2312",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

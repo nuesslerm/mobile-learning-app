@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-177-2026-10-27-every-ask-runs-on-the-rca-service-the-cooldowns-are-on",
+  "subject": "Engineering decisions",
+  "title": "every ask runs on the rca service; the cooldowns are one shared table",
+  "question": "What was measured for every ask runs on the rca service; the cooldowns are one shared table?",
+  "date": "2026-10-27",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-27: every ask runs on the rca service; the cooldowns are one shared table",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Why: the gh runner is a different container from agent-shell and had to install opencode and the provider keys itself, and a cap seen by one caller cost every other caller a failed attempt (about 3 minutes each in the first Gem run).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Why: the gh runner is a different container from agent-shell and had to install opencode and the provider keys itself, and a cap seen by one caller cost every other caller a failed attempt (about 3 minutes each in the first Gem run)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2966–2973",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-36",
+  "subject": "Engineering decisions",
+  "title": "Ladder 3",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Ladder 3",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Ladder 3 (shipped baseline vs Read masker vs rtk) stopped by the usage limit after 19 sessions; the guard stopped it after 3 limit replies as designed. Partial new-T0 on the shipped config: chat $0.0643 (old T0 $0.0886, −27%), agentic $0.1074 (old $0.1379, −22%), gates 100%. X9/X10 not started; resume with `--resume` when the window opens (00:10 UTC)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 19 | 2026-09-02 23:10 | Ladder 3 (shipped baseline vs Read masker vs rtk) stopped by the usage limit after 19 sessions; the guard stopped it after 3 limit replies as designed. Partial new-T0 on the shipped config: chat $0.0643 (old T0 $0.0886, −27%), agentic $0.1074 (old $0.1379, −22%), gates 100%. X9/X10 not started; resume with `--resume` when the window opens (00:10 UTC) | `.agents/tmp/token-diet/ladder3/rows.csv` | `14fbd2d2` (audit) |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 36",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

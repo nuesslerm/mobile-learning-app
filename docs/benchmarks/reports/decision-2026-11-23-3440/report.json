@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-23-3440",
+  "subject": "Engineering decisions",
+  "title": "Flow harness",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-23",
+  "revision": null,
+  "environment": null,
+  "workload": "Flow harness",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "flow harness: golden capture moved out of the default setup into the optional `goldens.ts` extension, loaded only when `FLOW_GOLDENS_OUT` is set (`wf flow run`). Test type: flow, one file (ToolbarKeys, 29 tests), 2 alternating runs each: with capture 58.7 s and 58.9 s, without 29.6 s and 28.3 s (the capture waits 1 s per editor test for a quiet DOM); after the change a plain run 29.3 s and a…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 23 Nov, flow harness: golden capture moved out of the default setup into the optional `goldens.ts` extension, loaded only when `FLOW_GOLDENS_OUT` is set (`wf flow run`). Test type: flow, one file (ToolbarKeys, 29 tests), 2 alternating runs each: with capture 58.7 s and 58.9 s, without 29.6 s and 28.3 s (the capture waits 1 s per editor test for a quiet DOM); after the change a plain run 29.3 s and a `FLOW_GOLDENS_OUT` run 60.2 s writing 29 final snapshots. n=2, no model, no tokens."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3440",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

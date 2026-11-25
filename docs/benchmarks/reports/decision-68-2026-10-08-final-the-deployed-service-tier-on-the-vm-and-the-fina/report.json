@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-68-2026-10-08-final-the-deployed-service-tier-on-the-vm-and-the-fina",
+  "subject": "Engineering decisions",
+  "title": "(final): the deployed-service tier on the VM, and the final benchmark table",
+  "question": "What was measured for (final): the deployed-service tier on the VM, and the final benchmark table?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08 (final): the deployed-service tier on the VM, and the final benchmark table",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Final benchmark, Rust `wf` (`wf cli-bench`, fresh process per run, peak RSS from rusage, n=5, x86_64 sandbox, release build) against the phase 1 TypeScript baseline in this log (same host class, node v22.22.0, n=5):",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "target",
+        "TypeScript median ms",
+        "Rust median ms",
+        "TypeScript RSS MB",
+        "Rust RSS MB (max)"
+      ],
+      "rows": [
+        [
+          "`--version`",
+          "266.8",
+          "1.7",
+          "64.2",
+          "5.0"
+        ],
+        [
+          "`--help`",
+          "266.0",
+          "1.6",
+          "64.5",
+          "5.2"
+        ],
+        [
+          "`secrets --help`",
+          "268.9",
+          "1.6",
+          "64.3",
+          "5.2"
+        ],
+        [
+          "`dispatch --help`",
+          "266.2",
+          "1.6",
+          "64.2",
+          "5.2"
+        ],
+        [
+          "`deploy plan --help`",
+          "315.8",
+          "1.6",
+          "64.3",
+          "5.2"
+        ],
+        [
+          "`verify --help`",
+          "266.3",
+          "1.7",
+          "64.5",
+          "5.2"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Deploy runs: 264 (`41cb96f`, after the hand redeploy of vm-ops-api), 265 (`9b03b11`, the `remote-chat-agent` leg built, pushed and redeployed in 4 minutes on warm layers) and 266 (`7a453d4`, nothing changed for any service) are green on the Rust-only pipeline. `wf deploy plan` from a full checkout and from the CI runner agree (`{\"legs\":[],\"metro\":false}` after 265); inside agent-shell, which has no checkout, it plans everything, by design (an unreachable commit counts as changed)."
+        ],
+        [
+          "Final benchmark, Rust `wf` (`wf cli-bench`, fresh process per run, peak RSS from rusage, n=5, x86_64 sandbox, release build) against the phase 1 TypeScript baseline in this log (same host class, node v22.22.0, n=5):"
+        ],
+        [
+          "- Startup is about 160 times faster (266 ms to 1.6 ms) and peak RSS about 12 times lower (64.4 MB to 5.2 MB), for every command: the old price was Node plus loading the whole bundle, and the new one is a process start."
+        ],
+        [
+          "- Binary size: 5,699,096 bytes on x86_64 (5.44 MiB), 4,936,120 bytes on the VM's aarch64; one file, no companions. It was 2.4 MB when it held a third of the commands; the growth is the commands, not a dependency (no TLS or HTTP library: HTTP goes through `curl`, TLS to the desktop through `openssl`)."
+        ],
+        [
+          "- Install footprint of the CLI: the production path is that one binary. Before, `wf.js` 1.94 MB, the caveat-guard bundle 0.77 MB and the agent-config-sync bundle 0.58 MB (3.29 MB of JavaScript) plus a Node runtime and, in the dev tree, a `node_modules` that `wf` needed to run. The dev tree's `node_modules` still holds 256,101 entries, now only for the TypeScript services and the app, none of it for `wf`."
+        ],
+        [
+          "- The live rows of the baseline (`verify --staged`, `dispatch --stats`, `secrets sync-env`, `deploy plan`) were never measured on the TypeScript side (they need credentials and the VM), so there is no before to compare; `wf deploy plan` takes about 5 s on the CI runner, almost all of it `pnpm list`."
+        ],
+        [
+          "- Step 1 evidence, run at the final commit (runbook tier, deployed service): `wf deploy run leetcode-backend --redeploy-only --ref af660bc… --tag sha-41cb96f` through the redeployed vm-ops-api exited 0 with no bundle download (`[provision] refreshing … from af660bc…`, `Wrote 7 secret(s) + base .env.defaults`, `[verify-env] ok: 13 synced key(s) survive into the final .env`), and `wf deploy status leetcode-backend` showed both containers `Up … (healthy)` 19 seconds later. The sibling that does the work runs the running vm-ops-api image tag, not `:latest` (`siblingImage(namespace, tag)` in `infra/oracle-cloud/vm-ops-api/src/scripts/redeploy.ts` falls back to `latest` only for an unknown tag). `wf vm exec <script>` is the tier above: every check ran as a job inside agent-shell, as its own recorded run (the script, its output and exit code are the evidence)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1508–1538",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

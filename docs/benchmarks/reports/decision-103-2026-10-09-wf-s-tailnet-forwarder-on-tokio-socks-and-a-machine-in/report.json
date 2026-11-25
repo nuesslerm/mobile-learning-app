@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-103-2026-10-09-wf-s-tailnet-forwarder-on-tokio-socks-and-a-machine-in",
+  "subject": "Engineering decisions",
+  "title": "wf's tailnet forwarder on tokio-socks, and a machine-independent duration assertion (standard-crates plan, phase 4b, second slice)",
+  "question": "What was measured for wf's tailnet forwarder on tokio-socks, and a machine-independent duration assertion (standard-crates plan, phase 4b, second slice)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf's tailnet forwarder on tokio-socks, and a machine-independent duration assertion (standard-crates plan, phase 4b, second slice)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Measured (release builds, `/tmp/.../bench-fwd.mjs`: a mock SOCKS5 proxy in front of a mock HTTP service, `wf browser tailnet-forward`, 300 GETs on new connections per run, n=5 medians): round trip p50 1.156 ms before, 1.094 ms after; `wf` binary 8,149,368 B before, 8,176,600 B after. The daemon's resident memory was not captured (the script could not map the port to a process here).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Measured (release builds, `/tmp/.../bench-fwd.mjs`: a mock SOCKS5 proxy in front of a mock HTTP service, `wf browser tailnet-forward`, 300 GETs on new connections per run, n=5 medians): round trip p50 1.156 ms before, 1.094 ms after; `wf` binary 8,149,368 B before, 8,176,600 B after. The daemon's resident memory was not captured (the script could not map the port to a process here)."
+        ],
+        [
+          "Tests, by tier. Integration: the four black-box files that exercise the forwarder (`browser-tunnel`, `browser-attach`, `browser-state`, `browser-tailnet-forward`) 64 of 64 on the real release binary, unchanged; no expectation needed to change. `dispatch-batch`'s one failing assertion pinned a rounded elapsed time (`FAIL   0s`), which reads `1s` or more on this machine and failed identically on the std-only baseline; it now pins the shape (`FAIL`, whole seconds, the file name, the totals line) instead, a test fix and not a behaviour change. The whole `wf` suite: 1147 of 1147 with `--maxWorkers=3`. `cargo clippy --workspace --all-targets -- -D warnings` clean; `cargo test -p wf` 50 passed."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1945–1954",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

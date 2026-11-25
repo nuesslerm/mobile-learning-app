@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "audits-reports-clis-wf-blackbox",
+  "subject": "Engineering measurements",
+  "title": "clis/wf-blackbox: the wf black-box suite in Rust",
+  "question": "What did the clis/wf-blackbox: the wf black-box suite in Rust measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "clis/wf-blackbox: the wf black-box suite in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measure: Test titles · Before: 947 · After: 947 (953 Rust tests including the parity and helper checks at the time of the run)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Test titles",
+          "947",
+          "947 (953 Rust tests including the parity and helper checks at the time of the run)"
+        ],
+        [
+          "Cases run",
+          "1186",
+          "953 tests (parametrised cases loop inside one test)"
+        ],
+        [
+          "Clean run on the same binary",
+          "1186 passed",
+          "953 passed"
+        ],
+        [
+          "Seeded faults caught, same behaviour in both suites",
+          "not applicable",
+          "6 of 6"
+        ],
+        [
+          "Wall time",
+          "about 11 min",
+          "425 s"
+        ],
+        [
+          "Source",
+          "101 TypeScript files, 27,539 lines",
+          "20,812 lines of Rust"
+        ],
+        [
+          "Node needed to run it",
+          "yes",
+          "no"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "clis-wf-blackbox.md",
+      "path": "../../../audits/reports/clis-wf-blackbox.md"
+    }
+  ]
+}

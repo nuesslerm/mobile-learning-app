@@ -1,0 +1,187 @@
+{
+  "options": {
+    "url": "http://127.0.0.1:18645",
+    "cases": [
+      {
+        "name": "Tamil library to collection using the keyboard",
+        "path": "/mla-tamagui/tamil/"
+      }
+    ],
+    "runsPerCase": 3,
+    "durationMs": 3000,
+    "settleMs": 500,
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 1
+    },
+    "readySelector": "[data-testid=\"TamilCollection-first-steps\"]",
+    "steps": [
+      {
+        "press": "Tab"
+      },
+      {
+        "press": "Tab"
+      },
+      {
+        "press": "Enter"
+      },
+      {
+        "expect": {
+          "selector": "[data-testid=\"TamilPractice\"]"
+        }
+      }
+    ]
+  },
+  "browser": "Chromium 151.0.7922.34 (headless)",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "deviceScaleFactor": 1
+  },
+  "runs": [
+    {
+      "caseName": "Tamil library to collection using the keyboard",
+      "cpu": 1,
+      "round": 0,
+      "fps": 115.3,
+      "frameGapP95Ms": 9.9,
+      "frameGapMaxMs": 125,
+      "longFrames": 2,
+      "longTaskPct": 0,
+      "loafBlockingMs": 0,
+      "styleLayoutMs": 0,
+      "forcedLayoutMs": 0,
+      "topScripts": [],
+      "layoutShift": 0,
+      "domNodesStart": 291,
+      "domNodesEnd": 917,
+      "mainThreadPct": 2.9,
+      "scriptMs": 54.6,
+      "styleMs": 2.7,
+      "layoutMs": 4,
+      "layoutCount": 7,
+      "styleCount": 11,
+      "heapMb": 23.4,
+      "pageErrors": [],
+      "edgeSilenceMs": 5,
+      "frameGapCount": 345,
+      "inputCaptureComplete": true,
+      "resized": false,
+      "interactions": 3,
+      "worstInteractionMs": 33.7,
+      "worstInputDelayMs": 0.1,
+      "worstProcessingMs": 1.8,
+      "worstPresentationMs": 31.8,
+      "loafCutOff": 0,
+      "probeSpanMs": 3001.3,
+      "cdpSpanMs": 3002.6,
+      "shownFps": 2.3,
+      "droppedFrames": 15,
+      "frameCounts": {
+        "full": 7,
+        "partial": 0,
+        "dropped": 16,
+        "faults": 15
+      },
+      "droppedPct": 65.2
+    },
+    {
+      "caseName": "Tamil library to collection using the keyboard",
+      "cpu": 1,
+      "round": 1,
+      "fps": 119.9,
+      "frameGapP95Ms": 10,
+      "frameGapMaxMs": 17.2,
+      "longFrames": 1,
+      "longTaskPct": 0,
+      "loafBlockingMs": 0,
+      "styleLayoutMs": 0,
+      "forcedLayoutMs": 0,
+      "topScripts": [],
+      "layoutShift": 0,
+      "domNodesStart": 291,
+      "domNodesEnd": 917,
+      "mainThreadPct": 2.9,
+      "scriptMs": 52.4,
+      "styleMs": 2.4,
+      "layoutMs": 3.5,
+      "layoutCount": 6,
+      "styleCount": 10,
+      "heapMb": 23.4,
+      "pageErrors": [],
+      "edgeSilenceMs": 5.8,
+      "frameGapCount": 359,
+      "inputCaptureComplete": true,
+      "resized": false,
+      "interactions": 3,
+      "worstInteractionMs": 33.5,
+      "worstInputDelayMs": 0.2,
+      "worstProcessingMs": 1.4,
+      "worstPresentationMs": 31.9,
+      "loafCutOff": 0,
+      "probeSpanMs": 3002.6,
+      "cdpSpanMs": 3004.1,
+      "shownFps": 2,
+      "droppedFrames": 1,
+      "frameCounts": {
+        "full": 6,
+        "partial": 0,
+        "dropped": 2,
+        "faults": 1
+      },
+      "droppedPct": 12.5
+    },
+    {
+      "caseName": "Tamil library to collection using the keyboard",
+      "cpu": 1,
+      "round": 2,
+      "fps": 119.9,
+      "frameGapP95Ms": 10,
+      "frameGapMaxMs": 17.1,
+      "longFrames": 1,
+      "longTaskPct": 0,
+      "loafBlockingMs": 0,
+      "styleLayoutMs": 0,
+      "forcedLayoutMs": 0,
+      "topScripts": [],
+      "layoutShift": 0,
+      "domNodesStart": 291,
+      "domNodesEnd": 917,
+      "mainThreadPct": 2.9,
+      "scriptMs": 51.7,
+      "styleMs": 2.7,
+      "layoutMs": 3.9,
+      "layoutCount": 7,
+      "styleCount": 11,
+      "heapMb": 23.3,
+      "pageErrors": [],
+      "edgeSilenceMs": 7.1,
+      "frameGapCount": 362,
+      "inputCaptureComplete": true,
+      "resized": false,
+      "interactions": 3,
+      "worstInteractionMs": 32,
+      "worstInputDelayMs": 0.3,
+      "worstProcessingMs": 1.1,
+      "worstPresentationMs": 30.6,
+      "loafCutOff": 0,
+      "probeSpanMs": 3026.3,
+      "cdpSpanMs": 3027.6,
+      "shownFps": 2.6,
+      "droppedFrames": 1,
+      "frameCounts": {
+        "full": 8,
+        "partial": 0,
+        "dropped": 2,
+        "faults": 1
+      },
+      "droppedPct": 10
+    }
+  ],
+  "failedClickPilot": [
+    "step target [data-testid=\"TamilCollection-first-steps\"] was gone after the run",
+    "step target [data-testid=\"TamilCollection-first-steps\"] was gone after the run",
+    "step target [data-testid=\"TamilCollection-first-steps\"] was gone after the run"
+  ]
+}

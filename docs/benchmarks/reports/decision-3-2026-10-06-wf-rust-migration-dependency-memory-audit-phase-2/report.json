@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-3-2026-10-06-wf-rust-migration-dependency-memory-audit-phase-2",
+  "subject": "Engineering decisions",
+  "title": "wf Rust migration, dependency memory audit (phase 2)",
+  "question": "What was measured for wf Rust migration, dependency memory audit (phase 2)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: wf Rust migration, dependency memory audit (phase 2)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Node v22.22.0, x86_64, n=5, peak RSS from python3 rusage.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "dep",
+        "median RSS MB",
+        "delta MB"
+      ],
+      "rows": [
+        [
+          "(empty node process)",
+          "41.7",
+          "0"
+        ],
+        [
+          "commander",
+          "52.3",
+          "10.6"
+        ],
+        [
+          "yaml",
+          "52.9",
+          "11.1"
+        ],
+        [
+          "pngjs",
+          "52.1",
+          "10.4"
+        ],
+        [
+          "@opentelemetry/api",
+          "51.6",
+          "9.9"
+        ],
+        [
+          "loglayer",
+          "50.0",
+          "8.3"
+        ],
+        [
+          "pixelmatch",
+          "42.8",
+          "1.0"
+        ],
+        [
+          "playwright",
+          "137.1",
+          "95.4"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Node v22.22.0, x86_64, n=5, peak RSS from python3 rusage."
+        ],
+        [
+          "Wall time in this container advances in 50 ms steps (every sample is a multiple"
+        ],
+        [
+          "of about 50 ms), so the millisecond columns are not usable here; playwright is"
+        ],
+        [
+          "the only delta that clears that resolution (about 755 ms over empty). RSS is"
+        ],
+        [
+          "about 10 MB."
+        ],
+        [
+          "- The Node floor is 41.7 MB before any wf code; the whole `wf --help` costs"
+        ],
+        [
+          "64 MB, so about two thirds of the footprint is runtime, not dependencies."
+        ],
+        [
+          "- Playwright (95 MB, about 755 ms) is not imported by `wf --help`, so it only"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 141–180",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

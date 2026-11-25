@@ -1,6 +1,6 @@
 //! `wf check --dead-refs` (and part of `--staged`): every repo path, markdown link, workspace package, `wf` command (with
 //! the verb of `wf browser|android <verb>`), Lua `device:<method>` and `pnpm run` script named in the live instructions,
-//! docs, help, scripts, workflows and manifests must exist. History (docs/archive, docs/audits, plans, goals) and the
+//! docs, help, scripts, workflows and manifests must exist. History (docs/archive, docs/audits, docs/benchmarks, plans, goals) and the
 //! generated agent config are not read, except that a goal's verifier is checked for its device verbs and methods; a rename
 //! that leaves a caller behind fails the commit instead of a CI run.
 //! The pre-commit gate reads the index, so it judges the tree being committed, not what is left unstaged.
@@ -13,8 +13,8 @@ use std::process::{Command, Stdio};
 const TOP: [&str; 9] = ["clis", "libraries", "backend", "tooling", "frontend", "infra", "e2e", "docs", "scripts"];
 // a path through one of these is a build output: fine while what builds it exists
 const OUTPUT_DIRS: [&str; 6] = ["target", "target-musl", "dist", "build", "node_modules", ".flow-report"];
-const SKIP: [&str; 13] = [
-    "docs/archive/", "docs/audits/", "docs/plans/", "docs/goals/", "references/", ".claude/", ".codex/", ".opencode/", "node_modules/",
+const SKIP: [&str; 14] = [
+    "docs/archive/", "docs/audits/", "docs/benchmarks/", "docs/plans/", "docs/goals/", "references/", ".claude/", ".codex/", ".opencode/", "node_modules/",
     "pnpm-lock.yaml", "docs/runbooks/.results/", "docs/gemini-context/", "clis/wf/tests/",
 ];
 // prose that follows "wf" in a sentence, not a command

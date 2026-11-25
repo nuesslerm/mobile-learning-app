@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-06-66",
+  "subject": "Engineering decisions",
+  "title": "Test-tiers",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Test-tiers",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "test-tiers: RE-RUN of row 44 (`cf-plan/assigns-tiers-by-category`) post arm n=1 Sonnet, after the grader fix in `clis/agent-evals/src/use-cases/run-skill-eval.ts:119-135` (`file_contains.path` now resolves glob patterns through `globMatches`, the same path `files_glob_exist` already took)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 49 | 2026-09-06 02:22 | test-tiers: RE-RUN of row 44 (`cf-plan/assigns-tiers-by-category`) post arm n=1 Sonnet, after the grader fix in `clis/agent-evals/src/use-cases/run-skill-eval.ts:119-135` (`file_contains.path` now resolves glob patterns through `globMatches`, the same path `files_glob_exist` already took) | `node clis/agent-evals/bin/agent-evals.js skill-eval --skill cf-plan --arm post --id cf-plan/assigns-tiers-by-category --runs 1 --model sonnet --out-dir .agents/tmp/skill-eval-tiers`. 1/1 ok, $0.6093, 172 s, 26 tool calls, 3 commits; the skill wrote `docs/plans/json-flag/units.jsonl` with `tier: unit` on u1 and `tier: flow` on u2 (visible at `/tmp/skill-eval-cf-plan-post-6qBHqs/docs/plans/json-flag/units.jsonl`), all four `file_contains` checks now resolve their glob paths through `readFile` and pass — the catalog cell matches what the skill actually produced on row 44 | `.agents/tmp/skill-eval-tiers/cf-plan-assigns-tiers-rerun-pack.json`, `.agents/tmp/skill-eval-tiers/cf-plan-assigns-tiers-rerun.log` | test-tiers |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 66",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

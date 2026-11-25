@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-11-25-benchmark-library",
+  "title": "Offline benchmark library verification",
+  "subject": "Developer tools",
+  "date": "2026-11-25",
+  "revision": null,
+  "question": "How long does it take to verify the generated catalog locally?",
+  "finding": "An up-to-date build took 0.339 s and check took 0.268 s across 311 records.",
+  "environment": "macOS 27.0.1, arm64; local debug wf-bench.",
+  "method": "One warm invocation per command on an already-generated archive, timed from process creation through successful exit using Python perf_counter. This report was added after measurement.",
+  "sampleSize": "One invocation per command",
+  "workload": "Validate 311 reports and compare their generated pages and indexes with the existing files.",
+  "variants": [
+    {
+      "id": "wf-bench",
+      "label": "wf bench reports"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "build",
+      "label": "build"
+    },
+    {
+      "id": "check",
+      "label": "check"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "elapsed",
+      "label": "Wall time",
+      "unit": "s",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "wf-bench",
+      "scenario": "build",
+      "metric": "elapsed",
+      "sample": "run-1",
+      "statistic": "raw",
+      "value": 0.33876070799306035,
+      "outcome": "observed"
+    },
+    {
+      "variant": "wf-bench",
+      "scenario": "check",
+      "metric": "elapsed",
+      "sample": "run-1",
+      "statistic": "raw",
+      "value": 0.2682658330304548,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "Command results and measurements",
+      "path": "evidence/timings.json"
+    }
+  ]
+}

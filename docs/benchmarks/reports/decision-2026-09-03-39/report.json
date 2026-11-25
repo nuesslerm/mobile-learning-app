@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-39",
+  "subject": "Engineering decisions",
+  "title": "B1 complete",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "B1 complete",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "B1 complete (84 cells, 0 errors): W (whole task on deepseek-v4-flash) $0.061 vs A Sonnet $1.844 summed over 7 tasks, 7/7 gates, total wall-clock 481s vs 535s; H Haiku $0.850; S in-session dispatch $1.635, 1496s, 3 gates dropped. Ratios written for `wf opencode savings`; Phase A eagerness sweep restarted fresh on the shipped config (`stage1b`) since the old L0–L3 rows measured the pre-diet…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 22 | 2026-09-03 05:25 | B1 complete (84 cells, 0 errors): W (whole task on deepseek-v4-flash) $0.061 vs A Sonnet $1.844 summed over 7 tasks, 7/7 gates, total wall-clock 481s vs 535s; H Haiku $0.850; S in-session dispatch $1.635, 1496s, 3 gates dropped. Ratios written for `wf opencode savings`; Phase A eagerness sweep restarted fresh on the shipped config (`stage1b`) since the old L0–L3 rows measured the pre-diet baseline | `.agents/tmp/delegation-benchmark/b1/results.csv`, `savings-ratios.json` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 39",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

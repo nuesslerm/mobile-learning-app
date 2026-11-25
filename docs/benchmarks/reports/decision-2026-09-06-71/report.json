@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-06-71",
+  "subject": "Engineering decisions",
+  "title": "Model-routing ladder",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Model-routing ladder",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "model-routing ladder: `model-routing/ladders.document` (live, not replay) — one live `wf cheap-flow research` run",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 54 | 2026-09-06 18:16 | model-routing ladder: `model-routing/ladders.document` (live, not replay) — one live `wf cheap-flow research` run | `wf cheap-flow research model-routing-smoke --question 'List the three files that define the model ladder and say which pool each default rung belongs to' --no-commit`. 0/1 ok, $0.00, 4 s wall-clock (3.083 s + 0.752 s re-ask), 0 tool calls. **1 rung touched: `claude-haiku-4-5` (pool `claude-max`).** The other three rungs of the document ladder (`opencode-go/deepseek-v4-flash`, `kimi-for-coding/kimi-for-coding`, `kimi-for-coding/k3`) were skipped by `resolveLadder` because `.agents/tmp/pool-cooldowns.json` marks `opencode-go` cold until 2026-09-06T22:50:41.719Z and `kimi` cold until 2026-09-06T22:50:41.772Z (both 5 h, from a transient-crash burst at 17:50:33 UTC); `minimax` was cold until 18:05:42 (past at run time, so it would have been eligible, but it is not on the document ladder). `claude-haiku-4-5` produced 58 chars of `bad-output` on the first attempt (fails `looksLikeDocument` 3-line minimum); `runProse` re-asked once with the `RETRY_SUFFIX`, same model, same 58 chars; both attempts logged at `pool: \"claude-max\"`, `reason: \"bad-output\"`, total `All 1 models were exhausted: claude-haiku-4-5 (bad-output)`. **This is the first live evidence that `resolveLadder` + the cooldown ledger do what the contract says**: cold pools were dropped, not retried, and the lone remaining rung from `claude-max` was tried exactly twice (once + one re-ask) | `.agents/tmp/skill-eval-routing/research-smoke.log`; dispatch runs `920d3bdb-4fe6-4618-b4e8-3252d5b1819e` and `334c1124-75d6-42f9-a2c5-1a42f7b8a8c8` in `.agents/tmp/opencode-dispatch-runs.jsonl`; cooldown state `.agents/tmp/pool-cooldowns.json` | model-routing |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 71",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

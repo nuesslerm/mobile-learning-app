@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-110-2026-10-09-wf-s-source-map-decoding-on-the-sourcemap-crate",
+  "subject": "Engineering decisions",
+  "title": "wf's source-map decoding on the sourcemap crate",
+  "question": "What was measured for wf's source-map decoding on the sourcemap crate?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf's source-map decoding on the sourcemap crate",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Benchmark (one generated map of 4,000 lines and 240,000 segments, 1.2 MB of mappings; both decoders in one release binary, five interleaved runs, medians; the crate's figure includes parsing the map's JSON): the hand-written decoder 25.44 ms, the crate 11.91 ms; the segments they return are identical. Deliberate changes (library wins): segments come in column order, the lines covered are the code's lines (executed bytes after the last mapped line are reporte…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (one generated map of 4,000 lines and 240,000 segments, 1.2 MB of mappings; both decoders in one release binary, five interleaved runs, medians; the crate's figure includes parsing the map's JSON): the hand-written decoder 25.44 ms, the crate 11.91 ms; the segments they return are identical. Deliberate changes (library wins): segments come in column order, the lines covered are the code's lines (executed bytes after the last mapped line are reported as \"unmapped\" instead of dropped), and a map the crate refuses (a segment of two or three fields, a source or name index out of range) is an error at load with the map's path."
+        ],
+        [
+          "First Deploy with a change to Rust code and the lockfile since the deploy profile (run 37969236740, head `989993e`: the `sourcemap` change in `wf`, which is an input of the `remote-chat-agent` image; twelve crates compiled new in its `wfbuilder` stage): `plan` 1 min 1 s, `deploy (remote-chat-agent)` 2 min 59 s, `deploy (metro)` skipped, 4 min 5 s end to end from the push, green. The plan deployed only the service whose inputs changed: `/health` of `remote-chat-agent` now reports `989993e8f2e6451b5eb23be761ab94ed4472c6c2` and `leetcode-backend` stays on `846130f8531d7c430f144e2e0adbf5c3a5ba2924` (its package graph did not change). This is the closest measurement here to a normal push; the all-services run (3 min 17 s) had comment-only Rust changes, and a push that changes the lockfile for both services would build both images in the 5-minute budget only if each stays near 3 minutes, which was not measured."
+        ],
+        [
+          "Last code push (`87860bb`, the two `clap` probe tests in `args.rs`): Deploy run 37970219256 green in 2 min 18 s from the push (`plan` 53 s, `deploy (remote-chat-agent)` 1 min 20 s, Metro skipped). Live afterwards: `/health` of `remote-chat-agent` reports `87860bb34baabfd254894af5a788c8060325e954` (container `remote-chat-agent:sha-87860bb3`, healthy) and `leetcode-backend` `846130f8531d7c430f144e2e0adbf5c3a5ba2924` (`leetcode-backend:sha-846130f8`, healthy, its inputs unchanged); `wf vm logs remote-chat-agent` shows `server.listening` at 18:02:21; the authenticated WebSocket probe passes 7 of 7 on that container. The process table, convert, voice and the leetcode probes are recorded above on the `989993e` and `846130f` images; the later change touches test code only."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2020–2037",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

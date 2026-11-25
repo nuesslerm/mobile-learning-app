@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-176-2026-10-27-viewer-lag-and-the-credential-reaches-the-sandbox",
+  "subject": "Engineering decisions",
+  "title": "viewer lag, and the credential reaches the sandbox",
+  "question": "What was measured for viewer lag, and the credential reaches the sandbox?",
+  "date": "2026-10-27",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-27: viewer lag, and the credential reaches the sandbox",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Measured idle from the sandbox: `/frame` 0.65 s each (0.40 s of it the tunnel, so ~0.25 s a headed software-rendered screenshot, 47 KB), sequential at 160 ms spacing: 1-2 fps, and the full JPEG was sent for an unchanged page. Not measured: the multi-second freezes the owner saw (the host was idle afterwards; during the CI run it had load ~17 and `vnc-auth` had the default CPU weight).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Measured idle from the sandbox: `/frame` 0.65 s each (0.40 s of it the tunnel, so ~0.25 s a headed software-rendered screenshot, 47 KB), sequential at 160 ms spacing: 1-2 fps, and the full JPEG was sent for an unchanged page. Not measured: the multi-second freezes the owner saw (the host was idle afterwards; during the CI run it had load ~17 and `vnc-auth` had the default CPU weight)."
+        ],
+        [
+          "- Change: one capture thread per listener takes numbered frames and stores one only when the JPEG differs; `GET /frame?after=<n>` long-polls (200 with `x-frame-seq`, or 204 after 8 s of no change); taps, scrolls and keys use their own CDP connection so they never wait behind a screenshot; the capture runs fast for 2 s after an input and while the page changes, slow (400 ms) when it holds still, and pauses 20 s after the last viewer request. `cpu_shares: 2048` for `vnc-auth`. Not native `Page.startScreencast`: the `cdp` crate only reads events during a call, so a push stream would need a reader thread first; the poll-with-change-detection keeps the properties that matter (no traffic for a still page, no input stall). Not re-measured on the phone."
+        ],
+        [
+          "- 2026-10-27, Gem sync run 8: all four ladder models failed in under a second: opencode takes the prompt as one command-line argument (128 KB per argument on Linux) and the draft prompt inlined CLAUDE.md, CONCEPTS.md and a 600 KB skeleton. The prompt now names the three files to read; the skeleton is limited to manifests, entry points, barrels and area guides (162 files, 333 KB, about 92 k tokens measured with repomix here), and the flow stub fails a prompt over 100 KB. Job timing, from the runs: 1.5 to 2.5 min once started (the first run 3 min with the rclone build), the wait before it starts is the shared CI queue (2 to 4 min)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2951–2965",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

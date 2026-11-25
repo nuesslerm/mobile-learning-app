@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-13-3406",
+  "subject": "Engineering decisions",
+  "title": "#78 folded into #80",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-13",
+  "revision": null,
+  "environment": null,
+  "workload": "#78 folded into #80",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "#78 folded into #80 (sections D to H). Audit of every unticked box of #78 against the `dev` tree by five read-only readers (one per phase group, about 170 s, 430 k subagent tokens): done already: `remote-chat-agent-speech` and `-host` crates, the structured Tamil judge and its landing, the nested context-file sizes; obsolete (the self-hosted runner and push gate are gone, the owner dropped the…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 13 Nov, #78 folded into #80 (sections D to H). Audit of every unticked box of #78 against the `dev` tree by five read-only readers (one per phase group, about 170 s, 430 k subagent tokens): done already: `remote-chat-agent-speech` and `-host` crates, the structured Tamil judge and its landing, the nested context-file sizes; obsolete (the self-hosted runner and push gate are gone, the owner dropped the key-expiry watch, the dev to main merge and the adb grant): the gate's disk, cargo-lock and stop-early items, the `RUNNER_TAG_*` variables, the credential-expiry item, the replayed-nothing run reading (those runs lived in the old repository); open: the rest, carried over as boxes. Finding: `track-contracts.yml` and the other native `schedule:` workflows never fire until `dev` is the default branch; the tracker box says to use the `[track t3 orca]` marker or a dispatch on `dev`. #78 is closed with a pointer."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3406",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

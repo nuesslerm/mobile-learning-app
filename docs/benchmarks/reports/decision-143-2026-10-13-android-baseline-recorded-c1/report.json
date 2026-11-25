@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-143-2026-10-13-android-baseline-recorded-c1",
+  "subject": "Engineering decisions",
+  "title": "Android baseline recorded (C1)",
+  "question": "What was measured for Android baseline recorded (C1)?",
+  "date": "2026-10-13",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-13: Android baseline recorded (C1)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Cost: n=3, one APK install, about 3 minutes of device time, no teardown, no second device. Tolerances follow the spread seen (cold start 40%, PSS 25%, RSS 20%, Java heap 35%, native heap 50%) so a re-run does not fail on noise; a regression larger than that still fails `wf bench compare --suite android`.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Decision: cold start is launch to the app's first `ReactNativeJS: Running \"main\"` log line, read with `logcat -v epoch -e ... -m 1`, not `am start -W` (it reports a timeout on the 1.5-CPU device, so its 11.8 s was the timeout). Evidence: three runs on the shared slim device under the lease gave 3.98, 4.97 and 5.65 s; the first probe saw the process start at 1.2 s, the marker at 5.5 s and the app's first debug logs at 14 s, so the marker is the earliest point where our JS runs."
+        ],
+        [
+          "- Cost: n=3, one APK install, about 3 minutes of device time, no teardown, no second device. Tolerances follow the spread seen (cold start 40%, PSS 25%, RSS 20%, Java heap 35%, native heap 50%) so a re-run does not fail on noise; a regression larger than that still fails `wf bench compare --suite android`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2325–2330",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

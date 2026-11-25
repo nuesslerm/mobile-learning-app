@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-198-rca-refactor-pushes-ci-times-2026-11-02",
+  "subject": "Engineering decisions",
+  "title": "rca refactor pushes, CI times (2026-11-02)",
+  "question": "What was measured for rca refactor pushes, CI times (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "rca refactor pushes, CI times (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "e539c725a, rca `render` crate (hexagonal step 1; image hash moves, rca redeploys): run 41445970350 green in 13 min 46 s. Gate 222 s.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- e539c725a, rca `render` crate (hexagonal step 1; image hash moves, rca redeploys): run 41445970350 green in 13 min 46 s. Gate 222 s."
+        ],
+        [
+          "- 453534751 (the tests fall back to the vault lookup, as the Rust deployed test does): run green in 7 min 24 s, one service redeployed."
+        ],
+        [
+          "- A subagent build in a worktree could not use git (the worktree guard refuses it) and its pre-commit hook would have built the whole CLI on a 1.8 GB disk, so the builds ran in the main tree, uncommitted, and landed one commit at a time through the gate."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3293–3300",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

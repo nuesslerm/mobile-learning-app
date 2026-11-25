@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-31-2026-10-06-wf-ios-status-stop-cleanup-nuke-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf ios status|stop|cleanup|nuke` in Rust",
+  "question": "What was measured for `wf ios status|stop|cleanup|nuke` in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf ios status|stop|cleanup|nuke` in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (`ios nuke` on an empty registry, n=5 median, wrapper only): TS 247 ms / 65 MB, Rust 12 ms / 13 MB.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (`ios nuke` on an empty registry, n=5 median, wrapper only): TS 247 ms / 65 MB, Rust 12 ms / 13 MB."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1243–1250",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

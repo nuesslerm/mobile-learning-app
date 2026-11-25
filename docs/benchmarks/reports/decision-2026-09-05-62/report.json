@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-05-62",
+  "subject": "Engineering decisions",
+  "title": "Test-tiers",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-05",
+  "revision": null,
+  "environment": null,
+  "workload": "Test-tiers",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "test-tiers: `cf-plan/ui-feature-gets-rtl-flow-unit` post arm n=1 Sonnet, measures whether cf-plan writes a flow-tier unit on a ui-feature plan",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 45 | 2026-09-05 22:13 | test-tiers: `cf-plan/ui-feature-gets-rtl-flow-unit` post arm n=1 Sonnet, measures whether cf-plan writes a flow-tier unit on a ui-feature plan | 0/1 ok, $0.0871, 15 s, 3 tool calls, 0 commits; the cf-plan skill aborted with `docs/plans/<slug>/requirements.md` does not exist anywhere in this repo — there's no plan directory at all. Per the skill's own instructions, I need a requirements doc before I can plan; that's produced by `/cf-brainstorm`.`. The cell expected cf-plan to plan directly from the fixture, but the skill's precondition (a brainstormed requirements.md) was not met by the catalog task; the cell fails the catalog, not the skill — fixture or cell expectation needs a follow-up | `.agents/tmp/skill-eval-tiers/cf-plan-ui-feature/pack.json` | test-tiers |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 62",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-5-2026-10-06-wf-rust-migration-skeleton-phase-4",
+  "subject": "Engineering decisions",
+  "title": "wf Rust migration, skeleton (phase 4)",
+  "question": "What was measured for wf Rust migration, skeleton (phase 4)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: wf Rust migration, skeleton (phase 4)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release build, opt-level z, lto, strip, n=5, same container):",
+  "variants": [
+    {
+      "id": "typescript-wf",
+      "label": "TypeScript wf"
+    },
+    {
+      "id": "rust-wf",
+      "label": "Rust wf"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "`--version` wall ms",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "`--version` peak RSS MB",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "`--help` (legacy fallback) wall ms",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-4",
+      "label": "`--help` (legacy fallback) peak RSS MB",
+      "unit": "MB",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "typescript-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 266.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "typescript-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 64.2,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 10.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "typescript-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 266.0,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 265.7,
+      "outcome": "observed"
+    },
+    {
+      "variant": "typescript-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 64.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-wf",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 64.7,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "target",
+        "TypeScript wf",
+        "Rust wf"
+      ],
+      "rows": [
+        [
+          "`--version` wall ms",
+          "266.8",
+          "3.9"
+        ],
+        [
+          "`--version` peak RSS MB",
+          "64.2",
+          "10.9"
+        ],
+        [
+          "`--help` (legacy fallback) wall ms",
+          "266.0",
+          "265.7"
+        ],
+        [
+          "`--help` (legacy fallback) peak RSS MB",
+          "64.5",
+          "64.7"
+        ],
+        [
+          "binary size",
+          "1.94 MB bundle plus node",
+          "316 KB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release build, opt-level z, lto, strip, n=5, same container):"
+        ],
+        [
+          "Reading: a native command costs a few milliseconds and 11 MB, and the fallback"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 197–236",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-06-72",
+  "subject": "Engineering decisions",
+  "title": "Artifacts-publisher",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Artifacts-publisher",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "artifacts-publisher: e2e measured the epic index across two runs (a08) and the pinned-comment upsert against the real #274 issue (a09); a08 FAIL — each `wf artifacts publish` clobbers `verification/274/index.json` because the PAR GET of the existing manifest returns stale/404 data for >90s after a write, so `publishEpicIndex` starts from `{ runs: [] }` per its documented degrade-to-empty…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 55 | 2026-09-06 18:18 | artifacts-publisher: e2e measured the epic index across two runs (a08) and the pinned-comment upsert against the real #274 issue (a09); a08 FAIL — each `wf artifacts publish` clobbers `verification/274/index.json` because the PAR GET of the existing manifest returns stale/404 data for >90s after a write, so `publishEpicIndex` starts from `{ runs: [] }` per its documented degrade-to-empty behaviour and the manifest holds only the latest run (run1 then run2 listed only `live-a08-2`); a09 FAIL — both `--comment` invocations took the `ghAvailable(run) === false` fallback in `clis/workflow-cli/src/data/github.ts:26` (Claude Code Remote sandbox, proxy-mediated `GH_TOKEN`/`GITHUB_TOKEN` per `clis/env-bootstrap/src/use-cases/steps/gh-auth.ts:14-23`), printed the would-have-been-posted body with the `<!-- artifacts-status -->` marker, and returned `{ printed: body }` instead of a comment id — the create-then-PATCH upsert path was never reached end-to-end | `docs/archive/plans/artifacts-publisher/findings/a08-live-epic-index.md` (FAIL), `docs/archive/plans/artifacts-publisher/findings/a09-live-comment.md` (FAIL); `gh` not available in this sandbox, so a09's upsert requirement could not be observed end-to-end and must be re-run from a shell where `gh auth status` exits 0 | artifacts-publisher |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 72",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

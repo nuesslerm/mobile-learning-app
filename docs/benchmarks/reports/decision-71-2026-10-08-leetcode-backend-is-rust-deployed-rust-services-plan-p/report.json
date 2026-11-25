@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-71-2026-10-08-leetcode-backend-is-rust-deployed-rust-services-plan-p",
+  "subject": "Engineering decisions",
+  "title": "leetcode-backend is Rust, deployed (rust-services plan, phases 2 to 8 in one change)",
+  "question": "What was measured for leetcode-backend is Rust, deployed (rust-services plan, phases 2 to 8 in one change)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: leetcode-backend is Rust, deployed (rust-services plan, phases 2 to 8 in one change)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measured, x86_64 4-core sandbox, node 22, n=5, medians, same script on both (60 `/health`, 20 `/run`, 20 `/format` per run, all 200):",
+  "variants": [
+    {
+      "id": "node-bundle",
+      "label": "Node bundle"
+    },
+    {
+      "id": "rust-binary",
+      "label": "Rust binary"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "cold start to first `/health`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "idle RSS",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "RSS after the mixed load",
+      "unit": "MB",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node-bundle",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 203,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-binary",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 16,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node-bundle",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 77.9,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-binary",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 2.3,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node-bundle",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 83.1,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-binary",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 2.8,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Node bundle",
+        "Rust binary"
+      ],
+      "rows": [
+        [
+          "cold start to first `/health`",
+          "203 ms",
+          "16 ms"
+        ],
+        [
+          "idle RSS",
+          "77.9 MB",
+          "2.3 MB"
+        ],
+        [
+          "RSS after the mixed load",
+          "83.1 MB",
+          "2.8 MB"
+        ],
+        [
+          "`/health` p50 / p99",
+          "1.13 / 4.59 ms",
+          "0.51 / 3.51 ms"
+        ],
+        [
+          "`/run` p50 / p99",
+          "40.5 / 60.4 ms",
+          "39.7 / 57.4 ms"
+        ],
+        [
+          "`/format` p50 / p99",
+          "46.6 / 61.8 ms",
+          "44.4 / 65.5 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Deployed-service tier (runbook), on the VM, after the pipeline built and redeployed it (`Deploy` run 275, leg `leetcode-backend`, tag `sha-af6d6b5`, exit 0): `/health` reports the full commit; a usage route without the bearer token and with a wrong one answers 401; `GET /login-session` 200; the admin route with the bearer token but not the admin secret 401; `POST /session` with a cookie lacking `LEETCODE_SESSION` 400 with the message and `/health` still answering afterwards (the case that ended the Node process); an empty body 400 with the zod message; `/run` (python3, two cases) and `/format` (black) and a JavaScript `/run` all 200 with correct results. The 401s and the 400 prove the requests reached the service logic. Not exercised against the real leetcode.com: that needs a stored session, and calling a session route without one starts a login capture and a Telegram message; the relays are pinned against a mock leetcode.com (exact outbound headers and bodies), and TLS from the image to leetcode.com verifies (curl in the image, `ssl_verify=0`; leetcode.com answers a bare curl 403, which is its bot wall, not a failure of the connection)."
+        ],
+        [
+          "- Measured, x86_64 4-core sandbox, node 22, n=5, medians, same script on both (60 `/health`, 20 `/run`, 20 `/format` per run, all 200):"
+        ],
+        [
+          "- Measured on the VM (aarch64), runbook tier, the two images pulled into agent-shell's docker and started with fake secrets: image size 352,138,942 bytes (Node, `sha-55efb8c`) to 265,604,773 bytes (Rust, `sha-af6d6b5`), uncompressed; idle RSS of the service process 78,040 kB to 2,008 kB, 2,120 kB after a python `/run`, a `/format` and a JavaScript `/run`; the binary is 660,376 bytes. The leg of the pipeline (image build, push, redeploy, warm caches, one run each) took 147 s for the Node image (run 274) and 115 s for the Rust image (run 275). A cold Rust build on the VM was not measured."
+        ],
+        [
+          "- What the number says: the service itself is now a few megabytes. `/run` and `/format` did not change because Python start-up is the cost (about 40 ms per request) and Python stays, as the plan said. The image shrank by a quarter, not by the Node runtime, because it still carries Python with `black` and Node 18 (Debian bookworm) to run submissions; neither runs unless a request asks."
+        ],
+        [
+          "- Deliberate differences from the Node service, each pinned or found while testing: slugs and ids from callers are percent-encoded into one path segment and dot segments are refused (the Node service pasted them into the outbound path); redirects from leetcode.com are not followed, so the cookie cannot travel to another host; the executor child gets a scrubbed environment (PATH, HOME, LANG, LC_ALL) instead of the service's secrets, and its output is capped at 16 MB; body-parser failures (malformed JSON, over 1 MB) answer JSON instead of an HTML page; a panic in a request answers 500 and the process keeps serving; the session file is written atomically with mode 0600. JavaScript formatting still reports `Cannot find module 'prettier'`, as it did in the bundle (no `node_modules` in either image)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1554–1576",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-27",
+  "subject": "Engineering decisions",
+  "title": "Standalone code diet",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Standalone code diet",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Standalone code diet (X7) not a default",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 10 | 2026-09-02 21:35 | Standalone code diet (X7) not a default | `ladder2-x7/rows.csv`: chat out 345, judge 0.78, agentic $0.1225 (+1% vs T3) | — |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 27",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

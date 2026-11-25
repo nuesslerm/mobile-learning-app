@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-101-2026-10-09-remote-chat-agent-on-the-vm-from-the-pipeline-built-im",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent on the VM from the pipeline-built image (standard-crates plan, e2e)",
+  "question": "What was measured for remote-chat-agent on the VM from the pipeline-built image (standard-crates plan, e2e)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: remote-chat-agent on the VM from the pipeline-built image (standard-crates plan, e2e)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "No resident Node process: the container's `CMD` is `/usr/local/bin/rca-service`, the entrypoint ends in `exec \"$@\"` and starts nothing else, and the service's own heartbeat reports 13 to 15 MB resident (a Node server was above 100 MB).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- No resident Node process: the container's `CMD` is `/usr/local/bin/rca-service`, the entrypoint ends in `exec \"$@\"` and starts nothing else, and the service's own heartbeat reports 13 to 15 MB resident (a Node server was above 100 MB)."
+        ],
+        [
+          "- BetterStack: `wf vm logs remote-chat-agent` returned lines from the new path for the probes above, with their trace and span ids from the `tracing` layer (`WARN ws.upgrade.unauthorized`, `INFO voice_edit.upload_received`, `ERROR voice_transcribe.failed`, `ERROR response failed ... latency=31 ms`) and `server.listening` plus `health.heartbeat` from the restart."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1910–1920",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -12,7 +12,7 @@ The 199-line Node daemon (`watchdog.mjs`) that recreates unhealthy or restart-lo
 - Flow (in-process fakes): 6 in `core/tests/flow_sweep.rs`; unit: 11 (the decision table, the argv, the inspect parser).
 - `wf` black box unchanged; the image list entry for `watchdog` now has the repository root as its build context.
 
-## Benchmark (n=5 rounds of 5 runs, interleaved; `docs/audits/benchmarks/watchdog-node-vs-rust.json`)
+## Benchmark (n=5 rounds of 5 runs, interleaved; `docs/benchmarks/reports/watchdog-node-vs-rust/evidence/watchdog-node-vs-rust.json`)
 
 | | Node | Rust |
 | --- | --- | --- |

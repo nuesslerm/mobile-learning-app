@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-90-2026-10-08-remote-chat-agent-rust-service-runs-one-shot-runs-on-t",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, `/runs` (one-shot runs on the shared planner)",
+  "question": "What was measured for remote-chat-agent Rust service, `/runs` (one-shot runs on the shared planner)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, `/runs` (one-shot runs on the shared planner)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark of the slice (same harness, n=5, `rca-pre-node-runs.json`, `rca-rust-slice9.json`, medians): a one-shot run against the fake opencode (its 100 ms delay is in both) p50 108.8 ms at 6.8 MB resident (121.6 ms at 168.9 MB); cold start 31.8 ms (446.5), idle RSS 5.8 MB (134.0); artifact 17,525,840 bytes.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Benchmark of the slice (same harness, n=5, `rca-pre-node-runs.json`, `rca-rust-slice9.json`, medians): a one-shot run against the fake opencode (its 100 ms delay is in both) p50 108.8 ms at 6.8 MB resident (121.6 ms at 168.9 MB); cold start 31.8 ms (446.5), idle RSS 5.8 MB (134.0); artifact 17,525,840 bytes."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1742–1748",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

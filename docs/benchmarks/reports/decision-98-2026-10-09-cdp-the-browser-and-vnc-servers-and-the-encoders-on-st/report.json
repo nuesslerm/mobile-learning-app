@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-98-2026-10-09-cdp-the-browser-and-vnc-servers-and-the-encoders-on-st",
+  "subject": "Engineering decisions",
+  "title": "cdp, the browser and vnc servers and the encoders on standard crates (standard-crates plan, phase 4, slice E)",
+  "question": "What was measured for cdp, the browser and vnc servers and the encoders on standard crates (standard-crates plan, phase 4, slice E)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: cdp, the browser and vnc servers and the encoders on standard crates (standard-crates plan, phase 4, slice E)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Measured n=5 medians, release builds, one headless Chromium, the same example binary built against the parent commit and this one (`bench_eval`: 300 `eval(\"1 + 1\")` round trips and 20 full screenshots per run; the script is in the session scratchpad): `eval` p50 0.195 ms before and 0.191 ms after, p95 0.44 and 0.39 ms, screenshot p50 34.1 ms before and 34.0 ms after. So the standard WebSocket costs nothing measurable on the path every browser command takes. …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Measured n=5 medians, release builds, one headless Chromium, the same example binary built against the parent commit and this one (`bench_eval`: 300 `eval(\"1 + 1\")` round trips and 20 full screenshots per run; the script is in the session scratchpad): `eval` p50 0.195 ms before and 0.191 ms after, p95 0.44 and 0.39 ms, screenshot p50 34.1 ms before and 34.0 ms after. So the standard WebSocket costs nothing measurable on the path every browser command takes. `wf` release binary: 7.31 MB (5.71 MB before phase 4, 6.97 MB after slices A to D, so this slice adds 0.34 MB for tungstenite, tiny_http, mime_guess, socks, httparse and the encoders); `wf --help` cold start p50 1.77 ms against 1.62 ms before phase 4."
+        ],
+        [
+          "Tests, by tier. Real-dependency integration (a real headless Chromium): `cdp` 22 (17 on the attached session, 5 on the raw connection). Two are new, written for the path that used to be `curl`: a page fetches a URL the network proxy routes through this process and the upstream sees this process's `Accept-Encoding: gzip` rather than the browser's list, and a proxied URL that cannot be reached shows the 502 body. All 22 now run in parallel with none skipped: before, the profile directory was shared, so a parallel run printed `skipped: no Chromium` for three of the five raw-connection tests while still reporting them as passed; each launch has its own profile now. Black box (`tooling/wf-blackbox`, the real `wf` binary): 1140 of 1142 on the in-repo debug binary, the browser, vnc, visual and bench suites included (the bench lab and `wf visual` serve a real export to Chromium through `tiny_http`, the 34 listener and token-gate cases pass against the new listener and `httparse`). The two failures are the `dispatch-batch` duration assertions (`ok 0s` or `FAIL 0s` read as 1s to 3s on this machine, the same family the std-only binary fails). A binary copied out of the repository fails more tests (the harness and registry lookups follow the executable's path), so the suite is run on the in-repo binary only. Unit: 44 in `wf` (its binary and its test files), 7 in `cli-http`, 20 in `rca-core`."
+        ],
+        [
+          "Deliberate behaviour changes (library behaviour wins): JavaScript is served as `text/javascript` (RFC 9239, what `mime_guess` says), where the daemon said `application/javascript`, and every served file's type comes from the full table, not the eight extensions the daemon knew; the servers keep connections alive (HTTP/1.1 through `tiny_http`), where each old server closed after one reply; a request body to the VNC control listener over 1 MiB is answered 413 where the old server dropped the connection; the `cdp` WebSocket accepts messages of any size (the old reader allocated whatever length a frame announced); base64 text with embedded whitespace is no longer accepted (the browser never sends it); the VNC link tokens and ids come from `getrandom`, which fails loudly, where the old `/dev/urandom` read left a token of zero bytes if the file could not be read."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1872–1885",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

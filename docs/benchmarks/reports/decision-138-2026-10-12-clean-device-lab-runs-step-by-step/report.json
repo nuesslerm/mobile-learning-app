@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-138-2026-10-12-clean-device-lab-runs-step-by-step",
+  "subject": "Engineering decisions",
+  "title": "clean device-lab runs, step by step",
+  "question": "What was measured for clean device-lab runs, step by step?",
+  "date": "2026-10-12",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-12 clean device-lab runs, step by step",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Recordings: the screen recorder stops a file near 3 minutes, so the long Tamil and editor recordings never existed; `wf android record` now records 170 s segments and the drivers record per step and read every upload back. Tamil: https://claude.ai/artifact/GhphSvwMgQNoZNU4WnWpFi, editor: https://claude.ai/artifact/QoRXJt536y7vuNd4vFgWeb",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Recordings: the screen recorder stops a file near 3 minutes, so the long Tamil and editor recordings never existed; `wf android record` now records 170 s segments and the drivers record per step and read every upload back. Tamil: https://claude.ai/artifact/GhphSvwMgQNoZNU4WnWpFi, editor: https://claude.ai/artifact/QoRXJt536y7vuNd4vFgWeb"
+        ],
+        [
+          "- Agent timing (one four-step task): scripted 6.8 s, opencode on the VM 19-24 s, opencode from the sandbox 49 s, Sonnet via `claude -p` 127 s wall (15 s in the loop, $0.18). Decision: keep scripted drivers for the three runbooks; run agent-driven exploration on the VM. Note: `wf rca ask --agent implementer` marks a run failed when no tracked file changed. Report: https://claude.ai/artifact/TGMH1PFEBsUaecXCwmVh77"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2288–2296",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

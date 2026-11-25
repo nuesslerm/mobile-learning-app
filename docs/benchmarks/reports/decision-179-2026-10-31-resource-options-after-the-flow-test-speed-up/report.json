@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-179-2026-10-31-resource-options-after-the-flow-test-speed-up",
+  "subject": "Engineering decisions",
+  "title": "resource options after the flow-test speed-up",
+  "question": "What was measured for resource options after the flow-test speed-up?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: resource options after the flow-test speed-up",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Linker (lld/mold), tmpfs target dir, a cargo job cap, a smaller Nx copy: not done. Measured on c21ca8c (a fully cold build, 25 min flow-tests): CPU 97% average, I/O wait 2% average (peak 15%); the Nx contract copy is 17 MB of tracked files. The bottleneck is CPU, which none of these moves; the runner image has no lld/clang to verify on, and a changed linker flag cold-starts sccache.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Linker (lld/mold), tmpfs target dir, a cargo job cap, a smaller Nx copy: not done. Measured on c21ca8c (a fully cold build, 25 min flow-tests): CPU 97% average, I/O wait 2% average (peak 15%); the Nx contract copy is 17 MB of tracked files. The bottleneck is CPU, which none of these moves; the runner image has no lld/clang to verify on, and a changed linker flag cold-starts sccache."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3000–3005",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

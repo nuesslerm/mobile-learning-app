@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-20-3434",
+  "subject": "Engineering decisions",
+  "title": "Model gateway Headroom stage left off",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-20",
+  "revision": null,
+  "environment": null,
+  "workload": "Model gateway Headroom stage left off",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "model gateway Headroom stage left off (issue #83 G2; test type: unit-level flow tests against an authored fake sidecar, n=1; no model, no real sidecar, no tokens measured). The stage shortens only the newest message of a request, through a `Compressor` port, and the tests pin that every byte before that message (`system`, `tools`, earlier messages) and after it reaches the provider unchanged,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 20 Nov, model gateway Headroom stage left off (issue #83 G2; test type: unit-level flow tests against an authored fake sidecar, n=1; no model, no real sidecar, no tokens measured). The stage shortens only the newest message of a request, through a `Compressor` port, and the tests pin that every byte before that message (`system`, `tools`, earlier messages) and after it reaches the provider unchanged, so the prompt cache keeps its prefix; a failing sidecar or a non-matching rule sends the body as it came. Decision: it ships off (`GatewayParts::headroom` is `None` in `main`), because the plan's bar (a net saving of at least 15 % after the cache loss over five recorded sessions) has no measurement yet and no sidecar adapter exists. The saving is not claimed here."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3434",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

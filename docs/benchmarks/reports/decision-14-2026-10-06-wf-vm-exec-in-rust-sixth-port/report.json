@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-14-2026-10-06-wf-vm-exec-in-rust-sixth-port",
+  "subject": "Engineering decisions",
+  "title": "`wf vm exec` in Rust (sixth port)",
+  "question": "What was measured for `wf vm exec` in Rust (sixth port)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf vm exec` in Rust (sixth port)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "with repeatable `--artifact <rel>` (64 KiB script cap, 25-minute deadline with a",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "with repeatable `--artifact <rel>` (64 KiB script cap, 25-minute deadline with a"
+        ],
+        [
+          "TypeScript's fixed 2 s, so the one streaming test spends two seconds sleeping."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 516–542",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

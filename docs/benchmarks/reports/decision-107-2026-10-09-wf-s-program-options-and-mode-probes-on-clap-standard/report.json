@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-107-2026-10-09-wf-s-program-options-and-mode-probes-on-clap-standard",
+  "subject": "Engineering decisions",
+  "title": "wf's program options and mode probes on clap (standard-crates plan, phase 4d)",
+  "question": "What was measured for wf's program options and mode probes on clap (standard-crates plan, phase 4d)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf's program options and mode probes on clap (standard-crates plan, phase 4d)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Measured (release builds, the same loop for both binaries, interleaved, 30 spawns per round, 5 rounds, medians; before is the build of PR #341): `wf --help` 3.13 ms before, 3.05 after; a refused command line (`wf metro status --bogus`) 5.57 and 5.39; a parsed one (`wf metro status --identifier x`) 8.71 and 8.37; with the program options (`wf --app x --json metro status`) 8.69 and 8.15. Binary 8,305,912 B to 8,311,672 B. No change beyond noise; the sandbox wa…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Measured (release builds, the same loop for both binaries, interleaved, 30 spawns per round, 5 rounds, medians; before is the build of PR #341): `wf --help` 3.13 ms before, 3.05 after; a refused command line (`wf metro status --bogus`) 5.57 and 5.39; a parsed one (`wf metro status --identifier x`) 8.71 and 8.37; with the program options (`wf --app x --json metro status`) 8.69 and 8.15. Binary 8,305,912 B to 8,311,672 B. No change beyond noise; the sandbox was idle for the runs."
+        ],
+        [
+          "Tests, by tier. Unit (`cargo test -p wf -p agent-config-sync`, 89 passed): the probe and `split_program` cases were written first and were red (the missing function, then the three probe failures above); leading and repeated options, the command's words verbatim including a later `--json` and `--app`, an empty command line, help and version, a dangling `--app` and an unknown leading option as clap's errors, the program options accepted and dropped by a command's parse, and a command that lists `--json` itself. Integration (the real release binary): `binary-smoke.integration.test.ts` gained a matrix (`--app` before, `=`, after and `=` after the command, for `ios status`, `metro status`, `caveat status` and `report-health --list-unit-targets`; `--json` before and after for the first three) that was green on the old binary, and two tests that were red on it (a dangling `--app`, an unknown leading option); 33 of 33 with `option-errors` 6 of 6. The whole `wf` suite is 1176 of 1176 with the default `npx vitest run`, four runs in a row (172 to 202 s each), after one earlier full run in which the `auth-listener` desktop-browser `beforeAll` failed and skipped its ten Chromium tests; the file alone is 39 of 39 and the next five full runs did not repeat it, so it is recorded as one unexplained Chromium start failure under load, cause not captured. `cargo clippy --workspace --all-targets -- -D warnings` is clean. No e2e (a CLI)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1985–1996",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

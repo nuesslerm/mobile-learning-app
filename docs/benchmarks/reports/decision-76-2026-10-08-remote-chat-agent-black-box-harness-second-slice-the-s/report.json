@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-76-2026-10-08-remote-chat-agent-black-box-harness-second-slice-the-s",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent black-box harness, second slice (the small routes)",
+  "question": "What was measured for remote-chat-agent black-box harness, second slice (the small routes)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent black-box harness, second slice (the small routes)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Tier run: black-box integration through a real socket against the production bundle: 2 files, 41 tests, all green (about 25 s with the bundle build); lint and typecheck of the package clean.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier run: black-box integration through a real socket against the production bundle: 2 files, 41 tests, all green (about 25 s with the bundle build); lint and typecheck of the package clean."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1604–1609",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

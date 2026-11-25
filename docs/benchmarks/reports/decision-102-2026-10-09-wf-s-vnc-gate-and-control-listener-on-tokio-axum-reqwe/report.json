@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-102-2026-10-09-wf-s-vnc-gate-and-control-listener-on-tokio-axum-reqwe",
+  "subject": "Engineering decisions",
+  "title": "wf's VNC gate and control listener on tokio, axum, reqwest and tower-http (standard-crates plan, phase 4b)",
+  "question": "What was measured for wf's VNC gate and control listener on tokio, axum, reqwest and tower-http (standard-crates plan, phase 4b)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf's VNC gate and control listener on tokio, axum, reqwest and tower-http (standard-crates plan, phase 4b)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measured (release builds, the same script for both binaries, `/tmp/.../bench-vnc.mjs`, n=5 medians; the before binary is the build of `claude/rca-serde-errors`):",
+  "variants": [
+    {
+      "id": "before",
+      "label": "Before"
+    },
+    {
+      "id": "after",
+      "label": "After"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-2",
+      "label": "`wf --help` cold start (interleaved, 30 spawns per round, 5 rounds)",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-3",
+      "label": "`wf auth listener` idle RSS",
+      "unit": "MB",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-4",
+      "label": "One gated GET, new connection each (300 per run) p50",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-5",
+      "label": "One gated WebSocket echo round trip p50",
+      "unit": "ms",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.45,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 3.37,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 7.14,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-3",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 8.71,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.69,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-4",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.53,
+      "outcome": "observed"
+    },
+    {
+      "variant": "before",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.078,
+      "outcome": "observed"
+    },
+    {
+      "variant": "after",
+      "scenario": "table-1",
+      "metric": "table-1-row-5",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 0.073,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "`wf` binary",
+          "7,363,608 B",
+          "8,149,368 B"
+        ],
+        [
+          "`wf --help` cold start (interleaved, 30 spawns per round, 5 rounds)",
+          "3.45 ms",
+          "3.37 ms"
+        ],
+        [
+          "`wf auth listener` idle RSS",
+          "7.14 MB",
+          "8.71 MB"
+        ],
+        [
+          "One gated GET, new connection each (300 per run) p50",
+          "0.69 ms",
+          "0.53 ms"
+        ],
+        [
+          "One gated WebSocket echo round trip p50",
+          "0.078 ms",
+          "0.073 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "What changed. The gate is an axum server in front of one `reqwest` client (rustls with the native roots; `https+insecure://` skips verification, `https://` verifies): a plain request is forwarded with its headers minus the hop-by-hop ones and its answer is streamed back with the session cookie added; an upgrade takes `hyper::upgrade::OnUpgrade` from the request, forwards the upgrade through reqwest, answers 101 with the backend's headers and joins the two upgraded connections with `tokio::io::copy_bidirectional`. The control channel is an axum router with `RequestBodyLimitLayer` (1 MiB) and `tower_http::cors::CorsLayer` on `/desktop/fit` only; the blocking engine and launcher run under `spawn_blocking`. The runtime (two workers) is built inside `vnc::listen()`. `vnc/http.rs`, the `httparse` dependency and the `openssl` child process are gone, and the vnc image no longer installs `openssl`. Six direct dependencies were added to `clis/wf` (`tokio`, `axum`, `tower-http`, `reqwest`, `hyper`, `hyper-util`, at the versions the backend workspace already ships; `tower` and `http-body-util` for tests); `clis/Cargo.lock` gains 65 packages, most of them `icu_*` and `idna` behind `url` and the rustls stack. `pnpm run audit` covers the JavaScript tree and timed out in the sandbox; there is no Rust audit tool installed, so the dependency vetting is by version identity with the backends."
+        ],
+        [
+          "Measured (release builds, the same script for both binaries, `/tmp/.../bench-vnc.mjs`, n=5 medians; the before binary is the build of `claude/rca-serde-errors`):"
+        ],
+        [
+          "Reading: the runtime exists only in the listener, so the other commands start as fast as before; the listener costs about 1.6 MB more resident memory and the binary 0.8 MB; the gate is a little faster because connections to the backend are pooled."
+        ],
+        [
+          "Tests, by tier. Integration (`tooling/wf-blackbox` `auth-listener.integration.test.ts`, the real release binary, mock backends as separate Node processes): written first and run against the old binary, two were red (a preflight for `/desktop/fit` was a 404; the gate answered `Connection: close`), three pinned behaviour that already held (a 1.2 MB body is refused on the control port, a gzip answer passes untouched, a real RFC 6455 echo server behind the gate negotiates a subprotocol and echoes a binary frame); one test was rewritten because the library answers 413 from the declared Content-Length without reading the body (the old test posted a 1.2 MB body; a client still writing can see a reset, so the new one declares the length and sends nothing). Then 39 of 39 on the new binary, none skipped, the `https+insecure` case included. The whole suite: 1146 of 1147 with `--maxWorkers=3` (the one failure is the known `dispatch-batch` rounded-duration assertion, red on the std-only baseline too); two earlier full runs at full parallelism on this 4-core machine failed 3 and 6 timing-sensitive tests (browser video, `deploy run`, `metro _forward-log`) that pass when their files run alone. Flow and unit (`cargo test -p wf`): 50 passed, 10 of them new (gate: target parsing, 403 for no, wrong or unknown tokens, the refused upgrade told to close, 502 when the backend is down, cookie authorization; control router driven in-process with `tower::oneshot`: 401 and 403, 404 for a GET or an unknown path, the preflight only on the fit route, 413 for a body over 1 MiB). `cargo clippy --workspace --all-targets -- -D warnings` is clean for all of `clis/`. E2E: the gate against the desktop container was not run (it needs the trigger secret, and the owner declined reading secrets for probes). What did run on the VM: `wf deploy run wf-cli vnc-auth-capture --ref claude/wf-vnc-gate-tokio --build-only` built both images natively (arm64) from the branch and pushed them as `sha-43261cb4`, exit 0, nothing redeployed; this is the native compile of the new dependency set that the plan listed as a risk. The vnc image takes its `wf` from `nuesslerm/wf-cli:latest`, so `wf-cli` must be rebuilt as `latest` before the vnc image is rebuilt without `openssl`; until then a rebuilt vnc image would carry the old gate and no `openssl`."
+        ],
+        [
+          "Deliberate behaviour changes (library wins): connections to the gate are kept alive and backend connections are pooled (before, `Connection: close` on both sides); a body over 1 MiB, or declared as such, gets a 413 from tower-http at once; `OPTIONS /desktop/fit` is a preflight answered 200 by `CorsLayer` (any origin, `POST`, any headers) and `OPTIONS` elsewhere is the control channel's 404; `https://` backends are verified (before, both HTTPS schemes went through `openssl s_client`, which does not verify), `https+insecure://` is not; a refused upgrade carries `Connection: close` in place of a bare status line; response bodies are streamed instead of relayed byte for byte. The refusal texts are unchanged."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1921–1944",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

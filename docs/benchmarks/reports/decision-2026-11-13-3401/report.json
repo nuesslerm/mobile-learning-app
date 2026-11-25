@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-13-3401",
+  "subject": "Engineering decisions",
+  "title": "The one-sidecar proof",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-13",
+  "revision": null,
+  "environment": null,
+  "workload": "The one-sidecar proof",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "the one-sidecar proof (issue #80 section B), run 43468878073 (`e0a545d7`, a second comment in the opencode-server Dockerfile, after the smoke fix): before (17:02:46 UTC) `remote-chat-agent` Up 2 h on `sha-2bc62cda`, `remote-chat-agent-opencode` Up 26 min on `sha-c5f3d358`, tailscale Up 28 h; after (17:16:32 UTC) `remote-chat-agent` Up 2 h, unchanged, opencode Up 17 s on `sha-e0a545d7`,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 13 Nov, the one-sidecar proof (issue #80 section B), run 43468878073 (`e0a545d7`, a second comment in the opencode-server Dockerfile, after the smoke fix): before (17:02:46 UTC) `remote-chat-agent` Up 2 h on `sha-2bc62cda`, `remote-chat-agent-opencode` Up 26 min on `sha-c5f3d358`, tailscale Up 28 h; after (17:16:32 UTC) `remote-chat-agent` Up 2 h, unchanged, opencode Up 17 s on `sha-e0a545d7`, tailscale Up 28 h. Both deploy legs and the deployment verification passed. rca-service was never restarted, so its executor channel was never touched."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3401",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

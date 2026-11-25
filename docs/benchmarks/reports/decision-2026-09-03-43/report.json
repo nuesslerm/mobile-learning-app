@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-43",
+  "subject": "Engineering decisions",
+  "title": "First live run of the cheap-flow tree on a real feature",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "First live run of the cheap-flow tree on a real feature",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "First live run of the cheap-flow tree on a real feature (`cheap-flow check <slug>`, plan validation before the first paid dispatch): research $0.0078 / 48s (precise file:line answers, found that `work` let `topoOrder` throws escape); 3 units on the implementer agent, 3/3 gates green on the first attempt, $0.0180 / 258s; reviewer found 2 risks + 3 nits, no blocker, 2 risks fixed (tests), nit 3…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 26 | 2026-09-03 09:55 | First live run of the cheap-flow tree on a real feature (`cheap-flow check <slug>`, plan validation before the first paid dispatch): research $0.0078 / 48s (precise file:line answers, found that `work` let `topoOrder` throws escape); 3 units on the implementer agent, 3/3 gates green on the first attempt, $0.0180 / 258s; reviewer found 2 risks + 3 nits, no blocker, 2 risks fixed (tests), nit 3 fixed, nits 4–5 dismissed. Claude wrote requirements, contract, units.jsonl and read only briefs; the skills now run `check` from `/cf-plan` | `docs/archive/plans/cf-check/{research.md,manifest.json,review.md}`, `.agents/tmp/opencode-dispatch-runs.jsonl` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 43",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

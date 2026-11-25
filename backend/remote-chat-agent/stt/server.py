@@ -5,7 +5,7 @@ multipart contract as the agent's /api/voice-transcribe -- an `audio` file
 part -- so the agent, the harness scorer and a curl all speak to it the same
 way. Measured on the 10-sentence voice fixture set: 4.2x faster than the
 whisper.cpp build the VM ran, at equal or better accuracy
-(docs/audits/2026-09-14-voice-edit-latency-data.md, section 8).
+(docs/benchmarks/reports/2026-09-14-voice-edit-latency-data/evidence/2026-09-14-voice-edit-latency-data.md, section 8).
 
 Configuration is environment only:
   STT_MODEL           tiny.en | base.en | small.en ... (default tiny.en)

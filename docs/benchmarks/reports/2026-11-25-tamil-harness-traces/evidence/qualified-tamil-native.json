@@ -1,0 +1,104 @@
+{
+  "appRevision": "442ab9d8ba1252bdc26f92c45c0d1ca3be10d025",
+  "measurements": [
+    {
+      "sample": 1,
+      "seconds": 186.074639584,
+      "budgetSeconds": 900,
+      "cases": 15,
+      "ok": true
+    }
+  ],
+  "cases": [
+    {
+      "case": "case=resume",
+      "wallS": 9.639,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=tiles",
+      "wallS": 8.126,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=typed",
+      "wallS": 10.639,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=listen",
+      "wallS": 9.636,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=fill",
+      "wallS": 8.112,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=review",
+      "wallS": 13.197,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=trace",
+      "wallS": 14.714,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=redraw",
+      "wallS": 14.718,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=flash-english",
+      "wallS": 8.621,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=flash-tamil",
+      "wallS": 16.209,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=word",
+      "wallS": 16.258,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=weak-letter",
+      "wallS": 12.175,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=skip",
+      "wallS": 15.215,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=library",
+      "wallS": 15.234,
+      "verdict": "pass",
+      "sample": 1
+    },
+    {
+      "case": "case=double-rate",
+      "wallS": 13.19,
+      "verdict": "pass",
+      "sample": 1
+    }
+  ]
+}

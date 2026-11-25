@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-135-2026-10-11-native-voice-edit-on-redroid-three-app-and-setup-findi",
+  "subject": "Engineering decisions",
+  "title": "Native voice edit on redroid: three app and setup findings, and the fast loop (Task #81 part B)",
+  "question": "What was measured for Native voice edit on redroid: three app and setup findings, and the fast loop (Task #81 part B)?",
+  "date": "2026-10-11",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-11 Native voice edit on redroid: three app and setup findings, and the fast loop (Task #81 part B)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Result of one turn on valid-palindrome row 2: transcript \"Set S to only itself the numeric characters in lowercase.\" (backend STT, 1 s), review sheet shown.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Result of one turn on valid-palindrome row 2: transcript \"Set S to only itself the numeric characters in lowercase.\" (backend STT, 1 s), review sheet shown."
+        ],
+        [
+          "- Fast loop: one persistent redroid on the VM with Expo Go (`lab-up.sh`, port 5555 published on the agent-shell node), reached from the sandbox through the tailnet SOCKS proxy (`socks_forward.py`), `wf android` run locally. A JS fix now reaches the device in about 6 minutes (CI plus Metro redeploy) instead of about 20 (EAS build). The sandbox cannot run redroid itself: its kernel has no binder and no /dev/kvm."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2258–2266",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

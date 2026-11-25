@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-159-round-5b-the-wf-test-and-check-verbs-move-into-pipeline-2026-10-2",
+  "subject": "Engineering decisions",
+  "title": "Round 5b: the wf test and check verbs move into pipeline (2026-10-26)",
+  "question": "What was measured for Round 5b: the wf test and check verbs move into pipeline (2026-10-26)?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "Round 5b: the wf test and check verbs move into pipeline (2026-10-26)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Run 40253710624 (e9a868e91): `typecheck-lint-unit-tests` passed, the silent gap before clippy is gone. `deploy (vm-ops-api)` failed on the 200 s build budget: the backend lockfile gained `reqwest` and `tempfile` through the service-kit `blackbox` feature, so the cargo-chef layer was cold. The build keeps running on the VM and fills the layer cache; the budget is not raised, the next push reuses the layers.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Run 40253710624 (e9a868e91): `typecheck-lint-unit-tests` passed, the silent gap before clippy is gone. `deploy (vm-ops-api)` failed on the 200 s build budget: the backend lockfile gained `reqwest` and `tempfile` through the service-kit `blackbox` feature, so the cargo-chef layer was cold. The build keeps running on the VM and fills the layer cache; the budget is not raised, the next push reuses the layers."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2810–2817",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

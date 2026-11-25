@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-122-2026-10-10-watchdog-ported-to-rust-phase-5-of-the-typescript-remo",
+  "subject": "Engineering decisions",
+  "title": "watchdog ported to Rust (phase 5 of the TypeScript removal plan)",
+  "question": "What was measured for watchdog ported to Rust (phase 5 of the TypeScript removal plan)?",
+  "date": "2026-10-10",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-10: watchdog ported to Rust (phase 5 of the TypeScript removal plan)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Black box first: 19 of 19 on the Node daemon and on the Rust binary; 6 flow tests, 11 unit tests. Interleaved n=5 (`docs/audits/benchmarks/watchdog-node-vs-rust.json`): first `docker ps` 44.6 to 4.8 ms after process start, idle RSS 46,476 to 5,320 KB. The image builds from the repository root (musl binary on the alpine image that carries the docker CLI and compose plugin); the trunk build table in vm-ops-api names the new context and ships with the next hand…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Black box first: 19 of 19 on the Node daemon and on the Rust binary; 6 flow tests, 11 unit tests. Interleaved n=5 (`docs/audits/benchmarks/watchdog-node-vs-rust.json`): first `docker ps` 44.6 to 4.8 ms after process start, idle RSS 46,476 to 5,320 KB. The image builds from the repository root (musl binary on the alpine image that carries the docker CLI and compose plugin); the trunk build table in vm-ops-api names the new context and ships with the next hand deploy of vm-ops-api."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2155–2158",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-200-run-41483361232-733bcf523-the-plan-job-killed-after-24-s-2026-11",
+  "subject": "Engineering decisions",
+  "title": "Run 41483361232 (733bcf523): the `plan` job killed after 24 s (2026-11-02)",
+  "question": "What was measured for Run 41483361232 (733bcf523): the `plan` job killed after 24 s (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 41483361232 (733bcf523): the `plan` job killed after 24 s (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - `install-wf` of the `plan` job ended with exit code 143 (SIGTERM) 2 s into the step, every later step was skipped, and the job counted as failed with no failing step and no test run. `preflight` of the same run was green, nothing on the VM restarted at 16:38, and the run cannot be rerun with the repository token (403). The change in it (the log import moved from `infrastructure` to `application`, nine arch-rule ignores dropped) was left unproven by CI, so …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `install-wf` of the `plan` job ended with exit code 143 (SIGTERM) 2 s into the step, every later step was skipped, and the job counted as failed with no failing step and no test run. `preflight` of the same run was green, nothing on the VM restarted at 16:38, and the run cannot be rerun with the repository token (403). The change in it (the log import moved from `infrastructure` to `application`, nine arch-rule ignores dropped) was left unproven by CI, so it ships again with the next push."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3307–3310",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

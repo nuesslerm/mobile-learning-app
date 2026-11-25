@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "id": "rca-rust-slice1",
+  "subject": "Services and CLI",
+  "title": "rca rust slice1",
+  "question": "What did the rca rust slice1 measurements show?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "rca rust slice1",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "rust-slice1 recorded 30.491949999999633 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "rust-slice1",
+      "label": "rust-slice1"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "artifactbytes",
+      "label": "artifactBytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafterhealthmb",
+      "label": "rssAfterHealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthp50ms",
+      "label": "healthP50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "finalrssmb",
+      "label": "finalRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmaxmb",
+      "label": "peakRssMaxMb",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "artifactbytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 462080,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 30.491949999999633,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.37890625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "rssafterhealthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.48046875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "healthp50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.4081350000005841,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "finalrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.48046875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.48046875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-slice1",
+      "scenario": "service",
+      "metric": "peakrssmaxmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.48046875,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "rca-rust-slice1.json",
+      "path": "evidence/rca-rust-slice1.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

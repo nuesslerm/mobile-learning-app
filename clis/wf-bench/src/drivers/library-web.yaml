@@ -1,0 +1,19 @@
+url: ${URL}
+---
+- launchApp
+- startRecording: run
+- assertVisible: First steps
+- takeScreenshot: start
+- tapOn: First steps
+- assertVisible: Practice
+- tapOn: Practice
+- assertVisible: Start practice
+- takeScreenshot: lesson
+- tapOn:
+    point: "8%,4%"
+- assertVisible: Practice
+- tapOn:
+    point: "8%,4%"
+- assertVisible: First steps
+- takeScreenshot: finish
+- stopRecording

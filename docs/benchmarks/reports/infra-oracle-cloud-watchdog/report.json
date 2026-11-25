@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "id": "infra-oracle-cloud-watchdog",
+  "subject": "Engineering measurements",
+  "title": "infra/oracle-cloud/watchdog: ported to Rust",
+  "question": "What did the infra/oracle-cloud/watchdog: ported to Rust measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "infra/oracle-cloud/watchdog: ported to Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Release binary 5.3 MB (glibc build; the image carries the musl build).",
+  "variants": [
+    {
+      "id": "node",
+      "label": "Node"
+    },
+    {
+      "id": "rust",
+      "label": "Rust"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-1",
+      "label": "Published comparison 1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-1-row-1",
+      "label": "process start to first `docker ps`",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-1-row-2",
+      "label": "idle RSS",
+      "unit": "KB",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 44.6,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.8,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 46476,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "table-1",
+      "metric": "table-1-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 5320,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Node",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "process start to first `docker ps`",
+          "44.6 ms",
+          "4.8 ms"
+        ],
+        [
+          "idle RSS",
+          "46,476 KB",
+          "5,320 KB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Release binary 5.3 MB (glibc build; the image carries the musl build)."
+        ],
+        [
+          "- A `docker` call that runs longer than 300 s is killed and reported as a failed sweep or recreate (the Node timeout did the same through `spawn`)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "infra-oracle-cloud-watchdog.md",
+      "path": "../../../audits/reports/infra-oracle-cloud-watchdog.md"
+    }
+  ]
+}

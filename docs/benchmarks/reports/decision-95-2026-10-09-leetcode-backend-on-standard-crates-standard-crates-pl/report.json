@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-95-2026-10-09-leetcode-backend-on-standard-crates-standard-crates-pl",
+  "subject": "Engineering decisions",
+  "title": "leetcode-backend on standard crates (standard-crates plan, phase 2, the pilot)",
+  "question": "What was measured for leetcode-backend on standard crates (standard-crates plan, phase 2, the pilot)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: leetcode-backend on standard crates (standard-crates plan, phase 2, the pilot)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Cost spike before committing to the stack (scratch crate, release, `opt-level = \"s\"`, lto): an axum + tokio (2 workers) + reqwest (rustls) + tower-http + tracing + OTLP (http-json) service with the routes of a typical backend is 4.12 MB, 9.8 ms to the first `/health`, 6.6 MB idle RSS, 238 crates; the std-only `leetcode-backend` was 0.63 MB, 5.7 ms, 2.5 MB.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "pre (std-only, curl)",
+        "post (axum, reqwest, tracing)"
+      ],
+      "rows": [
+        [
+          "Binary",
+          "0.63 MB",
+          "4.10 MB"
+        ],
+        [
+          "Cold start to `/health`",
+          "5.12 ms",
+          "12.10 ms"
+        ],
+        [
+          "Idle RSS",
+          "2.59 MB",
+          "6.42 MB"
+        ],
+        [
+          "RSS after 60 health calls",
+          "2.63 MB",
+          "6.49 MB"
+        ],
+        [
+          "Peak RSS (whole session)",
+          "3.01 MB",
+          "6.85 MB"
+        ],
+        [
+          "`GET /health` p50",
+          "0.46 ms",
+          "0.46 ms"
+        ],
+        [
+          "`GET /api/leetcode/user-status` p50 (one relay to a local mock LeetCode)",
+          "6.66 ms",
+          "1.08 ms"
+        ],
+        [
+          "`POST /api/leetcode/run` p50 (Python, one case)",
+          "33.89 ms",
+          "33.27 ms"
+        ],
+        [
+          "`POST /api/leetcode/format` p50 (Python)",
+          "37.09 ms",
+          "35.42 ms"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Cost spike before committing to the stack (scratch crate, release, `opt-level = \"s\"`, lto): an axum + tokio (2 workers) + reqwest (rustls) + tower-http + tracing + OTLP (http-json) service with the routes of a typical backend is 4.12 MB, 9.8 ms to the first `/health`, 6.6 MB idle RSS, 238 crates; the std-only `leetcode-backend` was 0.63 MB, 5.7 ms, 2.5 MB."
+        ],
+        [
+          "Measured on the real service, n=5 medians, one fresh process per run, the same scripted session (`backend/leetcode-backend/tests/bench/service.benchmark.test.ts`, `bench:service`), pre = `origin/dev` at `9a08c6a`, post = this branch. Records: `docs/audits/benchmarks/leetcode-backend-{pre,post}-std.json`."
+        ],
+        [
+          "Reading: the standard stack costs 3.5 MB of binary, 7 ms of start and 3.8 MB of resident memory, which the owner accepted as the price of not maintaining the infrastructure. The relay is six times faster because a `curl` process is no longer spawned per request; local code execution is unchanged (the child process dominates)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1788–1815",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

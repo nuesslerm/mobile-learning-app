@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-88-2026-10-08-remote-chat-agent-rust-service-slice-6-the-websocket-l",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, slice 6 (the WebSocket layer)",
+  "question": "What was measured for remote-chat-agent Rust service, slice 6 (the WebSocket layer)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, slice 6 (the WebSocket layer)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Ported: the upgrade (`/ws`, the secret as `?token=`, a 401 `unauthorized`, the handshake checks `ws` makes, the first offered subprotocol chosen), the framing (`ws/frame.rs`: masking, fragmentation with control frames between the fragments, UTF-8 checked on text, a 100 MiB cap, the close codes `ws` uses), the envelopes and requests (`ws/{envelope,methods}.rs`, `orchestration/wire.rs`: `ClientEnvelopeSchema` and `ClientOrchestrationCommandSchema` as zod 4 r…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Ported: the upgrade (`/ws`, the secret as `?token=`, a 401 `unauthorized`, the handshake checks `ws` makes, the first offered subprotocol chosen), the framing (`ws/frame.rs`: masking, fragmentation with control frames between the fragments, UTF-8 checked on text, a 100 MiB cap, the close codes `ws` uses), the envelopes and requests (`ws/{envelope,methods}.rs`, `orchestration/wire.rs`: `ClientEnvelopeSchema` and `ClientOrchestrationCommandSchema` as zod 4 reports them, including that a `z.unknown()` field is required and that a plain object and a discriminated union put `code` and `expected` in different orders), per-connection subscriptions with their own forwarding threads (`ws/subscriptions.rs`), and the heartbeat (a ping every 15 s, two unanswered cut the connection). The engine gained subscriptions into a channel the caller makes, so a subscription can be woken to end."
+        ],
+        [
+          "- Benchmark of the slice (same harness, n=5, `rca-pre-node-ws.json` and `rca-rust-slice6.json`, medians): cold start 32.1 ms (Node 482.9), idle RSS 5.8 MB (134.0). A `listThreads` request over a held socket 0.072 ms (0.130). A hundred sockets each opened, greeted and subscribed to the shell: 1.007 ms per connection (0.991, a tie) and 11.4 MB resident with all hundred held (143.4 MB). Artifact 17,346,032 bytes."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1726–1734",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

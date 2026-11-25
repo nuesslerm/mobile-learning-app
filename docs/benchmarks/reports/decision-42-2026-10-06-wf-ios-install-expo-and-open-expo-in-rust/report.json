@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-42-2026-10-06-wf-ios-install-expo-and-open-expo-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf ios install-expo` and `open-expo` in Rust",
+  "question": "What was measured for `wf ios install-expo` and `open-expo` in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf ios install-expo` and `open-expo` in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Decision: port both. The installed check (`mobilecli apps list`, strict about the JSON shape, any failure counts as not installed), the cache under `$HOME/.cache/wf/expo-go/ios/54.0.7`, the download with `curl -sfL`, `tar -xzf` into a temp directory renamed with `mv`, `xattr -dr com.apple.quarantine`, `xcrun simctl install`, and for `open-expo` the launch, the 1.5 s settle and the deep link. As in the TS, `open-expo` resolves the simulator twice. Oracle: `io…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision: port both. The installed check (`mobilecli apps list`, strict about the JSON shape, any failure counts as not installed), the cache under `$HOME/.cache/wf/expo-go/ios/54.0.7`, the download with `curl -sfL`, `tar -xzf` into a temp directory renamed with `mv`, `xattr -dr com.apple.quarantine`, `xcrun simctl install`, and for `open-expo` the launch, the 1.5 s settle and the deep link. As in the TS, `open-expo` resolves the simulator twice. Oracle: `ios-expo-go.integration.test.ts` (12 tests; `mobilecli`, `xcrun`, `curl`, `tar` and `xattr` stubs, private HOME and TMPDIR), 12/12 on the TS bundle and on the Rust binary unchanged. Not exercised: a real download or Simulator. With this, only `ios build dev-client` and `ios launch` remain of the iOS group."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1307–1310",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

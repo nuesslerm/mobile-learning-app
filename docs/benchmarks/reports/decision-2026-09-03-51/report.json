@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-51",
+  "subject": "Engineering decisions",
+  "title": "Cheap worker default",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "Cheap worker default",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Cheap worker default (user): `minimax/MiniMax-M3` first, `opencode-go/deepseek-v4-flash` only when minimax is exhausted (cap, 429, timeout), kimi third. `MODEL_ROTATION` reordered in `clis/opencode-harness`; the three `.opencode/agents/*.md` pin MiniMax-M3; cheap-flow passes the ordered pair as `models` so a pinned agent still falls through to deepseek but never to a third provider. B1/B2…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 34 | 2026-09-03 12:20 | Cheap worker default (user): `minimax/MiniMax-M3` first, `opencode-go/deepseek-v4-flash` only when minimax is exhausted (cap, 429, timeout), kimi third. `MODEL_ROTATION` reordered in `clis/opencode-harness`; the three `.opencode/agents/*.md` pin MiniMax-M3; cheap-flow passes the ordered pair as `models` so a pinned agent still falls through to deepseek but never to a third provider. B1/B2 savings numbers were measured on deepseek and stay labelled so; MiniMax-M3 lists at $0.30/$1.20 per M tokens on models.dev (deepseek-v4-flash via opencode-go was ≈$0.004–0.026 per B1 task). Live check: `wf opencode dispatch` trivial run served by `minimax/MiniMax-M3` (28,760 tokens, $0.0048, 46 s, run `2570a815`); with an invalid `MINIMAX_API_KEY` the run fails after one attempt (`capped: false`, run `e7b04f6c`) and does not rotate, by the harness's existing rule: only a usage cap, 429 or timeout is \"exhausted\" and rotates, an auth or prompt error fails fast so the rotation budget is not burnt on something the next model cannot fix. The first two live runs after the code change were still served by deepseek because `wf`'s own bundle embeds the harness and had not been rebuilt; `nx run workflow-cli:bundle-build` fixed it (the `bundle-fresh` lefthook job guards the committed bundles) | plan file, Phase R; runs `2570a815`, `e7b04f6c` in `.agents/tmp/opencode-dispatch-runs.jsonl` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 51",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

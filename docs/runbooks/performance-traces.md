@@ -53,3 +53,16 @@ The catalog runner reads the pinned Orca and T3 endpoint inventories, the RCA HT
 CI requires five calls with outcomes for each local endpoint. A first passing catalog run seeds each median. Later runs with the same suite, profile and outcome counts must stay within that median plus the greater of 50% or 5 ms. A decrease in the number of successful calls also fails the gate. The separate full-chain tests continue to enforce 30-sample p95 limits. Both workloads publish their SQLite data and the offline HTML report in the CI artifact.
 
 Open an endpoint in **Endpoint coverage** to inspect individual invocations. **Per-API regression checks** records each comparable median and verdict. **Operation timings** includes every recorded operation, and **Individual calls and spans** lists the time, duration, result, HTTP status, service, call site and trace identifiers where available. The run selector includes older captures. Their missing outcome and source fields are displayed as empty. Traces stay local unless export is enabled. The pinned host inventory is always available, and imported catalog runs add their captured RCA and executor inventories.
+
+## Harness journeys
+
+The device harnesses emit nested OpenTelemetry spans for setup, Lua calls, named steps, waits and teardown. Browser calls include the daemon RPC and iOS calls include the simulator bridge operation. Android includes adb and UI server calls. The flow harness times Vitest and the separate Chromium golden pass. Times include child spans. Summing parents and children double counts their work.
+
+```sh
+WF_PERFORMANCE_DB=/tmp/tamil.sqlite wf --performance flow run tests/flow/tamilLessons.flow.test.tsx --json
+wf test run --performance --db /tmp/tamil.sqlite --report /tmp/tamil.html
+```
+
+For a driver comparison run `wf --performance bench drivers --platform browser --url "$TAMIL_LIBRARY_URL" --out "$NEW_DIRECTORY"` against a prepared web export. On native devices also pass `--device` and `--app-id`. Each pair reverses driver order. Screenshot boundaries mark the ready screen and the completed return. RSS sums sampled host process trees, including the isolated wf browser daemon. Device app memory and shared pages require separate interpretation. Maestro writes command timings to its own JSON. Buoy Bench records app-side frame and rendering measurements separately.
+
+Hosted device and integration jobs retain their SQLite captures in their existing test-run artifacts. A native three-sample benchmark push also runs a fresh Android driver pair per booted emulator. Check the run verdict and the number of observed spans before comparing timings. An Nx cache replay can produce a runner span without fresh device work.

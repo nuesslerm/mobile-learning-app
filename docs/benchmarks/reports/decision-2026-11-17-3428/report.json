@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-17-3428",
+  "subject": "Engineering decisions",
+  "title": "Basic-memory MCP server, context cost measured",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-17",
+  "revision": null,
+  "environment": null,
+  "workload": "Basic-memory MCP server, context cost measured",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "basic-memory MCP server, context cost measured (test type: static count from the pinned wheel, no server started, n=1). `basic-memory==1.0.0` (PyPI wheel, 1.8 MB, downloaded and unpacked, not run) registers 13 `@mcp.tool` functions under `basic_memory/mcp`: `bm_write`, `bm_read`, `bm_edit`, `bm_move`, `bm_delete`, `bm_search`, `bm_find`, `bm_list`, `bm_context`, `bm_schema`, `bm_project`,…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 17 Nov, basic-memory MCP server, context cost measured (test type: static count from the pinned wheel, no server started, n=1). `basic-memory==1.0.0` (PyPI wheel, 1.8 MB, downloaded and unpacked, not run) registers 13 `@mcp.tool` functions under `basic_memory/mcp`: `bm_write`, `bm_read`, `bm_edit`, `bm_move`, `bm_delete`, `bm_search`, `bm_find`, `bm_list`, `bm_context`, `bm_schema`, `bm_project`, `bm_project_delete`, `bm_man`. Name, docstring and signature text add up to about 12.8 KB (largest `bm_search` 2.4 KB, `bm_write` 1.7 KB, `bm_edit` 1.6 KB), roughly 3.2 k tokens at 4 bytes per token before the JSON-schema wrapping, so expect 4 to 5 k tokens of tool definitions in every session that launches it. Enabled flags: `default` and `opencode` tiers `enabled: false` (no cost there); `claude` and `codex` have no flag in the contract, so both pay the cost on every session. Not measured: the live `tools/list` payload and whether the package honours the three env variables. Decision: keep registered, but the unconditional Claude and Codex cost is the open point; no benefit has been measured, so enable nothing further until a `wf rca ask --stats` / `--savings` run shows memory lookups pay for about 4 k tokens per session."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3428",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

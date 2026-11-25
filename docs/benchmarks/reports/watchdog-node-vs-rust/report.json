@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "id": "watchdog-node-vs-rust",
+  "subject": "Services and CLI",
+  "title": "watchdog node vs rust",
+  "question": "What did the watchdog node vs rust measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": "x86_64",
+  "workload": "watchdog node vs rust",
+  "method": "n=5 rounds of the watchdog's cold start and idle RSS, implementations interleaved per round. See the script header.",
+  "finding": "node recorded 44.574 ms for start_ms.",
+  "variants": [
+    {
+      "id": "node",
+      "label": "node"
+    },
+    {
+      "id": "rust",
+      "label": "rust"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "start-ms",
+      "label": "start_ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idle-rss-kb",
+      "label": "idle_rss_kb",
+      "unit": "KB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 44.574,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 46476,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 44.347,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 46476,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 44.574,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 46484,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 46.182,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 46444,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 47.587,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 46476,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 41.453,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 46480,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 4.766,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 5320,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 4.858,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-1",
+      "statistic": "as reported",
+      "value": 5304,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 4.766,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-2",
+      "statistic": "as reported",
+      "value": 5352,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 4.779,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-3",
+      "statistic": "as reported",
+      "value": 5348,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 4.726,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-4",
+      "statistic": "as reported",
+      "value": 5320,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "start-ms",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 4.745,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust",
+      "scenario": "service",
+      "metric": "idle-rss-kb",
+      "sample": "round-5",
+      "statistic": "as reported",
+      "value": 5240,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "watchdog-node-vs-rust.json",
+      "path": "evidence/watchdog-node-vs-rust.json"
+    }
+  ],
+  "sampleSize": "n=5 rounds of the watchdog's cold start and idle RSS, implementations interleaved per round. See the script header."
+}

@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 1,
+  "id": "audits-2026-11-07-mimic-r2c-replay",
+  "subject": "Engineering measurements",
+  "title": "R2c replay: wf-t3 and orca-serve against the recorded crawl cassettes",
+  "question": "What did the R2c replay: wf-t3 and orca-serve against the recorded crawl cassettes measurements show?",
+  "date": "2026-11-07",
+  "revision": null,
+  "environment": null,
+  "workload": "R2c replay: wf-t3 and orca-serve against the recorded crawl cassettes",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "T3's wall time is the sockets' settle windows (400 ms per case, sequential), not CPU. The scenario sets are recorded but not replayed here.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Interactions",
+        "Compared",
+        "Clean",
+        "Allowlisted (machine-only paths)",
+        "Drift",
+        "Breaking",
+        "Gap groups"
+      ],
+      "rows": [
+        [
+          "Orca",
+          "3682",
+          "3682",
+          "168",
+          "0",
+          "2854",
+          "660",
+          "19"
+        ],
+        [
+          "T3",
+          "1248",
+          "1240",
+          "0",
+          "381",
+          "182",
+          "677",
+          "98"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Rows with recorded cases",
+        "Rows with at least one differing case",
+        "Rows whose cases all agree"
+      ],
+      "rows": [
+        [
+          "Orca",
+          "799",
+          "768",
+          "31"
+        ],
+        [
+          "T3",
+          "301",
+          "271",
+          "30"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Cases",
+        "Severity",
+        "Class (worst difference, positions elided)",
+        "Example id"
+      ],
+      "rows": [
+        [
+          "2681",
+          "drift",
+          "changed at steps._:s2c:*.[*].payload.error.code",
+          "`orca-accounts.addClaudeFromConfigDir-boundary-full`"
+        ],
+        [
+          "405",
+          "breaking",
+          "missing at steps._:s2c:*.[*].payload.result",
+          "`orca-accounts.list-invalid-drop-refreshUsage`"
+        ],
+        [
+          "190",
+          "breaking",
+          "missing at steps._:s2c:*.[*].payload.error.data",
+          "`orca-agentSession.agents-invalid-no-payload`"
+        ],
+        [
+          "108",
+          "drift",
+          "changed at steps._:s2c:*.[*].payload.error.message",
+          "`orca-agent.launchReplay-invalid-no-payload`"
+        ],
+        [
+          "63",
+          "drift",
+          "changed at steps._:s2c:*.[*].payload.error.code",
+          "`orca-agentSession.readVisual-boundary-full`"
+        ],
+        [
+          "19",
+          "breaking",
+          "missing at steps._:s2c:*.[*].payload.error",
+          "`orca-agentSession.release-boundary-limit-sessionId`"
+        ],
+        [
+          "17",
+          "breaking",
+          "missing at steps._:s2c:*.[*].payload.result",
+          "`orca-accounts.antigravityChatSignInStart-empty-empty-object`"
+        ],
+        [
+          "6",
+          "breaking",
+          "missing at steps._:s2c:*.[*].payload.error.data",
+          "`orca-agentSessionAttachment.read-boundary-limit-path`"
+        ],
+        [
+          "4",
+          "breaking",
+          "kind at steps._:s2c:*.[*].payload.result.authoritativeWindowId",
+          "`orca-status.get-boundary-full`"
+        ],
+        [
+          "3",
+          "breaking",
+          "missing at steps._:s2c:*.[*].payload.client_error",
+          "`orca-accounts.removeClaude-valid-min`"
+        ],
+        [
+          "2",
+          "breaking",
+          "missing at steps._:s2c:*.[*].payload.error.data",
+          "`orca-agentSession.createSupport-boundary-full`"
+        ],
+        [
+          "2",
+          "drift",
+          "changed at steps._:s2c:*.[*].payload.result.[*]",
+          "`orca-preflight.detectAgents-invalid-no-payload`"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Cases",
+        "Severity",
+        "Class (worst difference, positions elided)",
+        "Example id"
+      ],
+      "rows": [
+        [
+          "231",
+          "breaking",
+          "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+          "`t3-command-delegated-task.request-boundary-full`"
+        ],
+        [
+          "102",
+          "breaking",
+          "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+          "`t3-command-checkpoint.rollback-boundary-full`"
+        ],
+        [
+          "100",
+          "drift",
+          "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+          "`t3-command-delegated-task.request-invalid-no-payload`"
+        ],
+        [
+          "49",
+          "breaking",
+          "missing at steps.ws:s2c:*.[*].payload.exit.value",
+          "`t3-rpc-agentSessions.scan-invalid-no-payload`"
+        ],
+        [
+          "35",
+          "breaking",
+          "kind at steps.http:ret:_.[*].payload.body",
+          "`t3-http-auth.browserSession-invalid-drop-credential`"
+        ],
+        [
+          "27",
+          "breaking",
+          "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+          "`t3-rpc-projectClone.start-boundary-full`"
+        ],
+        [
+          "18",
+          "breaking",
+          "kind at steps.http:ret:_.[*].payload.body",
+          "`t3-http-auth.browserSession-invalid-no-payload`"
+        ],
+        [
+          "16",
+          "drift",
+          "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error._tag",
+          "`t3-rpc-pullRequests.activity-invalid-wrong-type-projectId`"
+        ],
+        [
+          "13",
+          "drift",
+          "extra at steps.ws:s2c:*.[*]",
+          "`t3-rpc-cloud.getRelayClientStatus-invalid-no-payload`"
+        ],
+        [
+          "13",
+          "breaking",
+          "missing at steps.ws:s2c:*.[*].payload.values",
+          "`t3-rpc-cloud.installRelayClient-invalid-no-payload`"
+        ],
+        [
+          "12",
+          "breaking",
+          "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+          "`t3-rpc-pullRequests.activity-boundary-limit-number`"
+        ],
+        [
+          "10",
+          "breaking",
+          "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+          "`t3-rpc-server.deleteAcpRegistrySession-valid-min`"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "Wall",
+        "CPU"
+      ],
+      "rows": [
+        [
+          "orca-serve (orca-recorded and orca-crawl)",
+          "76.6 s",
+          "68.3 s"
+        ],
+        [
+          "wf-t3 (t3-recorded-1..3 and t3-crawl)",
+          "753.5 s",
+          "59.4 s"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Group",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "Linear and Jira (`map-settings/src/trackers.rs`)",
+          "`method_not_found` for 16 phone rows",
+          "a host with no tracker account: disconnected status, empty lists, a lookup finds nothing, writes say Linear is not connected, the schema's missing-id messages; `linear.connect` (asks Linear) and the `linear.listIssues` full-filter row stay gaps"
+        ],
+        [
+          "`settings.get`, `settings.update`, `ui.get`, `ui.set` (`map-state`, `defaults.json`)",
+          "answered only what was set; Orca answers its defaults under it",
+          "the pinned host's defaults merged under the kept object"
+        ],
+        [
+          "`accounts`, `notifications`, `terminal` `unsubscribe` and the `agentSession` and `nativeChat` unsubscribe validation (`map-settings/src/streams.rs`, `map-agent`)",
+          "`method_not_found`, and no id validation",
+          "end an id this host never opened, refuse a missing or mistyped id in the schema's words and a session id that is not `<agent>_<token>`"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Cases",
+        "Severity",
+        "Difference",
+        "Cause"
+      ],
+      "rows": [
+        [
+          "231",
+          "breaking",
+          "`exit.cause.[*].defect` missing",
+          "The real server decodes the command payload strictly and dies with a schema message; `t3-serve` accepts the shape and answers a declared `Fail`. Needs strict per-command validation."
+        ],
+        [
+          "156",
+          "breaking",
+          "`exit.cause.[*].error.cause` missing",
+          "A declared error whose real form carries the underlying cause; ours omits it."
+        ],
+        [
+          "100",
+          "drift",
+          "`exit.cause.[*].defect` changed",
+          "Same die as the first row, our message text differs from Effect's."
+        ],
+        [
+          "58",
+          "breaking",
+          "HTTP `body` kind",
+          "Our HTTP answer has another JSON kind than the real body (auth, webhooks)."
+        ],
+        [
+          "56",
+          "breaking",
+          "`exit.value` missing",
+          "A success answer with no value where the real server returns one."
+        ],
+        [
+          "39",
+          "breaking",
+          "`error.reason` missing",
+          "A declared error without its `reason` field."
+        ],
+        [
+          "33",
+          "breaking",
+          "`exit.cause` missing",
+          "An exit with no cause where the real server fails."
+        ],
+        [
+          "25, 16, 8",
+          "drift",
+          "`error.detail`, `error._tag`, `error.message` changed",
+          "Our error texts and tags differ."
+        ],
+        [
+          "13",
+          "drift",
+          "extra `s2c` frame",
+          "We push a frame the real server does not."
+        ],
+        [
+          "13",
+          "breaking",
+          "`values` missing",
+          "A subscription answered without its first `values`."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "T3's wall time is the sockets' settle windows (400 ms per case, sequential), not CPU. The scenario sets are recorded but not replayed here."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-11-07-mimic-r2c-replay.md",
+      "path": "../../../audits/2026-11-07-mimic-r2c-replay.md"
+    }
+  ]
+}

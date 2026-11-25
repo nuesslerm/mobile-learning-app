@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-87-2026-10-08-remote-chat-agent-rust-service-slice-5-voice-conversio",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, slice 5 (voice, conversion, attachments and the Tamil check)",
+  "question": "What was measured for remote-chat-agent Rust service, slice 5 (voice, conversion, attachments and the Tamil check)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, slice 5 (voice, conversion, attachments and the Tamil check)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Benchmark of the slice (same harness, n=5, `rca-rust-slice5.json`, medians): cold start 30.3 ms (Node 503.4), idle RSS 5.5 MB (133.6). Per route, p50 and the resident set after the scenario, Rust against Node: convert PDF 14.7 ms / 6.2 MB (12.4 ms / 228.3 MB), convert PDF from Chromium 14.1 ms / 6.3 MB (16.0 ms / 232.7 MB), convert DOCX 1.3 ms / 6.6 MB (61.7 ms / 293.8 MB), Tamil check 158.1 ms / 44.4 MB (479.9 ms / 491.2 MB), voice transcribe through the …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Benchmark of the slice (same harness, n=5, `rca-rust-slice5.json`, medians): cold start 30.3 ms (Node 503.4), idle RSS 5.5 MB (133.6). Per route, p50 and the resident set after the scenario, Rust against Node: convert PDF 14.7 ms / 6.2 MB (12.4 ms / 228.3 MB), convert PDF from Chromium 14.1 ms / 6.3 MB (16.0 ms / 232.7 MB), convert DOCX 1.3 ms / 6.6 MB (61.7 ms / 293.8 MB), Tamil check 158.1 ms / 44.4 MB (479.9 ms / 491.2 MB), voice transcribe through the sidecar 10.2 ms / 44.5 MB (6.6 ms / 491.6 MB). Two routes are slower at the median, and the reason is the design: converting a PDF spawns `pdftotext` and a transcription spawns `curl`, each about 8 ms of process start that the in-process Node did not pay (Node pays it back in memory: the resident set above is what each scenario left behind in one long-lived process). The whole process peaks at 56.2 MB at its worst run (44.5 MB median), almost all of it the Tamil check's 3.6 megapixel reference panel, which is not returned to the allocator. Artifact 17,205,296 bytes (Node bundle 14,869,215, which does not include the 245 MB of media packages it needed installed)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1717–1725",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

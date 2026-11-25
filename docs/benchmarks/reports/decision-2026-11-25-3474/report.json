@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3474",
+  "subject": "Engineering decisions",
+  "title": "Fifteen Tamil journeys on the local iPhone 17 took 214",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "Fifteen Tamil journeys on the local iPhone 17 took 214",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Fifteen Tamil journeys on the local iPhone 17 took 214.9 s with recordings and storage isolation. The native All Topics exercise search took 17.2 s independently. Keep all fifteen in the hosted qualification run.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — Fifteen Tamil journeys on the local iPhone 17 took 214.9 s with recordings and storage isolation. The native All Topics exercise search took 17.2 s independently. Keep all fifteen in the hosted qualification run."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3474",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-25-3468",
+  "subject": "Engineering decisions",
+  "title": "Android cold-start readiness",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-25",
+  "revision": null,
+  "environment": null,
+  "workload": "Android cold-start readiness",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Android cold-start readiness. The Tamil flash-card CI recording showed the Library home screen while the helper waited 300 s for the retired home-screen selector. Use the Library menu button as the default readiness check. The harness flow with a stub device exercised both cold-start links in 0.06 s (one test, one run).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "2026-11-25 — Android cold-start readiness. The Tamil flash-card CI recording showed the Library home screen while the helper waited 300 s for the retired home-screen selector. Use the Library menu button as the default readiness check. The harness flow with a stub device exercised both cold-start links in 0.06 s (one test, one run)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3468",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

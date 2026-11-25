@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-186-2026-10-31-closing-the-last-gates-failure-path-on-runner-2-338-2",
+  "subject": "Engineering decisions",
+  "title": "closing the last gates (failure path on runner 2.338.2, duration and resource ceilings)",
+  "question": "What was measured for closing the last gates (failure path on runner 2.338.2, duration and resource ceilings)?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: closing the last gates (failure path on runner 2.338.2, duration and resource ceilings)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Gate 0, failure path: `wf ci comment` is now tested against the real head of a runner 2.338.2 job log (`clis/pipeline/tests/flow/runner_2_338_2_head.log`, 26 lines copied from run 41208868377: UTF-8 byte order mark, runner header, token permissions group, checkout guard) followed by a synthetic failing step. The comment names the failed job and step, shows the failing test line, the panic and the assertion, leaves out GitHub's generic `Process completed wi…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Gate 0, failure path: `wf ci comment` is now tested against the real head of a runner 2.338.2 job log (`clis/pipeline/tests/flow/runner_2_338_2_head.log`, 26 lines copied from run 41208868377: UTF-8 byte order mark, runner header, token permissions group, checkout guard) followed by a synthetic failing step. The comment names the failed job and step, shows the failing test line, the panic and the assertion, leaves out GitHub's generic `Process completed with exit code` line and the runner header, and strips the timestamps and the byte order mark (`a_failed_job_of_runner_2_338_2_shows_its_cause_not_the_runner_header`; 26 `ci_comment` flow tests pass, clippy clean). `gh api .../jobs/<id>/logs` on 2.338.2 returns 31-43 KB logs (preflight of 348614b 31 KB, typecheck of daa997e 43 KB). `live` defaults to true; the `runner-version` check reads \"pinned 2.338.2, latest 2.338.2\"."
+        ],
+        [
+          "- Duration: warm replays 2m 24s, 2m 24s, 2m 31s, 2m 30s, 2m 23s, 2m 24s (median 2m 24s, max 2m 31s, under 3m); executing runs 7m 28s, 7m 46s, 7m 03s, 6m 59s (all under 8m 00s). A warm replay is mostly fixed cost, not Nx: the plan skips flow-tests, Nx replays the rest in about a second, and what is left is preflight (20 s), the `plan` checkout (12 s), three e2e legs (about 75 s) and 8-19 s of runner pickup."
+        ],
+        [
+          "- Resources: executing-run CPU-seconds 860, 895, 787, 805 (ceiling 900 in the goal, 1000 in `.github/ci-budget.json`); kernel share on executing runs 26-31% before the cuts, 23% and 21% after (peak 25%); `cpuIowaitPeak` 15 (judged on the whole percent); opencode OOMs none since the 5 GB cap deployed at 05:35 UTC; budget job `enforced: true` with no breaches on daa997e, cfbc53f, 6d16989 and 7e1a9c1."
+        ],
+        [
+          "- Run bf9e67d (the commit with the 2.338.2 failure-path test; a pipeline-crate change, so its flow-tests ran): **3m 40s**, 8 passed, budget job `\"enforced\":true,\"breaches\":[]` (8 jobs, 18 Nx tasks, \"no waste found\"); kernel share 20% avg / 24% peak, hypervisor 3% / 8%, CPU iowait 0%, memory 4.6 GB. A job log of runner 2.338.2 from this run (flow-tests) is 54.8 KB through `gh api .../jobs/<id>/logs`. Enforced budget verdicts so far: daa997e, cfbc53f, 6d16989, 7e1a9c1, bf9e67d, all with no breach. Gate 0's failure path is closed by the flow test against the real 2.338.2 log head plus a synthetic failing step (the form the goal names), not by a live red run, which has not happened since the runner was fixed."
+        ],
+        [
+          "- Gate 0, live: a temporary branch `ci-failure-probe` (one workflow, a job that fails on purpose and a second job that runs `wf ci comment --dry-run`) ran on the VM runner (`vm-main`, \"Current runner version: '2.338.2'\", job log 1.6 KB for the failing job). Run 41214936405: `fail` failed, `comment` passed, and the dry-run comment read \"🟠 CI running, a job failed · `b673433` · ci-failure-probe\", \"❌ fail failed\" and, as the cause, `error[E0599]: probe failure cause line, no method named explode found` and `test probe::explodes ... FAILED`, with `\"failedJobs\":[\"fail\"],\"posted\":false`. This is the live check of the failure path on runner 2.338.2 beside the flow test. The branch was deleted locally; deleting it on the remote failed (`git push --delete` hung up three times and `gh api` mutations are blocked in this session), so `origin/ci-failure-probe` needs a `git push origin --delete ci-failure-probe` from a session that can."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3126–3135",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

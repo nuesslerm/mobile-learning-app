@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-37-2026-10-06-wf-metro-start-restart-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf metro start|restart` in Rust",
+  "question": "What was measured for `wf metro start|restart` in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf metro start|restart` in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Not exercised: a real `expo`, a held port that needs the SIGKILL escalation, the 180 s timeout path, and the vault load against a real backend. Wall time of a start is the 1 s readiness poll either way (about 1.4 s per test on both), so there is no startup saving worth a table here; what changes is that `wf` itself no longer needs Node for the start.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision: port the start path: port reservation (reuse or allocate `max + 1`, default from `WF_METRO_PORT_MIN`), kill and wait for the port, the log-forwarding and backend environment (best-effort vault load of just the keys involved, through a new `load_keys_into_process_env`), `.expo/metro-port.json`, the supervised `sh` restart loop or a direct `npx expo start`, a detached spawn into `/tmp/metro-<port>.log`, the 1 s readiness poll of `/status`, and the TS's failure message with the log tail. `restart` is stop plus start with its own log lines. Two start variants still go to the TS, decided before anything is touched: a set `EXPO_PUBLIC_INITIAL_ROUTE` (route pre-warm) and a configured OTLP pair (the BetterStack log forwarder process). `ensure` with Metro down also still goes to the TS."
+        ],
+        [
+          "Not exercised: a real `expo`, a held port that needs the SIGKILL escalation, the 180 s timeout path, and the vault load against a real backend. Wall time of a start is the 1 s readiness poll either way (about 1.4 s per test on both), so there is no startup saving worth a table here; what changes is that `wf` itself no longer needs Node for the start."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1281–1288",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

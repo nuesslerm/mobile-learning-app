@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-27-2026-10-06-wf-browser-thin-client-in-rust",
+  "subject": "Engineering decisions",
+  "title": "`wf browser` thin client in Rust",
+  "question": "What was measured for `wf browser` thin client in Rust?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf browser` thin client in Rust",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (`browser list-devices`, n=5 median, wrapper only): TS 1371 ms / 166 MB, Rust 9 ms / 12 MB.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (`browser list-devices`, n=5 median, wrapper only): TS 1371 ms / 166 MB, Rust 9 ms / 12 MB."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1207–1216",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

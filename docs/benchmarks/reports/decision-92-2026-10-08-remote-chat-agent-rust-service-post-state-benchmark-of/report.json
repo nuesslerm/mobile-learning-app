@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-92-2026-10-08-remote-chat-agent-rust-service-post-state-benchmark-of",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent Rust service, post-state benchmark of the finished binary (local, n=5)",
+  "question": "What was measured for remote-chat-agent Rust service, post-state benchmark of the finished binary (local, n=5)?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent Rust service, post-state benchmark of the finished binary (local, n=5)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Method: the harness that recorded the pre-state (`tests/bench/service.benchmark.test.ts`, n=5, medians, every scenario in one process per run), against the release binary with parity in place: `BENCH_LABEL=post BENCH_OUT=docs/audits/benchmarks/rca-post-rust.json pnpm run bench:service:rust`. Pre-state: `rca-pre-node.json` (the Node bundle, label `pre`), with `rca-pre-node-ws.json` and `rca-pre-node-runs.json` for the two scenarios added later. This is the …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Method: the harness that recorded the pre-state (`tests/bench/service.benchmark.test.ts`, n=5, medians, every scenario in one process per run), against the release binary with parity in place: `BENCH_LABEL=post BENCH_OUT=docs/audits/benchmarks/rca-post-rust.json pnpm run bench:service:rust`. Pre-state: `rca-pre-node.json` (the Node bundle, label `pre`), with `rca-pre-node-ws.json` and `rca-pre-node-runs.json` for the two scenarios added later. This is the binary on a developer machine; the same numbers measured inside the deployed container are the next entry."
+        ],
+        [
+          "- Result, Rust against Node (p50 ms, resident set after the scenario in MB): cold start 32.4 (503.4); idle 6.5 MB (133.6); after 300 health checks 6.6 (139.5); `/health` 0.31 (0.95); chat turn 105.8 / 8.6 (121.6 / 178.5; the fake opencode's 100 ms delay is in both); one-shot run 106.8 / 9.0 (121.6 / 168.9); convert PDF 12.8 / 9.0 (12.4 / 228.3); convert PDF from Chromium 12.8 / 9.1 (16.0 / 232.7); convert DOCX 1.1 / 9.3 (61.7 / 293.8); diff register and page 8.7 / 14.7 (39.5 / 326.8); markdown preview 0.95 (1.18); TypeScript preview 0.62 (1.21); Tamil check 156.8 / 38.3 (479.9 / 491.2); voice transcribe through the sidecar 9.7 (6.6); a WebSocket request 0.066 (0.130); a hundred WebSocket connections 0.97 per connection (0.99). Peak resident set of the whole run 43.4 MB median, 54.8 MB worst (Node 491.6, 497.1). Artifact 17,671,312 bytes (Node bundle 14,869,215, plus the media packages it needed installed)."
+        ],
+        [
+          "- Said plainly: two scenarios are slower or level at the median because the Rust service spawns the same tools Node ran in process (`pdftotext` for a PDF, 12.8 against 12.4 ms; `curl` for the transcription, 9.7 against 6.6 ms). Idle memory rose from 5.8 to 6.5 MB with parity (the heartbeat and exporter threads, and the vault registry parsed at boot); the hundred-connection figure here is the whole process after every earlier scenario, not the isolated 11.4 MB recorded for slice 6."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1756–1761",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

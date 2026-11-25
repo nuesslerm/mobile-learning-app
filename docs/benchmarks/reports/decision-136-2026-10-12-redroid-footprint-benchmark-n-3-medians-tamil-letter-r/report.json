@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-136-2026-10-12-redroid-footprint-benchmark-n-3-medians-tamil-letter-r",
+  "subject": "Engineering decisions",
+  "title": "redroid footprint benchmark (n=3 medians, Tamil letter run, container cgroup)",
+  "question": "What was measured for redroid footprint benchmark (n=3 medians, Tamil letter run, container cgroup)?",
+  "date": "2026-10-12",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-12 redroid footprint benchmark (n=3 medians, Tamil letter run, container cgroup)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Decision: adopt 540x960@240 (CPU -17 %, no slowdown, letter check passes). Compose updated (`infra/oracle-cloud/android-emulator/docker-compose.prod.yml`).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "variant",
+        "CPU s",
+        "run s",
+        "peak total/anon MB",
+        "app PSS MB",
+        "letter"
+      ],
+      "rows": [
+        [
+          "base 720x1280@320, 1.5 cpus",
+          "24.0",
+          "45.9",
+          "1743/867",
+          "318",
+          "3/3"
+        ],
+        [
+          "screen 540x960@240",
+          "20.0",
+          "43.2",
+          "1722/830",
+          "297",
+          "3/3"
+        ],
+        [
+          "final1 screen + 1.0 cpus",
+          "19.7",
+          "44.3",
+          "1747/842",
+          "298",
+          "3/3"
+        ],
+        [
+          "final2 final1 + low_ram, heap caps",
+          "20.3",
+          "44.1",
+          "1968/782",
+          "247",
+          "3/3"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Decision: adopt 540x960@240 (CPU -17 %, no slowdown, letter check passes). Compose updated (`infra/oracle-cloud/android-emulator/docker-compose.prod.yml`)."
+        ],
+        [
+          "- Rejected: `--cpus 1.0` (no CPU gain), low_ram (anon -10 % at the edge, total peak +13 %), fps 15, animation scale 0 and package trimming (no gain in n=1), `--cpus 2.0` (worse)."
+        ],
+        [
+          "- Finding: idle hard memory stays about 575 MB whatever the lever; on-demand start/stop is the only lever that reaches idle cost."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2267–2280",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

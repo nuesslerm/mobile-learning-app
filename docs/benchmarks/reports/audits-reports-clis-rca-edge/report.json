@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "audits-reports-clis-rca-edge",
+  "subject": "Engineering measurements",
+  "title": "clis/rca-edge: retired",
+  "question": "What did the clis/rca-edge: retired measurements show?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "clis/rca-edge: retired",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Removed: the crate (246 lines of code, 206 of socket tests, a 355 kB binary), its workspace member and lockfile entry, the `COPY` line in the three Dockerfiles, and its path in the deploy plan (and the plan test that pins the list).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "Before",
+        "After"
+      ],
+      "rows": [
+        [
+          "Source",
+          "246 lines of code, 206 of tests",
+          "removed"
+        ],
+        [
+          "Binary",
+          "354,912 bytes (334 KB when measured on 2026-10-06)",
+          "none"
+        ],
+        [
+          "Deployed",
+          "never",
+          "not applicable"
+        ],
+        [
+          "Workspace members of `clis/`",
+          "5 (`wf`, `agent-config-sync`, `rca-core`, `rca-edge`, `cdp`)",
+          "4"
+        ],
+        [
+          "Numbers measured on 2026-10-06 against the Node service it fronted",
+          "`/health` p50 0.48 ms against Node's 1.09 ms, about 2.2 MB resident, as a floor while Node still ran",
+          "not applicable: the service's own `/health` is 0.31 ms at 6.5 MB resident"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Removed: the crate (246 lines of code, 206 of socket tests, a 355 kB binary), its workspace member and lockfile entry, the `COPY` line in the three Dockerfiles, and its path in the deploy plan (and the plan test that pins the list)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "clis-rca-edge.md",
+      "path": "../../../audits/reports/clis-rca-edge.md"
+    }
+  ]
+}

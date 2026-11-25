@@ -1,0 +1,433 @@
+{
+  "schemaVersion": 1,
+  "id": "rca-post-std",
+  "subject": "Services and CLI",
+  "title": "rca post std",
+  "question": "What did the rca post std measurements show?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "rca post std",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "post-std recorded 33.75961400000051 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "post-std",
+      "label": "post-std"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    },
+    {
+      "id": "chat-turn",
+      "label": "chat turn"
+    },
+    {
+      "id": "run-once",
+      "label": "run once"
+    },
+    {
+      "id": "convert-pdf",
+      "label": "convert pdf"
+    },
+    {
+      "id": "convert-pdf-chromium",
+      "label": "convert pdf (chromium)"
+    },
+    {
+      "id": "convert-docx",
+      "label": "convert docx"
+    },
+    {
+      "id": "diff-register-and-page",
+      "label": "diff register and page"
+    },
+    {
+      "id": "file-preview-markdown",
+      "label": "file preview (markdown)"
+    },
+    {
+      "id": "file-preview-typescript",
+      "label": "file preview (typescript)"
+    },
+    {
+      "id": "tamil-check",
+      "label": "tamil check"
+    },
+    {
+      "id": "voice-transcribe",
+      "label": "voice transcribe"
+    },
+    {
+      "id": "ws-request",
+      "label": "ws request"
+    },
+    {
+      "id": "ws-100-connections",
+      "label": "ws 100 connections"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "artifactbytes",
+      "label": "artifactBytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafterhealthmb",
+      "label": "rssAfterHealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthp50ms",
+      "label": "healthP50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "p50ms",
+      "label": "p50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "rssaftermb",
+      "label": "rssAfterMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "finalrssmb",
+      "label": "finalRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmaxmb",
+      "label": "peakRssMaxMb",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "artifactbytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 21613008,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 33.75961400000051,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.26171875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "rssafterhealthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.3515625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "healthp50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.3946329999998852,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "chat-turn",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 104.96797650000008,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "chat-turn",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.29296875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "run-once",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 107.44745599999987,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "run-once",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.58984375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "convert-pdf",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 11.329037499999686,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "convert-pdf",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.6015625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "convert-pdf-chromium",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.483365999999478,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "convert-pdf-chromium",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.87109375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "convert-docx",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 1.1387340000019321,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "convert-docx",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.98046875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "diff-register-and-page",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 7.995269499999722,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "diff-register-and-page",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.05859375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "file-preview-markdown",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.6816339999995762,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "file-preview-markdown",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.05859375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "file-preview-typescript",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.8516344999998182,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "file-preview-typescript",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.05859375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "tamil-check",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 149.4139305000008,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "tamil-check",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 31.83203125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "voice-transcribe",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.0034919999961858,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "voice-transcribe",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 32.25,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "ws-request",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.08793899999727728,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "ws-request",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 32.3359375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "ws-100-connections",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.811375000001135,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "ws-100-connections",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.546875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "finalrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.546875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.546875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "post-std",
+      "scenario": "service",
+      "metric": "peakrssmaxmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 54.078125,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "rca-post-std.json",
+      "path": "evidence/rca-post-std.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

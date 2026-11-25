@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-193-run-41366982272-11b23f779-green-in-10-min-36-s-2026-11-02",
+  "subject": "Engineering decisions",
+  "title": "Run 41366982272 (11b23f779): green in 10 min 36 s (2026-11-02)",
+  "question": "What was measured for Run 41366982272 (11b23f779): green in 10 min 36 s (2026-11-02)?",
+  "date": "2026-11-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 41366982272 (11b23f779): green in 10 min 36 s (2026-11-02)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "The vm-ops-api smoke fix: `vm-ops-api` and the first `libs-proxy` deploy both green (1 m 30 s and 45 s), `integration-tests`, `cli-e2e-tests` (3 m 37 s), browser and Android e2e green; the budget job found nothing. `typecheck-lint-unit-tests` took 35 s and `flow-tests` 35 s, all Nx lookups replayed, no queueing.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- The vm-ops-api smoke fix: `vm-ops-api` and the first `libs-proxy` deploy both green (1 m 30 s and 45 s), `integration-tests`, `cli-e2e-tests` (3 m 37 s), browser and Android e2e green; the budget job found nothing. `typecheck-lint-unit-tests` took 35 s and `flow-tests` 35 s, all Nx lookups replayed, no queueing."
+        ],
+        [
+          "- So the 6 min silence of runs 41358035572 and 41365175856 did not recur on an identical stage with warm caches; those two runs were the ones that followed a new lockfile (pnpm store save, 3 m 11 s) and a rebuilt wf, which points at a cold-cache cost on the first run after such a change, not a fixed Nx wait. The `WF_NX_TRACE` request log and 30 s process table stay in, so the next occurrence names itself."
+        ],
+        [
+          "- Sub-20 min runs of this refactor: 16 m 42 s (red on the missing sidecar, then fixed) and 10 m 36 s (green)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3255–3260",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-187-2026-10-31-the-gem-sync-s-trigger-and-its-proof-no-run-yet",
+  "subject": "Engineering decisions",
+  "title": "the Gem sync's trigger and its proof (no run yet)",
+  "question": "What was measured for the Gem sync's trigger and its proof (no run yet)?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: the Gem sync's trigger and its proof (no run yet)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Gem sync, live: the empty `[gem-sync]` commit starts no `deploy.yml` run (two commits, 0 runs each) and, through the `gate` job, runs the sync: run 41220136392 green, 24 minutes from the push to the end including the wait for the runner behind the CI run of the previous commit, one upload of 15,881,840 bytes (1,279 files) read back with a fresh modified time. The first version of the job-level condition did not work: GitHub gives `null`, not `[]`, for the …",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Gem sync, live: the empty `[gem-sync]` commit starts no `deploy.yml` run (two commits, 0 runs each) and, through the `gate` job, runs the sync: run 41220136392 green, 24 minutes from the push to the end including the wait for the runner behind the CI run of the previous commit, one upload of 15,881,840 bytes (1,279 files) read back with a fresh modified time. The first version of the job-level condition did not work: GitHub gives `null`, not `[]`, for the file lists of an empty commit."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3136–3144",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

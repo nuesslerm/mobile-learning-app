@@ -1,0 +1,2612 @@
+{
+  "suites": [
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-android-e2e-1-sample-1",
+      "artifactId": "15015776696",
+      "suite": "leetcode-native",
+      "passCount": 15,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=search"
+          ],
+          "verdict": "pass",
+          "seconds": 21.007
+        },
+        {
+          "case": [
+            "case=neetcode"
+          ],
+          "verdict": "pass",
+          "seconds": 10.509
+        },
+        {
+          "case": [
+            "case=one-editor"
+          ],
+          "verdict": "pass",
+          "seconds": 8.503
+        },
+        {
+          "case": [
+            "case=python"
+          ],
+          "verdict": "pass",
+          "seconds": 15.009
+        },
+        {
+          "case": [
+            "case=javascript"
+          ],
+          "verdict": "pass",
+          "seconds": 17.008
+        },
+        {
+          "case": [
+            "case=custom-input"
+          ],
+          "verdict": "pass",
+          "seconds": 23.511
+        },
+        {
+          "case": [
+            "case=repair-error"
+          ],
+          "verdict": "pass",
+          "seconds": 22.011
+        },
+        {
+          "case": [
+            "case=draft"
+          ],
+          "verdict": "pass",
+          "seconds": 34.019
+        },
+        {
+          "case": [
+            "case=symbol"
+          ],
+          "verdict": "pass",
+          "seconds": 17.011
+        },
+        {
+          "case": [
+            "case=keyboard"
+          ],
+          "verdict": "pass",
+          "seconds": 19.509
+        },
+        {
+          "case": [
+            "case=settings"
+          ],
+          "verdict": "pass",
+          "seconds": 19.011
+        },
+        {
+          "case": [
+            "case=completion"
+          ],
+          "verdict": "pass",
+          "seconds": 15.506
+        },
+        {
+          "case": [
+            "case=blocks"
+          ],
+          "verdict": "pass",
+          "seconds": 20.508
+        },
+        {
+          "case": [
+            "case=two-drafts"
+          ],
+          "verdict": "pass",
+          "seconds": 26.02
+        },
+        {
+          "case": [
+            "case=voice"
+          ],
+          "verdict": "pass",
+          "seconds": 11.504
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 281.010742257,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-android-e2e-1-sample-1",
+      "artifactId": "15015776696",
+      "suite": "tamil-native",
+      "passCount": 14,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=resume"
+          ],
+          "verdict": "pass",
+          "seconds": 10.004
+        },
+        {
+          "case": [
+            "case=tiles"
+          ],
+          "verdict": "pass",
+          "seconds": 7.502
+        },
+        {
+          "case": [
+            "case=typed"
+          ],
+          "verdict": "pass",
+          "seconds": 11.005
+        },
+        {
+          "case": [
+            "case=listen"
+          ],
+          "verdict": "pass",
+          "seconds": 10.003
+        },
+        {
+          "case": [
+            "case=fill"
+          ],
+          "verdict": "pass",
+          "seconds": 7.502
+        },
+        {
+          "case": [
+            "case=review"
+          ],
+          "verdict": "pass",
+          "seconds": 15.505
+        },
+        {
+          "case": [
+            "case=trace"
+          ],
+          "verdict": "pass",
+          "seconds": 11.005
+        },
+        {
+          "case": [
+            "case=redraw"
+          ],
+          "verdict": "pass",
+          "seconds": 12.006
+        },
+        {
+          "case": [
+            "case=flash-english"
+          ],
+          "verdict": "pass",
+          "seconds": 8.503
+        },
+        {
+          "case": [
+            "case=flash-tamil"
+          ],
+          "verdict": "pass",
+          "seconds": 21.512
+        },
+        {
+          "case": [
+            "case=word"
+          ],
+          "verdict": "pass",
+          "seconds": 14.508
+        },
+        {
+          "case": [
+            "case=weak-letter"
+          ],
+          "verdict": "pass",
+          "seconds": 12.506
+        },
+        {
+          "case": [
+            "case=skip"
+          ],
+          "verdict": "pass",
+          "seconds": 19.507
+        },
+        {
+          "case": [
+            "case=library"
+          ],
+          "verdict": "fail",
+          "seconds": 28.512
+        },
+        {
+          "case": [
+            "case=double-rate"
+          ],
+          "verdict": "pass",
+          "seconds": 16.01
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 205.921161794,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-android-e2e-1-sample-2",
+      "artifactId": "15014964732",
+      "suite": "leetcode-native",
+      "passCount": 15,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=search"
+          ],
+          "verdict": "pass",
+          "seconds": 19.007
+        },
+        {
+          "case": [
+            "case=neetcode"
+          ],
+          "verdict": "pass",
+          "seconds": 16.011
+        },
+        {
+          "case": [
+            "case=one-editor"
+          ],
+          "verdict": "pass",
+          "seconds": 13.006
+        },
+        {
+          "case": [
+            "case=python"
+          ],
+          "verdict": "pass",
+          "seconds": 22.51
+        },
+        {
+          "case": [
+            "case=javascript"
+          ],
+          "verdict": "pass",
+          "seconds": 23.514
+        },
+        {
+          "case": [
+            "case=custom-input"
+          ],
+          "verdict": "pass",
+          "seconds": 32.516
+        },
+        {
+          "case": [
+            "case=repair-error"
+          ],
+          "verdict": "pass",
+          "seconds": 34.519
+        },
+        {
+          "case": [
+            "case=draft"
+          ],
+          "verdict": "pass",
+          "seconds": 48.535
+        },
+        {
+          "case": [
+            "case=symbol"
+          ],
+          "verdict": "pass",
+          "seconds": 22.521
+        },
+        {
+          "case": [
+            "case=keyboard"
+          ],
+          "verdict": "pass",
+          "seconds": 26.015
+        },
+        {
+          "case": [
+            "case=settings"
+          ],
+          "verdict": "pass",
+          "seconds": 25.518
+        },
+        {
+          "case": [
+            "case=completion"
+          ],
+          "verdict": "pass",
+          "seconds": 20.515
+        },
+        {
+          "case": [
+            "case=blocks"
+          ],
+          "verdict": "pass",
+          "seconds": 28.508
+        },
+        {
+          "case": [
+            "case=two-drafts"
+          ],
+          "verdict": "pass",
+          "seconds": 33.024
+        },
+        {
+          "case": [
+            "case=voice"
+          ],
+          "verdict": "pass",
+          "seconds": 17.51
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 2,
+          "seconds": 383.818481005,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-android-e2e-1-sample-2",
+      "artifactId": "15014964732",
+      "suite": "tamil-native",
+      "passCount": 14,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=resume"
+          ],
+          "verdict": "pass",
+          "seconds": 14.006
+        },
+        {
+          "case": [
+            "case=tiles"
+          ],
+          "verdict": "pass",
+          "seconds": 11.504
+        },
+        {
+          "case": [
+            "case=typed"
+          ],
+          "verdict": "pass",
+          "seconds": 15.506
+        },
+        {
+          "case": [
+            "case=listen"
+          ],
+          "verdict": "pass",
+          "seconds": 13.503
+        },
+        {
+          "case": [
+            "case=fill"
+          ],
+          "verdict": "pass",
+          "seconds": 11.504
+        },
+        {
+          "case": [
+            "case=review"
+          ],
+          "verdict": "pass",
+          "seconds": 20.508
+        },
+        {
+          "case": [
+            "case=trace"
+          ],
+          "verdict": "pass",
+          "seconds": 15.505
+        },
+        {
+          "case": [
+            "case=redraw"
+          ],
+          "verdict": "pass",
+          "seconds": 16.008
+        },
+        {
+          "case": [
+            "case=flash-english"
+          ],
+          "verdict": "pass",
+          "seconds": 12.505
+        },
+        {
+          "case": [
+            "case=flash-tamil"
+          ],
+          "verdict": "pass",
+          "seconds": 27.008
+        },
+        {
+          "case": [
+            "case=word"
+          ],
+          "verdict": "pass",
+          "seconds": 19.01
+        },
+        {
+          "case": [
+            "case=weak-letter"
+          ],
+          "verdict": "pass",
+          "seconds": 17.007
+        },
+        {
+          "case": [
+            "case=skip"
+          ],
+          "verdict": "pass",
+          "seconds": 24.008
+        },
+        {
+          "case": [
+            "case=library"
+          ],
+          "verdict": "fail",
+          "seconds": 32.014
+        },
+        {
+          "case": [
+            "case=double-rate"
+          ],
+          "verdict": "pass",
+          "seconds": 21.514
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 2,
+          "seconds": 271.691142049,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-android-e2e-1-sample-3",
+      "artifactId": "15017218319",
+      "suite": "leetcode-native",
+      "passCount": 1,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=search"
+          ],
+          "verdict": "pass",
+          "seconds": 17.506
+        },
+        {
+          "case": [
+            "case=neetcode"
+          ],
+          "verdict": "fail",
+          "seconds": 34.008
+        },
+        {
+          "case": [
+            "case=one-editor"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=python"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=javascript"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=custom-input"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=repair-error"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=draft"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=symbol"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=keyboard"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=settings"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=completion"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=blocks"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=two-drafts"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=voice"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 3,
+          "seconds": 833.967273643,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-android-e2e-1-sample-3",
+      "artifactId": "15017218319",
+      "suite": "tamil-native",
+      "passCount": 0,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=resume"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=tiles"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=typed"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=listen"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=fill"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=review"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=trace"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=redraw"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=flash-english"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=flash-tamil"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=word"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=weak-letter"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=skip"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=library"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        },
+        {
+          "case": [
+            "case=double-rate"
+          ],
+          "verdict": "error",
+          "seconds": 0.0
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 3,
+          "seconds": 903.179907945,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15016451311",
+      "suite": "console-run",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 135.524
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 135.526972968,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15016451311",
+      "suite": "editor-completion",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.015
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.016941777,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15016451311",
+      "suite": "editor-settings",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 6.501
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 6.503964954,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15016451311",
+      "suite": "editor-typing",
+      "passCount": 5,
+      "total": 5,
+      "cases": [
+        {
+          "case": [
+            "problem=valid-palindrome",
+            "part=1"
+          ],
+          "verdict": "pass",
+          "seconds": 34.008
+        },
+        {
+          "case": [
+            "problem=valid-palindrome",
+            "part=2"
+          ],
+          "verdict": "pass",
+          "seconds": 31.008
+        },
+        {
+          "case": [
+            "problem=valid-palindrome",
+            "part=3"
+          ],
+          "verdict": "pass",
+          "seconds": 22.006
+        },
+        {
+          "case": [
+            "problem=two-sum",
+            "part=1"
+          ],
+          "verdict": "pass",
+          "seconds": 31.007
+        },
+        {
+          "case": [
+            "problem=two-sum",
+            "part=2"
+          ],
+          "verdict": "pass",
+          "seconds": 21.51
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 139.575607308,
+          "budgetSeconds": null,
+          "cases": 5,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15016451311",
+      "suite": "local-run",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 135.529
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 135.532834038,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15016451311",
+      "suite": "tamil-flash-cards",
+      "passCount": 1,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "pass",
+          "seconds": 6.003
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 6.005404192,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15015537821",
+      "suite": "app-routes",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.013
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.01491917,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15015537821",
+      "suite": "block-view",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 14.005
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 14.009547816,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15015537821",
+      "suite": "editor-cold-start",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.012
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.014349384,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15015537821",
+      "suite": "editor-language",
+      "passCount": 1,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "pass",
+          "seconds": 25.504
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 25.508191961,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15015537821",
+      "suite": "js-local-run",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 135.525
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 135.527950731,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15015537821",
+      "suite": "run-error-line",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.012
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.013786378,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15015537821",
+      "suite": "tamil-writing",
+      "passCount": 8,
+      "total": 8,
+      "cases": [
+        {
+          "case": [
+            "part=vowels",
+            "letters=1-2"
+          ],
+          "verdict": "pass",
+          "seconds": 11.502
+        },
+        {
+          "case": [
+            "part=vowels",
+            "letters=3-4"
+          ],
+          "verdict": "pass",
+          "seconds": 10.504
+        },
+        {
+          "case": [
+            "part=vowels",
+            "letters=5-6"
+          ],
+          "verdict": "pass",
+          "seconds": 9.502
+        },
+        {
+          "case": [
+            "part=consonant"
+          ],
+          "verdict": "pass",
+          "seconds": 5.503
+        },
+        {
+          "case": [
+            "part=write"
+          ],
+          "verdict": "pass",
+          "seconds": 9.002
+        },
+        {
+          "case": [
+            "part=words",
+            "word=word-uyir-a"
+          ],
+          "verdict": "pass",
+          "seconds": 12.503
+        },
+        {
+          "case": [
+            "part=words",
+            "word=word-uyir-aa"
+          ],
+          "verdict": "pass",
+          "seconds": 12.006
+        },
+        {
+          "case": [
+            "part=words",
+            "word=word-uyir-i"
+          ],
+          "verdict": "pass",
+          "seconds": 10.002
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 80.548605734,
+          "budgetSeconds": null,
+          "cases": 8,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-ios-e2e-sample-1",
+      "artifactId": "15016877904",
+      "suite": "leetcode-native",
+      "passCount": 6,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=search"
+          ],
+          "verdict": "pass",
+          "seconds": 59.322
+        },
+        {
+          "case": [
+            "case=neetcode"
+          ],
+          "verdict": "pass",
+          "seconds": 31.774
+        },
+        {
+          "case": [
+            "case=one-editor"
+          ],
+          "verdict": "pass",
+          "seconds": 28.682
+        },
+        {
+          "case": [
+            "case=python"
+          ],
+          "verdict": "pass",
+          "seconds": 39.428
+        },
+        {
+          "case": [
+            "case=javascript"
+          ],
+          "verdict": "pass",
+          "seconds": 35.709
+        },
+        {
+          "case": [
+            "case=custom-input"
+          ],
+          "verdict": "pass",
+          "seconds": 39.23
+        },
+        {
+          "case": [
+            "case=repair-error"
+          ],
+          "verdict": "fail",
+          "seconds": 72.125,
+          "diagnostic": "A timed assertion or readiness check failed."
+        },
+        {
+          "case": [
+            "case=draft"
+          ],
+          "verdict": "fail",
+          "seconds": 67.084,
+          "diagnostic": "XCTest lost its connection to the app."
+        },
+        {
+          "case": [
+            "case=symbol"
+          ],
+          "verdict": "fail",
+          "seconds": 25.185,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=keyboard"
+          ],
+          "verdict": "fail",
+          "seconds": 16.037,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=settings"
+          ],
+          "verdict": "fail",
+          "seconds": 16.354,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=completion"
+          ],
+          "verdict": "fail",
+          "seconds": 20.784,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=blocks"
+          ],
+          "verdict": "fail",
+          "seconds": 14.232,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=two-drafts"
+          ],
+          "verdict": "fail",
+          "seconds": 12.438,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=voice"
+          ],
+          "verdict": "fail",
+          "seconds": 15.982,
+          "diagnostic": "XCTest reported the app was no longer running."
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 496.0741225,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45599538196,
+      "revision": "2f6a701d",
+      "artifact": "test-runs-ios-e2e-sample-1",
+      "artifactId": "15016877904",
+      "suite": "tamil-native",
+      "passCount": 0,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=resume"
+          ],
+          "verdict": "fail",
+          "seconds": 18.951,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=tiles"
+          ],
+          "verdict": "fail",
+          "seconds": 12.97,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=typed"
+          ],
+          "verdict": "fail",
+          "seconds": 13.699,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=listen"
+          ],
+          "verdict": "fail",
+          "seconds": 18.634,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=fill"
+          ],
+          "verdict": "fail",
+          "seconds": 14.312,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=review"
+          ],
+          "verdict": "fail",
+          "seconds": 14.615,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=trace"
+          ],
+          "verdict": "fail",
+          "seconds": 13.825,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=redraw"
+          ],
+          "verdict": "fail",
+          "seconds": 12.936,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=flash-english"
+          ],
+          "verdict": "fail",
+          "seconds": 15.54,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=flash-tamil"
+          ],
+          "verdict": "fail",
+          "seconds": 21.836,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=word"
+          ],
+          "verdict": "fail",
+          "seconds": 33.582,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=weak-letter"
+          ],
+          "verdict": "fail",
+          "seconds": 16.353,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=skip"
+          ],
+          "verdict": "fail",
+          "seconds": 18.735,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=library"
+          ],
+          "verdict": "fail",
+          "seconds": 16.348,
+          "diagnostic": "XCTest reported the app was no longer running."
+        },
+        {
+          "case": [
+            "case=double-rate"
+          ],
+          "verdict": "fail",
+          "seconds": 15.733,
+          "diagnostic": "XCTest reported the app was no longer running."
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 259.442734583,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-android-e2e-1-sample-1",
+      "artifactId": "15017114625",
+      "suite": "leetcode-native",
+      "passCount": 14,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=search"
+          ],
+          "verdict": "pass",
+          "seconds": 20.012
+        },
+        {
+          "case": [
+            "case=neetcode"
+          ],
+          "verdict": "pass",
+          "seconds": 11.006
+        },
+        {
+          "case": [
+            "case=one-editor"
+          ],
+          "verdict": "pass",
+          "seconds": 9.004
+        },
+        {
+          "case": [
+            "case=python"
+          ],
+          "verdict": "pass",
+          "seconds": 16.007
+        },
+        {
+          "case": [
+            "case=javascript"
+          ],
+          "verdict": "pass",
+          "seconds": 17.009
+        },
+        {
+          "case": [
+            "case=custom-input"
+          ],
+          "verdict": "pass",
+          "seconds": 25.014
+        },
+        {
+          "case": [
+            "case=repair-error"
+          ],
+          "verdict": "pass",
+          "seconds": 22.516
+        },
+        {
+          "case": [
+            "case=draft"
+          ],
+          "verdict": "pass",
+          "seconds": 37.021
+        },
+        {
+          "case": [
+            "case=symbol"
+          ],
+          "verdict": "pass",
+          "seconds": 16.504
+        },
+        {
+          "case": [
+            "case=keyboard"
+          ],
+          "verdict": "pass",
+          "seconds": 20.511
+        },
+        {
+          "case": [
+            "case=settings"
+          ],
+          "verdict": "pass",
+          "seconds": 19.508
+        },
+        {
+          "case": [
+            "case=completion"
+          ],
+          "verdict": "pass",
+          "seconds": 14.51
+        },
+        {
+          "case": [
+            "case=blocks"
+          ],
+          "verdict": "pass",
+          "seconds": 22.012
+        },
+        {
+          "case": [
+            "case=two-drafts"
+          ],
+          "verdict": "fail",
+          "seconds": 35.516
+        },
+        {
+          "case": [
+            "case=voice"
+          ],
+          "verdict": "pass",
+          "seconds": 11.506
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 298.016715265,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-android-e2e-1-sample-1",
+      "artifactId": "15017114625",
+      "suite": "tamil-native",
+      "passCount": 15,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=resume"
+          ],
+          "verdict": "pass",
+          "seconds": 10.506
+        },
+        {
+          "case": [
+            "case=tiles"
+          ],
+          "verdict": "pass",
+          "seconds": 8.003
+        },
+        {
+          "case": [
+            "case=typed"
+          ],
+          "verdict": "pass",
+          "seconds": 10.502
+        },
+        {
+          "case": [
+            "case=listen"
+          ],
+          "verdict": "pass",
+          "seconds": 10.002
+        },
+        {
+          "case": [
+            "case=fill"
+          ],
+          "verdict": "pass",
+          "seconds": 8.003
+        },
+        {
+          "case": [
+            "case=review"
+          ],
+          "verdict": "pass",
+          "seconds": 15.505
+        },
+        {
+          "case": [
+            "case=trace"
+          ],
+          "verdict": "pass",
+          "seconds": 11.008
+        },
+        {
+          "case": [
+            "case=redraw"
+          ],
+          "verdict": "pass",
+          "seconds": 11.508
+        },
+        {
+          "case": [
+            "case=flash-english"
+          ],
+          "verdict": "pass",
+          "seconds": 8.505
+        },
+        {
+          "case": [
+            "case=flash-tamil"
+          ],
+          "verdict": "pass",
+          "seconds": 80.035
+        },
+        {
+          "case": [
+            "case=word"
+          ],
+          "verdict": "pass",
+          "seconds": 14.503
+        },
+        {
+          "case": [
+            "case=weak-letter"
+          ],
+          "verdict": "pass",
+          "seconds": 12.013
+        },
+        {
+          "case": [
+            "case=skip"
+          ],
+          "verdict": "pass",
+          "seconds": 19.005
+        },
+        {
+          "case": [
+            "case=library"
+          ],
+          "verdict": "pass",
+          "seconds": 11.008
+        },
+        {
+          "case": [
+            "case=double-rate"
+          ],
+          "verdict": "pass",
+          "seconds": 16.511
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 246.939432929,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-android-e2e-1-sample-2",
+      "artifactId": "15018650097",
+      "suite": "leetcode-native",
+      "passCount": 15,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=search"
+          ],
+          "verdict": "pass",
+          "seconds": 20.015
+        },
+        {
+          "case": [
+            "case=neetcode"
+          ],
+          "verdict": "pass",
+          "seconds": 16.016
+        },
+        {
+          "case": [
+            "case=one-editor"
+          ],
+          "verdict": "pass",
+          "seconds": 14.009
+        },
+        {
+          "case": [
+            "case=python"
+          ],
+          "verdict": "pass",
+          "seconds": 23.51
+        },
+        {
+          "case": [
+            "case=javascript"
+          ],
+          "verdict": "pass",
+          "seconds": 25.514
+        },
+        {
+          "case": [
+            "case=custom-input"
+          ],
+          "verdict": "pass",
+          "seconds": 36.535
+        },
+        {
+          "case": [
+            "case=repair-error"
+          ],
+          "verdict": "pass",
+          "seconds": 31.021
+        },
+        {
+          "case": [
+            "case=draft"
+          ],
+          "verdict": "pass",
+          "seconds": 50.525
+        },
+        {
+          "case": [
+            "case=symbol"
+          ],
+          "verdict": "pass",
+          "seconds": 23.512
+        },
+        {
+          "case": [
+            "case=keyboard"
+          ],
+          "verdict": "pass",
+          "seconds": 28.023
+        },
+        {
+          "case": [
+            "case=settings"
+          ],
+          "verdict": "pass",
+          "seconds": 26.51
+        },
+        {
+          "case": [
+            "case=completion"
+          ],
+          "verdict": "pass",
+          "seconds": 22.012
+        },
+        {
+          "case": [
+            "case=blocks"
+          ],
+          "verdict": "pass",
+          "seconds": 29.514
+        },
+        {
+          "case": [
+            "case=two-drafts"
+          ],
+          "verdict": "pass",
+          "seconds": 32.517
+        },
+        {
+          "case": [
+            "case=voice"
+          ],
+          "verdict": "pass",
+          "seconds": 17.005
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 2,
+          "seconds": 396.835371693,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-android-e2e-1-sample-2",
+      "artifactId": "15018650097",
+      "suite": "tamil-native",
+      "passCount": 15,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=resume"
+          ],
+          "verdict": "pass",
+          "seconds": 15.009
+        },
+        {
+          "case": [
+            "case=tiles"
+          ],
+          "verdict": "pass",
+          "seconds": 11.507
+        },
+        {
+          "case": [
+            "case=typed"
+          ],
+          "verdict": "pass",
+          "seconds": 15.509
+        },
+        {
+          "case": [
+            "case=listen"
+          ],
+          "verdict": "pass",
+          "seconds": 15.006
+        },
+        {
+          "case": [
+            "case=fill"
+          ],
+          "verdict": "pass",
+          "seconds": 12.504
+        },
+        {
+          "case": [
+            "case=review"
+          ],
+          "verdict": "pass",
+          "seconds": 21.007
+        },
+        {
+          "case": [
+            "case=trace"
+          ],
+          "verdict": "pass",
+          "seconds": 16.006
+        },
+        {
+          "case": [
+            "case=redraw"
+          ],
+          "verdict": "pass",
+          "seconds": 16.005
+        },
+        {
+          "case": [
+            "case=flash-english"
+          ],
+          "verdict": "pass",
+          "seconds": 12.507
+        },
+        {
+          "case": [
+            "case=flash-tamil"
+          ],
+          "verdict": "pass",
+          "seconds": 27.02
+        },
+        {
+          "case": [
+            "case=word"
+          ],
+          "verdict": "pass",
+          "seconds": 21.511
+        },
+        {
+          "case": [
+            "case=weak-letter"
+          ],
+          "verdict": "pass",
+          "seconds": 18.509
+        },
+        {
+          "case": [
+            "case=skip"
+          ],
+          "verdict": "pass",
+          "seconds": 25.016
+        },
+        {
+          "case": [
+            "case=library"
+          ],
+          "verdict": "pass",
+          "seconds": 16.514
+        },
+        {
+          "case": [
+            "case=double-rate"
+          ],
+          "verdict": "pass",
+          "seconds": 23.011
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 2,
+          "seconds": 267.141624338,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-android-e2e-1-sample-3",
+      "artifactId": "15018091255",
+      "suite": "leetcode-native",
+      "passCount": 14,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=search"
+          ],
+          "verdict": "pass",
+          "seconds": 21.51
+        },
+        {
+          "case": [
+            "case=neetcode"
+          ],
+          "verdict": "pass",
+          "seconds": 10.008
+        },
+        {
+          "case": [
+            "case=one-editor"
+          ],
+          "verdict": "pass",
+          "seconds": 8.006
+        },
+        {
+          "case": [
+            "case=python"
+          ],
+          "verdict": "pass",
+          "seconds": 15.007
+        },
+        {
+          "case": [
+            "case=javascript"
+          ],
+          "verdict": "pass",
+          "seconds": 17.008
+        },
+        {
+          "case": [
+            "case=custom-input"
+          ],
+          "verdict": "fail",
+          "seconds": 22.514
+        },
+        {
+          "case": [
+            "case=repair-error"
+          ],
+          "verdict": "pass",
+          "seconds": 23.011
+        },
+        {
+          "case": [
+            "case=draft"
+          ],
+          "verdict": "pass",
+          "seconds": 36.52
+        },
+        {
+          "case": [
+            "case=symbol"
+          ],
+          "verdict": "pass",
+          "seconds": 16.012
+        },
+        {
+          "case": [
+            "case=keyboard"
+          ],
+          "verdict": "pass",
+          "seconds": 20.009
+        },
+        {
+          "case": [
+            "case=settings"
+          ],
+          "verdict": "pass",
+          "seconds": 18.011
+        },
+        {
+          "case": [
+            "case=completion"
+          ],
+          "verdict": "pass",
+          "seconds": 15.013
+        },
+        {
+          "case": [
+            "case=blocks"
+          ],
+          "verdict": "pass",
+          "seconds": 21.514
+        },
+        {
+          "case": [
+            "case=two-drafts"
+          ],
+          "verdict": "pass",
+          "seconds": 24.518
+        },
+        {
+          "case": [
+            "case=voice"
+          ],
+          "verdict": "pass",
+          "seconds": 12.506
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 3,
+          "seconds": 281.56666981,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-android-e2e-1-sample-3",
+      "artifactId": "15018091255",
+      "suite": "tamil-native",
+      "passCount": 15,
+      "total": 15,
+      "cases": [
+        {
+          "case": [
+            "case=resume"
+          ],
+          "verdict": "pass",
+          "seconds": 10.005
+        },
+        {
+          "case": [
+            "case=tiles"
+          ],
+          "verdict": "pass",
+          "seconds": 7.502
+        },
+        {
+          "case": [
+            "case=typed"
+          ],
+          "verdict": "pass",
+          "seconds": 10.51
+        },
+        {
+          "case": [
+            "case=listen"
+          ],
+          "verdict": "pass",
+          "seconds": 10.004
+        },
+        {
+          "case": [
+            "case=fill"
+          ],
+          "verdict": "pass",
+          "seconds": 8.007
+        },
+        {
+          "case": [
+            "case=review"
+          ],
+          "verdict": "pass",
+          "seconds": 15.504
+        },
+        {
+          "case": [
+            "case=trace"
+          ],
+          "verdict": "pass",
+          "seconds": 11.004
+        },
+        {
+          "case": [
+            "case=redraw"
+          ],
+          "verdict": "pass",
+          "seconds": 12.003
+        },
+        {
+          "case": [
+            "case=flash-english"
+          ],
+          "verdict": "pass",
+          "seconds": 9.004
+        },
+        {
+          "case": [
+            "case=flash-tamil"
+          ],
+          "verdict": "pass",
+          "seconds": 21.511
+        },
+        {
+          "case": [
+            "case=word"
+          ],
+          "verdict": "pass",
+          "seconds": 14.505
+        },
+        {
+          "case": [
+            "case=weak-letter"
+          ],
+          "verdict": "pass",
+          "seconds": 12.004
+        },
+        {
+          "case": [
+            "case=skip"
+          ],
+          "verdict": "pass",
+          "seconds": 19.508
+        },
+        {
+          "case": [
+            "case=library"
+          ],
+          "verdict": "pass",
+          "seconds": 11.507
+        },
+        {
+          "case": [
+            "case=double-rate"
+          ],
+          "verdict": "pass",
+          "seconds": 15.512
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 3,
+          "seconds": 188.417650935,
+          "budgetSeconds": 900,
+          "cases": 15,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15017149037",
+      "suite": "console-run",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 136.03
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 136.034829639,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15017149037",
+      "suite": "editor-completion",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.514
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.517694971,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15017149037",
+      "suite": "editor-settings",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 7.001
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 7.005191144,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15017149037",
+      "suite": "editor-typing",
+      "passCount": 5,
+      "total": 5,
+      "cases": [
+        {
+          "case": [
+            "problem=valid-palindrome",
+            "part=1"
+          ],
+          "verdict": "pass",
+          "seconds": 41.012
+        },
+        {
+          "case": [
+            "problem=valid-palindrome",
+            "part=2"
+          ],
+          "verdict": "pass",
+          "seconds": 35.508
+        },
+        {
+          "case": [
+            "problem=valid-palindrome",
+            "part=3"
+          ],
+          "verdict": "pass",
+          "seconds": 25.01
+        },
+        {
+          "case": [
+            "problem=two-sum",
+            "part=1"
+          ],
+          "verdict": "pass",
+          "seconds": 33.011
+        },
+        {
+          "case": [
+            "problem=two-sum",
+            "part=2"
+          ],
+          "verdict": "pass",
+          "seconds": 23.504
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 158.093912404,
+          "budgetSeconds": null,
+          "cases": 5,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15017149037",
+      "suite": "local-run",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 136.031
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 136.035891581,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-1-sample-1",
+      "artifactId": "15017149037",
+      "suite": "tamil-flash-cards",
+      "passCount": 1,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "pass",
+          "seconds": 6.503
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 6.505679934,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15017458083",
+      "suite": "app-routes",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.015
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.017139357,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15017458083",
+      "suite": "block-view",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 14.005
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 14.009482756,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15017458083",
+      "suite": "editor-cold-start",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.514
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.516607858,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15017458083",
+      "suite": "editor-language",
+      "passCount": 1,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "pass",
+          "seconds": 27.006
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 27.01051115,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15017458083",
+      "suite": "js-local-run",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 135.53
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 135.53350608,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15017458083",
+      "suite": "run-error-line",
+      "passCount": 0,
+      "total": 1,
+      "cases": [
+        {
+          "case": [],
+          "verdict": "fail",
+          "seconds": 70.514
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 70.516217176,
+          "budgetSeconds": null,
+          "cases": 1,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "run": 45603434630,
+      "revision": "7d0793bc",
+      "artifact": "test-runs-browser-e2e-2-sample-1",
+      "artifactId": "15017458083",
+      "suite": "tamil-writing",
+      "passCount": 8,
+      "total": 8,
+      "cases": [
+        {
+          "case": [
+            "part=vowels",
+            "letters=1-2"
+          ],
+          "verdict": "pass",
+          "seconds": 12.502
+        },
+        {
+          "case": [
+            "part=vowels",
+            "letters=3-4"
+          ],
+          "verdict": "pass",
+          "seconds": 10.506
+        },
+        {
+          "case": [
+            "part=vowels",
+            "letters=5-6"
+          ],
+          "verdict": "pass",
+          "seconds": 9.502
+        },
+        {
+          "case": [
+            "part=consonant"
+          ],
+          "verdict": "pass",
+          "seconds": 6.501
+        },
+        {
+          "case": [
+            "part=write"
+          ],
+          "verdict": "pass",
+          "seconds": 9.505
+        },
+        {
+          "case": [
+            "part=words",
+            "word=word-uyir-a"
+          ],
+          "verdict": "pass",
+          "seconds": 13.504
+        },
+        {
+          "case": [
+            "part=words",
+            "word=word-uyir-aa"
+          ],
+          "verdict": "pass",
+          "seconds": 12.003
+        },
+        {
+          "case": [
+            "part=words",
+            "word=word-uyir-i"
+          ],
+          "verdict": "pass",
+          "seconds": 10.502
+        }
+      ],
+      "measurements": [
+        {
+          "sample": 1,
+          "seconds": 84.555459605,
+          "budgetSeconds": null,
+          "cases": 8,
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

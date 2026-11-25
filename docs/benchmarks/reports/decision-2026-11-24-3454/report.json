@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-11-24-3454",
+  "subject": "Engineering decisions",
+  "title": "Saved-draft iOS visual replay",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-11-24",
+  "revision": null,
+  "environment": null,
+  "workload": "Saved-draft iOS visual replay",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "saved-draft iOS visual replay (n=1, no model). Normal draft storage produced Saved in 12 captures, and the normalized RGB comparison took 3.17 s for all 12. At two decimal places, ten frames had a lower percentage of pixels at or above a 24-level channel difference, one stayed the same, and the settled language picker rose from 5.23% to 6.57%. Keep the saved-draft replay for these states so…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "- 24 Nov, saved-draft iOS visual replay (n=1, no model). Normal draft storage produced Saved in 12 captures, and the normalized RGB comparison took 3.17 s for all 12. At two decimal places, ten frames had a lower percentage of pixels at or above a 24-level channel difference, one stayed the same, and the settled language picker rose from 5.23% to 6.57%. Keep the saved-draft replay for these states so the capture includes the same save indicator as the recording."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 3454",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

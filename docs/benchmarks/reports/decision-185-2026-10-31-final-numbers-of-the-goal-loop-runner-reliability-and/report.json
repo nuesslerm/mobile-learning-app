@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-185-2026-10-31-final-numbers-of-the-goal-loop-runner-reliability-and",
+  "subject": "Engineering decisions",
+  "title": "final numbers of the goal loop (runner reliability and CI duration on the 2-core VM)",
+  "question": "What was measured for final numbers of the goal loop (runner reliability and CI duration on the 2-core VM)?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: final numbers of the goal loop (runner reliability and CI duration on the 2-core VM)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Run daa997e, the first with `\"enforce\": true`, executing (wf rebuilt, typecheck cold): **6m 59s**, 8 passed, budget job `\"enforced\":true,\"breaches\":[]` (\"no waste found\", 8 jobs, 18 Nx tasks). VM: CPU 96% avg, about 805 CPU-seconds (0.96 x 2 x 419 s), kernel share **21% avg** / 25% peak, hypervisor 3% / 12%, CPU iowait 0%, memory 4.8 GB avg / 5.8 GB peak.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Run daa997e, the first with `\"enforce\": true`, executing (wf rebuilt, typecheck cold): **6m 59s**, 8 passed, budget job `\"enforced\":true,\"breaches\":[]` (\"no waste found\", 8 jobs, 18 Nx tasks). VM: CPU 96% avg, about 805 CPU-seconds (0.96 x 2 x 419 s), kernel share **21% avg** / 25% peak, hypervisor 3% / 12%, CPU iowait 0%, memory 4.8 GB avg / 5.8 GB peak."
+        ],
+        [
+          "- Run 7da8b0e (docs-only warm replay): 2m 31s, one second over; the other two warm replays (7ce8086, 35364db) 2m 24s."
+        ],
+        [
+          "- Gate table, measured: executing 7m 28s (c3cf90d), 7m 46s, 7m 03s (5929744), 6m 59s (daa997e) against 8m 00s, now 4 of 4 under (8m 40s-9m 09s before the loop). Warm 2m 24s / 2m 24s / 2m 31s against 2m 30s (2 of 3). CPU-seconds on executing runs: 860, 895, 787, 805 (the three after the spawn cuts are all below the first two; the ceiling is 1000 in `.github/ci-budget.json`). Kernel share average: 26-31% before the cuts, 23%, 21% after. OOM: none since the 5 GB cap deployed at 05:35 UTC. Logs: 85e946b and later runs store 16 KB-680 KB job logs; `runner-version` check live; `live` defaults to true. `enforce`: true on about 16 judged runs (the goal asked for about 20; revert by setting it false)."
+        ],
+        [
+          "- Run cfbc53f (warm replay, enforced): 2m 30s, budget job `\"enforced\":true,\"breaches\":[]` (6 jobs, 9 Nx tasks). Warm replays so far: 7ce8086 2m 24s, 35364db 2m 24s, 7da8b0e 2m 31s, cfbc53f 2m 30s (floor about 2m 20s: preflight 20 s, plan 29 s with a 12 s checkout, three e2e legs about 75 s, 8-19 s of runner pickup between jobs). Enforced runs judged so far: daa997e and cfbc53f, both clean. Correction: an earlier summary said four enforced runs; `enforce` went on with daa997e, so it is two."
+        ],
+        [
+          "- Run 6d16989 (warm replay, enforced): **2m 23s**, all 6 jobs green (hypervisor 8% avg / 15% peak, kernel share 28% avg: a warm run is mostly preflight, checkouts and the e2e legs' process starts, so its kernel share is not comparable with an executing run's). Warm replays: 2m 24s, 2m 24s, 2m 31s, 2m 30s, 2m 23s, i.e. three of five strictly under 2m 30s with the median at 2m 24s. About 19-20 judged ledger runs now, the last three enforced."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3113–3125",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

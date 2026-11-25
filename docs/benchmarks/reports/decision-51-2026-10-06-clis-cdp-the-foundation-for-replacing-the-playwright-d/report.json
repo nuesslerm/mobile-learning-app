@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-51-2026-10-06-clis-cdp-the-foundation-for-replacing-the-playwright-d",
+  "subject": "Engineering decisions",
+  "title": "`clis/cdp`, the foundation for replacing the Playwright daemon (first slice of multi-browser)",
+  "question": "What was measured for `clis/cdp`, the foundation for replacing the Playwright daemon (first slice of multi-browser)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `clis/cdp`, the foundation for replacing the Playwright daemon (first slice of multi-browser)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Decision: multi-browser (12k lines, Playwright) and, through it, the vnc-auth-capture listener (its desktop launcher attaches to Chromium over CDP through the multi-browser SDK) are the last large TypeScript blocks, and neither can be ported until Rust can drive Chromium. New crate `clis/cdp`: a std-only (no async runtime, no TLS, `serde_json` only) DevTools client: HTTP `/json/*` reads by Content-Length (the DevTools server keeps the socket open), WebSocket…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Decision: multi-browser (12k lines, Playwright) and, through it, the vnc-auth-capture listener (its desktop launcher attaches to Chromium over CDP through the multi-browser SDK) are the last large TypeScript blocks, and neither can be ported until Rust can drive Chromium. New crate `clis/cdp`: a std-only (no async runtime, no TLS, `serde_json` only) DevTools client: HTTP `/json/*` reads by Content-Length (the DevTools server keeps the socket open), WebSocket upgrade, masked text frames, ping/pong, fragmentation, JSON-RPC request/response matching with events queued, and flattened-session addressing (`call_on`). Not linked into `wf` yet, so the 3.3 MB binary does not grow."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1355–1360",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

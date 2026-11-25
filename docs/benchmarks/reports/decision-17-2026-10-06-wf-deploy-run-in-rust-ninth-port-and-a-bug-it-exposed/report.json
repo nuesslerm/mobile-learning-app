@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-17-2026-10-06-wf-deploy-run-in-rust-ninth-port-and-a-bug-it-exposed",
+  "subject": "Engineering decisions",
+  "title": "`wf deploy run` in Rust (ninth port), and a bug it exposed",
+  "question": "What was measured for `wf deploy run` in Rust (ninth port), and a bug it exposed?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf deploy run` in Rust (ninth port), and a bug it exposed",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "script (`build_image.rs`), the build job lifecycle with deploy's settings (10 s",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "script (`build_image.rs`), the build job lifecycle with deploy's settings (10 s"
+        ],
+        [
+          "transport-only retry (12 attempts, 15 s apart, never on an HTTP answer), the"
+        ],
+        [
+          "`WF_DEPLOY_POLL_MS` and `WF_DEPLOY_RETRY_MS` (defaults unchanged: 10 s and 15 s),"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 611–649",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

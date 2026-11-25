@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-93-2026-10-08-remote-chat-agent-cutover-the-vm-runs-the-rust-service",
+  "subject": "Engineering decisions",
+  "title": "remote-chat-agent cutover: the VM runs the Rust service",
+  "question": "What was measured for remote-chat-agent cutover: the VM runs the Rust service?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: remote-chat-agent cutover: the VM runs the Rust service",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "No resident Node process: the process table of the container five seconds after start is one process, PID 1, `/usr/local/bin/rca-service`, 5,180 kB resident (the Node image's PID 1 was `node dist/bundle/index.mjs`, 134,528 kB). The entrypoint `exec`s into the service, so no shell or Node stays behind.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- leetcode-backend: redeployed from the same branch by the pipeline path (`wf deploy run leetcode-backend --ref claude/rca-serde-errors`, image `sha-1a311f7e`, exit 0); `/health` reports `1a311f7e2a104411880f3f1ee74e636b5b74aeaa`, the pushed head. From agent-shell: `POST /api/leetcode/format` without the session secret is 401 `unauthorized`, a body of 1.1 MB is 413, and BetterStack returns `server.listening` and `health.heartbeat` lines from the new container (`uptimeSec=0`). The authenticated routes were run afterwards (entry \"authenticated probes on the VM\", below)."
+        ],
+        [
+          "- No resident Node process: the process table of the container five seconds after start is one process, PID 1, `/usr/local/bin/rca-service`, 5,180 kB resident (the Node image's PID 1 was `node dist/bundle/index.mjs`, 134,528 kB). The entrypoint `exec`s into the service, so no shell or Node stays behind."
+        ],
+        [
+          "- Container numbers on the VM (arm64, one image against the other, `docker run` with no volumes and no vault credentials): image 837,936,988 bytes against 904,610,891 (28 layers against 30), start to the first answered `/health` 393, 307 and 296 ms against 1,496, 1,183 and 1,155 ms (the `docker run` itself is about 180 ms of both), idle resident set 5.1 MB against 131.4 MB. The first Rust image was 1,114,084,028 bytes, 209 MB larger than Node's, because Debian's `ffmpeg` pulls 200 packages (libllvm 109 MB, icu, flite, mesa) for a tool that converts an upload to WAV; it is now the checksum-pinned static build the Node image's `ffmpeg-static` package fetched (same release, same provenance), which brought the Debian package count from 320 to 172 (the Node image has 117) and the image below Node's. Every media tool runs in the image: static ffmpeg 6.0 converts a tone to 16 kHz mono WAV, `pdftotext` 22.12, `tesseract` 5.3.0, `sqlite3`, and whisper.cpp with both models."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1762–1771",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

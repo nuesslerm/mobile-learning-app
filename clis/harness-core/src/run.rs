@@ -164,7 +164,8 @@ fn refuse(f: &mut Facts, msg: String) -> i32 {
 /// Runs the script and fills `f`; returns the exit code. Everything it learns goes into the report, whatever happens.
 fn execute(p: &Parsed, script: &str, platform: &dyn Platform, dir: &str, f: &mut Facts) -> i32 {
     crate::run_stop::arm();
-    let setup = crate::spans::begin("phase", "setup", None);
+    let mut setup = crate::spans::begin("phase", "setup", None);
+    setup.outcome = "error";
     let serial = p.val("device").map(str::to_string);
     let record_wanted = !p.flag("no-record");
     let _ = std::fs::create_dir_all(dir);
@@ -213,9 +214,11 @@ fn execute(p: &Parsed, script: &str, platform: &dyn Platform, dir: &str, f: &mut
     let mode = if p.flag("update-goldens") { crate::golden::Mode::Update } else { crate::golden::Mode::Compare };
     let goldens = Rc::new(Goldens::new(goldens_dir, mode, dir.into()));
     let trail = Rc::new(Trail::default());
+    setup.outcome = "ok";
     drop(setup);
-    let script_span = crate::spans::begin("phase", "script", None);
+    let mut script_span = crate::spans::begin("phase", "script", None);
     let result = lua::run(device.clone(), lua::Script { path: script, source: &source, env: script_args, serial, goldens: goldens.clone(), trail: trail.clone(), out_dir: PathBuf::from(dir) });
+    if result.is_err() { script_span.outcome = "error"; }
     drop(script_span);
     let _teardown = crate::spans::begin("phase", "teardown", None);
     if let Some(line) = goldens.finish() {

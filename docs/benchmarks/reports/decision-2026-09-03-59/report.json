@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-03-59",
+  "subject": "Engineering decisions",
+  "title": "Re-runs of the three corrected cells, post arm only",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-03",
+  "revision": null,
+  "environment": null,
+  "workload": "Re-runs of the three corrected cells, post arm only",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Re-runs of the three corrected cells, post arm only (rule 40: $1.96 for the answer instead of another $3.58 sweep): `cf-work/failed-unit-stops` ok ($0.73, 307 s, honest `UNITS_DISPATCHED`), `cf-compound/updates-existing-doc` ok ($0.33, doc rewritten in place, `last_updated` stamped, committed), and `cf-compound` on the honest fixture first refused a manifest whose cited commit did not exist in…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 42 | 2026-09-03 18:05 | Re-runs of the three corrected cells, post arm only (rule 40: $1.96 for the answer instead of another $3.58 sweep): `cf-work/failed-unit-stops` ok ($0.73, 307 s, honest `UNITS_DISPATCHED`), `cf-compound/updates-existing-doc` ok ($0.33, doc rewritten in place, `last_updated` stamped, committed), and `cf-compound` on the honest fixture first refused a manifest whose cited commit did not exist in the workspace (right), then, once the fixture shipped the real code, updated the seeded doc that covers the same problem instead of creating a second file (right under the CE update-over-duplicate rule; $0.45, 134 s) while the cell still expected a new filename. The case is now `cf-compound/writes-schema-doc` and grades the outcome that matters: a schema-valid doc under docs/solutions, committed, hands-off. Net after the first day: 7/7 catalog cells pass on the working tree (5 measured in this state, 2 by the corrected expectation against the recorded run), pre-arm baseline 0/7, three fixture defects and three harness defects found by the benchmark itself | `.agents/tmp/skill-eval/live2-*/pack.json`, `live3-*/pack.json` | see commit below |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 59",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

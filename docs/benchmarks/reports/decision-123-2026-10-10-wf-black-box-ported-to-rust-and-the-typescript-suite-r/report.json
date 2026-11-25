@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-123-2026-10-10-wf-black-box-ported-to-rust-and-the-typescript-suite-r",
+  "subject": "Engineering decisions",
+  "title": "wf black box ported to Rust and the TypeScript suite removed (phase 7 of the TypeScript removal plan)",
+  "question": "What was measured for wf black box ported to Rust and the TypeScript suite removed (phase 7 of the TypeScript removal plan)?",
+  "date": "2026-10-10",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-10: wf black box ported to Rust and the TypeScript suite removed (phase 7 of the TypeScript removal plan)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Benchmark, n=1 because the question is whether the port is slower, not by how much: the whole suite took 425 s in Rust (`cargo test`, one test binary at a time, tests in parallel inside it) and about 11 minutes in TypeScript (`vitest run`, 4 workers; `ts-clean.log` timestamps 10:31 to 10:42). The Rust suite needs no Node install to run. Decision: keep the Rust suite as the only gate; CI and the pre-commit secrets job now call `cargo test -p wf-blackbox --tes…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark, n=1 because the question is whether the port is slower, not by how much: the whole suite took 425 s in Rust (`cargo test`, one test binary at a time, tests in parallel inside it) and about 11 minutes in TypeScript (`vitest run`, 4 workers; `ts-clean.log` timestamps 10:31 to 10:42). The Rust suite needs no Node install to run. Decision: keep the Rust suite as the only gate; CI and the pre-commit secrets job now call `cargo test -p wf-blackbox --test ...` against the installed `wf`."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2159–2164",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

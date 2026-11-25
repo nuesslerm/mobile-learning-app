@@ -1,0 +1,433 @@
+{
+  "schemaVersion": 1,
+  "id": "rca-ci-release-lto",
+  "subject": "Services and CLI",
+  "title": "rca ci release lto",
+  "question": "What did the rca ci release lto measurements show?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "rca ci release lto",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "release-lto recorded 34.01309400000173 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "release-lto",
+      "label": "release-lto"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    },
+    {
+      "id": "chat-turn",
+      "label": "chat turn"
+    },
+    {
+      "id": "run-once",
+      "label": "run once"
+    },
+    {
+      "id": "convert-pdf",
+      "label": "convert pdf"
+    },
+    {
+      "id": "convert-pdf-chromium",
+      "label": "convert pdf (chromium)"
+    },
+    {
+      "id": "convert-docx",
+      "label": "convert docx"
+    },
+    {
+      "id": "diff-register-and-page",
+      "label": "diff register and page"
+    },
+    {
+      "id": "file-preview-markdown",
+      "label": "file preview (markdown)"
+    },
+    {
+      "id": "file-preview-typescript",
+      "label": "file preview (typescript)"
+    },
+    {
+      "id": "tamil-check",
+      "label": "tamil check"
+    },
+    {
+      "id": "voice-transcribe",
+      "label": "voice transcribe"
+    },
+    {
+      "id": "ws-request",
+      "label": "ws request"
+    },
+    {
+      "id": "ws-100-connections",
+      "label": "ws 100 connections"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "artifactbytes",
+      "label": "artifactBytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafterhealthmb",
+      "label": "rssAfterHealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthp50ms",
+      "label": "healthP50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "p50ms",
+      "label": "p50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "rssaftermb",
+      "label": "rssAfterMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "finalrssmb",
+      "label": "finalRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmaxmb",
+      "label": "peakRssMaxMb",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "artifactbytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 21849680,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 34.01309400000173,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.29296875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "rssafterhealthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.37109375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "healthp50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.5366919999999027,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "chat-turn",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 105.8435284999996,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "chat-turn",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.40234375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "run-once",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 109.5183715000021,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "run-once",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.75390625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "convert-pdf",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 13.501994999999624,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "convert-pdf",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.78125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "convert-pdf-chromium",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.895404500002769,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "convert-pdf-chromium",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 13.0234375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "convert-docx",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 1.3039674999999988,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "convert-docx",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 13.19921875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "diff-register-and-page",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 9.573288999999932,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "diff-register-and-page",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.390625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "file-preview-markdown",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.7114020000008168,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "file-preview-markdown",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.390625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "file-preview-typescript",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.9782940000000053,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "file-preview-typescript",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.390625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "tamil-check",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 163.31216049999784,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "tamil-check",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 31.87109375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "voice-transcribe",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 3.087232000001677,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "voice-transcribe",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 32.10546875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "ws-request",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.1223710000012943,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "ws-request",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 32.125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "ws-100-connections",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.996569000000818,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "ws-100-connections",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.609375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "finalrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.609375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.609375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "release-lto",
+      "scenario": "service",
+      "metric": "peakrssmaxmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 54.00390625,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "rca-ci-release-lto.json",
+      "path": "evidence/rca-ci-release-lto.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

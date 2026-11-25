@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-31",
+  "subject": "Engineering decisions",
+  "title": "Mixed-30 chain",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Mixed-30 chain",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "mixed-30 chain: hard style + quiet hooks + prefix diet (XH) is the winner: $0.612 vs T0 $0.899 mean (−32%), 🪨 30/30; soft style T1 decays (🪨 8/23 on run 2); T3 $0.664 (−26%, 🪨 26/30)",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 14 | 2026-09-02 22:35 | mixed-30 chain: hard style + quiet hooks + prefix diet (XH) is the winner: $0.612 vs T0 $0.899 mean (−32%), 🪨 30/30; soft style T1 decays (🪨 8/23 on run 2); T3 $0.664 (−26%, 🪨 26/30) | `.agents/tmp/token-diet/ladder2-chains/rows.csv` | — |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 31",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

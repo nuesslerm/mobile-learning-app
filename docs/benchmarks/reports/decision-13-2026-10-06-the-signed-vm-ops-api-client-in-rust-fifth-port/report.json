@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-13-2026-10-06-the-signed-vm-ops-api-client-in-rust-fifth-port",
+  "subject": "Engineering decisions",
+  "title": "the signed vm-ops-api client in Rust (fifth port)",
+  "question": "What was measured for the signed vm-ops-api client in Rust (fifth port)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: the signed vm-ops-api client in Rust (fifth port)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release, same container, n=5, stub `curl`, so this is the client",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release, same container, n=5, stub `curl`, so this is the client"
+        ],
+        [
+          "cost, not the network): `vm-ops health` 313.4 ms / 65.7 MB in the TypeScript"
+        ],
+        [
+          "`wf`, 24.3 ms / 10.9 MB in Rust. The Rust binary is 2.26 MB with the crypto"
+        ],
+        [
+          "crates (2.1 MB before)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 479–515",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

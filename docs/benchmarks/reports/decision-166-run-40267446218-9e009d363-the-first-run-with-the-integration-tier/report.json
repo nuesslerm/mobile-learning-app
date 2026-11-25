@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-166-run-40267446218-9e009d363-the-first-run-with-the-integration-tier",
+  "subject": "Engineering decisions",
+  "title": "Run 40267446218 (9e009d363): the first run with the integration tier (2026-10-26)",
+  "question": "What was measured for Run 40267446218 (9e009d363): the first run with the integration tier (2026-10-26)?",
+  "date": "2026-10-26",
+  "revision": null,
+  "environment": null,
+  "workload": "Run 40267446218 (9e009d363): the first run with the integration tier (2026-10-26)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - `cli-e2e-tests` red, three tests. One was mine: the visual judge (`pipeline/src/visual.rs`) and the CLI cold-start targets (`wf-bench`) still ran the old top-level `ask`, which since round 8 prints the notice and exits 2 (the judges failed with `exit 2`); both now run `offload ask`, and the same suite passes locally (wf e2e 1, wf-bench flow 4). The other two are the wf-harness attached-session journeys (`proxies_stubs_and_forwards_network...`: the CLI prin…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `cli-e2e-tests` red, three tests. One was mine: the visual judge (`pipeline/src/visual.rs`) and the CLI cold-start targets (`wf-bench`) still ran the old top-level `ask`, which since round 8 prints the notice and exits 2 (the judges failed with `exit 2`); both now run `offload ask`, and the same suite passes locally (wf e2e 1, wf-bench flow 4). The other two are the wf-harness attached-session journeys (`proxies_stubs_and_forwards_network...`: the CLI printed nothing, `reads_pages_and_manages_its_lifecycle`: `page.goto ... did not finish loading within 30 s (page state: the page did not answer)`). They pass locally one at a time (13 of 13 in 73 s) and fail on the runner one test at a time too, each after two 30 s waits, while the other 11 attached and phone-framed journeys pass. The test now keeps the stderr of the Chromium it starts and prints its last 30 lines when it fails, so the next failing run says whether the browser died or hung. No timeout was raised and no test skipped."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2854–2858",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

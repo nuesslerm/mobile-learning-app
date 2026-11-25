@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-118-2026-10-09-wf-s-otlp-export-on-the-sdk-s-own-http-client-supersed",
+  "subject": "Engineering decisions",
+  "title": "wf's OTLP export on the SDK's own HTTP client (supersedes the `ureq` adapter above)",
+  "question": "What was measured for wf's OTLP export on the SDK's own HTTP client (supersedes the `ureq` adapter above)?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-09: wf's OTLP export on the SDK's own HTTP client (supersedes the `ureq` adapter above)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: Owner: \"can't we just use officially supported otlp stuff?\" The `ureq` `HttpClient` adapter in `log_export.rs` is removed; the official `opentelemetry-otlp` exporter now uses its bundled blocking `reqwest` client (native roots), on a thread of its own. Same wire format (OTLP/JSON). Interleaved n=5 rounds x 10 runs of `wf log emit` against a local HTTPS ingest: release binary 8,381,240 B before, 8,457,848 B with the adapter, 8,468,248 B now (+86,008 B vs befo…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Owner: \"can't we just use officially supported otlp stuff?\" The `ureq` `HttpClient` adapter in `log_export.rs` is removed; the official `opentelemetry-otlp` exporter now uses its bundled blocking `reqwest` client (native roots), on a thread of its own. Same wire format (OTLP/JSON). Interleaved n=5 rounds x 10 runs of `wf log emit` against a local HTTPS ingest: release binary 8,381,240 B before, 8,457,848 B with the adapter, 8,468,248 B now (+86,008 B vs before); wall 10.39 ms / 10.14 ms / 10.24 ms; peak RSS 22,248 KB in all three; 0 failures of 50 per binary. Deploy-profile binary 10,957,440 to 11,141,256 B. Record `docs/audits/benchmarks/wf-otlp-sdk-official-client.json`. Verification: `wf` unit tests (`log_export` 4, caveat golden on the wire), `cargo clippy --workspace --all-targets -- -D warnings` clean, the whole `wf` black-box suite 1,186 of 1,186 in 88 files, none skipped on the clean run (two earlier runs under load skipped the ten Chromium-backed `auth-listener` cases once and failed one `browser-state` case once; each passes alone, 39 of 39 and 12 of 12 three times). Behaviour change: `wf log emit` honours the proxy variables of the environment instead of always connecting directly."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2136–2140",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

@@ -13,7 +13,7 @@ The Node service (2,277 lines with its tests) is replaced by a Rust pair on the 
 - Adapter tests: 4 SQLite (upsert, both rollup passes, reopen), 3 API (health, not found, window refusal).
 - `wf` black box: the deploy plan now plans a `reporting-service` leg and the VM-buildable image list names it (tests changed first, 1,153 of 1,153 CLI integration tests).
 
-## Benchmark (n=5 rounds of 5 runs, interleaved; `docs/audits/benchmarks/reporting-service-node-vs-rust.json`, script beside it)
+## Benchmark (n=5 rounds of 5 runs, interleaved; `docs/benchmarks/reports/reporting-service-node-vs-rust/evidence/reporting-service-node-vs-rust.json`, script beside it)
 
 | | Node | Rust |
 | --- | --- | --- |

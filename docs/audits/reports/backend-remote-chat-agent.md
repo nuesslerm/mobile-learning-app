@@ -11,7 +11,7 @@ Date: 2026-10-08. Owner decision: Rust first, Node only as a last resort. State 
 
 ## Before and after
 
-Before is the Node production bundle (`node dist/bundle/index.mjs`) recorded before any port; after is the finished Rust binary. n=5 fresh processes, medians, one scripted session per process, the same harness (`tests/bench/service.benchmark.test.ts`). Records: `docs/audits/benchmarks/rca-pre-node.json`, `rca-pre-node-ws.json`, `rca-pre-node-runs.json` (before) and `rca-post-rust.json` (after). Local numbers are on an x86_64 developer sandbox; container numbers are on the VM (arm64).
+Before is the Node production bundle (`node dist/bundle/index.mjs`) recorded before any port; after is the finished Rust binary. n=5 fresh processes, medians, one scripted session per process, the same harness (`tests/bench/service.benchmark.test.ts`). Records: `docs/benchmarks/reports/rca-pre-node/evidence/rca-pre-node.json`, `rca-pre-node-ws.json`, `rca-pre-node-runs.json` (before) and `rca-post-rust.json` (after). Local numbers are on an x86_64 developer sandbox; container numbers are on the VM (arm64).
 
 | Measure | Node | Rust |
 | --- | --- | --- |
@@ -110,7 +110,7 @@ The std-only service carried its own HTTP/1.1 server, WebSocket framing and SHA-
 | WebSocket, 100 connections p50 | 0.90 ms | 0.81 ms (after the `TCP_NODELAY` fix; 44.0 ms before it) |
 | Peak RSS over the session | 54.69 MB | 54.08 MB (slice C) |
 
-The standard stack costs about 4 MB of binary and 4 MB of idle memory, the price the owner accepted; routes are unchanged within noise, and voice transcribe is about four times faster because the STT call is a pooled `reqwest` request and no longer a spawned `curl`. Records: `docs/audits/benchmarks/rca-pre-std.json`, `rca-post-std.json`, `rca-post-serde.json`.
+The standard stack costs about 4 MB of binary and 4 MB of idle memory, the price the owner accepted; routes are unchanged within noise, and voice transcribe is about four times faster because the STT call is a pooled `reqwest` request and no longer a spawned `curl`. Records: `docs/benchmarks/reports/rca-pre-std/evidence/rca-pre-std.json`, `rca-post-std.json`, `rca-post-serde.json`.
 
 ### Tests, by tier
 

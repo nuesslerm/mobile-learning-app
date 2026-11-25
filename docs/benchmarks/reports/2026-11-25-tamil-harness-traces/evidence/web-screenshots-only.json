@@ -1,0 +1,68 @@
+[
+  {
+    "pair": 1,
+    "driver": "wf",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 4.298359459033236,
+    "peakHostMiB": 1058.375,
+    "startupS": 1.458817883,
+    "journeyS": 2.559227422
+  },
+  {
+    "pair": 1,
+    "driver": "maestro",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 16.833037958014756,
+    "peakHostMiB": 1487.265625,
+    "startupS": 6.802707235,
+    "journeyS": 9.235771362
+  },
+  {
+    "pair": 2,
+    "driver": "maestro",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 17.57752720802091,
+    "peakHostMiB": 1588.890625,
+    "startupS": 7.398382917,
+    "journeyS": 9.315092846
+  },
+  {
+    "pair": 2,
+    "driver": "wf",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 4.3076199169736356,
+    "peakHostMiB": 1057.984375,
+    "startupS": 1.534019837,
+    "journeyS": 2.501922579
+  },
+  {
+    "pair": 3,
+    "driver": "wf",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 4.285085540963337,
+    "peakHostMiB": 1066.640625,
+    "startupS": 1.464898356,
+    "journeyS": 2.558151625
+  },
+  {
+    "pair": 3,
+    "driver": "maestro",
+    "stage": "journey",
+    "exit": 0,
+    "timedOut": false,
+    "totalS": 17.488330916967243,
+    "peakHostMiB": 1481.34375,
+    "startupS": 7.254162326,
+    "journeyS": 9.319504449
+  }
+]

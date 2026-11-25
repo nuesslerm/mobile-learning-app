@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-180-2026-10-31-the-vm-has-2-cores-where-a-run-s-time-goes-run-12acfbb",
+  "subject": "Engineering decisions",
+  "title": "the VM has 2 cores; where a run's time goes (run 12acfbb, measured)",
+  "question": "What was measured for the VM has 2 cores; where a run's time goes (run 12acfbb, measured)?",
+  "date": "2026-10-31",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-31: the VM has 2 cores; where a run's time goes (run 12acfbb, measured)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "`nproc` on the VM is 2 and `CPU_OCPUS` is 2.0. A container's CPU is docker's cores x 100, the host's is a share of both cores: the runner's 135% is 1.35 of 2 cores. The earlier \"60% unattributed\" read the 2 cores as 4. The host sample now also stores steal and iowait; the report splits the busy cores into containers, hypervisor and the rest.",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- `nproc` on the VM is 2 and `CPU_OCPUS` is 2.0. A container's CPU is docker's cores x 100, the host's is a share of both cores: the runner's 135% is 1.35 of 2 cores. The earlier \"60% unattributed\" read the 2 cores as 4. The host sample now also stores steal and iowait; the report splits the busy cores into containers, hypervisor and the rest."
+        ],
+        [
+          "- Warm Nx stages are cheap: flow-tests 1m40s, typecheck-lint-unit-tests 1m32s (`--parallel 2`, one cargo target dir per workspace, `outputs: []` on every cargo target, one `--all-targets` clippy per crate)."
+        ],
+        [
+          "- The same run's deploy legs took vm-ops-api 4m53s (failed on the build-silence guard), remote-chat-agent 7m23s, leetcode-backend 4m04s: the Cargo profile edit changed every backend image's input hash and the cargo-chef dependency layer. A run that touches no service hashes deploys nothing."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3006–3012",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

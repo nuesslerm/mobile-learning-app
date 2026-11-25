@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-32",
+  "subject": "Engineering decisions",
+  "title": "Hard style single turns",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Hard style single turns",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Hard style single turns (X8, 21 of 48): chat $0.0650 / 400 tokens / judge 0.78 vs T3 $0.0647 / 421 / 0.80; agentic $0.111 vs T3 $0.121, gates passing. Equal cost, better canary: hard style ships",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 15 | 2026-09-02 22:38 | Hard style single turns (X8, 21 of 48): chat $0.0650 / 400 tokens / judge 0.78 vs T3 $0.0647 / 421 / 0.80; agentic $0.111 vs T3 $0.121, gates passing. Equal cost, better canary: hard style ships | `.agents/tmp/token-diet/ladder2-hard/rows.csv` | — |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 32",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

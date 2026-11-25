@@ -1,0 +1,12 @@
+[
+  {
+    "verdict": "External",
+    "endpoints": 7,
+    "samples": 0
+  },
+  {
+    "verdict": "No comparable baseline",
+    "endpoints": 1657,
+    "samples": 8285
+  }
+]

@@ -109,7 +109,7 @@ services:
   # Same netns as the agent, which calls it at localhost:8790. Measured on
   # the 10-sentence fixture set: p50 371ms / p90 456ms for tiny.en against
   # 13.4s for the in-process whisper.cpp path this replaces
-  # (docs/audits/2026-09-14-voice-edit-latency-data.md §9).
+  # (docs/benchmarks/reports/2026-09-14-voice-edit-latency-data/evidence/2026-09-14-voice-edit-latency-data.md §9).
   stt:
     image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/remote-chat-agent-stt:${STT_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: remote-chat-agent-stt

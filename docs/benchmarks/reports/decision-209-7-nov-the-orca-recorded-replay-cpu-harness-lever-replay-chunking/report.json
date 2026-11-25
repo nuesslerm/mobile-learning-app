@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-209-7-nov-the-orca-recorded-replay-cpu-harness-lever-replay-chunking",
+  "subject": "Engineering decisions",
+  "title": "7 Nov: the Orca recorded replay CPU (harness lever: replay chunking and dev-profile optimisation)",
+  "question": "What was measured for 7 Nov: the Orca recorded replay CPU (harness lever: replay chunking and dev-profile optimisation)?",
+  "date": null,
+  "revision": null,
+  "environment": null,
+  "workload": "7 Nov: the Orca recorded replay CPU (harness lever: replay chunking and dev-profile optimisation)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Measured: `cargo test -p orca-serve --test integration -- recorded_r1`, `time` user+sys, children included, same machine, n=1 each (a deterministic replay of 3,960 interactions; no model, no spend).",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Measure",
+        "wall",
+        "user",
+        "sys",
+        "CPU"
+      ],
+      "rows": [
+        [
+          "Before (HEAD at the start of the task)",
+          "88.7 s",
+          "83.3 s",
+          "10.7 s",
+          "94.0 s"
+        ],
+        [
+          "After",
+          "50.4 s",
+          "32.8 s",
+          "4.3 s",
+          "37.1 s"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Measured: `cargo test -p orca-serve --test integration -- recorded_r1`, `time` user+sys, children included, same machine, n=1 each (a deterministic replay of 3,960 interactions; no model, no spend)."
+        ],
+        [
+          "- Where the CPU went (a 0.25 s sampler of `/proc/*/task/*/stat`, plus `NODE_OPTIONS=--cpu-prof`): the node driver 28 s (14 starts, each esbuild bundling the pinned phone transport; 3,960 x25519 handshakes in tweetnacl, `M` alone 6 s), `wf-mimic` 16 s (`canonical` and `Value` clones through unoptimised `serde_json`, `indexmap` and `hashbrown` when the cassette loads and each answer is masked and diffed), `rca-service` 9 s, `orca-serve` 10 s, esbuild 5 s. No settle sleep or polling spin was among them (the 5 ms tap and stdio polls are idle waits); the T3 120 ms settle has no counterpart in this replay."
+        ],
+        [
+          "- Fix 1: `[profile.dev.package.*] opt-level = 2` in `clis/Cargo.toml` for `mimic-core`, `wf-mimic`, `serde_json`, `indexmap`, `hashbrown`, `sha2`, `regex-automata`, `regex-syntax` and `memchr` (94 s to about 55 s). Assertions untouched."
+        ],
+        [
+          "- Fix 2: `IDS_PER_CALL` 300 to 1500 in `recorded_r1.rs` (the longest `--only` list is 55 KB, far under the 128 KB argument limit): 14 driver starts and bundles become 4 (about 55 s to 37 s)."
+        ],
+        [
+          "- Not done: replacing tweetnacl's x25519 with node's native one in the phone stub (about 6 s) would change the pinned transport's crypto path; the target of 60 s is met without it. The `only.contains(&id)` scan in `usecase::replay` is quadratic but under a second."
+        ],
+        [
+          "- Cost: the dev profile of those crates compiles optimised once (about 30 s on a cold target dir)."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 3354–3368",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

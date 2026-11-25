@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-16-2026-10-06-wf-deploy-status-plan-metro-retire-in-rust-eighth-port",
+  "subject": "Engineering decisions",
+  "title": "`wf deploy status|plan|metro|retire` in Rust (eighth port)",
+  "question": "What was measured for `wf deploy status|plan|metro|retire` in Rust (eighth port)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: `wf deploy status|plan|metro|retire` in Rust (eighth port)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "dev-bridge: start (15 minute limit), status parse (`alive`, `commit`, `url`),",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "dev-bridge: start (15 minute limit), status parse (`alive`, `commit`, `url`),"
+        ],
+        [
+          "Benchmark (release, same container, n=5): `deploy plan --force` (no network)"
+        ],
+        [
+          "255.4 ms / 64.5 MB in the TypeScript `wf`, 5.8 ms / 11.0 MB in Rust. The"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 573–610",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

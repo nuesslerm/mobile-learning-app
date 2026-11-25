@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-10-06-rust-cli-consolidated-benchmark",
+  "subject": "Engineering measurements",
+  "title": "Rust CLI migration: consolidated before/after table (interim)",
+  "question": "What did the Rust CLI migration: consolidated before/after table (interim) measurements show?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "Rust CLI migration: consolidated before/after table (interim)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "(`opt-level z`, LTO, stripped), Node 22, n=5 medians, peak RSS from `wait4`/`RUSAGE_CHILDREN`, a fresh process per run.",
+  "variants": [
+    {
+      "id": "node-playwright-daemon",
+      "label": "Node/Playwright daemon"
+    },
+    {
+      "id": "rust-daemon-wf-browser-daemon-rust",
+      "label": "Rust daemon (`WF_BROWSER_DAEMON=rust`)"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table-5",
+      "label": "Published comparison 5"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "table-5-row-1",
+      "label": "wall time",
+      "unit": "ms",
+      "direction": "contextual"
+    },
+    {
+      "id": "table-5-row-2",
+      "label": "daemon resident set",
+      "unit": "MB",
+      "direction": "contextual"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "node-playwright-daemon",
+      "scenario": "table-5",
+      "metric": "table-5-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 1657,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-daemon-wf-browser-daemon-rust",
+      "scenario": "table-5",
+      "metric": "table-5-row-1",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 370,
+      "outcome": "observed"
+    },
+    {
+      "variant": "node-playwright-daemon",
+      "scenario": "table-5",
+      "metric": "table-5-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 184.5,
+      "outcome": "observed"
+    },
+    {
+      "variant": "rust-daemon-wf-browser-daemon-rust",
+      "scenario": "table-5",
+      "metric": "table-5-row-2",
+      "sample": "summary",
+      "statistic": "as published",
+      "value": 4.8,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [
+    {
+      "headers": [
+        "Command",
+        "TypeScript",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "`wf --version` (the Node floor)",
+          "266.8 ms / 64.2 MB",
+          "3.9 ms / 10.9 MB"
+        ],
+        [
+          "`wf agents mcp-guard` (every MCP call)",
+          "409.3 ms / 64.3 MB",
+          "11.6 ms / 10.9 MB"
+        ],
+        [
+          "`agent-config-sync mcp-guard` (standalone)",
+          "162.6 ms / 57.4 MB",
+          "10.5 ms / 10.9 MB"
+        ],
+        [
+          "`agent-config-sync sync --check`",
+          "270.3 ms / 68.0 MB",
+          "30.0 ms / 11.0 MB"
+        ],
+        [
+          "`wf secrets sync-env`",
+          "261.2 ms / 65.2 MB",
+          "8.0 ms / 11.0 MB"
+        ],
+        [
+          "`wf secrets list`",
+          "256.1 ms / 64.8 MB",
+          "5.3 ms / 11.0 MB"
+        ],
+        [
+          "`wf cli-bench` footprint count",
+          "82 s (symlink bug)",
+          "0.49 s"
+        ],
+        [
+          "`wf vm-ops health`",
+          "313.4 ms / 65.7 MB",
+          "24.3 ms / 10.9 MB"
+        ],
+        [
+          "`wf deploy plan --force`",
+          "255.4 ms / 64.5 MB",
+          "5.8 ms / 11.0 MB"
+        ],
+        [
+          "`wf deploy agent-deps list`",
+          "276.2 ms / 64.6 MB",
+          "6.3 ms / 11.0 MB"
+        ],
+        [
+          "`wf deploy tf exec` (wrapper)",
+          "284.5 ms / 64.7 MB",
+          "20.5 ms / 10.9 MB"
+        ],
+        [
+          "`wf tailscale auth-key rotate` (dry run)",
+          "251.3 ms / 64.5 MB",
+          "7.3 ms / 11.0 MB"
+        ],
+        [
+          "`wf auth done` (refused port)",
+          "295.5 ms / 69.1 MB",
+          "16.3 ms / 11.0 MB"
+        ],
+        [
+          "`wf dispatch --stats` (5,000-row log)",
+          "419.7 ms / 95.9 MB",
+          "71.1 ms / 16.0 MB"
+        ],
+        [
+          "`wf dispatch --savings` (5,000-row log)",
+          "340.3 ms / 81.9 MB",
+          "53.3 ms / 13.1 MB"
+        ],
+        [
+          "`wf dispatch --clear-cooldown`",
+          "253.8 ms / 65.4 MB",
+          "6.7 ms / 11.1 MB"
+        ],
+        [
+          "`wf verify --budget`",
+          "288.2 ms / 65.5 MB",
+          "14.3 ms / 11.0 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Measure",
+        "TypeScript",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "Shipped artifact",
+          "`wf.js` bundle 2,040,087 B, plus a Node runtime",
+          "one binary, 2,629,296 B, no runtime"
+        ],
+        [
+          "Resident floor per process",
+          "about 64 MB (Node plus the loaded bundle)",
+          "about 11 MB"
+        ],
+        [
+          "Dependencies at install",
+          "256,087 `node_modules` entries (symlinks not followed)",
+          "none at run time; 9 direct crates in `wf` at build time (`clis/wf/Cargo.toml`)"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "command",
+        "TypeScript",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "`wf browser list-devices`",
+          "1371 ms / 166 MB",
+          "9 ms / 12 MB"
+        ],
+        [
+          "`wf metro status`",
+          "257 ms / 65 MB",
+          "13 ms / 12 MB"
+        ],
+        [
+          "`wf knowledge index` (this repo)",
+          "529 ms / 94 MB",
+          "28 ms / 13 MB"
+        ],
+        [
+          "`wf android status`",
+          "283 ms / 73 MB",
+          "9 ms / 13 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "command",
+        "TypeScript",
+        "Rust"
+      ],
+      "rows": [
+        [
+          "`wf bench compare`",
+          "696 ms / 84 MB",
+          "26 ms / 11 MB"
+        ],
+        [
+          "`wf auth list`",
+          "235 ms / 65 MB",
+          "5 ms / 11 MB"
+        ],
+        [
+          "`wf verify HEAD --dry-run --skip-tier1`",
+          "249 ms / 65 MB",
+          "14 ms / 11 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "flow (open, navigate, eval via the CLI against one Chromium)",
+        "Node/Playwright daemon",
+        "Rust daemon (`WF_BROWSER_DAEMON=rust`)"
+      ],
+      "rows": [
+        [
+          "wall time",
+          "1657 ms",
+          "370 ms"
+        ],
+        [
+          "daemon resident set",
+          "184.5 MB",
+          "4.8 MB"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "(`opt-level z`, LTO, stripped), Node 22, n=5 medians, peak RSS from `wait4`/`RUSAGE_CHILDREN`, a fresh process per run."
+        ],
+        [
+          "n=5 medians, wrapper only, python3 `RUSAGE_CHILDREN`."
+        ],
+        [
+          "n=5 medians, wrapper only, a fresh python3 `RUSAGE_CHILDREN` process per run."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "2026-10-06-rust-cli-consolidated-benchmark.md",
+      "path": "evidence/2026-10-06-rust-cli-consolidated-benchmark.md"
+    }
+  ]
+}

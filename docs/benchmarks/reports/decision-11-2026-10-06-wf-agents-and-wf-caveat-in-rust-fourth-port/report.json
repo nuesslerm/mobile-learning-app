@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-11-2026-10-06-wf-agents-and-wf-caveat-in-rust-fourth-port",
+  "subject": "Engineering decisions",
+  "title": "wf agents and wf caveat in Rust (fourth port)",
+  "question": "What was measured for wf agents and wf caveat in Rust (fourth port)?",
+  "date": "2026-10-06",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-06: wf agents and wf caveat in Rust (fourth port)",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Benchmark (release, same container, n=5, `sh -c` wrapper included in the RSS):",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "command",
+        "TypeScript wf",
+        "Rust wf"
+      ],
+      "rows": [
+        [
+          "`agents mcp-guard` (the per-MCP-call hook path)",
+          "409.3 ms / 64.3 MB",
+          "11.6 ms / 10.9 MB"
+        ],
+        [
+          "binary",
+          "1.94 MB bundle plus node",
+          "2.1 MB (all ported commands)"
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "Benchmark (release, same container, n=5, `sh -c` wrapper included in the RSS):"
+        ],
+        [
+          "The hook path was 160 ms in the standalone-binary comparison; going through the"
+        ],
+        [
+          "TypeScript `wf` as the dispatcher really does made it 409 ms, so the saving per"
+        ],
+        [
+          "MCP call is about 400 ms and 53 MB."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 415–448",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

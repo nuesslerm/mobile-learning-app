@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-2026-09-02-29",
+  "subject": "Engineering decisions",
+  "title": "Chains",
+  "question": "What did the recorded experiment show?",
+  "date": "2026-09-02",
+  "revision": null,
+  "environment": null,
+  "workload": "Chains",
+  "method": "Original decision-log entry and measurements are preserved verbatim below.",
+  "finding": "Chains: the style saves whole-conversation cost (chat-20 −41%, agentic-15 −14%, mixed-30 −27%) by saving calls, not words; 🪨 drops to 72% of turns on mixed-30, so decay past ~20 turns is real",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Original decision-log entry"
+      ],
+      "rows": [
+        [
+          "| 12 | 2026-09-02 21:50 | Chains: the style saves whole-conversation cost (chat-20 −41%, agentic-15 −14%, mixed-30 −27%) by saving calls, not words; 🪨 drops to 72% of turns on mixed-30, so decay past ~20 turns is real | `ladder2-chains/rows.csv`, T0/T1 n=2, 266 turns | — |"
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original line 29",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

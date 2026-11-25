@@ -348,7 +348,7 @@ mod tests {
     fn given_maestros_key_names_when_parsed_then_case_is_ignored_and_letters_are_refused() {
         assert_eq!((Key::parse("remote dpad left"), Key::parse(" ctrl+end ")), (Ok(Key::Left), Ok(Key::CtrlEnd)));
         assert!(Key::parse("left").unwrap_err().contains("Remote Dpad Left") && Key::parse("a").unwrap_err().contains("input_text"));
-        assert_eq!(Key::ALL.map(Key::short), ["enter", "backspace", "tab", "left", "right", "up", "down", "ctrl-end"]);
+        assert_eq!(Key::ALL.map(Key::short), ["enter", "backspace", "tab", "left", "right", "up", "down", "ctrl-end", "select-all"]);
     }
 
     #[test]

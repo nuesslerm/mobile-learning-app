@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-73-2026-10-08-an-audit-of-what-the-rust-wf-still-refused-against-its",
+  "subject": "Engineering decisions",
+  "title": "an audit of what the Rust wf still refused, against its own help",
+  "question": "What was measured for an audit of what the Rust wf still refused, against its own help?",
+  "date": "2026-10-08",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-08: an audit of what the Rust wf still refused, against its own help",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Found and fixed in the suite, not the code: `wf browser navigate` on a launched session returned before the app frame had loaded (a test serving the page's script 400 ms late fails on the old binary, and so did the coverage test, which had only failed by chance), the auth-listener suite removed its browser profile while the browser still wrote it (ENOTEMPTY, about one run in three), and a long file of blocking `spawnSync` tests outlasted vitest's 60 s repl…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Found and fixed in the suite, not the code: `wf browser navigate` on a launched session returned before the app frame had loaded (a test serving the page's script 400 ms late fails on the old binary, and so did the coverage test, which had only failed by chance), the auth-listener suite removed its browser profile while the browser still wrote it (ENOTEMPTY, about one run in three), and a long file of blocking `spawnSync` tests outlasted vitest's 60 s reply wait (a yield after each test). Final state: 86 files, 1,132 passed, 3 skipped, two consecutive full runs green. One failure of `tailscale-rotate.integration.test.ts` (5 tests, exit 1 with an empty stdout) was seen once in about ten full runs and did not reproduce; its assertions now carry the command's stderr so the next occurrence explains itself."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 1584–1590",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

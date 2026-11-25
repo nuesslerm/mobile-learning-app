@@ -122,7 +122,7 @@ fn both_device_clis_and_the_lua_binder_offer_the_same_commands_from_one_table() 
              local bad = {{}}\n\
              for _, n in ipairs({{{}}}) do if device[n] ~= nil then bad[#bad + 1] = 'device:' .. n .. ' is bound' end end\n\
              for _, g in ipairs({{'args', 'sleep', 'assert_that'}}) do if _G[g] ~= nil then bad[#bad + 1] = g .. ' is set' end end\n\
-             if json.decode ~= nil then bad[#bad + 1] = 'json.decode is set' end\n\
+             assert_true(json.decode('[19]')[1] == 19, 'json.decode reads arrays')\n\
              local ok, e = pcall(function() device:tap('Go') end)\n\
              if ok or not tostring(e):find(\"t.lua:8: attempt to call a nil value (method 'tap')\", 1, true) then bad[#bad + 1] = 'device:tap: ' .. tostring(e) end\n\
              local function refuses(n, f, takes) local ok, e = pcall(f) if ok or not tostring(e):find(\"unknown parameter 'bogus' (takes: \" .. takes .. \")\", 1, true) then bad[#bad + 1] = n .. ': ' .. tostring(e) end end\n\

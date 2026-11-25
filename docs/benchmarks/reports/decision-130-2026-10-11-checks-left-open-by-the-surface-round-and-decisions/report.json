@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-130-2026-10-11-checks-left-open-by-the-surface-round-and-decisions",
+  "subject": "Engineering decisions",
+  "title": "checks left open by the surface round, and decisions",
+  "question": "What was measured for checks left open by the surface round, and decisions?",
+  "date": "2026-10-11",
+  "revision": null,
+  "environment": null,
+  "workload": "2026-10-11: checks left open by the surface round, and decisions",
+  "method": "Transcribed from the cited historical record. Units and precision follow the source.",
+  "finding": "Reported observations and context: - Tier 3 on `d9d695abc` (`wf check --deployed d9d695abc --no-publish-eas`, run from the sandbox): tier 1 pass; app-flows `/`, `/design-system/storybook` and `/settings` pass; `/leetcode/two-sum` fails (`\"twoSum\" never rendered`) in three runs. The tier-3 browser could not resolve tailnet names from the sandbox, so `VisualBrowser` now takes `WF_SOCKS_PORT` (the `wf browser` rule: `--proxy-server=socks5://localhost:<port>`; unit tests in `visual.rs`). Cause of…",
+  "variants": [],
+  "scenarios": [],
+  "metrics": [],
+  "observations": [],
+  "tables": [
+    {
+      "headers": [
+        "Reported observations and context"
+      ],
+      "rows": [
+        [
+          "- Tier 3 on `d9d695abc` (`wf check --deployed d9d695abc --no-publish-eas`, run from the sandbox): tier 1 pass; app-flows `/`, `/design-system/storybook` and `/settings` pass; `/leetcode/two-sum` fails (`\"twoSum\" never rendered`) in three runs. The tier-3 browser could not resolve tailnet names from the sandbox, so `VisualBrowser` now takes `WF_SOCKS_PORT` (the `wf browser` rule: `--proxy-server=socks5://localhost:<port>`; unit tests in `visual.rs`). Cause of the remaining failure: the check expects the text `twoSum` in the page, but in the plain 1280-wide viewport the page body reads `Two Sum, Array & Hashing, Easy, Plan, Code, Python, ...` (screenshot sent) and `twoSum` appears only in the Code editor, which `wf browser open --tailnet --device iphone-15-pro` renders (`class Solution: def twoSum`, 10 s after navigation). The expectation dates from the native `wf verify` port (`413c084b3`); this round touched neither the leetcode UI (last change 2026-10-06) nor the check. Left as it is: changing what tier 3 expects is the owner's call; the likely fix is expecting `Two Sum`. `verify-deployed.yml` has not run on `dev`, so CI does not catch it."
+        ],
+        [
+          "Tier 3 after the expectation change: the check now expects `Two Sum` on `/leetcode/two-sum` (`twoSum` never appears in the plain viewport's text, 90 s of polling, 268 characters; the black-box fixture page changed with it, `cli_verify_tier3` 7 of 7). `wf check --deployed fab156b74 --no-publish-eas` from the sandbox: tier 1 skip (no changed apps), tier 3 pass, all four app-flows routes, report `verify/fab156b744f1b46096e9708c0f7d251f015269a1.json`, exit 0."
+        ]
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "label": "Decision log · original lines 2205–2214",
+      "path": "../../../audits/2026-09-02-token-diet-decision-log.md"
+    }
+  ]
+}

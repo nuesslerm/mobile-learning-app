@@ -80,9 +80,9 @@ criteria:
   - id: d3.docs
     description: 'The audit, decision log, ledger and report document the slim device, the boot-breaking packages, the lease and queue, and the numbers.'
     command: |-
-      grep -q "^## Android" docs/audits/2026-10-06-app-bench-baseline.md \
+      grep -q "^## Android" docs/benchmarks/reports/2026-10-06-app-bench-baseline/evidence/2026-10-06-app-bench-baseline.md \
         && grep -q "slim" docs/audits/2026-09-02-token-diet-decision-log.md \
-        && test -f docs/audits/2026-10-06-app-bench-report.md
+        && test -f docs/benchmarks/reports/2026-10-06-app-bench-report/evidence/2026-10-06-app-bench-report.md
   - id: z.ledger-complete
     description: 'Every box in the ledger is ticked, and no Blocker line is left open.'
     command: |-

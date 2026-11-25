@@ -1,0 +1,433 @@
+{
+  "schemaVersion": 1,
+  "id": "rca-ci-deploy-profile",
+  "subject": "Services and CLI",
+  "title": "rca ci deploy profile",
+  "question": "What did the rca ci deploy profile measurements show?",
+  "date": "2026-10-09",
+  "revision": null,
+  "environment": null,
+  "workload": "rca ci deploy profile",
+  "method": "Original service benchmark, 5 runs. Statistics retain their source labels.",
+  "finding": "deploy-profile recorded 35.79715899999974 ms for coldStartMs.",
+  "variants": [
+    {
+      "id": "deploy-profile",
+      "label": "deploy-profile"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "service",
+      "label": "service"
+    },
+    {
+      "id": "chat-turn",
+      "label": "chat turn"
+    },
+    {
+      "id": "run-once",
+      "label": "run once"
+    },
+    {
+      "id": "convert-pdf",
+      "label": "convert pdf"
+    },
+    {
+      "id": "convert-pdf-chromium",
+      "label": "convert pdf (chromium)"
+    },
+    {
+      "id": "convert-docx",
+      "label": "convert docx"
+    },
+    {
+      "id": "diff-register-and-page",
+      "label": "diff register and page"
+    },
+    {
+      "id": "file-preview-markdown",
+      "label": "file preview (markdown)"
+    },
+    {
+      "id": "file-preview-typescript",
+      "label": "file preview (typescript)"
+    },
+    {
+      "id": "tamil-check",
+      "label": "tamil check"
+    },
+    {
+      "id": "voice-transcribe",
+      "label": "voice transcribe"
+    },
+    {
+      "id": "ws-request",
+      "label": "ws request"
+    },
+    {
+      "id": "ws-100-connections",
+      "label": "ws 100 connections"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "artifactbytes",
+      "label": "artifactBytes",
+      "unit": "bytes",
+      "direction": "lower"
+    },
+    {
+      "id": "coldstartms",
+      "label": "coldStartMs",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "idlerssmb",
+      "label": "idleRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "rssafterhealthmb",
+      "label": "rssAfterHealthMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "healthp50ms",
+      "label": "healthP50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "p50ms",
+      "label": "p50Ms",
+      "unit": "ms",
+      "direction": "lower"
+    },
+    {
+      "id": "rssaftermb",
+      "label": "rssAfterMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "finalrssmb",
+      "label": "finalRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmb",
+      "label": "peakRssMb",
+      "unit": "MB",
+      "direction": "lower"
+    },
+    {
+      "id": "peakrssmaxmb",
+      "label": "peakRssMaxMb",
+      "unit": "MB",
+      "direction": "lower"
+    }
+  ],
+  "observations": [
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "artifactbytes",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 21849680,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "coldstartms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 35.79715899999974,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "idlerssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.2578125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "rssafterhealthmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 10.36328125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "healthp50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.47247450000031677,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "chat-turn",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 105.59369500000139,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "chat-turn",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.38671875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "run-once",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 109.0909625000022,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "run-once",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.7734375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "convert-pdf",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 14.36652050000066,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "convert-pdf",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.80859375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "convert-pdf-chromium",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 12.127598000000035,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "convert-pdf-chromium",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 13.01953125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "convert-docx",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 1.2552245000006224,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "convert-docx",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 13.22265625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "diff-register-and-page",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 9.708436000000802,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "diff-register-and-page",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.23828125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "file-preview-markdown",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.7892140000003565,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "file-preview-markdown",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.23828125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "file-preview-typescript",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.809041000000434,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "file-preview-typescript",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 18.23828125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "tamil-check",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 164.13506699999925,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "tamil-check",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 31.5859375,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "voice-transcribe",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 2.7954165000010107,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "voice-transcribe",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 31.69140625,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "ws-request",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.1123120000002018,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "ws-request",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 31.69921875,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "ws-100-connections",
+      "metric": "p50ms",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 0.9974550000006275,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "ws-100-connections",
+      "metric": "rssaftermb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.328125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "finalrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.328125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "peakrssmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.328125,
+      "outcome": "observed"
+    },
+    {
+      "variant": "deploy-profile",
+      "scenario": "service",
+      "metric": "peakrssmaxmb",
+      "sample": "summary",
+      "statistic": "as reported",
+      "value": 42.65234375,
+      "outcome": "observed"
+    }
+  ],
+  "tables": [],
+  "evidence": [
+    {
+      "label": "rca-ci-deploy-profile.json",
+      "path": "evidence/rca-ci-deploy-profile.json"
+    }
+  ],
+  "sampleSize": "5 runs"
+}

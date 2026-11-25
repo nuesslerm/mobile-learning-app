@@ -35,6 +35,13 @@ impl Simulator {
     }
 
     fn call(&self, request: Value) -> Result<Value, String> {
+        let span = wf_kit::performance::HarnessSpan::begin("ios", request[0].as_str().unwrap_or("unknown"));
+        let result = self.exchange(request);
+        span.finish(if result.is_ok() { "ok" } else { "error" });
+        result
+    }
+
+    fn exchange(&self, request: Value) -> Result<Value, String> {
         let mut bridge = self.bridge.borrow_mut();
         if bridge.is_none() {
             let script = wf_kit::root::repo_root().join("clis/wf-harness/src/ios/bridge.py");
