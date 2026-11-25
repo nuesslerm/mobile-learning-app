@@ -325,8 +325,14 @@ pub fn run(rest: &[String]) -> i32 {
     // failures in a row mean something shared is broken (the device, a backend): the rest would only burn the job's time
     let max_fails: usize = std::env::var("WF_TEST_MAX_FAILS").ok().and_then(|v| v.parse().ok()).unwrap_or(3);
     let mut fails_in_row = 0;
-    let mut section_start = None;
-    for u in &units {
+    let mut section_start: Option<Instant> = None;
+    for (index, u) in units.iter().enumerate() {
+        if is_section && index >= 10 && section_start.is_some_and(|start| start.elapsed().as_secs_f64() > 600.0) {
+            let note = "section exceeded the 600-second budget before this candidate";
+            println!("{}", json!({ "unit": slug(u), "verdict": "skipped", "durationS": 0.0, "note": note }));
+            results.push(json!({ "test": u.test, "args": u.args, "sha": sha, "script": u.script, "platform": u.platform, "verdict": "skipped", "durationS": 0.0, "note": note }));
+            continue;
+        }
         let (serial, update) = if u.platform == "ios" { (&ios_device, &ios_update) } else { (&android_device, &android_update) };
         if !is_section && fails_in_row >= max_fails {
             let note = format!("not run: the {fails_in_row} units before it failed in a row");

@@ -3472,3 +3472,5 @@ Run live over SSH into `agent-shell-sessions` (the machine-only e2e identity fro
 2026-11-25 — The Android core benchmark passed ten Tamil journeys in 165.8–169.8 s across three fresh runners. One runner passed ten LeetCode journeys in 213.4 s. Testing the five ordered candidates per section fits the observed warm budget. The [native coverage audit](2026-11-25-native-learner-suites.md) records results and remaining races.
 
 2026-11-25 — Fifteen Tamil journeys on the local iPhone 17 took 214.9 s with recordings and storage isolation. The native All Topics exercise search took 17.2 s independently. Keep all fifteen in the hosted qualification run.
+
+2026-11-25 — All fifteen Tamil cases took 272.7–276.0 s across three hosted Android emulators. A focused flow exercised the Android UI server and verified one physical tap in the system IME button. On the local iPhone the editor keyboard journey passed in 15.2 s and reverse flash cards in 18.3 s after reducing redundant accessibility reads.

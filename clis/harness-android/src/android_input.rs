@@ -203,7 +203,7 @@ fn parse_dump(xml: &str) -> Vec<(Node, usize)> {
 }
 
 /// The element a selector names in a dump: of the visible matches in tree order, Maestro's deepest.
-fn find_in(xml: &str, sel: &Sel) -> Option<Node> {
+pub(crate) fn find_in(xml: &str, sel: &Sel) -> Option<Node> {
     let nodes = parse_dump(xml);
     let found: Vec<usize> = (0..nodes.len()).filter(|&i| nodes[i].0.shows() && nodes[i].0.matches(sel)).collect();
     let i = deepest(found, |&a, &b| b < a && a < nodes[b].1)?;

@@ -156,6 +156,24 @@ async def type_on_keyboard(client, value, dimensions):
             await asyncio.sleep(.1)
 
 
+async def accessibility_tree(client):
+    try:
+        return json.loads((await client.accessibility_info(None, False)).json)
+    except Exception as error:
+        if "no frontmost application" in str(error):
+            return []
+        if "accessibility service did not answer" not in str(error):
+            raise
+    # The simulator can reject a read while handing its window from SpringBoard to Expo Go.
+    return json.loads((await client.accessibility_info(None, False)).json)
+
+
+def has_keyboard(rows):
+    return any(row.get("type") in ("Keyboard", "Key") or row.get("AXLabel") in
+               ("space", "Space", "shift", "Shift", "more, numbers") or
+               row.get("AXUniqueId") in ("SymbolBarGroup-g3", "EditorAction-Done") for row in rows)
+
+
 async def serve(udid):
     info = json.loads(subprocess.check_output(["idb", "describe", "--udid", udid, "--json"]))
     if info["state"] != "Booted" or info["target_type"] != "simulator" or info["udid"] != udid:
@@ -168,28 +186,29 @@ async def serve(udid):
 async def drive(socket, udid, info):
     async with Client.build(DomainSocketAddress(socket), logging.getLogger(__name__)) as client:
         await client.set_hardware_keyboard(False)
+        tree_at, last_tree = 0.0, []
         for line in sys.stdin:
             op, *args = json.loads(line)
             try:
                 result = None
+                if op not in ("tree", "screen", "keyboard", "screenshot"):
+                    tree_at = 0.0
                 if op == "tree":
-                    try:
-                        result = json.loads((await client.accessibility_info(None, False)).json)
-                    except Exception as error:
-                        if "no frontmost application" not in str(error):
-                            raise
-                        result = []
+                    # Share one lookup across adjacent selectors. The 100 ms geometry settle must read a new frame.
+                    if time.monotonic() - tree_at > .045:
+                        last_tree = await accessibility_tree(client)
+                        tree_at = time.monotonic()
+                    result = last_tree
                 elif op == "keyboard":
                     dims = info["screen_dimensions"]
                     width, height = dims["width_points"], dims["height_points"]
-                    rows = json.loads((await client.accessibility_info(None, False)).json)
-                    # idb lists the application tree. The keyboard has its own window.
+                    result = has_keyboard(await accessibility_tree(client))
+                    # A keyboard in a separate window can only be reached by hit testing.
                     for x, y in ((.5, .91), (.05, .73), (.08, .85)):
-                        element = json.loads((await client.accessibility_info((int(width*x), int(height*y)), False)).json)
-                        rows.extend(element if isinstance(element, list) else [element])
-                    result = any(r.get("type") in ("Keyboard", "Key") or r.get("AXLabel") in
-                                 ("space", "Space", "shift", "Shift", "more, numbers") or
-                                 r.get("AXUniqueId") in ("SymbolBarGroup-g3", "EditorAction-Done") for r in rows)
+                        if result:
+                            break
+                        hit = json.loads((await client.accessibility_info((int(width*x), int(height*y)), False)).json)
+                        result = has_keyboard(hit if isinstance(hit, list) else [hit])
                 elif op == "screen":
                     dims = info["screen_dimensions"]
                     result = dict(width=dims["width_points"], height=dims["height_points"], dpr=dims["density"])

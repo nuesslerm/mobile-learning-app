@@ -950,6 +950,7 @@ impl FakeUiServer {
                             dead = false;
                             json!({ "jsonrpc": "2.0", "id": 1, "error": { "code": -32000, "message": "java.lang.NullPointerException" } }).to_string()
                         }
+                        "dumpWindowHierarchy" => ok(json!(r#"<hierarchy><node resource-id="com.android.systemui:id/back" content-desc="Back" bounds="[66,976][173,1040]"/></hierarchy>"#)),
                         "objInfoOfAllInstances" | "count" => {
                             let sel = serde_json::from_str::<Value>(&body).map(|v| v["params"][0].clone()).unwrap_or_default();
                             asked.lock().unwrap().push(sel.clone());
@@ -1028,6 +1029,20 @@ impl FakeUiServer {
     pub(crate) fn asked(&self) -> Vec<Value> {
         std::mem::take(&mut *self.selectors.lock().unwrap())
     }
+}
+
+#[test]
+fn a_learner_can_tap_the_keyboard_dismiss_button_in_the_system_window() {
+    // Given a visible Android IME whose navigation button is outside the application window
+    let sandbox = sandbox("wf-flow-android-ime-");
+    let server = FakeUiServer::start(None, false);
+    // When the native journey taps the system button by its full accessibility id
+    let tap = android(&sandbox, &["tap-on", "--id", "com.android.systemui:id/back"], &[
+        ("WF_ANDROID_UIA", "u2"), ("WF_U2_URL", &server.url), ("ANDROID_SERIAL", "emulator-5554"),
+    ]);
+    // Then one physical tap lands in the visible button
+    assert_eq!(tap.exit_code, 0, "{}", out(&tap));
+    assert_eq!(sandbox.calls("adb").iter().filter(|call| call.ends_with("shell input tap 119.5 1008")).count(), 1);
 }
 
 #[test]

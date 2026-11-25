@@ -77,3 +77,9 @@ The iOS [fresh-host recording and accessibility tree](https://github.com/nuessle
 On the local iPhone 17 running iOS 27.0, Tamil passed all fifteen journeys in 214.9 seconds. The exercise search now enters All Topics, searches for “your number”, opens the matching task and verifies its first exercise. That replacement passed independently in 17.2 seconds. Weak-letter review and reverse flash cards, including playback from the Tamil front, passed independently in 14.7 and 19.2 seconds.
 
 On [the expanded Android run](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45546504135), sample 3 completed LeetCode in 358.2 seconds (5/15) and Tamil in 268.5 seconds (14/15). A [follow-up recording](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45547314155) identified the visible system IME dismiss button when the app toolbar was hidden. The driver now uses that control. The failed samples do not qualify the fifteen-case cutoff.
+
+### Proposed fifteen on revision 75b7dace
+
+On the named local simulator the full LeetCode set passed in 233.8 seconds and Tamil in 215.5 seconds. All 30 journeys have a read-back recording. The [phone update](https://expo.dev/accounts/nuesslerm/projects/mla-tamagui/updates/a6d9148f-62a7-46b9-a374-c0bf0594ccd4) separately passed the bare-link launch and answer-reveal check.
+
+All fifteen Tamil journeys passed in 272.7, 274.0 and 276.0 seconds on three uncached hosted Android emulators. The [same benchmark](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45549199373) recorded LeetCode at 598.8, 491.2 and 493.8 seconds, with 5, 6 and 6 passing. The Android diagnostic tree included the IME dismiss button in the navigation window, which the active application selector could not inspect. The driver now reads that window's bounds and taps its button. One hosted iOS preflight stalled on a system accessibility read during the Expo Go handoff.

@@ -203,6 +203,10 @@ fn with(mut s: Value, mask: u64, field: &str, value: Value) -> Value {
     s
 }
 
+fn system_window(sel: &Sel) -> bool {
+    sel.id.as_ref().is_some_and(|id| id.source().starts_with("com.android.systemui:id/"))
+}
+
 /// The UiSelectors for a selector, the text before the accessibility label. Every given field must hold, and the server's Java
 /// engine matches each pattern against the whole value.
 pub(crate) fn selectors(sel: &Sel) -> Vec<Value> {
@@ -265,6 +269,10 @@ pub(crate) fn locate(serial: &str, sel: &Sel) -> Result<Option<Node>, String> {
 /// One look: every visible match in tree order (`objInfoOfAllInstances`), the text's before the label's, and of those
 /// Maestro's deepest. A web view's text is the EditText inside it (the code editor's buffer).
 pub(crate) fn look(serial: &str, sel: &Sel) -> Result<Option<Node>, String> {
+    // UiSelector searches the active app. The system's IME dismiss control lives in a separate window.
+    if system_window(sel) {
+        return Ok(crate::android_input::find_in(&hierarchy(serial)?, sel));
+    }
     for (v, s) in selectors(sel).into_iter().enumerate() {
         let all = match rpc(serial, "objInfoOfAllInstances", json!([s]), Duration::from_secs(20)) {
             Ok(all) => all,
@@ -428,6 +436,9 @@ fn simplify(path: &[(f64, f64)], tolerance: f64) -> Vec<(f64, f64)> {
 /// tap miss (the Run Local button moved 87 px under one on 18 Oct). `at` is the (selector, instance) a lookup took, so the
 /// tap lands on that match. False when nothing matches.
 pub(crate) fn click_target(serial: &str, sel: &Sel, at: Option<(usize, usize)>) -> Result<bool, String> {
+    if system_window(sel) {
+        return Ok(false);
+    }
     let all = selectors(sel);
     let picked: Vec<Value> = match at {
         Some((v, k)) if v < all.len() => vec![instance(&all[v], k)],
