@@ -29,6 +29,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
       WF_NATIVE_RUNTIME: xcode-27-iphone17-ios27.0-expo58.0.7
+      WF_IOS_XCTEST_DRIVER: '1'
       WF_NATIVE_SAMPLE: ${{ inputs.sample }}
       WF_E2E_SHA: ${{ github.sha }}
       WF_EAS_UPDATE_BRANCH: ${{ inputs.update_branch }}
@@ -125,12 +126,16 @@ jobs:
           flags=()
           if [[ "$FRESH" == true ]]; then flags+=(--fresh); fi
           wf test run --stage ios-e2e-tests --plan "$RUNNER_TEMP/plan.json" --out "$RUNNER_TEMP/e2e-runs" "${flags[@]}"
+      - name: Close XCTest automation
+        if: always() && env.WF_IOS_UDID != ''
+        run: wf test prepare-ios --stop-automation "$WF_IOS_UDID"
       - name: Upload simulator evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-runs-ios-e2e-sample-${{ inputs.sample }}
           path: |
+            ${{ runner.temp }}/wf-xcui-*.log
             ${{ runner.temp }}/ios-device.json
             ${{ runner.temp }}/ios-preflight
             ${{ runner.temp }}/test-runs

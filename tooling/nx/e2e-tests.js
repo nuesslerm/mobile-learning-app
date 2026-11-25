@@ -20,7 +20,7 @@ const HARNESS = {
     'clis/harness-core/src/golden.rs',
     'clis/harness-core/src/pixelmatch.rs',
   ],
-  android: ['clis/wf-harness/ios_simulator.py', '.github/workflows/e2e-tests.yml', 'clis/harness-android/src/*.rs', 'clis/harness-android/src/*.json', 'clis/harness-android/assets/**'],
+  android: ['e2e/support/native-ready.lua', 'clis/wf-harness/ios_simulator.py', '.github/workflows/e2e-tests.yml', 'clis/harness-android/src/*.rs', 'clis/harness-android/src/*.json', 'clis/harness-android/assets/**'],
   ios: ['e2e/support/native-ready.lua', 'clis/wf-harness/ios_simulator.py', 'clis/wf-harness/src/ios*', 'clis/wf-harness/src/ios/**', '.github/workflows/ios-e2e-tests.yml'],
   browser: [
     'clis/harness-browser/src/*.rs',

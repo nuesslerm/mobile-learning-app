@@ -209,6 +209,15 @@ local function enable_list_setting(id)
     if target and target.bounds.bottom <= screen.height*.90 then break end
     device:swipe(("%d,%d"):format(x, y+step), ("%d,%d"):format(x, y), {duration=500})
   end
+  local last_y, steady_since = nil, 0
+  device:extended_wait_until{condition=function()
+    local target = device:get_element({id=id})
+    if not target then return false end
+    if target.bounds.cy ~= last_y then
+      last_y, steady_since = target.bounds.cy, now_ms()
+    end
+    return now_ms() - steady_since >= 250
+  end, label="The setting has stopped scrolling"}
   tap(id)
 end
 cases.completion = function()

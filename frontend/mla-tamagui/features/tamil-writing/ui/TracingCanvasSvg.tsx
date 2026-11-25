@@ -17,6 +17,7 @@ import {
 } from '../domain/strokes';
 
 import { GuideGlyph } from './GuideGlyph';
+import { traceGuideValue } from './traceGuideValue';
 
 export type TracingCanvasProps = {
   /** The letter shown faintly underneath, for the finger to follow. */
@@ -185,7 +186,7 @@ export function TracingCanvasSvg({
           {...(Platform.OS === 'ios' && process.env.EXPO_PUBLIC_NATIVE_SUITE === '1' ? {
             accessible: true,
             accessibilityLabel: 'Tracing surface',
-            accessibilityValue: { text: JSON.stringify({ guide: activePath.length > 1 ? [activePath] : [] }) },
+            accessibilityValue: { text: traceGuideValue(activePath) },
           } : {})}
           data-active-guide={
             activePath.length > 1 ? pointsToPath(activePath) : ''

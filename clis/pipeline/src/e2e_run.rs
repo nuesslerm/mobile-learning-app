@@ -160,6 +160,11 @@ fn spawn_and_wait(unit: &Unit, sha: &str, dir: &Path, serial: Option<&str>, flag
     let program = words.remove(0);
     let mut cmd = if matches!(unit.test.as_str(), "leetcode-native" | "tamil-native") {
         let mut wrapper = Command::new("python3");
+        if unit.platform == "android" {
+            if let Some(target) = target {
+                wrapper.env("WF_NATIVE_UPDATE_BASE", target.base());
+            }
+        }
         wrapper.arg(catalog::repo().join("clis/wf-harness/ios_simulator.py")).args(["case", "--platform", &unit.platform, "--device", serial.unwrap_or("")]).arg(program);
         wrapper
     } else {

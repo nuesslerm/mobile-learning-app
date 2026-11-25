@@ -7,7 +7,8 @@ with `wf test run --stage`.
 
 Actions:
   prepare-ios [--device UDID]  verify the selected iPhone 17 simulator, iOS 27.0 and Expo Go 58.0.7. With no selector, provision a fresh hosted device.
-  prepare-ios --build-input   build the native Unicode keyboard test helper and print its xctestrun path before timing journeys.
+  prepare-ios --build-input   build the XCTest accessibility and keyboard helper and print its xctestrun path before timing journeys.
+  prepare-ios --stop-automation UDID   close the XCTest session for the selected simulator.
   ios-visual <name> --device <udid> --expect <testID> [--update-goldens] [--out <dir>]
                          capture the selected iOS simulator with idb and compare to docs/runbooks/goldens/ios/.
                          Requires the testID on screen. Ignores the status bar and any --ignore left,top,right,bottom

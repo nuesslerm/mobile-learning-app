@@ -175,7 +175,7 @@ async def dismiss_keyboard_intro(client, rows, height):
     return bool(button)
 
 
-async def type_on_keyboard(client, value, dimensions):
+async def type_on_keyboard(client, value, dimensions, tree):
     width, height = dimensions["width_points"], dimensions["height_points"]
     keys = None
     for char in value:
@@ -183,7 +183,7 @@ async def type_on_keyboard(client, value, dimensions):
         deadline = time.monotonic() + 2
         while True:
             if keys is None:
-                rows = await accessibility_tree(client)
+                rows = await tree()
                 if time.monotonic() < deadline and await dismiss_keyboard_intro(client, rows, height):
                     await asyncio.sleep(.15)
                     continue
@@ -290,6 +290,16 @@ async def drive(socket, udid, info=None):
                 raise ValueError(f"The companion is not connected to the selected booted simulator {udid}")
             info = {"screen_dimensions": asdict(target.screen_dimensions)}
         await client.set_hardware_keyboard(False)
+        folder = None
+        if os.getenv("WF_IOS_XCTEST_DRIVER") == "1":
+            import xcui
+            folder = Path(json.loads(xcui.state_file(udid).read_text())["folder"])
+
+        async def tree():
+            if folder:
+                return xcui.call(folder, "tree")
+            return await accessibility_tree(client)
+
         tree_at, last_tree = 0.0, []
         for line in sys.stdin:
             op, *args = json.loads(line)
@@ -300,13 +310,13 @@ async def drive(socket, udid, info=None):
                 if op == "tree":
                     # Share one lookup across adjacent selectors. The 100 ms geometry settle must read a new frame.
                     if time.monotonic() - tree_at > .045:
-                        last_tree = await accessibility_tree(client)
+                        last_tree = await tree()
                         tree_at = time.monotonic()
                     result = last_tree
                 elif op == "keyboard":
                     dims = info["screen_dimensions"]
                     width, height = dims["width_points"], dims["height_points"]
-                    result = has_keyboard(await accessibility_tree(client))
+                    result = has_keyboard(await tree())
                     # A keyboard in a separate window can only be reached by hit testing.
                     for x, y in ((.5, .91), (.05, .73), (.08, .85)):
                         if result:
@@ -329,7 +339,11 @@ async def drive(socket, udid, info=None):
                     await client.swipe(tuple(args[0]), tuple(args[1]), duration=args[2]/1000)
                 elif op == "text":
                     if args[0].isascii() and all(c.islower() or c.isdigit() or c == " " for c in args[0]):
-                        await type_on_keyboard(client, args[0], info["screen_dimensions"])
+                        await type_on_keyboard(client, args[0], info["screen_dimensions"], tree)
+                    elif folder:
+                        rows = await tree()
+                        await dismiss_keyboard_intro(client, rows, info["screen_dimensions"]["height_points"])
+                        xcui.call(folder, "text", text=args[0])
                     else:
                         rows = json.loads((await client.accessibility_info(None, False)).json)
                         await dismiss_keyboard_intro(client, rows, info["screen_dimensions"]["height_points"])

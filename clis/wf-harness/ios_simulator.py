@@ -75,7 +75,11 @@ def prepare(udid):
         settings.update(EXDevMenuShowFloatingActionButton=False, EXDevMenuIsOnboardingFinished=True)
         prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
         sim("launch", udid, EXPO)
-    print(json.dumps(simulator_manifest(udid)))
+    manifest = simulator_manifest(udid)
+    if os.getenv("WF_IOS_XCTEST_DRIVER") == "1":
+        import xcui
+        xcui.start(udid, os.environ["WF_IOS_INPUT_RUNNER"])
+    print(json.dumps(manifest))
 
 
 def simulator_manifest(udid):
@@ -149,6 +153,51 @@ def configure_android_dev_menu(adb):
         subprocess.run([*adb, write], input=ET.tostring(root, encoding="utf-8"), check=True)
 
 
+def prepare_android_learner(device, base, manifest):
+    adb = ["adb", "-s", device]
+    revision = hashlib.sha256(base.encode()).hexdigest()[:16]
+    name = "wf-learner-" + revision
+    directory = Path(os.environ["RUNNER_TEMP"]) / f"{device}-{name}"
+    directory.mkdir(exist_ok=True)
+    saved = directory / "saved"
+
+    def snapshot(operation):
+        result = subprocess.check_output([*adb, "emu", "avd", "snapshot", operation, name], text=True)
+        if any(line.lstrip().startswith("KO") for line in result.splitlines()):
+            raise RuntimeError(f"Could not {operation} learner snapshot: {result}")
+
+    if saved.exists():
+        snapshot("load")
+        subprocess.run([*adb, "wait-for-device"], check=True, timeout=30)
+        return
+    shell = [*adb, "shell"]
+    # Expo Go’s ScopedContext puts learner files and preferences under the encoded experience key.
+    subprocess.run([*shell, """set -e
+am force-stop host.exp.exponent
+cd /data/user/0/host.exp.exponent
+for dir in files/ExperienceData/*; do
+  [ -d "$dir" ] || continue
+  scope=${dir##*/}
+  rm -f -- databases/"$scope"-* shared_prefs/"$scope"-*
+  rm -rf -- "cache/ExperienceData/$scope" "no_backup/ExperienceData/$scope" "$dir"
+  echo "Reset Expo learner scope $scope"
+done
+rm -f -- databases/RKStorage*
+"""], check=True)
+    configure_android_dev_menu(shell)
+    preflight = directory / "preflight"
+    subprocess.run(["wf", "android", "test", "e2e/support/native-ready.lua", "--device", device,
+                    "--env", f"base={base}", "--test-output-dir", str(preflight), "--publish"], check=True,
+                   env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest),
+                        "WF_RUN_TIMING": str(preflight / "timing.jsonl")})
+    # The checkpoint contains the verified library and its empty learner data, including JS memory.
+    snapshot("save")
+    listed = subprocess.check_output([*adb, "emu", "avd", "snapshot", "list"], text=True)
+    if name not in listed:
+        raise RuntimeError(f"Emulator did not retain learner snapshot {name}: {listed}")
+    saved.touch()
+
+
 def run_case(args):
     if args.platform == "ios":
         prepared = os.getenv("WF_NATIVE_DEVICE_INFO")
@@ -167,27 +216,13 @@ def run_case(args):
     if not (os.getenv("GITHUB_ACTIONS") == "true" and args.device.startswith("emulator-")):
         raise ValueError("Android learner suites require a hosted emulator")
     adb = ["adb", "-s", args.device, "shell"]
-    # Expo Go’s ScopedContext puts learner files and preferences under the encoded experience key.
-    subprocess.run([*adb, """set -e
-am force-stop host.exp.exponent
-cd /data/user/0/host.exp.exponent
-for dir in files/ExperienceData/*; do
-  [ -d "$dir" ] || continue
-  scope=${dir##*/}
-  rm -f -- databases/"$scope"-* shared_prefs/"$scope"-*
-  rm -rf -- "cache/ExperienceData/$scope" "no_backup/ExperienceData/$scope" "$dir"
-  echo "Reset Expo learner scope $scope"
-done
-rm -f -- databases/RKStorage*
-"""], check=True)
-    configure_android_dev_menu(adb)
-
     def prop(key):
         return subprocess.check_output([*adb, "getprop", key], text=True).strip()
     package_info = subprocess.check_output([*adb, "dumpsys", "package", "host.exp.exponent"], text=True)
     version = next(line.strip().split("=", 1)[1] for line in package_info.splitlines() if "versionName=" in line)
     manifest = {"udid": args.device, "model": prop("ro.product.model"), "runtime": prop("ro.build.version.release"),
                 "sdk": prop("ro.build.version.sdk"), "expoGo": version}
+    prepare_android_learner(args.device, os.environ["WF_NATIVE_UPDATE_BASE"], manifest)
     return subprocess.call(args.command, env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)})
 
 
@@ -196,6 +231,7 @@ def main():
     verbs = parser.add_subparsers(dest="verb", required=True)
     target = verbs.add_parser("prepare").add_mutually_exclusive_group()
     target.add_argument("--device")
+    target.add_argument("--stop-automation", metavar="UDID")
     target.add_argument("--build-input", action="store_true")
     case = verbs.add_parser("case")
     case.add_argument("--platform", choices=("ios", "android"), required=True)
@@ -203,7 +239,13 @@ def main():
     case.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     if args.verb == "prepare":
-        if args.build_input:
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "src/ios"))
+        if args.stop_automation:
+            import xcui
+            xcui.stop(args.stop_automation)
+            print(json.dumps({"stopped": args.stop_automation}))
+            return
+        elif args.build_input:
             bridge = Path(__file__).parent / "src/ios/bridge.py"
             return subprocess.call([sys.executable, bridge, "--build-input"])
         prepare(args.device)

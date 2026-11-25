@@ -4,7 +4,7 @@ local function keyboard(want)
 end
 local function focus_end(first_line)
   if device.platform == "android" then device:assert_visible({id="CodeEditorText"}) end
-  local box = device:get_element({id="ProblemEditorInput"})
+  local box = device.platform == "android" and device:get_element({id="ProblemEditorInput"})
   if box then
     device:tap_on({point=("%d,%d"):format(box.bounds.cx, math.floor(box.bounds.top + 25))})
   else
@@ -29,6 +29,7 @@ local function hide_keyboard()
   local hide = {text="Hide [Kk]eyboard"}
   if device:get_element(hide) then device:tap_on(hide)
   elseif device.platform == "android" then device:tap_on({id="com.android.systemui:id/back"})
+  elseif device:get_element({id="ProblemEditorTapAway"}) then device:tap_on({id="ProblemEditorTapAway"})
   else
     device:scroll_until_visible{element={id="EditorAction-Done"}, direction="RIGHT", from={id="EditorActionToolbar"}}
     device:tap_on({id="EditorAction-Done"})

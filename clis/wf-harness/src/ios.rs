@@ -291,8 +291,8 @@ impl Device for Simulator {
                 .iter()
                 .map(|p| {
                     Ok([
-                        el.full.left as f64 + p["x"].as_f64().ok_or("missing x")?,
-                        el.full.top as f64 + p["y"].as_f64().ok_or("missing y")?,
+                        el.full.left as f64 + p[0].as_f64().or_else(|| p["x"].as_f64()).ok_or("missing x")?,
+                        el.full.top as f64 + p[1].as_f64().or_else(|| p["y"].as_f64()).ok_or("missing y")?,
                     ])
                 })
                 .collect::<Result<Vec<_>, String>>()?;

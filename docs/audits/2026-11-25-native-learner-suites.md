@@ -104,3 +104,20 @@ Shared Linux wf build job: 136 s.
 ### Warm update and platform controls
 
 [Qualification on ac0cc9d2](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45557351214) used the same update as the named iPhone. Locally all 15 LeetCode journeys passed in 199.9 s and all 15 Tamil journeys in 182.6 s, with 30 recordings and the original learner data restored. The three Android samples passed 15, 13 and 15 LeetCode journeys in 240.0, 352.3 and 253.5 s and all 15 Tamil journeys in 188.9, 213.2 and 191.9 s. The second emulator's recordings show Expo's floating Tools menu covering the editor and its system task switcher opening over the partially clipped Blocks setting. Hosted iOS startup recordings show the first-open Expo consent alert in SpringBoard with an empty accessibility tree.
+
+### Hosted startup on 20373c22
+
+[Three fresh samples](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45560162269) produced these timings. The local iPhone passed all 30 journeys on the corresponding update, LeetCode in 202.3 s and Tamil in 186.7 s. The hosted iPhones opened the Library after scheme approval. Their startup recordings show the Library while the idb accessibility tree is empty. Four Android starts stalled before the first learner action; a fifth case touched a partly clipped mastery control.
+
+| Platform | Sample | Queue (s) | Darwin CLI build (s) | Keyboard helper build (s) | Backend (s) | Boot/install (s) | LeetCode | Tamil | Upload (s) | Job (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: |
+| android | 1 | 2 | — | — | 30 | 72 | 15/15 in 265.7 s | 14/15 in 284.6 s | 3 | 810 |
+| android | 2 | 1 | — | — | 36 | 87 | 14/15 in 388.9 s | 14/15 in 240.3 s | 3 | 934 |
+| android | 3 | 2 | — | — | 31 | 73 | 13/15 in 442.1 s | 15/15 in 190.9 s | 3 | 916 |
+| ios | 1 | 3 | 205 | 32 | 74 | 366 | — | — | 4 | 999 |
+| ios | 2 | 3 | 223 | 26 | 79 | 457 | — | — | 3 | 1148 |
+| ios | 3 | 3 | 176 | 27 | 61 | 404 | — | — | 5 | 1036 |
+
+The shared Linux wf build took 116 s.
+Android test update publishing job took 176 seconds.
+iOS test update publishing job took 171 seconds.

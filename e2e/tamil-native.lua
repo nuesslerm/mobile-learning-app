@@ -154,7 +154,11 @@ end
 cases["weak-letter"] = function()
   open("/tamil/uyir-1", device.platform == "android" and "TamilPracticePosition" or "TamilPracticeUndo")
   scroll_to("TamilPracticeGotIt")
+  local button = assert(device:get_element({id="TamilPracticeGotIt"})).bounds
+  local screen = device:get_device_state("screen")
+  if button.bottom > screen.height*.90 then device:swipe("50%,75%", "50%,52%", {duration=400}) end
   tap("TamilPracticeGotIt")
+  text("Stroke 1 of 3")
   open("/tamil/alphabet", "TamilCourseReview")
   tap("TamilCourseReview")
   show("TamilReviewReveal")
