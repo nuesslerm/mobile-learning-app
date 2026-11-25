@@ -96,23 +96,61 @@ def companion(udid, default_socket):
             proc.wait(timeout=10)
 
 
-def type_with_xctest(udid, value):
+@contextmanager
+def preserve_accessibility(udid):
+    defaults = ["xcrun", "simctl", "spawn", udid, "defaults"]
+    domain = "com.apple.Accessibility"
+
+    def read(key):
+        value = subprocess.run([*defaults, "read", domain, key], capture_output=True, text=True)
+        if value.returncode == 0:
+            return value.stdout.strip()
+        if "does not exist" in value.stderr:
+            return None
+        raise RuntimeError(value.stderr)
+
+    saved = {key: read(key) for key in ("AccessibilityEnabled", "ApplicationAccessibilityEnabled")}
+    try:
+        yield
+    finally:
+        for key, value in saved.items():
+            if read(key) != value:
+                command = ["delete", domain, key] if value is None else ["write", domain, key, "-bool", value]
+                subprocess.run([*defaults, *command], check=True, stdout=sys.stderr)
+
+
+def build_input_runner():
     project = Path(__file__).resolve().parent / "input/Input.xcodeproj"
     cache = Path(os.getenv("RUNNER_TEMP") or tempfile.gettempdir()) / "wf-ios-input"
     subprocess.run(["xcodebuild", "build-for-testing", "-project", str(project), "-scheme", "InputTests",
                     "-destination", "generic/platform=iOS Simulator", "-derivedDataPath", str(cache), "-quiet"],
                    check=True, stdout=sys.stderr)
     runner, = (cache / "Build/Products").glob("*.xctestrun")
-    subprocess.run(["xcodebuild", "test-without-building", "-xctestrun", str(runner), "-destination",
-                    "id=" + udid, "-parallel-testing-enabled", "NO", "-quiet"],
-                   env={**os.environ, "TEST_RUNNER_WF_TEXT": value}, check=True, stdout=sys.stderr)
+    return str(runner)
+
+
+def type_with_xctest(udid, value):
+    runner = os.getenv("WF_IOS_INPUT_RUNNER") or build_input_runner()
+    with preserve_accessibility(udid):
+        subprocess.run(["xcodebuild", "test-without-building", "-xctestrun", str(runner), "-destination",
+                        "id=" + udid, "-parallel-testing-enabled", "NO", "-quiet"],
+                       env={**os.environ, "TEST_RUNNER_WF_TEXT": value}, check=True, stdout=sys.stderr)
     subprocess.run(["xcrun", "simctl", "launch", udid, "host.exp.Exponent"], check=True, stdout=sys.stderr)
+
+
+async def elements_at(client, x, y):
+    try:
+        hit = json.loads((await client.accessibility_info((int(x), int(y)), False)).json)
+    except Exception as error:
+        if "No accessibility element at" in str(error):
+            return []
+        raise
+    return hit if isinstance(hit, list) else [hit]
 
 
 async def keyboard_hit(client, width, height, key, x, ys):
     for y in ys:
-        hit = json.loads((await client.accessibility_info((int(x*width), int(y*height)), False)).json)
-        for row in hit if isinstance(hit, list) else [hit]:
+        for row in await elements_at(client, x*width, y*height):
             if str(row.get("AXLabel") or "").lower() == key:
                 return row["frame"]
     return None
@@ -138,28 +176,31 @@ async def dismiss_keyboard_intro(client, rows, height):
 
 
 async def type_on_keyboard(client, value, dimensions):
-    height = dimensions["height_points"]
+    width, height = dimensions["width_points"], dimensions["height_points"]
+    keys = None
     for char in value:
+        switched = False
         deadline = time.monotonic() + 2
         while True:
-            rows = json.loads((await client.accessibility_info(None, False)).json)
-            keys = {str(row.get("AXLabel") or "").lower(): row["frame"] for row in rows
-                    if row.get("type") in ("Key", "Button") and row["frame"]["y"] > height*.58}
-            if "continue" in keys and time.monotonic() < deadline and await dismiss_keyboard_intro(client, rows, height):
-                await asyncio.sleep(.15)
-                continue
+            if keys is None:
+                rows = await accessibility_tree(client)
+                if time.monotonic() < deadline and await dismiss_keyboard_intro(client, rows, height):
+                    await asyncio.sleep(.15)
+                    continue
+                keys = {str(row.get("AXLabel") or "").lower(): row["frame"] for row in rows
+                        if row.get("type") in ("Key", "Button") and row["frame"]["y"] > height*.58}
             wanted = "space" if char == " " else char.lower()
             box = keys.get(wanted)
-            width = dimensions["width_points"]
             pos = key_position(wanted)
             if not box and pos:
                 x, y = pos
                 box = await keyboard_hit(client, width, height, wanted, x, (y, y+.045, y-.04))
             if box is not None:
                 await client.tap(box["x"] + box["width"]/2, box["y"] + box["height"]/2, duration=.07)
+                keys[wanted] = box
+                if char == " ":
+                    keys = None
                 break
-            if time.monotonic() > deadline:
-                raise ValueError(f"Software keyboard did not expose {wanted}, keys {list(keys)}")
             toggle = ("more, numbers", "numbers") if char.isdigit() else ("more, letters", "letters")
             switch = next((keys[name] for name in toggle if name in keys), None)
             if switch is None:
@@ -167,8 +208,13 @@ async def type_on_keyboard(client, value, dimensions):
                     switch = await keyboard_hit(client, width, height, toggle[-1], x, (.895,.915))
                     if switch:
                         break
-            if switch:
+            if switch and not switched:
                 await client.tap(switch["x"] + switch["width"]/2, switch["y"] + switch["height"]/2)
+                switched = True
+                deadline = time.monotonic() + 2
+            elif time.monotonic() > deadline:
+                raise ValueError(f"Software keyboard did not expose {wanted}, keys {list(keys)}")
+            keys = None
             await asyncio.sleep(.1)
 
 
@@ -265,8 +311,7 @@ async def drive(socket, udid, info=None):
                     for x, y in ((.5, .91), (.05, .73), (.08, .85)):
                         if result:
                             break
-                        hit = json.loads((await client.accessibility_info((int(width*x), int(height*y)), False)).json)
-                        result = has_keyboard(hit if isinstance(hit, list) else [hit])
+                        result = has_keyboard(await elements_at(client, width*x, height*y))
                 elif op == "screen":
                     dims = info["screen_dimensions"]
                     result = dict(width=dims["width_points"], height=dims["height_points"], dpr=dims["density"])
@@ -314,4 +359,7 @@ async def drive(socket, udid, info=None):
 
 
 if __name__ == "__main__":
-    asyncio.run(serve(sys.argv[1]))
+    if sys.argv[1:] == ["--build-input"]:
+        print(json.dumps({"xctestrun": build_input_runner()}))
+    else:
+        asyncio.run(serve(sys.argv[1]))

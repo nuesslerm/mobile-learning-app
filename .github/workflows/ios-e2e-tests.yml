@@ -84,6 +84,11 @@ jobs:
           "$(brew --prefix python@3.11)/bin/python3.11" -m venv "$RUNNER_TEMP/idb"
           "$RUNNER_TEMP/idb/bin/pip" install fb-idb==1.1.7
           echo "$RUNNER_TEMP/idb/bin" >> "$GITHUB_PATH"
+      - name: Build the native keyboard input harness
+        if: steps.pick.outputs.run != '0'
+        run: |
+          runner=$(wf test prepare-ios --build-input | jq -er .xctestrun)
+          echo "WF_IOS_INPUT_RUNNER=$runner" >> "$GITHUB_ENV"
       - name: Start the LeetCode backend
         if: steps.pick.outputs.run != '0'
         run: wf test backends up --only leetcode-backend --leetcode-port 8789 --wait 240
@@ -98,13 +103,13 @@ jobs:
         run: |
           wf test prepare-ios | tee "$RUNNER_TEMP/ios-device.json"
           echo "WF_IOS_UDID=$(jq -er .udid "$RUNNER_TEMP/ios-device.json")" >> "$GITHUB_ENV"
+          echo "WF_NATIVE_DEVICE_INFO=$(jq -c . "$RUNNER_TEMP/ios-device.json")" >> "$GITHUB_ENV"
           jq . "$RUNNER_TEMP/ios-device.json" >> "$GITHUB_STEP_SUMMARY"
       - name: Open the update on the ready simulator
         if: steps.pick.outputs.run != '0'
         run: |
           manifest="$WF_EAS_POINTER_DIR/latest-$WF_EAS_UPDATE_BRANCH.json"
           url=$(jq -er '.served.url | sub("^https://"; "exp://")' "$manifest")
-          export WF_NATIVE_DEVICE_INFO="$(cat "$RUNNER_TEMP/ios-device.json")"
           wf ios test e2e/support/native-ready.lua --device "$WF_IOS_UDID" --env "base=$url/--" --test-output-dir "$RUNNER_TEMP/ios-preflight"
       - name: Bundle startup diagnostics
         if: ${{ !cancelled() && steps.pick.outputs.run != '0' }}

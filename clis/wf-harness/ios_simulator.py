@@ -62,6 +62,14 @@ def prepare(udid):
             subprocess.run(["xcrun", "simctl", "bootstatus", udid, "-b"], check=True, stdout=sys.stderr)
             print(f"Installing Expo Go {VERSION} on {udid}", file=sys.stderr, flush=True)
             sim("install", udid, str(app))
+        # A fresh simulator may expose only an empty AXApplication until these are on before app launch.
+        for key in ("AccessibilityEnabled", "ApplicationAccessibilityEnabled"):
+            sim("spawn", udid, "defaults", "write", "com.apple.Accessibility", key, "-bool", "true")
+        prefs = Path(sim("get_app_container", udid, EXPO, "data")) / "Library/Preferences" / (EXPO + ".plist")
+        prefs.parent.mkdir(parents=True, exist_ok=True)
+        settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
+        settings.update(EXDevMenuShowFloatingActionButton=False, EXDevMenuIsOnboardingFinished=True)
+        prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
     print(json.dumps(simulator_manifest(udid)))
 
 
@@ -84,7 +92,6 @@ def stop_expo(udid):
 
 @contextmanager
 def clean_experience(udid):
-    device_info(udid)
     root = Path(sim("get_app_container", udid, EXPO, "data"))
     scope = root / "Documents/ExponentExperienceData/@nuesslerm/mla-tamagui"
     scope.parent.mkdir(parents=True, exist_ok=True)
@@ -119,17 +126,35 @@ def clean_experience(udid):
 
 def run_case(args):
     if args.platform == "ios":
+        prepared = os.getenv("WF_NATIVE_DEVICE_INFO")
+        if prepared and os.getenv("GITHUB_ACTIONS") == "true":
+            manifest = json.loads(prepared)
+            if (manifest.get("udid"), manifest.get("model"), manifest.get("runtime"), manifest.get("expoGo")) != (
+                    args.device, MODEL, RUNTIME, VERSION):
+                raise ValueError("Prepared simulator details do not match the selected test device")
+        else:
+            manifest = simulator_manifest(args.device)
         with clean_experience(args.device):
             # LaunchServices can time out while dispatching a URL to a terminated Expo Go.
             sim("launch", args.device, EXPO)
-            env = {**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(simulator_manifest(args.device))}
+            env = {**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)}
             return subprocess.call(args.command, env=env)
     if not (os.getenv("GITHUB_ACTIONS") == "true" and args.device.startswith("emulator-")):
         raise ValueError("Android learner suites require a hosted emulator")
     adb = ["adb", "-s", args.device, "shell"]
-    result = subprocess.check_output([*adb, "pm", "clear", "host.exp.exponent"], text=True).strip()
-    if result != "Success":
-        raise RuntimeError(f"Expo Go storage reset failed: {result}")
+    # Expo Go’s ScopedContext puts learner files and preferences under the encoded experience key.
+    subprocess.run([*adb, """set -e
+am force-stop host.exp.exponent
+cd /data/user/0/host.exp.exponent
+for dir in files/ExperienceData/*; do
+  [ -d "$dir" ] || continue
+  scope=${dir##*/}
+  rm -f -- databases/"$scope"-* shared_prefs/"$scope"-*
+  rm -rf -- "cache/ExperienceData/$scope" "no_backup/ExperienceData/$scope" "$dir"
+  echo "Reset Expo learner scope $scope"
+done
+rm -f -- databases/RKStorage*
+"""], check=True)
     def prop(key):
         return subprocess.check_output([*adb, "getprop", key], text=True).strip()
     package_info = subprocess.check_output([*adb, "dumpsys", "package", "host.exp.exponent"], text=True)
@@ -142,13 +167,18 @@ def run_case(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     verbs = parser.add_subparsers(dest="verb", required=True)
-    verbs.add_parser("prepare").add_argument("--device")
+    target = verbs.add_parser("prepare").add_mutually_exclusive_group()
+    target.add_argument("--device")
+    target.add_argument("--build-input", action="store_true")
     case = verbs.add_parser("case")
     case.add_argument("--platform", choices=("ios", "android"), required=True)
     case.add_argument("--device", required=True)
     case.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     if args.verb == "prepare":
+        if args.build_input:
+            bridge = Path(__file__).parent / "src/ios/bridge.py"
+            return subprocess.call([sys.executable, bridge, "--build-input"])
         prepare(args.device)
         return 0
     # The parent runner signals the whole process group, including the child.

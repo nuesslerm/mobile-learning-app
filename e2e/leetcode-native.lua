@@ -66,9 +66,9 @@ cases.neetcode = function()
   tap("LibraryCategory-NeetCode 150")
   visible("AlgorithmsSearch")
   search("car fleet", "car-fleet")
-  tap("ProblemOpenLesson")
-  device:assert_visible({text="Car Fleet"})
-  device:assert_visible({text="1. Stack"})
+  device:assert_visible({text="853\\. Car Fleet"})
+  visible("ProblemOpenLesson")
+  device:assert_visible({text=".*There are n cars at given miles.*"})
 end
 cases["one-editor"] = function()
   open("/leetcode/two-sum/problem", "ProblemOpenEditor")
@@ -200,8 +200,12 @@ cases.settings = function()
 end
 local function enable_list_setting(id)
   open("/blind75", "LeetcodeListMenuButton(Compact)?")
-  if not device:get_element({id=id}) then
-    device:scroll_until_visible{element={id=id}, direction="DOWN", from={id="LeetcodeListScroll"}}
+  local screen = device:get_device_state("screen")
+  local x, y = math.floor(screen.width*.5), math.floor(screen.height*.52)
+  local step = math.floor(screen.height*.18)
+  for _ = 1, 8 do
+    if device:get_element({id=id}) then break end
+    device:swipe(("%d,%d"):format(x, y+step), ("%d,%d"):format(x, y), {duration=500})
   end
   tap(id)
 end
