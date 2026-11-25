@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@app/remote-chat-agent-contracts": "workspace:*",
+    "@lib/agent-ui-contracts": "workspace:*",
+    "@lib/orca-design-system": "workspace:*",
     "@lib/app-config": "workspace:*",
     "@lib/app-di": "workspace:*",
     "@lib/logging": "workspace:*",

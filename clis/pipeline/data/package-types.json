@@ -182,7 +182,7 @@
       "requiredFiles": ["index.ts|index.tsx"],
       "requiredAnyOf": [["domain"], ["state"], ["ui"], ["di"], ["routes"]],
       "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],
-      "mayDependOn": [],
+      "mayDependOn": ["component-library"],
       "mayDevDependOn": []
     },
     "presentation-feature": {
@@ -195,6 +195,21 @@
       "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],
       "forbiddenDirs": ["domain", "data", "di"],
       "mayDependOn": [],
+      "mayDevDependOn": []
+    },
+    "component-library": {
+      "ecosystem": "ts",
+      "pure": false,
+      "ringRoots": ["src"],
+      "rings": {
+        "ports": [],
+        "core": ["ports"],
+        "adapters": ["core", "ports"]
+      },
+      "requiredFiles": ["index.ts"],
+      "requiredAnyOf": [["core"]],
+      "allowedRoot": ["index.ts"],
+      "mayDependOn": ["component-library"],
       "mayDevDependOn": []
     },
     "hexagonal-library": {

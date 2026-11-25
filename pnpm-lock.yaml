@@ -234,6 +234,19 @@ importers:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
 
+  frontend/libraries/agent-ui-contracts:
+    dependencies:
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
+
   frontend/libraries/app-config:
     dependencies:
       '@expo/ui':
@@ -469,6 +482,25 @@ importers:
       oxlint:
         specifier: 'catalog:'
         version: 1.87.0(oxlint-tsgolint@7.0.2003)
+
+  frontend/libraries/orca-design-system:
+    dependencies:
+      '@lib/agent-ui-contracts':
+        specifier: workspace:*
+        version: link:../agent-ui-contracts
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-native:
+        specifier: 'catalog:'
+        version: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
 
   frontend/libraries/remote-chat-agent-contracts:
     dependencies:
@@ -921,6 +953,9 @@ importers:
       '@app/remote-chat-agent-contracts':
         specifier: workspace:*
         version: link:../../../libraries/remote-chat-agent-contracts
+      '@lib/agent-ui-contracts':
+        specifier: workspace:*
+        version: link:../../../libraries/agent-ui-contracts
       '@lib/app-config':
         specifier: workspace:*
         version: link:../../../libraries/app-config
@@ -930,6 +965,9 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../../../libraries/logging
+      '@lib/orca-design-system':
+        specifier: workspace:*
+        version: link:../../../libraries/orca-design-system
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../../../libraries/tamagui-design-system
