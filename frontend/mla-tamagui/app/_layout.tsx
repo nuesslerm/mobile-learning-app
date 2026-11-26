@@ -10,7 +10,6 @@ import { appConfig } from '@lib/app-config';
 import {
   resolveActiveThemeName,
   useHeaderHeightStore,
-  useOpenSheetStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
@@ -58,18 +57,17 @@ if (process.env.EXPO_PUBLIC_DEVICE_LAB === '1' && Platform.OS === 'web') {
  */
 // Reanimated on web only runs predefined entering/exiting animations; sonner's custom worklets log a warning.
 const WEB_TOAST_ANIMATION = { enter: FadeIn.duration(200), exit: FadeOut.duration(200) };
-const FloatingDevTools = buoyEnabled
-  ? (require('@buoy-gg/core') as typeof import('@buoy-gg/core')).FloatingDevTools
+const PreviewTools = buoyEnabled
+  ? (require('../app-shell/BuoyPreviewTools') as typeof import('../app-shell/BuoyPreviewTools')).BuoyPreviewTools
   : null;
-const BuoyRouterStore = FloatingDevTools
+const BuoyRouterStore = PreviewTools
   ? (require('../app-shell/buoyRouterStore') as typeof import('../app-shell/buoyRouterStore')).BuoyRouterStore
   : null;
-const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
 
 function BuoyDevTools() {
   const { visualCapture } = useGlobalSearchParams<{ visualCapture?: string }>();
-  if (!FloatingDevTools || visualCapture === '1') return null;
-  const tools = <FloatingDevTools signIn={!__DEV__} zustandStores={buoyStores} />;
+  if (!PreviewTools || visualCapture === '1') return null;
+  const tools = <PreviewTools />;
   return Platform.OS === 'ios' ? <FullWindowOverlay>{tools}</FullWindowOverlay> : tools;
 }
 
@@ -169,7 +167,7 @@ export default function RootLayout() {
                   list -- not the stacked pile sonner is known for. Opt in. */}
             <HeaderClearToaster />
             {BuoyRouterStore && <BuoyRouterStore />}
-            {FloatingDevTools && <BuoyDevTools />}
+            {PreviewTools && <BuoyDevTools />}
           </Theme>
         </TamaguiProvider>
       </NavigationTouchBoundary>

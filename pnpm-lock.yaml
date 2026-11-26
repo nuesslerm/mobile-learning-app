@@ -915,6 +915,9 @@ importers:
       '@buoy-gg/image-overlay':
         specifier: 7.0.103
         version: 7.0.103(71684509be0c64173acb9e7287024beb)
+      '@buoy-gg/license':
+        specifier: 7.0.103
+        version: 7.0.103(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
       '@buoy-gg/network':
         specifier: 7.0.103
         version: 7.0.103(71684509be0c64173acb9e7287024beb)
@@ -924,6 +927,9 @@ importers:
       '@buoy-gg/route-events':
         specifier: 7.0.103
         version: 7.0.103(37e9b79924a9ca9b74207ee35dd71570)
+      '@buoy-gg/shared-ui':
+        specifier: 7.0.103
+        version: 7.0.103(71684509be0c64173acb9e7287024beb)
       '@buoy-gg/storage':
         specifier: 7.0.103
         version: 7.0.103(dfd3d17c002e07a4d16fbf94ec278ba4)
