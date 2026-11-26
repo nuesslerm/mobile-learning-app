@@ -1,0 +1,56 @@
+[
+  {
+    "state": "feed",
+    "width": 1320,
+    "height": 2868,
+    "referenceTop": 2615,
+    "expoTop": 2615,
+    "changed": 0,
+    "total": 333960
+  },
+  {
+    "state": "bots",
+    "width": 1320,
+    "height": 2868,
+    "referenceTop": 2615,
+    "expoTop": 2615,
+    "changed": 0,
+    "total": 333960
+  },
+  {
+    "state": "agents",
+    "width": 1320,
+    "height": 2868,
+    "referenceTop": 2615,
+    "expoTop": 2615,
+    "changed": 0,
+    "total": 333960
+  },
+  {
+    "state": "usage",
+    "width": 1320,
+    "height": 2868,
+    "referenceTop": 2615,
+    "expoTop": 2615,
+    "changed": 0,
+    "total": 333960
+  },
+  {
+    "state": "automations",
+    "width": 1320,
+    "height": 2868,
+    "referenceTop": 2615,
+    "expoTop": 2615,
+    "changed": 0,
+    "total": 333960
+  },
+  {
+    "state": "return",
+    "width": 1320,
+    "height": 2868,
+    "referenceTop": 2615,
+    "expoTop": 2615,
+    "changed": 0,
+    "total": 333960
+  }
+]
