@@ -223,6 +223,37 @@ importers:
 
   backend/vm-ops-api: {}
 
+  clis/harness-browser/plugins/device-frame-ui:
+    dependencies:
+      '@cli/harness-contracts':
+        specifier: workspace:*
+        version: link:../../../../tooling/browser-harness/contracts
+      '@cli/harness-data':
+        specifier: workspace:*
+        version: link:../../../../tooling/browser-harness/data
+      '@cli/harness-di':
+        specifier: workspace:*
+        version: link:../../../../tooling/browser-harness/di
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-device-frameset:
+        specifier: 'catalog:'
+        version: 1.3.4(react@19.3.0)
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.7(@types/react@19.2.17)
+      '@typescript/native':
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.87.0(oxlint-tsgolint@7.0.2003)
+
   clis/vnc-auth-capture: {}
 
   frontend/feature-kit:
@@ -1261,6 +1292,9 @@ importers:
 
   tooling/browser-harness:
     dependencies:
+      '@tooling/device-frame-ui':
+        specifier: workspace:*
+        version: link:../../clis/harness-browser/plugins/device-frame-ui
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -1324,37 +1358,6 @@ importers:
         specifier: workspace:*
         version: link:../use-cases
     devDependencies:
-      '@typescript/native':
-        specifier: 'catalog:'
-        version: typescript@7.0.2
-      oxlint:
-        specifier: 'catalog:'
-        version: 1.87.0(oxlint-tsgolint@7.0.2003)
-
-  tooling/browser-harness/ui:
-    dependencies:
-      '@cli/harness-contracts':
-        specifier: workspace:*
-        version: link:../contracts
-      '@cli/harness-data':
-        specifier: workspace:*
-        version: link:../data
-      '@cli/harness-di':
-        specifier: workspace:*
-        version: link:../di
-      react:
-        specifier: 19.3.0
-        version: 19.3.0
-      react-device-frameset:
-        specifier: 'catalog:'
-        version: 1.3.4(react@19.3.0)
-    devDependencies:
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.2.17
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.2.7(@types/react@19.2.17)
       '@typescript/native':
         specifier: 'catalog:'
         version: typescript@7.0.2

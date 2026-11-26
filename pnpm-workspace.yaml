@@ -1,6 +1,7 @@
 packages:
   - backend/*
   - clis/*
+  - clis/harness-browser/plugins/device-frame-ui
   - tooling/browser-harness/*
   - frontend/feature-kit
   - frontend/mla-tamagui

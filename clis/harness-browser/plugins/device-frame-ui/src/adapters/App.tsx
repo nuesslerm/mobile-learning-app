@@ -9,8 +9,8 @@ import { buildShellContainer } from '@cli/harness-di';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { DeviceFrame } from './DeviceFrame.js';
-import { KEYBOARD_HEIGHT, MockKeyboard, type ScreenAnchor } from './MockKeyboard.js';
+import { DeviceFrame } from '../core/DeviceFrame.js';
+import { KEYBOARD_HEIGHT, MockKeyboard, type ScreenAnchor } from '../core/MockKeyboard.js';
 
 import './shell.css';
 

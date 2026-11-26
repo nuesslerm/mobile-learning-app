@@ -14,7 +14,7 @@
     "tooling/browser-harness/contracts",
     "tooling/browser-harness/data",
     "tooling/browser-harness/di",
-    "tooling/browser-harness/ui",
+    "clis/harness-browser/plugins/device-frame-ui",
     "tooling/browser-harness/use-cases",
     "tooling/mimic-drivers"
   ]

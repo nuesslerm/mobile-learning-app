@@ -67,7 +67,7 @@
   "@cli/harness-contracts": [],
   "@cli/harness-data": [],
   "@cli/harness-di": [],
-  "@cli/harness-ui": [],
+  "@tooling/device-frame-ui": [],
   "@cli/harness-use-cases": [],
   "@feature/coding-agent": [],
   "@feature/service-report": [],

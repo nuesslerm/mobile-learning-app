@@ -14,5 +14,5 @@
     "noEmit": true,
     "types": ["vite/client"]
   },
-  "include": ["contracts/src", "data/src", "use-cases/src", "di/src", "ui/src"]
+  "include": ["contracts/src", "data/src", "use-cases/src", "di/src", "index.ts"]
 }

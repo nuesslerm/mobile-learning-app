@@ -454,3 +454,8 @@ ls:
     .dir: kebab-case
     .ts: camelCase | PascalCase
     .tsx: camelCase | PascalCase
+
+  clis/harness-browser/plugins/device-frame-ui/src:
+    .dir: kebab-case
+    .ts: camelCase | PascalCase
+    .tsx: camelCase | PascalCase

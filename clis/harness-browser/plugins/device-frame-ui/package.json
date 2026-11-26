@@ -1,5 +1,5 @@
 {
-  "name": "@cli/harness-ui",
+  "name": "@tooling/device-frame-ui",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,7 +17,11 @@
     "oxlint": "catalog:"
   },
   "scripts": {
-    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings",
+    "lint": "oxlint -c ../../../../.oxlintrc.json --deny-warnings",
     "typecheck": "tsc --noEmit"
+  },
+  "exports": "./src/index.ts",
+  "arch": {
+    "type": "component-library"
   }
 }
