@@ -3012,6 +3012,7 @@ dependencies = [
 name = "t3-http"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "serde_json",
  "t3-contracts",
  "t3-core",

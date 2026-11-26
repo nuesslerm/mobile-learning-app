@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Bell from 'lucide-react-native/dist/esm/icons/bell.mjs';
 import BellOff from 'lucide-react-native/dist/esm/icons/bell-off.mjs';
+import GitBranch from 'lucide-react-native/dist/esm/icons/git-branch.mjs';
 import Pencil from 'lucide-react-native/dist/esm/icons/pencil.mjs';
 import Pin from 'lucide-react-native/dist/esm/icons/pin.mjs';
 import PinOff from 'lucide-react-native/dist/esm/icons/pin-off.mjs';
@@ -173,6 +174,21 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
                 <Text style={[styles.hint, muted]}>{props.branch}</Text>
               )}
               <View style={[styles.rows, { backgroundColor: colors.bgGroup }]}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={props.saving}
+                  style={styles.row}
+                  onPress={props.onSourceControl}
+                >
+                  <GitBranch size={16} color={colors.textSecondary} />
+                  <Text style={[styles.rowLabel, ink]}>Source Control</Text>
+                </Pressable>
+                <View
+                  style={[
+                    styles.rule,
+                    { backgroundColor: colors.borderSubtle },
+                  ]}
+                />
                 <Pressable
                   accessibilityRole="button"
                   disabled={props.saving}

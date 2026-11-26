@@ -25,5 +25,6 @@ export interface WorkspaceActionsProps {
   onClose: () => void;
   onRename: (name: string) => void;
   onPin: () => void;
+  onSourceControl: () => void;
   onToggleRead: () => void;
 }

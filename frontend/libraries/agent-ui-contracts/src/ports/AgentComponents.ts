@@ -1,3 +1,4 @@
+import type { SourceControlProps } from './SourceControl';
 import type { HostWorkspaceListProps, WorkspaceActionsProps } from './HostWorkspaceList';
 import type { WorkspaceOptionsProps } from './WorkspaceOptions';
 import type { PairingScreenProps, PairingCodeSheetProps } from './PairingComponents';
@@ -208,6 +209,7 @@ export interface PairedDesktopsProps {
 
 export interface AgentComponents {
   PairedDesktops: ComponentType<PairedDesktopsProps>;
+  SourceControl: ComponentType<SourceControlProps>;
   WorkspaceActions: ComponentType<WorkspaceActionsProps>;
   HostWorkspaceList: ComponentType<HostWorkspaceListProps>;
   WorkspaceOptions: ComponentType<WorkspaceOptionsProps>;

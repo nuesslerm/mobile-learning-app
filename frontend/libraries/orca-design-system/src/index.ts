@@ -1,4 +1,5 @@
 import { PairedDesktops } from './adapters/PairedDesktops';
+import { SourceControl } from './adapters/SourceControl';
 import { WorkspaceActions } from './adapters/WorkspaceActions';
 import { HostWorkspaceList } from './adapters/HostWorkspaceList';
 import { WorkspaceOptions } from './adapters/WorkspaceOptions';
@@ -33,7 +34,7 @@ import { NotificationChoices } from './core/NotificationChoices';
 import { OnboardingChoice } from './adapters/OnboardingChoice';
 
 export const orcaComponents: AgentComponents = {
-  PairedDesktops, WorkspaceActions, HostWorkspaceList, WorkspaceOptions, ComposerOptions,
+  SourceControl, PairedDesktops, WorkspaceActions, HostWorkspaceList, WorkspaceOptions, ComposerOptions,
   PairingScreen, PairingCodeSheet,
   HomeSurface,
   HomeTabBar,

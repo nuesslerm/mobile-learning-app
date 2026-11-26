@@ -792,3 +792,33 @@ fn checkout_history_reads_the_selected_head_and_omits_commit_bodies_and_email() 
     assert_eq!(rca.asked("git.history"), [json!({"workspace":WORKSPACE,"rev":sha,"skip":50,"limit":50})]);
     assert!(rca.asked("repo.list").is_empty() && rca.asked("pane.list").is_empty());
 }
+
+#[test]
+fn mobile_changes_use_the_checkouts_pinned_base_and_commit_details_use_the_first_parent() {
+    // Given a detached checkout with a pinned base and a merge commit.
+    let rca = rca(Box::new(|request| {
+        let sha = "a".repeat(40);
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/linked","is_main":false,"head":sha}]}),
+            "state.get" => json!({"value":{"baseRef":"release"}}),
+            "git.history" => json!({"truncated":false,"commits":[{"sha":sha,"short":"aaaaaaa","subject":"Merge","author_name":"Dev","author_email":"dev@example.org","authored_ms":1,"parents":["b".repeat(40),"c".repeat(40)],"body":"Merge details"}]}),
+            "git.compare" => json!({"base":request["params"]["base"],"head":sha,"ahead":2,"behind":1,"files":[{"path":"src/a.rs","status":"modified","additions":3,"deletions":2,"binary":false}],"commits":[],"truncated":true}),
+            _ => json!({}),
+        };
+        vec![answer(request, reply)]
+    }));
+    let checkout = "w1::/linked".to_owned();
+    let sha = "a".repeat(40);
+    // When the phone opens Changes and then the merge commit.
+    let changes = rca.agent().run(&Op::CheckoutChanges { checkout:checkout.clone() }).unwrap();
+    let commit = rca.agent().run(&Op::CheckoutCommit { checkout, sha:sha.clone() }).unwrap();
+    // Then the comparisons use the selected revisions and the phone receives file counts without fetching patches.
+    assert_eq!(changes["head"],sha);
+    assert_eq!(changes["comparison"]["base"],"release");
+    assert_eq!(changes["comparison"]["ahead"],2);
+    assert_eq!(commit["body"],"Merge details");
+    assert_eq!(commit["files"],changes["comparison"]["files"]);
+    assert_eq!(commit["files"][0]["additions"],3);
+    assert_eq!(rca.asked("git.compare"), [json!({"workspace":WORKSPACE,"base":"release","head":sha,"limit":1}),json!({"workspace":WORKSPACE,"base":"b".repeat(40),"head":sha,"limit":1})]);
+    assert!(rca.asked("git.diff").is_empty() && rca.asked("git.refs").is_empty());
+}

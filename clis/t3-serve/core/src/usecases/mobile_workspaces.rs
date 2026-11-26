@@ -12,6 +12,10 @@ fn upstream(error: AgentError) -> Refusal {
     }
 }
 
+fn is_oid(value: &str) -> bool {
+    matches!(value.len(), 40 | 64) && value.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
 fn public_row(row: &Value) -> Value {
     json!({"id": row["id"], "name": row["name"], "branch": row["branch"], "main": row["main"],
         "automaticName": row["automaticName"], "pinned": row["pinned"] == true, "unread": row["unread"] == true})
@@ -27,6 +31,32 @@ struct CheckoutEdit {
 }
 
 impl Service {
+    pub fn checkout_changes_http(&self, auth: Option<&str>, checkout: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.checkoutChanges", auth)?;
+        let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;
+        self.agent()
+            .run(&Op::CheckoutChanges { checkout: checkout.into() })
+            .map_err(|error| match &error {
+                AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" => Refusal::bare(404),
+                _ => upstream(error),
+            })
+    }
+
+    pub fn checkout_commit_http(&self, auth: Option<&str>, checkout: Option<&str>, sha: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.checkoutCommit", auth)?;
+        let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;
+        let sha = sha.filter(|sha| is_oid(sha)).ok_or_else(|| Refusal::bare(422))?;
+        self.agent()
+            .run(&Op::CheckoutCommit {
+                checkout: checkout.into(),
+                sha: sha.to_ascii_lowercase(),
+            })
+            .map_err(|error| match &error {
+                AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" || code == "COMMIT_NOT_FOUND" => Refusal::bare(404),
+                _ => upstream(error),
+            })
+    }
+
     pub fn checkout_history_http(
         &self,
         auth: Option<&str>,
@@ -38,8 +68,7 @@ impl Service {
         self.read_gate("mobile.checkoutHistory", auth)?;
         let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;
         let offset = offset.unwrap_or("0").parse::<u32>().map_err(|_| Refusal::bare(422))?;
-        let oid = |value: &str| matches!(value.len(), 40 | 64) && value.bytes().all(|b| b.is_ascii_hexdigit());
-        if (offset > 0 && head.is_none()) || head.is_some_and(|s| !oid(s)) || base.is_some_and(|s| !oid(s)) {
+        if (offset > 0 && head.is_none()) || head.is_some_and(|s| !is_oid(s)) || base.is_some_and(|s| !is_oid(s)) {
             return Err(Refusal::bare(422));
         }
         self.agent()

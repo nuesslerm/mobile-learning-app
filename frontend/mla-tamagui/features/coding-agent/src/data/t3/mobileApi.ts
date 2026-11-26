@@ -1,3 +1,4 @@
+import { checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
 import { checkoutRow, checkoutSessions, homeSummary, workspaceCatalog } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
@@ -107,6 +108,30 @@ export function createT3MobileApi(): T3MobilePort {
     },
     async workspaces(pair, signal) {
       return workspaceCatalog.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspaces', { headers: authorization(pair), signal }));
+    },
+    async checkoutChanges(pair, id, signal) {
+      const path = '/api/mobile/source-control/changes?' + new URLSearchParams({ checkout: id });
+      return checkoutChanges.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+    },
+    async checkoutCommit(pair, id, sha, signal) {
+      const path = '/api/mobile/source-control/commit?' + new URLSearchParams({ checkout: id, sha });
+      return checkoutCommit.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+    },
+    async checkoutHistory(pair, id, cursor, signal) {
+      const params = new URLSearchParams({ checkout: id });
+      if (cursor) {
+        params.set('head', cursor.head);
+        params.set('offset', String(cursor.offset));
+      }
+      const path = '/api/mobile/source-control/history?' + params.toString();
+      try {
+        return checkoutHistory.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+      } catch (error) {
+        if (cursor && error instanceof HttpError && error.status === 409) {
+          throw new CheckoutHeadChanged();
+        }
+        throw error;
+      }
     },
     async checkoutSessions(pair, id, signal) {
       const path = '/api/mobile/workspaces?checkout=' + encodeURIComponent(id);

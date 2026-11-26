@@ -46,6 +46,9 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
       checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
       automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned, unread:'isUnread' in edit && edit.isUnread}),
+    checkoutChanges: async () => ({branch:null,head:null,comparison:null}),
+    checkoutCommit: async () => ({body:'', initial:true, files:[], limited:false}),
+    checkoutHistory: async () => ({ head: null, branch: null, commits: [], nextOffset: null }),
     checkoutSessions: async () => ({active:thread.id, sessions:[thread]}),
     shell: async () => ({
       projects: [{ id: 'project', title: 'Fixture repository' }],
@@ -262,6 +265,39 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('button',{name:'Workspace options'}));
     await userEvent.click(await screen.findByRole('button',{name:'Card layout, Compact'}));
     expect(await screen.findByRole('radio',{name:'Compact',checked:true})).toBeTruthy();
+  });
+
+  it('Given a detached checkout, when the reader opens Source Control and selects a commit, then they see its first-parent file changes and can navigate back', async () => {
+    const port = backend();
+    const sha = 'a'.repeat(40);
+    const file = {path:'src/changed.ts', status:'modified', binary:false, additions:3, deletions:2};
+    const commit = {sha, shortSha:sha.slice(0,7), subject:'Selected change', author:'Developer', authoredAtMs:10, parent:'b'.repeat(40)};
+    const check = (id:string) => expect(id).toBe('repo::/fixture');
+    port.checkoutChanges = async (_pair, id) => {
+      check(id);
+      return {head:sha, branch:null, comparison:{base:'main',ahead:1,files:[file],limited:false}};
+    };
+    port.checkoutHistory = async (_pair, id) => { check(id); return {head:sha,branch:null,commits:[commit],nextOffset:null}; };
+    port.checkoutCommit = async (_pair, id, revision) => {
+      check(id); expect(revision).toBe(sha);
+      return {body:'Changed the renderer.',initial:false,limited:false,files:[file]};
+    };
+    await app.render('/coding-agent',{search:{host:'1'},overrides:{'coding-agent':{t3Mobile:port}}});
+    await userEvent.pointer({keys:'[MouseRight]',target:await screen.findByRole('button',{name:'Mobile checkout'})});
+    await userEvent.click(await screen.findByRole('button',{name:'Source Control'}));
+    expect(await screen.findByText('changed.ts')).toBeTruthy();
+    expect(screen.getAllByText('aaaaaaa')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button',{name:'Commits'}));
+    await userEvent.click(await screen.findByRole('button',{name:'Selected change'}));
+    expect(await screen.findByText('Changed the renderer.')).toBeTruthy();
+    expect(await screen.findByText('1 file')).toBeTruthy();
+    expect(screen.getByText('Developer')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:'Back to commits'}));
+    expect(await screen.findByRole('button',{name:'Selected change'})).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:'Back to source control'}));
+    expect(await screen.findByText('changed.ts')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:'Back to workspaces'}));
+    expect(await screen.findByRole('button',{name:'Mobile checkout'})).toBeTruthy();
   });
 
   it('Given a checkout, when the reader marks it unread and then read, then the reopened menu offers the reverse action', async () => {

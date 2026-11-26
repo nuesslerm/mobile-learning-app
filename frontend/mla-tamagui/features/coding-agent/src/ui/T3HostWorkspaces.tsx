@@ -15,6 +15,8 @@ import {
 import type { WorkspacePreferences } from '../domain/workspacePreferences';
 import { T3WorkspaceOptions } from './T3WorkspaceOptions';
 
+import { T3SourceControl } from './T3SourceControl';
+
 export function T3HostWorkspaces({
   api,
   pair,
@@ -34,6 +36,7 @@ export function T3HostWorkspaces({
   const [selected, setSelected] =
     useState<WorkspaceCatalog['checkouts'][number]>();
   const [actionRow, setActionRow] = useState<CheckoutRow>();
+  const [sourceCheckout, setSourceCheckout] = useState<CheckoutRow>();
   const [mutationError, setMutationError] = useState('');
   const [saving, setSaving] = useState(false);
   const pending = useRef(false);
@@ -80,6 +83,7 @@ export function T3HostWorkspaces({
       setError('Could not load workspace chats.');
     }
   };
+  if (sourceCheckout) return <T3SourceControl api={api} pair={pair} checkout={sourceCheckout} onBack={() => setSourceCheckout(undefined)} />;
   if (selected)
     return (
       <HostWorkspaceList
@@ -169,6 +173,10 @@ export function T3HostWorkspaces({
           automaticName={actionRow.automaticName ?? actionRow.name}
           pinned={!!actionRow.pinned}
           unread={!!actionRow.unread}
+          onSourceControl={() => {
+            setSourceCheckout(actionRow);
+            setActionRow(undefined);
+          }}
           onToggleRead={() => void edit({ isUnread: !actionRow.unread })}
           saving={saving}
           error={mutationError}

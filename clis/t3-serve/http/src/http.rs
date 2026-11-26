@@ -211,11 +211,29 @@ fn send_asset(stream: &mut TcpStream, svc: &Service, token: &str) {
 }
 
 fn respond_with(stream: &mut TcpStream, status: u16, body: &Value, extra: &str) {
-    record_status(status);
     let text = if status == 204 { String::new() } else { body.to_string() };
+    respond_json_bytes(stream, status, text.as_bytes(), extra);
+}
+
+fn respond_json_bytes(stream: &mut TcpStream, status: u16, bytes: &[u8], extra: &str) {
+    record_status(status);
     let cors = if status == 204 { CORS_PREFLIGHT } else { COMMON };
-    let head = format!("HTTP/1.1 {status} {}\r\n{cors}{extra}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), text.len());
-    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(text.as_bytes())).and_then(|()| stream.flush());
+    let head = format!("HTTP/1.1 {status} {}\r\n{cors}{extra}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), bytes.len());
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(bytes)).and_then(|()| stream.flush());
+}
+
+fn source_control_response(stream: &mut TcpStream, request: &Request, body: Value) {
+    let json = body.to_string();
+    let extra = format!("{NO_STORE}Vary: Accept-Encoding\r\n");
+    let gzip = request.header("accept-encoding").is_some_and(|list| list.split(',').any(|coding| coding.trim().eq_ignore_ascii_case("gzip")));
+    if gzip && json.len() >= 4096 {
+        let mut compressed = Vec::new();
+        let mut encoder = flate2::read::GzEncoder::new(json.as_bytes(), flate2::Compression::fast());
+        if encoder.read_to_end(&mut compressed).is_ok() && compressed.len() < json.len() {
+            return respond_json_bytes(stream, 200, &compressed, &format!("{extra}Content-Encoding: gzip\r\n"));
+        }
+    }
+    respond_json_bytes(stream, 200, json.as_bytes(), &extra);
 }
 
 fn refused(stream: &mut TcpStream, r: Refusal, extra: &str) {
@@ -260,7 +278,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspaces" | "/api/mobile/source-control/history" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspaces" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -358,10 +376,17 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
             Err(r) => refused(&mut stream, r, NO_STORE),
         },
-        ("GET", "/api/mobile/source-control/history") => {
+        ("GET", path @ ("/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes")) => {
             let param = |key: &str| request.query.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str());
-            match svc.checkout_history_http(auth, param("checkout"), param("head"), param("base"), param("offset")) {
-                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+            let result = if path.ends_with("/commit") {
+                svc.checkout_commit_http(auth, param("checkout"), param("sha"))
+            } else if path.ends_with("/changes") {
+                svc.checkout_changes_http(auth, param("checkout"))
+            } else {
+                svc.checkout_history_http(auth, param("checkout"), param("head"), param("base"), param("offset"))
+            };
+            match result {
+                Ok(body) => source_control_response(&mut stream, &request, body),
                 Err(r) => refused(&mut stream, r, NO_STORE),
             }
         }

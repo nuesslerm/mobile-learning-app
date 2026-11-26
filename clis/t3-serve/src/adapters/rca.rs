@@ -310,15 +310,7 @@ impl RcaAgent {
         client.call(method, params).map_err(failed)
     }
 
-    fn checkout_history(
-        &self,
-        client: &mut Client,
-        checkout: &str,
-        expected_head: Option<&str>,
-        base: Option<&str>,
-        offset: u32,
-    ) -> Result<Value, AgentError> {
-        const PAGE_SIZE: u32 = 50;
+    fn selected_checkout(&self, client: &mut Client, checkout: &str) -> Result<exec_git::WorktreeInfo, AgentError> {
         let missing = || AgentError::Refused {
             code: "CHECKOUT_NOT_FOUND".into(),
             message: "Checkout not found".into(),
@@ -335,6 +327,97 @@ impl RcaAgent {
         if !head.is_empty() && (!matches!(head.len(), 40 | 64) || !head.bytes().all(|b| b.is_ascii_hexdigit())) {
             return Err(AgentError::Failed("Invalid checkout HEAD".into()));
         }
+        Ok(row)
+    }
+
+    fn checkout_base(&self, client: &mut Client, checkout: &str) -> Result<Option<String>, AgentError> {
+        for (key, field) in [
+            (format!("orca.worktree.{checkout}"), "baseRef"),
+            (format!("orca.repo.{}", self.workspace), "worktreeBaseRef"),
+        ] {
+            let meta = Self::call(client, agent_api_state::GET, json!({"scope":"orca","key":key}))?;
+            if let Some(base) = meta["value"][field].as_str().filter(|s| !s.is_empty()) {
+                return Ok(Some(base.to_owned()));
+            }
+        }
+        let value = Self::call(client, git::REFS, json!({"workspace":self.workspace}))?;
+        let refs: exec_git::vcs::RefsResult = serde_json::from_value(value).map_err(|_| AgentError::Failed("Invalid Git refs".into()))?;
+        let default = ["origin/main", "origin/master", "main", "master"]
+            .into_iter()
+            .find(|name| refs.refs.iter().any(|r| r.name == *name && r.kind != "tag"));
+        Ok(default.map(str::to_owned).or(refs.current))
+    }
+
+    fn checkout_changes(&self, client: &mut Client, checkout: &str) -> Result<Value, AgentError> {
+        let row = self.selected_checkout(client, checkout)?;
+        if row.head.is_empty() || row.head.bytes().all(|b| b == b'0') {
+            return Ok(json!({"head":null,"branch":row.branch,"comparison":null}));
+        }
+        let base = self.checkout_base(client, checkout)?;
+        let comparison = match base {
+            Some(base) => {
+                let diff = self.compare_checkout(client, &base, &row.head)?;
+                let limited = diff.files.len() >= exec_git::vcs::STATUS_FILES_CAP;
+                json!({"base":base,"ahead":diff.ahead,"files":diff.files,"limited":limited})
+            }
+            None => Value::Null,
+        };
+        Ok(json!({"head":row.head,"branch":row.branch,"comparison":comparison}))
+    }
+
+    fn compare_checkout(&self, client: &mut Client, base: &str, head: &str) -> Result<exec_git::vcs::CompareResult, AgentError> {
+        let value = Self::call(
+            client,
+            git::COMPARE,
+            json!({"workspace":self.workspace,"base":base,"head":head,"limit":1}),
+        )?;
+        serde_json::from_value(value).map_err(|_| AgentError::Failed("Invalid Git comparison".into()))
+    }
+
+    fn checkout_commit(&self, client: &mut Client, checkout: &str, sha: &str) -> Result<Value, AgentError> {
+        self.selected_checkout(client, checkout)?;
+        // Linked checkouts share this repository's immutable commits and their first parents.
+        let log = client
+            .call(git::HISTORY, json!({"workspace":self.workspace, "rev":sha, "limit":1}))
+            .map_err(|error| {
+                if error.from_service() && (error.code == "NOT_FOUND" || error.message.ends_with(&format!("bad object {sha}"))) {
+                    return AgentError::Refused {
+                        code: "COMMIT_NOT_FOUND".into(),
+                        message: "Commit not found".into(),
+                    };
+                }
+                refused(error)
+            })?;
+        let log: exec_git::vcs::LogResult = serde_json::from_value(log).map_err(|_| AgentError::Failed("Invalid Git history".into()))?;
+        let commit = log
+            .commits
+            .into_iter()
+            .next()
+            .filter(|c| c.sha == sha)
+            .ok_or_else(|| AgentError::Refused {
+                code: "COMMIT_NOT_FOUND".into(),
+                message: "Commit not found".into(),
+            })?;
+        let Some(parent) = commit.parents.first() else {
+            return Ok(json!({"body":commit.body, "initial":true, "files":[], "limited":false}));
+        };
+        let diff = self.compare_checkout(client, parent, sha)?;
+        let limited = diff.files.len() >= exec_git::vcs::STATUS_FILES_CAP;
+        Ok(json!({"body":commit.body, "initial":false, "files":diff.files, "limited":limited}))
+    }
+
+    fn checkout_history(
+        &self,
+        client: &mut Client,
+        checkout: &str,
+        expected_head: Option<&str>,
+        base: Option<&str>,
+        offset: u32,
+    ) -> Result<Value, AgentError> {
+        const PAGE_SIZE: u32 = 50;
+        let row = self.selected_checkout(client, checkout)?;
+        let head = &row.head;
+        let repo = &self.workspace;
         if expected_head.is_some_and(|expected| head != expected) {
             return Err(AgentError::Refused {
                 code: "CHECKOUT_HEAD_CHANGED".into(),
@@ -685,7 +768,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -743,6 +826,12 @@ impl AgentApi for RcaAgent {
 
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
+        if let Op::CheckoutChanges { checkout } = op {
+            return self.checkout_changes(&mut client, checkout);
+        }
+        if let Op::CheckoutCommit { checkout, sha } = op {
+            return self.checkout_commit(&mut client, checkout, sha);
+        }
         if let Op::CheckoutHistory { checkout, expected_head, base, offset } = op {
             return self.checkout_history(&mut client, checkout, expected_head.as_deref(), base.as_deref(), *offset);
         }

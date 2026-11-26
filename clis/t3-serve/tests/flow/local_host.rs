@@ -362,3 +362,30 @@ fn mobile_checkout_history_enforces_scope_and_requires_immutable_paging_anchors(
     assert_eq!(get(&format!("{checkout}&head={}&offset=50", "a".repeat(40)), &reader).status, 409);
     assert_eq!(get("checkout=absent", &reader).status, 404);
 }
+
+#[test]
+fn checkout_changes_and_commit_details_share_the_read_grant_and_validate_the_selected_revision() {
+    use t3_core::ports::Op;
+    // Given a paired reader with a selected checkout and a valid commit.
+    let h = Harness::start();
+    let sha = "a".repeat(40);
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutChanges { checkout } if checkout == "r::/wt" => Some(Ok(json!({"comparison":null}))),
+        Op::CheckoutCommit { checkout, sha } if checkout == "r::/wt" => Some(Ok(json!({"sha":sha}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let denied = scoped(&h, &["relay:read"]);
+    let get = |path: &str, auth: &str| http(h.addr,"GET",&format!("/api/mobile/source-control/{path}"), &[("Authorization",auth)], "");
+    let changes = "changes?checkout=r%3A%3A%2Fwt";
+    let detail = format!("commit?checkout=r%3A%3A%2Fwt&sha={sha}");
+    // When requesting either read, then only the correct scope and a full hash can reach the selected revision.
+    for path in [changes, detail.as_str()] {
+        assert_eq!(get(path,"").status,401);
+        assert_eq!(get(path,&denied).status,403);
+        assert_eq!(get(path,&reader).status,200);
+    }
+    assert_eq!(get(&detail,&reader).body["sha"],sha);
+    assert_eq!(get("commit?checkout=r%3A%3A%2Fwt&sha=HEAD",&reader).status,422);
+    assert_eq!(get("changes",&reader).status,422);
+}
