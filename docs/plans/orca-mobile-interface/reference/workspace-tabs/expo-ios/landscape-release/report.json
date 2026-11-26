@@ -1,0 +1,43 @@
+{
+  "update": "f6fba19a-08e4-4a72-b4da-f9edc5a5e7a3",
+  "simulator": "rca",
+  "journeys": [
+    {
+      "journey": "terminal-reattached",
+      "verdict": "pass",
+      "platform": "ios",
+      "started": "2026-11-26T20:42:39.685Z",
+      "durationS": 4.0
+    },
+    {
+      "journey": "browser-received",
+      "verdict": "pass",
+      "platform": "ios",
+      "started": "2026-11-26T20:43:21.923Z",
+      "durationS": 0.9
+    },
+    {
+      "journey": "note-reopened",
+      "verdict": "pass",
+      "platform": "ios",
+      "started": "2026-11-26T20:42:09.521Z",
+      "durationS": 2.1
+    },
+    {
+      "journey": "note-conflict",
+      "verdict": "pass",
+      "platform": "ios",
+      "started": "2026-11-26T20:42:18.985Z",
+      "durationS": 1.2
+    }
+  ],
+  "desktopCallback": {
+    "path": "/clicked?value=rca42",
+    "status": 200
+  },
+  "desktopNote": {
+    "path": "untitled-5.md",
+    "saved": "Landscape device proof",
+    "afterConflict": "Desktop revision 31"
+  }
+}

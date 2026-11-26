@@ -104,7 +104,7 @@ fn a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes
         assert_eq!(phone.end_of(&second)["result"], json!({"type": "end"}));
         // When it closes the terminal and subscribes again
         phone.call(case, &chain, &["rpc:terminal.close"], "terminal.close", json!({"terminal": handle}));
-        let stale = phone.refused(case, &chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(&handle, None));
+        let stale = phone.refused(case, &chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(handle, None));
         // Then the handle is refused as stale
         assert_eq!(stale["error"]["code"], json!("terminal_handle_stale"));
     });
