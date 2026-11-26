@@ -22,12 +22,14 @@ export function useTabColors() {
 export function TabControl({
   label,
   children,
+  terminal,
   onPress,
   selected,
   disabled,
 }: {
   label: string;
   children?: ReactNode;
+  terminal?: boolean;
   onPress: () => void;
   selected?: boolean;
   disabled?: boolean;
@@ -42,10 +44,10 @@ export function TabControl({
       onPress={onPress}
       hitSlop={2}
       style={({ pressed }) => ({
-        minWidth: 30,
-        height: 30,
-        paddingHorizontal: 7,
-        borderRadius: 8,
+        minWidth: terminal ? 34 : 30,
+        height: terminal ? 32 : 30,
+        paddingHorizontal: terminal ? 9 : 7,
+        borderRadius: terminal ? 12 : 8,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: selected ? c.ink : c.surface,
@@ -53,7 +55,14 @@ export function TabControl({
       })}
     >
       {children ?? (
-        <Text style={{ fontSize: 13, color: selected ? c.bg : c.ink }}>
+        <Text
+          style={{
+            fontSize: 13,
+            fontFamily: terminal ? 'Menlo' : undefined,
+            fontWeight: terminal ? '500' : undefined,
+            color: selected ? c.bg : c.ink,
+          }}
+        >
           {label}
         </Text>
       )}

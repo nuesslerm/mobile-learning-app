@@ -1,5 +1,11 @@
-import { terminalText } from '../../domain/workspaceTabs/terminalText';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentRef,
+} from 'react';
 import {
   Button,
   Keyboard,
@@ -21,6 +27,8 @@ import { TerminalMedia } from './TerminalMedia';
 import { Keyboard as KeyboardIcon, Monitor } from 'lucide-react-native';
 import { TabControl, useTabColors } from './TabControls';
 
+const TerminalScreen = lazy(() => import('./TerminalScreen'));
+
 type Props = {
   api: WorkspaceTabsPort;
   pair: Pairing;
@@ -29,13 +37,15 @@ type Props = {
 };
 export function TerminalTab({ api, pair, layout, tab }: Props) {
   const [buffer, setBuffer] = useState('');
+  const [snapshot, setSnapshot] = useState(0);
+  const [size, setSize] = useState({ cols: 80, rows: 24 });
   const [command, setCommand] = useState('');
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
   const [revision, retry] = useState(0);
   const stream = useRef<TerminalConnection | null>(null);
   const dimensions = useRef({ cols: 80, rows: 24 });
-  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+
   useEffect(() => {
     let live = true;
     setReady(false);
@@ -48,6 +58,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
         (s, reset) => {
           if (!live) return;
           setReady(true);
+          if (reset) setSnapshot((previous) => previous + 1);
           setBuffer((prev) => ((reset ? '' : prev) + s).slice(-200000));
         },
         (message) => {
@@ -90,6 +101,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
     const cols = Math.max(10, Math.floor(width / (fontSize * 0.61)));
     const rows = Math.max(2, Math.floor(heightRef.current / lineHeight));
     dimensions.current = { cols, rows };
+    setSize(dimensions.current);
     stream.current?.resize(cols, rows);
   }, [width, fontSize, lineHeight]);
   function type(value: string) {
@@ -114,15 +126,11 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
       setCommand('');
     }
   }
-  const text = terminalText(buffer);
+
   return (
     <View style={{ flex: 1, backgroundColor: '#191b26' }}>
-      <ScrollView
-        ref={scroll}
+      <View
         style={{ flex: 1 }}
-        onContentSizeChange={() =>
-          scroll.current?.scrollToEnd({ animated: false })
-        }
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
           heightRef.current = height;
@@ -131,24 +139,28 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
             cols: Math.max(10, Math.floor(width / (fontSize * 0.61))),
             rows: Math.max(2, Math.floor(height / lineHeight)),
           };
+          setSize(dimensions.current);
           stream.current?.resize(
             dimensions.current.cols,
             dimensions.current.rows
           );
         }}
       >
-        <Text
-          selectable
-          style={{
-            fontFamily: 'Menlo',
-            fontSize,
-            lineHeight,
-            color: '#e1e4ed',
-          }}
-        >
-          {text}
-        </Text>
-      </ScrollView>
+        <Suspense fallback={null}>
+          <TerminalScreen
+            output={buffer}
+            snapshot={snapshot}
+            cols={size.cols}
+            rows={size.rows}
+            fontSize={fontSize}
+            dom={{
+              useExpoDOMWebView: false,
+              scrollEnabled: false,
+              style: { flex: 1, backgroundColor: '#191b26' },
+            }}
+          />
+        </Suspense>
+      </View>
       {!!error && (
         <>
           <Text accessibilityRole="alert" style={{ color: 'white' }}>
@@ -160,18 +172,22 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
       <View
         style={{
           backgroundColor: c.bg,
-          paddingHorizontal: 8,
-          paddingVertical: 6,
-          gap: 6,
+          paddingBottom: 8,
         }}
       >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
-          contentContainerStyle={{ gap: 5, alignItems: 'center' }}
+          style={{ flexGrow: 0, height: 46 }}
+          contentContainerStyle={{
+            paddingHorizontal: 8,
+            gap: 8,
+            alignItems: 'center',
+          }}
         >
           <TabControl
+            terminal
             label="Toggle keyboard"
             onPress={() =>
               focused ? Keyboard.dismiss() : input.current?.focus()
@@ -180,12 +196,14 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
             <KeyboardIcon size={17} color={c.ink} />
           </TabControl>
           <TabControl
+            terminal
             label="Fit terminal to screen"
             onPress={() => setFit((v) => !v)}
           >
             <Monitor size={16} color={c.ink} />
           </TabControl>
           <TabControl
+            terminal
             label="Paste"
             onPress={() =>
               void import('expo-clipboard')
@@ -211,12 +229,19 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
             '→': '\x1b[C',
           }).map(([label, bytes]) => (
             <TabControl
+              terminal
               key={label}
               label={label}
               disabled={!ready}
               onPress={() => {
                 if (label === 'Enter') submit();
-                else stream.current?.write(bytes);
+                else {
+                  stream.current?.write(bytes);
+                  if (label === 'Ctrl-C' || label === 'Ctrl-D') {
+                    pending.current = '';
+                    setCommand('');
+                  }
+                }
               }}
             />
           ))}
@@ -226,7 +251,15 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
             {mediaError}
           </Text>
         )}
-        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 8,
+            alignItems: 'center',
+            paddingHorizontal: 12,
+            paddingTop: 8,
+          }}
+        >
           <View
             style={{
               flex: 1,
@@ -252,6 +285,8 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
                 editable={ready}
                 autoCapitalize="none"
                 autoCorrect={false}
+                spellCheck={false}
+                keyboardType="ascii-capable"
                 style={{
                   padding: 0,
                   fontSize: 14,

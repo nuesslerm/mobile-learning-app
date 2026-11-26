@@ -153,6 +153,16 @@ impl Service {
         } else {
             serde_json::from_value(stored["value"].clone()).map_err(|_| Refusal::bare(502))?
         };
+        let mut terminal_number = layout.tabs.iter()
+            .filter(|tab| tab.kind == "terminal")
+            .filter_map(|tab| tab.title.strip_prefix("terminal-")?.parse::<usize>().ok())
+            .max().unwrap_or(0);
+        for tab in &mut layout.tabs {
+            if tab.kind == "terminal" && tab.title == "Terminal" {
+                terminal_number = terminal_number.saturating_add(1);
+                tab.title = format!("terminal-{terminal_number}");
+            }
+        }
         if let Some(action) = mutation {
             match action {
                 Mutation::Create { id, kind, url } => {
@@ -178,7 +188,7 @@ impl Service {
                             "terminal" => {
                                 self.scope_gate("mobile.workspaceTabs", auth, "terminal:operate")?;
                                 self.terminal_open(&json!({"threadId":thread,"terminalId":id,"cwd":root,"worktreePath":root})).map_err(resource_error)?;
-                                ("Terminal".into(), id.clone())
+                                (format!("terminal-{}", terminal_number.saturating_add(1)), id.clone())
                             }
                             "browser" => {
                                 self.scope_gate("mobile.workspaceTabs", auth, "preview:operate")?;
