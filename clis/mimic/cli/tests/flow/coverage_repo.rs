@@ -6,7 +6,7 @@ use std::path::Path;
 #[test]
 fn the_repos_own_coverage_tables_pass_the_check_for_both_apps() {
     // Given the repository root
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap();
     for app in ["t3", "orca"] {
         // When its table is checked
         let run = coverage(&root, &["--app", app, "--check"]);
@@ -24,7 +24,7 @@ fn the_repos_own_coverage_tables_pass_the_check_for_both_apps() {
 #[test]
 fn the_repos_own_oracle_tables_are_current_and_every_served_row_has_a_class() {
     // Given the repository root
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap();
     for app in ["t3", "orca"] {
         // When the by-oracle table is checked
         let run = coverage(&root, &["--app", app, "--by-oracle", "--check"]);

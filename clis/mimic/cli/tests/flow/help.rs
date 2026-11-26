@@ -33,7 +33,7 @@ fn every_command_prints_its_committed_help_and_a_bare_group_prints_it_to_stderr(
 
 #[test]
 fn the_reference_the_owner_reads_carries_every_help_text() {
-    let doc = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/reference/wf-cli.md")).expect("docs/reference/wf-cli.md");
+    let doc = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../docs/reference/wf-cli.md")).expect("docs/reference/wf-cli.md");
     for (path, _, text) in HELP {
         assert!(doc.contains(text.trim_end()), "docs/reference/wf-cli.md lacks the help of wf {path}");
         assert!(doc.lines().any(|l| l.starts_with("### ") && l.ends_with(&format!("`wf {path}`"))), "no section for wf {path}");

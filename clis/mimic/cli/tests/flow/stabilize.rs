@@ -179,7 +179,7 @@ fn a_rules_change_lands_on_a_committed_set_by_remasking_it_and_everything_but_th
 #[test]
 fn the_committed_cassette_sets_all_verify_including_those_recorded_before_the_stabilizer() {
     // Given the repo's committed sets, some recorded before any stability accounting existed
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap();
     // When every set is verified, Then none fails on missing stability accounting
     let r = mimic(&["verify", "--all", "--root", root.to_str().unwrap()], &[]);
     assert_eq!(r.code, 0, "{}", r.json);

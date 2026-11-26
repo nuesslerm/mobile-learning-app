@@ -2,7 +2,7 @@
 status: open
 area: t3-serve
 paths:
-  - "clis/mimic/src/exec_verb.rs"
+  - "clis/mimic/cli/src/exec_verb.rs"
   - "clis/t3-serve/tests/integration/rig.rs"
 opened: 2026-11-21
 last_verified: 2026-11-21
@@ -14,7 +14,7 @@ links: []
 
 ## What exists
 
-- `wf mimic exec --clis real[:claude,codex,opencode] [--cli-dir <dir>] [--scan <dirs>] -- <command...>` (`clis/mimic/src/exec_verb.rs`) resolves the chosen CLIs' credentials in memory (the vault, or the caller's environment without one), starts the command with the default-deny child environment plus the resolved values, then scans `--scan` and `$WF_TEST_OUTPUT_DIR` for the exact values before anything is published. Flow tests with fake CLIs and a fake vault (the caller's environment): `clis/mimic/tests/flow/real_clis.rs`.
+- `wf mimic exec --clis real[:claude,codex,opencode] [--cli-dir <dir>] [--scan <dirs>] -- <command...>` (`clis/mimic/cli/src/exec_verb.rs`) resolves the chosen CLIs' credentials in memory (the vault, or the caller's environment without one), starts the command with the default-deny child environment plus the resolved values, then scans `--scan` and `$WF_TEST_OUTPUT_DIR` for the exact values before anything is published. Flow tests with fake CLIs and a fake vault (the caller's environment): `clis/mimic/cli/tests/flow/real_clis.rs`.
 - The rig (`clis/t3-serve/tests/integration/rig.rs`) and the `real_agent_turn` test read only environment variables (`T3_CHAIN_REAL_CLIS`, `MIMIC_REAL_CLI_DIR`, `T3_CHAIN_CLI_HOME`, `T3_CHAIN_EXECUTOR_ENV` and the variables that one names). `t3-serve` depends on neither `wf-mimic` nor `secrets`, so the image closure is as before. Its parse of that environment is flow-tested in `rig.rs`.
 - Run it: `wf mimic exec --clis real:claude --cli-dir <dir of claude> -- cargo test -p t3-serve --test integration real_agent_turn`.
 

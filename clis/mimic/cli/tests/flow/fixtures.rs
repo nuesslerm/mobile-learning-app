@@ -132,7 +132,7 @@ fn fixture_files(dir: &Path) -> usize {
 #[test]
 fn the_contract_fixtures_of_agent_api_are_all_classified_by_the_checked_in_rules() {
     // Given the real tree and its checked-in rules
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../libraries/agent-api");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../libraries/agent-api");
     // When it is scanned
     let r = scan(&dir, &[]);
     // Then no file is unclassified and the scan counted every fixture file the disk holds

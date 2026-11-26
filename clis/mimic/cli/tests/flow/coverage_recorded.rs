@@ -14,7 +14,7 @@ fn recorded_sets(app: &str, cassettes: &str) -> Vec<PathBuf> {
 }
 
 fn clis() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("..")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
 fn read(path: &Path) -> String {

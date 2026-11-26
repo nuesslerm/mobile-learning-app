@@ -27,7 +27,7 @@ fn set_dirs(root: &Path) -> Vec<PathBuf> {
 }
 
 fn reporoot() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")
 }
 
 /// A block with one step that counts its runs, and no toolchain: the capture tests provision it (phase one) before the double records.

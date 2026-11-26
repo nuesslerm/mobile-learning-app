@@ -4,7 +4,7 @@ area: ci
 paths:
   - ".github/workflows/mimic-record.yml"
   - "clis/mimic/plan/src/marker.rs"
-  - "clis/mimic/src/capture_verb.rs"
+  - "clis/mimic/cli/src/capture_verb.rs"
 opened: 2026-11-07
 last_verified: 2026-11-07
 links: []

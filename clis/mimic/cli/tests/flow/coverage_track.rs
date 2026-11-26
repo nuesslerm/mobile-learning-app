@@ -6,7 +6,7 @@ use std::process::Command;
 use std::sync::Arc;
 
 fn repo() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap()
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap()
 }
 
 /// The repository's pins and cassette sets in a temp root, so a bump rewrites a copy.

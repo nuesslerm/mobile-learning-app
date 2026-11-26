@@ -4,7 +4,7 @@ use crate::support::*;
 use std::path::{Path, PathBuf};
 
 fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap()
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap()
 }
 
 /// The imported sets under libraries/agent-api, read from their headers: (set dir, format, the legacy paths its header records).

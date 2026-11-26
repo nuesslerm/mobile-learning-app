@@ -8,7 +8,7 @@ use wf_mimic::proxy_shape;
 
 /// The root of the repository.
 fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").to_path_buf()
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").to_path_buf()
 }
 
 /// Every file under a directory.

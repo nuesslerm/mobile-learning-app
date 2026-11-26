@@ -215,7 +215,7 @@ fn all_live_skips_an_imported_set_with_no_corpus_but_a_named_one_is_an_error() {
     let root = w.dir.path();
     let imported = root.join("imported");
     std::fs::create_dir_all(&imported).unwrap();
-    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../libraries/agent-api/exec-hosted/tests/cassettes/exec-hosted");
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../libraries/agent-api/exec-hosted/tests/cassettes/exec-hosted");
     for e in std::fs::read_dir(source).unwrap().flatten() {
         std::fs::copy(e.path(), imported.join(e.file_name())).unwrap();
     }
