@@ -20,6 +20,8 @@ import { Platform, useColorScheme } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
+import { FullWindowOverlay } from 'react-native-screens';
+import { buoyEnabled } from '../app-shell/buoyEnabled';
 import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
 import { DeviceRunnerRoot, editorPageSource, PreparedEditorPages } from '@/features/leetcode';
@@ -56,7 +58,7 @@ if (process.env.EXPO_PUBLIC_DEVICE_LAB === '1' && Platform.OS === 'web') {
  */
 // Reanimated on web only runs predefined entering/exiting animations; sonner's custom worklets log a warning.
 const WEB_TOAST_ANIMATION = { enter: FadeIn.duration(200), exit: FadeOut.duration(200) };
-const FloatingDevTools = __DEV__ && Platform.OS !== 'web'
+const FloatingDevTools = buoyEnabled
   ? (require('@buoy-gg/core') as typeof import('@buoy-gg/core')).FloatingDevTools
   : null;
 const BuoyRouterStore = FloatingDevTools
@@ -66,9 +68,9 @@ const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
 
 function BuoyDevTools() {
   const { visualCapture } = useGlobalSearchParams<{ visualCapture?: string }>();
-  return FloatingDevTools
-    ? <FloatingDevTools hidden={visualCapture === '1'} zustandStores={buoyStores} />
-    : null;
+  if (!FloatingDevTools || visualCapture === '1') return null;
+  const tools = <FloatingDevTools signIn={!__DEV__} zustandStores={buoyStores} />;
+  return Platform.OS === 'ios' ? <FullWindowOverlay>{tools}</FullWindowOverlay> : tools;
 }
 
 // On a bare Expo Go update link SDK 58 resolves an empty path and skips +native-intent.
