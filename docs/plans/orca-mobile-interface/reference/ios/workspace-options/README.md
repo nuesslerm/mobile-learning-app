@@ -32,7 +32,7 @@ Open Workspace options using the sliders under the paired workspace list. The ph
 
 Each comparison counts all RGBA differences across the full width from the higher sheet edge to the bottom (2,801,040 pixels). On these 1320 × 2868 captures all five Orca sheets begin at y=747 and Expo at y=746. The host screen behind the sheet still differs. Expo currently shows projected chats under T3 projects. The native reference shows worktrees, their branch and activity, and the host toolbar.
 
-The [device runbook](expo-options.lua) opens the four pages and changes Detailed to Compact. After opening the published update again, run it with `restoreOnly=true` to check Compact and restore Detailed. The test takes the original and alternate layouts as inputs. Use a paired fixture in project grouping, with the filters off. [Layout change recording](expo-change-layout.mp4) · [Restore recording](expo-restore-layout.mp4).
+The [device runbook](expo-options.lua) opens the four pages and changes Detailed to Compact. After opening the published update again, run it with `restoreOnly=true` to check Compact and restore Detailed. The test takes the original and alternate layouts as inputs. From Feed, open the paired desktop before starting the runbook. Use project grouping with the filters off. [Layout change recording](expo-change-layout.mp4) · [Restore recording](expo-restore-layout.mp4).
 
 ```sh
 WF_IOS_APP_ID=host.exp.Exponent wf ios test expo-options.lua --device "$RCA_UDID" \

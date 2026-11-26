@@ -1,16 +1,9 @@
-import type { WorkspacePreferences } from '../domain/workspacePreferences';
-import { T3WorkspaceOptions } from './T3WorkspaceOptions';
+import { T3HostWorkspaces } from './T3HostWorkspaces';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
-import {
-  Button,
-  ListItem,
-  ScreenHeader,
-  Text,
-  View,
-} from '@lib/tamagui-design-system';
+import { Button, ScreenHeader, Text, View } from '@lib/tamagui-design-system';
 import type { T3MobilePort } from '../domain/t3Mobile';
 import { useCodingAgentPorts } from '../state/ports';
 import { ChatKeyboardArea } from './ChatKeyboardArea';
@@ -26,22 +19,37 @@ import { useT3Mobile } from '../state/useT3Mobile';
 export function T3MobileScreen({ threadId }: { threadId?: string }) {
   const { t3Mobile } = useCodingAgentPorts();
   if (!t3Mobile) throw new Error('Missing T3 mobile adapter');
-  return <Session key={threadId ?? 'home'} api={t3Mobile} threadId={threadId} />;
+  return (
+    <Session key={threadId ?? 'home'} api={t3Mobile} threadId={threadId} />
+  );
 }
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const state = useT3Mobile(api, threadId);
-  const { ChatSurface, Composer, HomeTabHeader } = useAgentComponents();
-  const [preferences, setPreferences] = useState<WorkspacePreferences>();
+  const {
+    ChatSurface,
+    Composer,
+    HomeTabHeader,
+    HomeSettingsRow,
+    HomeSettingsGroup,
+  } = useAgentComponents();
+  const { host, checkout } = useLocalSearchParams<{
+    host?: string;
+    checkout?: string;
+  }>();
   const [pairing, setPairing] = useState(false);
   const goBack = () =>
-    router.canGoBack()
-      ? router.back()
-      : router.replace('/coding-agent');
-  if (pairing) return <T3PairingScreen onBack={() => setPairing(false)} onPair={async (endpoint, code, signal) => {
-    await state.connect(endpoint, code, signal);
-    if (!signal.aborted) setPairing(false);
-  }} />;
+    router.canGoBack() ? router.back() : router.replace('/coding-agent');
+  if (pairing)
+    return (
+      <T3PairingScreen
+        onBack={() => setPairing(false)}
+        onPair={async (endpoint, code, signal) => {
+          await state.connect(endpoint, code, signal);
+          if (!signal.aborted) setPairing(false);
+        }}
+      />
+    );
   if (state.pair === null) {
     return (
       <ChatSurface>
@@ -51,63 +59,82 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
       </ChatSurface>
     );
   }
-  if (!threadId && state.pair)
+  if (!threadId && state.pair) {
+    if (host === '1' && state.catalog)
+      return (
+        <T3HostWorkspaces
+          key={state.pair.endpoint}
+          api={api}
+          pair={state.pair}
+          catalog={state.catalog}
+          onBack={goBack}
+        />
+      );
     return (
       <ChatSurface>
         <OrcaHome
           feed={
             <>
-              <HomeTabHeader title="Workspaces" actions={[{id: 'pair', icon: 'add', accessibilityLabel: 'Pair desktop', onPress: () => setPairing(true)}]} />
-              {state.error ? (
-                <Text accessibilityRole="alert">{state.error}</Text>
-              ) : null}
-              <ScrollView>
-                <View p="$4" gap="$2">
-                  {!state.shell ? <Text>Loading workspaces…</Text> : null}
-                  {state.shell?.projects.length === 0 ? (
-                    <Text>No projects yet.</Text>
-                  ) : null}
-                  {state.shell?.projects.filter(project =>
-                    !preferences?.filters.filterRepoIds.length || preferences.filters.filterRepoIds.includes(project.id)
-                  ).map((project) => (
-                    <View key={project.id}>
-                      {preferences?.groupBy !== 'none' && <Text variant="strong">{project.title}</Text>}
-                      {state.shell?.threads
-                        .filter((thread) => thread.projectId === project.id)
-                        .sort((a,b) => preferences?.sortBy === 'name' ? a.title.localeCompare(b.title) : 0)
-                        .map((thread) => (
-                          <ListItem
-                            key={thread.id}
-                            testID={'MobileThread-' + thread.id}
-                            variant={preferences?.cardLayout === 'compact' ? 'grouped' : 'standalone'}
-                            showChevron
-                            onPress={() =>
-                              router.push(
-                                '/coding-agent/' +
-                                  encodeURIComponent(thread.id)
-                              )
-                            }
-                          >
-                            <Text>{thread.title}</Text>
-                          </ListItem>
-                        ))}
-                    </View>
-                  ))}
-                  <Button onPress={state.retry}>Refresh</Button>
-                </View>
+              <HomeTabHeader title="Feed" />
+              <ScrollView contentContainerStyle={{ padding: 16 }}>
+                <Text variant="strong">Desktops</Text>
+                <HomeSettingsGroup>
+                  {state.catalog && (
+                    <HomeSettingsRow
+                      label={state.catalog.host.name}
+                      value={state.catalog.checkouts.length + ' workspaces'}
+                      navigates
+                      accessibilityLabel={'Open ' + state.catalog.host.name}
+                      onPress={() => router.push('/coding-agent?host=1')}
+                    />
+                  )}
+                  <HomeSettingsRow
+                    icon="add"
+                    label="Pair a desktop"
+                    onPress={() => setPairing(true)}
+                  />
+                </HomeSettingsGroup>
+                {state.error ? (
+                  <View>
+                    <Text accessibilityRole="alert">{state.error}</Text>
+                    <Button onPress={state.retry}>Try again</Button>
+                  </View>
+                ) : (
+                  !state.catalog && <Text>Loading workspaces…</Text>
+                )}
               </ScrollView>
-              <T3WorkspaceOptions key={state.pair.endpoint} api={api} pair={state.pair} projects={state.shell?.projects ?? []} onChanged={setPreferences} />
             </>
           }
         />
       </ChatSurface>
     );
+  }
   return (
     <ChatSurface>
-      {threadId ? <T3SessionNavigation key={threadId} session={state.imageSession} api={api} pair={state.pair} id={threadId}
-        title={state.snapshot?.thread.id === threadId ? state.snapshot.thread.title : 'Thread'}
-        connected={state.connected} onBack={goBack} onReconnect={state.retry} /> :
-        <ScreenHeader testID="MobileT3Header" title="Workspaces" onBack={goBack} />}
+      {threadId ? (
+        <T3SessionNavigation
+          key={threadId}
+          session={state.imageSession}
+          api={api}
+          pair={state.pair}
+          id={threadId}
+          checkout={checkout}
+          title={
+            state.snapshot?.thread.id === threadId
+              ? state.snapshot.thread.title
+              : 'Thread'
+          }
+          connected={state.connected}
+          onBack={goBack}
+          onReconnect={state.retry}
+        />
+      ) : (
+        <ScreenHeader
+          testID="MobileT3Header"
+          title="Workspaces"
+          onBack={goBack}
+        />
+      )}
       {state.error ? (
         <Text accessibilityRole="alert">{state.error}</Text>
       ) : null}
@@ -124,9 +151,16 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
             )}
           </ChatScroll>
           <Composer
-            leadingControls={state.snapshot && state.imageSession && (
-              <T3ComposerOptions thread={state.snapshot.thread} session={state.imageSession} newId={api.newId} />
-            )}
+            leadingControls={
+              state.snapshot &&
+              state.imageSession && (
+                <T3ComposerOptions
+                  thread={state.snapshot.thread}
+                  session={state.imageSession}
+                  newId={api.newId}
+                />
+              )
+            }
             value={state.draft}
             onChangeText={state.setDraft}
             onSend={() => void state.send()}

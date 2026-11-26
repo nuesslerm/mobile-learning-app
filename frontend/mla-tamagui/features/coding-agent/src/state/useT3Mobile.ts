@@ -1,16 +1,16 @@
+import type { WorkspaceCatalog } from '../domain/workspaceCatalog';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Pairing } from '../domain/mobile';
 import type {
   T3Conversation,
   T3MobilePort,
-  T3Shell,
   T3Snapshot,
 } from '../domain/t3Mobile';
 
 export function useT3Mobile(api: T3MobilePort, threadId?: string) {
   const [pair, setPair] = useState<Pairing | null>();
-  const [shell, setShell] = useState<T3Shell>();
+  const [catalog, setCatalog] = useState<WorkspaceCatalog>();
   const [snapshot, setSnapshot] = useState<T3Snapshot>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -44,6 +44,8 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
   useEffect(() => {
     if (!pair) return;
     let active = true;
+    const controller = new AbortController();
+    setCatalog(undefined);
     setConnected(false);
     setImageSession(undefined);
     let current: T3Conversation | undefined;
@@ -63,9 +65,9 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
       if (!pair || !active) return;
       try {
         if (!threadId) {
-          const result = await api.shell(pair);
+          const result = await api.workspaces(pair, controller.signal);
           if (active) {
-            setShell(result);
+            setCatalog(result);
             setError('');
           }
           return;
@@ -97,6 +99,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     void open();
     return () => {
       active = false;
+      controller.abort();
       clearTimeout(timer);
       current?.close();
       connection.current = null;
@@ -133,7 +136,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     connected,
     snapshot,
     imageSession: connected ? imageSession : undefined,
-    shell,
+    catalog,
     busy,
     error,
     retry,

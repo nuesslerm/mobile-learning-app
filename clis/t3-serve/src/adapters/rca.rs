@@ -306,6 +306,27 @@ impl RcaAgent {
         client.call(method, params).map_err(failed)
     }
 
+    fn mobile_worktrees(&self, client: &mut Client) -> Result<Value, AgentError> {
+        let listed = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace": self.workspace}))?;
+        let registrations = Self::call(client, REPO_LIST, json!({}))?;
+        let rows = listed["worktrees"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA worktrees.".into()))?;
+        let repos = registrations["repos"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA repositories.".into()))?;
+        let by_path: std::collections::HashMap<_, _> = repos.iter()
+            .filter(|r| r["kind"] == "worktree")
+            .filter_map(|r| Some((r["path"].as_str()?, r["workspace"].as_str()?)))
+            .collect();
+        let mut checkouts = Vec::with_capacity(rows.len());
+        for row in rows {
+            let path = row["path"].as_str().ok_or_else(|| AgentError::Failed("Missing checkout path.".into()))?;
+            let branch = row["branch"].as_str().filter(|b| !b.is_empty());
+            let title = branch.unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
+            let workspace = by_path.get(path).copied().unwrap_or(&self.workspace);
+            checkouts.push(json!({"id": format!("{}::{path}", self.workspace), "name": title, "branch": branch,
+                "main": row["is_main"] == true, "workspace": workspace, "path": path}));
+        }
+        Ok(json!({"repo": self.workspace, "checkouts": checkouts}))
+    }
+
     /// Use a separate workspace only when RCA registered the Git worktree.
     fn place(&self, client: &mut Client, root: &str, path: &str) -> Result<(String, String), AgentError> {
         let own = |path: &str| (self.workspace.clone(), under(root, path));
@@ -570,7 +591,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -628,6 +649,7 @@ impl AgentApi for RcaAgent {
 
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
+        if matches!(op, Op::MobileWorktrees) { return self.mobile_worktrees(&mut client); }
         let (method, params) = match self.placed(&mut client, op)? {
             Some(placed) => placed,
             None => request(op)?,

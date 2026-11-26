@@ -1,3 +1,4 @@
+import type { HostWorkspaceListProps } from './HostWorkspaceList';
 import type { WorkspaceOptionsProps } from './WorkspaceOptions';
 import type { PairingScreenProps, PairingCodeSheetProps } from './PairingComponents';
 import type { ComponentType, ReactNode } from 'react';
@@ -198,6 +199,7 @@ export interface HomeSettingsNoteProps {
 }
 
 export interface AgentComponents {
+  HostWorkspaceList: ComponentType<HostWorkspaceListProps>;
   WorkspaceOptions: ComponentType<WorkspaceOptionsProps>;
   PairingScreen: ComponentType<PairingScreenProps>;
   PairingCodeSheet: ComponentType<PairingCodeSheetProps>;

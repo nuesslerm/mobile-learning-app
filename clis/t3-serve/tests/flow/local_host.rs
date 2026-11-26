@@ -240,3 +240,33 @@ fn session_context_opens_a_saved_chat_once_and_rejects_another_workspace() {
     assert_eq!(context()["sessions"], expected);
     failure(&rpc.call("mobile.session.openTab",json!({"threadId":"t1","tabId":"outside"})));
 }
+
+#[test]
+fn mobile_checkouts_open_the_saved_projected_chat_only_inside_the_selected_workspace() {
+    use t3_core::ports::Op;
+    // Given a detached checkout with a saved RCA chat and another executor with a projected thread
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    success(&rpc.call("orchestration.dispatchCommand", thread_create("outside", "outside", "p1")));
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileWorktrees => Some(Ok(json!({"repo":"desk","checkouts":[
+            {"id":"desk::/fixture", "name":"fixture","path":"/fixture","workspace":"desk","branch":null,"main":false}
+        ]}))),
+        Op::ThreadList => Some(Ok(json!({"threads":[{"id":"t1","workspace":"desk"},{"id":"outside","workspace":"another"}]}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "tabs.active.desk" => Some(Ok(json!({"value":"t1"}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let get = |path, auth: &str| http(h.addr, "GET", path, &[("Authorization", auth)], "");
+    // When the phone reads the catalog and opens the checkout, then only its projected chat is eligible
+    let list = get("/api/mobile/workspaces", &reader);
+    assert_eq!(list.status, 200);
+    assert_eq!(list.body["checkouts"], json!([{"id":"desk::/fixture","name":"fixture","branch":null,"main":false}]));
+    let result = get("/api/mobile/workspaces?checkout=desk%3A%3A%2Ffixture", &reader);
+    assert_eq!(result.body["active"], "t1");
+    assert_eq!(result.body["sessions"].as_array().unwrap().len(), 1);
+    assert_eq!(get("/api/mobile/workspaces?checkout=outside", &reader).status, 404);
+    assert_eq!(get("/api/mobile/workspaces", "").status, 401);
+    assert_eq!(get("/api/mobile/workspaces", &scoped(&h, &["relay:read"])).status, 403);
+}

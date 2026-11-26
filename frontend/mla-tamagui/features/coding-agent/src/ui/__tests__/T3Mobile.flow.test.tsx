@@ -37,6 +37,9 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
       sessions: [thread, {id: 'thread-43', title: 'Fix the parser', needsProjection: true}],
     }),
     pair: async () => pair,
+    workspaces: async () => ({host:{name:'Fixture Mac',os:'darwin'}, repo:'Fixture repository',
+      checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
+    checkoutSessions: async () => ({active:thread.id, sessions:[thread]}),
     shell: async () => ({
       projects: [{ id: 'project', title: 'Fixture repository' }],
       threads: [thread],
@@ -90,7 +93,7 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Paste code instead' }));
     await userEvent.type(screen.getByTestId('MobilePairCode'), 'https://fixture.invalid/pair#token=fixture-code');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(await screen.findByText(thread.title)).toBeTruthy();
+    expect(await screen.findByRole('button',{name:'Open Fixture Mac'})).toBeTruthy();
     expect(exchanges).toEqual([['https://fixture.invalid', 'fixture-code']]);
   });
 
@@ -125,7 +128,7 @@ describe('Orca chat with the T3 transport', () => {
 
   it('Given a paired workspace, when the reader changes card layout, then reopening options restores it', async () => {
     const port = backend();
-    await app.render('/coding-agent', { overrides: { 'coding-agent': { t3Mobile: port } } });
+    await app.render('/coding-agent', {search:{host:'1'}, overrides: { 'coding-agent': { t3Mobile: port } } });
     await userEvent.click(await screen.findByRole('button', {name:'Workspace options'}));
     await userEvent.click(await screen.findByRole('button', {name:'Card layout, Detailed'}));
     await userEvent.click(await screen.findByRole('radio', {name:'Compact'}));
@@ -166,15 +169,17 @@ describe('Orca chat with the T3 transport', () => {
     await waitFor(() => expect(routerHarness().calls()).toContainEqual(['replace', '/coding-agent/thread-43']));
   });
 
-  it('Given a paired project, when opening a thread from its shell and sending, then the reply and cleared composer are visible', async () => {
+  it('Given a paired desktop, when opening its checkout and sending in the saved chat, then the reply and cleared composer are visible', async () => {
     const port = backend();
-    const home = await app.render('/coding-agent', {
+    await app.render('/coding-agent', {
       overrides: { 'coding-agent': { t3Mobile: port } },
     });
-    await screen.findByText(thread.title);
-    await home.tap('MobileThread-' + thread.id);
+    await userEvent.click(await screen.findByRole('button',{name:'Open Fixture Mac'}));
+    expect(routerHarness().lastPush()).toBe('/coding-agent?host=1');
+    await app.render('/coding-agent', {search:{host:'1'},overrides:{'coding-agent':{t3Mobile:port}}});
+    await userEvent.click(await screen.findByRole('button',{name:'Mobile checkout'}));
     await waitFor(() =>
-      expect(routerHarness().lastPush()).toContain(thread.id)
+      expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Mobile%20checkout')
     );
     await app.render('/coding-agent/thread-42', {
       overrides: { 'coding-agent': { t3Mobile: port } },

@@ -9,6 +9,7 @@ pub mod guest;
 pub mod history;
 pub mod launch;
 pub mod mobile_sessions;
+mod mobile_workspaces;
 pub mod pairing;
 pub mod peers;
 pub mod pr;

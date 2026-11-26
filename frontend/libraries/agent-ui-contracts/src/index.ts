@@ -33,3 +33,5 @@ export type { PairingScreenProps, PairingCodeSheetProps } from './ports/PairingC
 export type { ComposerOptionsProps, ChatMessageTextProps, ChatMessageMetaProps, SessionHeaderProps, SessionTabsSheetProps } from './ports/ChatComponents';
 
 export type { WorkspaceOptionGroup, WorkspaceOptionRow, WorkspaceOptionsProps } from './ports/WorkspaceOptions';
+
+export type { HostWorkspaceListProps } from './ports/HostWorkspaceList';

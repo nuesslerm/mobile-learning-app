@@ -1,3 +1,4 @@
+import { chatRoute } from '../domain/workspaceCatalog';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
 import { router } from 'expo-router';
@@ -12,6 +13,7 @@ export function T3SessionNavigation({
   pair,
   id,
   title,
+  checkout,
   connected,
   onBack,
   onReconnect,
@@ -20,6 +22,7 @@ export function T3SessionNavigation({
   api: T3MobilePort;
   pair?: Pairing | null;
   id: string;
+  checkout?: string;
   title: string;
   connected: boolean;
   onBack: () => void;
@@ -60,7 +63,7 @@ export function T3SessionNavigation({
   const sessions = tabs.some((tab) => tab.id === id)
     ? tabs
     : [...tabs, { id, title }];
-  const workspace = context?.workspace ?? 'Terminal';
+  const workspace = checkout ?? context?.workspace ?? 'Terminal';
   async function selectTab(next: string) {
     const request = ++selection.current;
     if (next !== id && tabs.find((tab) => tab.id === next)?.needsProjection) {
@@ -79,14 +82,14 @@ export function T3SessionNavigation({
     if (request !== selection.current) return;
     dismiss();
     if (next !== id)
-      router.replace('/coding-agent/' + encodeURIComponent(next));
+      router.replace(chatRoute(next, checkout));
   }
 
   return (
     <>
       <SessionHeader
         workspace={workspace}
-        title={title}
+        title={sessions.find((s) => s.id === id)?.title ?? title}
         connected={connected}
         topInset={top}
         tabCount={sessions.length}
