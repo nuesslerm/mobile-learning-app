@@ -114,6 +114,34 @@ fn given_an_approved_https_host_when_a_client_uses_the_explicit_proxy_then_it_is
 }
 
 #[test]
+fn given_a_recording_made_through_the_explicit_proxy_when_it_is_replayed_with_the_server_gone_then_the_client_is_answered_and_every_other_host_is_refused() {
+    // Given an HTTPS exchange recorded through the explicit proxy, and its server gone
+    let dir = tempfile::tempdir().unwrap();
+    let upstream = MockHttps::start();
+    upstream.reply(&json!({"accepted": true, "access_token": ISSUED}).to_string());
+    let (set, ca, replay_ca) = (dir.path().join("set"), dir.path().join("mimic-ca.pem"), dir.path().join("replay-ca.pem"));
+    let (port, host) = (upstream.port, format!("127.0.0.1:{}", upstream.port));
+    let mut record = Tool::start(dir.path(), &["record", "--set", &text(&set), "--allow-host", &host, "--upstream-ca", &text(&upstream.ca), "--ca-out", &text(&ca)], &[]);
+    https(record.addr, port, &ca, &ingest()).expect("the request is answered");
+    assert_eq!(record.stop().code, 0);
+    drop(upstream);
+    let other = echo();
+
+    // When the set is replayed as an explicit proxy, a client repeats the request, and another asks for a host nobody approved
+    let mut replay = Tool::start(dir.path(), &["replay", &text(&set), "--allow-host", &host, "--ca-out", &text(&replay_ca)], &[]);
+    let answer = https(replay.addr, port, &replay_ca, &ingest()).expect("the replay answers");
+    let refused = tunnel(replay.addr, &other.to_string());
+    let ended = replay.stop();
+
+    // Then the client got the recorded answer with the fixture value, under the replay's own CA
+    assert!(answer.starts_with("HTTP/1.1 200") && answer.contains("fx-access-token-1"), "{answer}");
+    // and the other host was refused, and nothing left the machine
+    assert_eq!(refused.err(), Some(403));
+    assert_eq!((ended.code, &ended.json["ok"], &ended.json["upstream_connections"], &ended.json["http"]["matched"]), (0, &json!(true), &json!(0), &json!(1)), "{}", ended.stdout);
+    assert_eq!(&ended.json["gaps"]["refused"][&other.to_string()], &json!(1), "{}", ended.stdout);
+}
+
+#[test]
 fn given_a_server_whose_certificate_does_not_validate_when_a_client_asks_for_it_then_nothing_is_sent_to_it_and_the_gap_is_named() {
     // Given an HTTPS server under a CA the recording was not told to trust
     let dir = tempfile::tempdir().unwrap();

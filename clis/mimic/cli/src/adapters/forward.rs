@@ -18,8 +18,8 @@ use std::time::Duration;
 const POLL: Duration = Duration::from_millis(5);
 const READ_TIMEOUT: Duration = Duration::from_secs(5);
 const BAD_GATEWAY: &[u8] = b"HTTP/1.1 502 Bad Gateway\r\ncontent-length: 0\r\nconnection: close\r\n\r\n";
-const FORBIDDEN: &[u8] = b"HTTP/1.1 403 Forbidden\r\ncontent-length: 0\r\nconnection: close\r\n\r\n";
-const ESTABLISHED: &[u8] = b"HTTP/1.1 200 Connection Established\r\n\r\n";
+pub(super) const FORBIDDEN: &[u8] = b"HTTP/1.1 403 Forbidden\r\ncontent-length: 0\r\nconnection: close\r\n\r\n";
+pub(super) const ESTABLISHED: &[u8] = b"HTTP/1.1 200 Connection Established\r\n\r\n";
 
 /// What an explicit proxy is made of.
 pub struct Setup {
@@ -104,7 +104,7 @@ impl Drop for Forward {
 }
 
 /// `host:port` of an authority, with the scheme's port when it names none.
-fn host_port(authority: &str, default_port: u16) -> Option<(String, u16)> {
+pub(super) fn host_port(authority: &str, default_port: u16) -> Option<(String, u16)> {
     let authority = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
     match authority.rsplit_once(':') {
         Some((host, port)) if !host.is_empty() && !port.contains(']') => Some((host.trim_matches(['[', ']']).to_string(), port.parse().ok()?)),
@@ -114,7 +114,7 @@ fn host_port(authority: &str, default_port: u16) -> Option<(String, u16)> {
 }
 
 /// The host, port and path of an absolute `http://` request target.
-fn absolute(target: &str) -> Option<(String, u16, String)> {
+pub(super) fn absolute(target: &str) -> Option<(String, u16, String)> {
     let rest = target.strip_prefix("http://")?;
     let (authority, path) = match rest.split_once('/') {
         Some((authority, path)) => (authority, format!("/{path}")),

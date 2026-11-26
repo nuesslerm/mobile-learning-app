@@ -4,7 +4,9 @@ use super::proxy_record_verb::masks;
 use super::proxy_verb::{listen_addr, serve_until};
 use super::{fail, load_config, set_ref, Done};
 use crate::adapters::conn;
-use crate::adapters::replay_server::ReplayServer;
+use crate::adapters::replay_server::{Explicit, ReplayServer};
+use crate::adapters::tls::Authority;
+use mimic_proxy_core::domain::host_policy::{gaps, HostPolicy};
 use mimic_proxy_core::application::record::policy_for;
 use mimic_proxy_core::application::replay::Replayer;
 use mimic_proxy_core::domain::matching::Tolerance;
@@ -56,7 +58,19 @@ pub fn replay_verb(p: &Parsed) -> Done {
         let _ = signal_hook::flag::register(signal, stop.clone());
     }
     let started = wf_kit::time::now_ms();
-    let server = ReplayServer::listen(listen, replayer.clone(), stop.clone()).map_err(|e| fail(format!("the replay did not listen on {listen}: {e}"), NEXT))?;
+    let explicit = match p.val("allow-host") {
+        None => None,
+        Some(hosts) => {
+            let Some(ca_out) = p.val("ca-out") else {
+                return Err(fail("--allow-host needs --ca-out <file>: where the test CA's certificate is written for the client to trust", "wf mimic proxy replay <set> --allow-host <host[:port]>,... --ca-out <file>"));
+            };
+            let authority = Authority::new().map_err(|e| fail(format!("the test CA could not be made: {e}"), NEXT))?;
+            std::fs::write(ca_out, authority.certificate_pem()).map_err(|e| fail(format!("{ca_out}: {e}"), "name a writable --ca-out file"))?;
+            let policy = HostPolicy { approved: hosts.split(',').filter(|h| !h.is_empty()).map(String::from).collect(), offline: true };
+            Some(Arc::new(Explicit { policy, authority, seen: Mutex::default() }))
+        }
+    };
+    let server = ReplayServer::listen(listen, replayer.clone(), stop.clone(), explicit.clone()).map_err(|e| fail(format!("the replay did not listen on {listen}: {e}"), NEXT))?;
     let bound = server.addr();
     if let Some(ready) = p.val("ready") {
         let note = json!({"listen": bound.to_string(), "set": set.dir.display().to_string()});
@@ -83,8 +97,9 @@ pub fn replay_verb(p: &Parsed) -> Done {
         None => "nothing to do".to_string(),
         Some(first) => format!("read mismatches[0] ({}): record the journey again with wf mimic proxy record, or fix the client", first["what"].as_str().unwrap_or("request")),
     };
+    let uncovered = explicit.map_or_else(|| json!({}), |e| json!(gaps(&e.policy, &e.seen.lock().unwrap_or_else(|e| e.into_inner()))));
     let out = json!({
-        "ok": ok, "set": set.name, "kind": content.cassette.header.provenance.kind, "listen": bound.to_string(), "upstream_connections": conn::dials(),
+        "ok": ok, "set": set.name, "kind": content.cassette.header.provenance.kind, "listen": bound.to_string(), "upstream_connections": conn::dials(), "gaps": uncovered,
         "http": summary["http"], "ws": summary["ws"], "mismatch_count": mismatches.len(), "mismatches": mismatches.iter().take(MAX_REPORTED).collect::<Vec<_>>(),
         "unused": summary["unused"], "evidence": {"report": report.map(|r| r.display().to_string())}, "warnings": [], "next": next,
     });

@@ -11,6 +11,15 @@ The verb opens no connection of its own: there is no upstream to name, and
 "upstream_connections" in the output is the count of connections this process
 tried to open, which is 0.
 
+A set recorded with --allow-host is replayed the same way: with --allow-host
+the verb is an explicit proxy. An approved host is answered from the cassette
+under a test CA made for this run (its certificate goes to --ca-out, its key
+is never written), and every other host is refused with a 403, so nothing
+leaves the machine. "gaps" names the refused hosts and the clients that
+rejected the test CA.
+
+  wf mimic proxy replay /tmp/api-run --allow-host api.fixture.test --ca-out /tmp/mimic-ca.pem --listen 127.0.0.1:18700
+
 An HTTP request is answered by the recording with the same verb, route, query
 and body. Credentials are compared by name, not by value, so a client that
 holds its own token is served. A request is first compared as it is, then
@@ -44,13 +53,15 @@ Options:
   --duration <seconds>    stop after this long
   --settle-ms <ms>        how long a client is quiet before held replies go out (default 300)
   --fail-fast             stop at the first mismatch
+  --allow-host <host[:port]>,...  be an explicit proxy for these hosts, and refuse every other
+  --ca-out <file>         with --allow-host: where the test CA's certificate is written
   --mask <value>=<stand-in>,...  more values of this machine, as given to the record
   --suite <name>          write $WF_TEST_OUTPUT_DIR/<name>/report.json
   --ready <file>          write the listening address here once the replay is up
   -h, --help              display help for command
 
 Output (schema mimic-proxy-replay/1):
-  {schema, ok, set, kind, listen, upstream_connections, http: {matched, reused}, ws: {connections, matched, reused},
+  {schema, ok, set, kind, listen, upstream_connections, gaps, http: {matched, reused}, ws: {connections, matched, reused},
   mismatch_count, mismatches: [{protocol, what, connection?, reason, received, nearest?: {interaction, cassette, step?, diff}}],
   unused, evidence: {report}, warnings, next}
 Exit 0 every request had a recording, 1 a mismatch, 2 a usage or environment error.
