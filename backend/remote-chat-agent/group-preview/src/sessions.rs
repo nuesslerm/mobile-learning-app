@@ -92,6 +92,12 @@ impl Previews {
     }
 
     pub fn open(&self, p: OpenParams) -> Result<SessionView, Failure> {
+        self.open_with_id(p, self.next_tab_id())
+    }
+
+    pub fn next_tab_id(&self) -> String { self.ids.id("tab") }
+
+    pub fn open_with_id(&self, p: OpenParams, tab: String) -> Result<SessionView, Failure> {
         let now = self.clock.now_ms();
         let mut guard = self.lock();
         let (state, log) = &mut *guard;
@@ -103,8 +109,9 @@ impl Previews {
         }
         let view = SessionView {
             runtime: p.runtime,
+            workspace: p.workspace,
             thread: p.thread,
-            tab: self.ids.id("tab"),
+            tab,
             nav: p.url.map_or(Nav::Idle {}, |url| Nav::Loading { url, title: String::new() }),
             can_go_back: false,
             can_go_forward: false,

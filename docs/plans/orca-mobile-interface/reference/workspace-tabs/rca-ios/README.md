@@ -1,0 +1,1 @@
+Stock Orca iOS 0.0.68 paired directly to orca-serve on the disposable rca-workspace-tabs simulator. RCA used the mobile web bundle from the installed Orca desktop app via --mobile-web-dir. The desktop fixture page sent a request when tapped and changed the button text from Send to Received. The two crops show the same area of the phone before and after the tap.

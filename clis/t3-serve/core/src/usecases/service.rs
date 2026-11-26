@@ -329,7 +329,7 @@ impl Service {
         Ok(principal)
     }
 
-    fn insufficient_scope(&self, principal: &Principal, scope: &str) -> Refusal {
+    pub(super) fn insufficient_scope(&self, principal: &Principal, scope: &str) -> Refusal {
         self.log("access.scope.refused", &[("scope", scope.to_string()), ("tokenId", principal.token_id.clone())]);
         refuse(403, json!({"_tag": "EnvironmentScopeRequiredError", "code": "insufficient_scope", "requiredScope": scope, "traceId": opaque_secret(&self.0.ids.random_bytes(16))}))
     }
@@ -369,16 +369,21 @@ impl Service {
             self.log("ws.upgrade.refused", &[("reason", "protocol".into())]);
             return Err(refuse(426, wire::protocol_incompatible()));
         }
+        let principal = self.socket_ticket(param("wsTicket"), "rpc")?;
+        Ok(Connection::new(self.clone(), principal))
+    }
+
+    pub(super) fn socket_ticket(&self, ticket: Option<&str>, purpose: &str) -> Result<Principal, Refusal> {
         let denied = |reason: &'static str| {
             self.log("ws.upgrade.refused", &[("reason", reason.to_string())]);
             refuse(401, wire::unauthorized("A valid websocket ticket is required."))
         };
-        let ticket = param("wsTicket").filter(|t| !t.is_empty()).ok_or_else(|| denied("no_ticket"))?;
+        let ticket = ticket.filter(|t| !t.is_empty()).ok_or_else(|| denied("no_ticket"))?;
         let record = self.0.auth.consume_ticket(&hash_secret(ticket), self.0.clock.now_ms()).map_err(|e| self.store_failed("ws.upgrade.failed", e.0))?.ok_or_else(|| denied("bad_ticket"))?;
-        if record.use_ != "rpc" {
+        if record.use_ != purpose {
             return Err(denied("wrong_use"));
         }
         self.log("ws.opened", &[("tokenId", record.token_id.clone())]);
-        Ok(Connection::new(self.clone(), Principal { token_id: record.token_id, scopes: record.scopes, expires_at: 0 }))
+        Ok(Principal { token_id: record.token_id, scopes: record.scopes, expires_at: 0 })
     }
 }

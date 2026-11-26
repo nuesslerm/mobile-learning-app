@@ -47,6 +47,19 @@ impl BrowserGroup {
 }
 
 #[async_trait]
+impl rca_agent_core::BrowserPages for BrowserGroup {
+    async fn open_page(&self, workspace: &str, key: &str, url: Option<&str>) -> Result<(), (String, String)> {
+        let mut params = serde_json::json!({"workspace":workspace,"key":key});
+        if let Some(url) = url { params["url"] = url.into(); }
+        self.relay(api::spec_of(api::OPEN).unwrap(), &params).await.map(|_| ())
+    }
+
+    async fn close_page(&self, workspace: &str, key: &str) -> Result<(), (String, String)> {
+        self.relay(api::spec_of(api::CLOSE).unwrap(), &serde_json::json!({"workspace":workspace,"key":key})).await.map(|_| ())
+    }
+}
+
+#[async_trait]
 impl Group for BrowserGroup {
     fn name(&self) -> GroupName {
         api::GROUP

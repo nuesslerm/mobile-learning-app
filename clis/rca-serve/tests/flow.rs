@@ -181,6 +181,7 @@ fn given_an_rca_t3_invite_when_redeemed_then_the_session_can_get_an_rpc_ticket()
         .unwrap();
     assert!(invite.status.success());
     let offer: Value = serde_json::from_slice(&invite.stdout).unwrap();
+    assert!(offer["scopes"].as_array().unwrap().iter().any(|scope| scope == "preview:operate"));
     let code = offer["code"].as_str().unwrap();
     let form = format!(
         "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token={code}"

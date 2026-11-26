@@ -480,6 +480,7 @@ fn every_op() -> Vec<Op> {
     // every method of the schedules group the mapper uses: the save in a project's workspace, the rest on a schedule by id
     let by_id = agent_api_schedules::METHODS.iter().filter(|m| **m != agent_api_schedules::UPSERT && USES.contains(m)).map(|m| Op::Schedule { method: m.name(), root: None, params: json!({"id": "s1", "enabled": true}) });
     ops.extend(agent_api_attachments::METHODS.iter().filter(|m| USES.contains(m)).map(|m| Op::Attachment { method: m.name(), params: json!({"id": "att-1"}) }));
+    ops.extend(agent_api_preview::rendering::METHODS.iter().map(|m| Op::PreviewPage { method:m.name(), params:json!({"workspace":"root","key":"tab-1"}) }));
     ops.extend(agent_api_preview::sessions::METHODS.iter().chain(agent_api_preview::watch::METHODS).filter(|m| USES.contains(m)).map(|m| Op::Preview { method: m.name(), params: json!({"thread": "t1", "tab": "tab-1"}) }));
     ops.push(Op::Speech { method: agent_api_catalog::SPEECH_STATUS.name(), params: json!({}) });
     ops.push(Op::Speech { method: agent_api_catalog::SPEECH_TRANSCRIBE.name(), params: json!({"audio": "AAAA", "format": "wav"}) });

@@ -158,6 +158,8 @@ pub struct SessionView {
     pub thread: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runtime: Option<Runtime>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace: Option<String>,
     pub tab: String,
     pub nav: Nav,
     pub can_go_back: bool,
@@ -182,6 +184,8 @@ pub struct OpenParams {
     pub thread: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runtime: Option<Runtime>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -376,7 +380,7 @@ mod tests {
 
     #[test]
     fn given_a_session_when_encoded_then_the_fields_keep_the_contract_names_and_unset_ones_are_absent() {
-        let view = SessionView { runtime: None, thread: "t".into(), tab: "tab-1".into(), nav: Nav::Idle {}, can_go_back: false, can_go_forward: false, viewport: Viewport::Fill {}, color_scheme: None, zoom: None, profile: None, reveal: None, updated_ms: 9 };
+        let view = SessionView { workspace: None, runtime: None, thread: "t".into(), tab: "tab-1".into(), nav: Nav::Idle {}, can_go_back: false, can_go_forward: false, viewport: Viewport::Fill {}, color_scheme: None, zoom: None, profile: None, reveal: None, updated_ms: 9 };
         assert_eq!(serde_json::to_string(&view).unwrap(), r#"{"thread":"t","tab":"tab-1","nav":{"state":"idle"},"can_go_back":false,"can_go_forward":false,"viewport":{"mode":"fill"},"updated_ms":9}"#);
         assert_eq!(METHODS.len(), 6);
     }

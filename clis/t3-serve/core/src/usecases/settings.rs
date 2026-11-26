@@ -27,6 +27,7 @@ const USAGE_CONTRACT_VERSION: u64 = 6;
 /// makes a settings update one read and one write.
 #[derive(Default)]
 pub struct Held {
+    pub(super) preview_controllers: Mutex<std::collections::HashSet<String>>,
     sessions: Mutex<HashMap<String, (String, String)>>,
     settings: Mutex<()>,
     /// Makes a view-preference update one read and one write.

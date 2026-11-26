@@ -41,10 +41,12 @@ pub fn serve(dir: &Path) -> Result<(), Failure> {
 
 pub fn pair(dir: &Path) -> Result<(), Failure> {
     let base = setting("RCA_MOBILE_PUBLIC_URL")?;
+    let mut request = wiring::PairingRequest::default();
+    request.scopes.push("preview:operate".into());
     let link = wiring::pair_link(
         &dir.join("t3"),
         base.trim_end_matches('/'),
-        Default::default(),
+        request,
     )
     .map_err(|e| Failure::new("PAIR", e))?;
     println!("{link}");

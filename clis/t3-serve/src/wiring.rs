@@ -95,7 +95,9 @@ pub fn listen(settings: &Settings, bind: impl std::net::ToSocketAddrs) -> Result
     Ok((server, wired.environment_id))
 }
 
-pub fn pair_link(dir: &Path, base: &str, request: t3_core::usecases::pairing::PairingRequest) -> Result<serde_json::Value, String> {
+pub use t3_core::usecases::pairing::PairingRequest;
+
+pub fn pair_link(dir: &Path, base: &str, request: PairingRequest) -> Result<serde_json::Value, String> {
     let store = open_store(dir)?;
     let environment = environment_id(store.as_ref(), &OsIds)?;
     let ttl = request.ttl_seconds;

@@ -287,7 +287,7 @@ fn route_name(path: &str) -> &str {
         "/api/voice/post-process" | "/api/voice/status" | "/api/voice/transcribe" |
         "/health" | "/oauth/mcp/approval" | "/oauth/mcp/authorize" |
         "/oauth/mcp/decision" | "/oauth/mcp/register" | "/oauth/mcp/token" |
-        "/oauth/token" | "/ws" => path,
+        "/oauth/token" | "/ws" | "/api/preview-stream/ws" => path,
         _ if path.starts_with("/api/auth/websocket-ticket/") => "/api/auth/websocket-ticket/:use",
         _ if path.starts_with(THREADS) => match path[THREADS.len()..].split_once('/') {
             None => "/api/orchestration/threads/:threadId",
@@ -465,6 +465,10 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
         ("GET", "/api/projects") => match svc.projects_snapshot_http(auth) {
             Ok(body) => respond(&mut stream, 200, &body),
             Err(r) => refused(&mut stream, r, ""),
+        },
+        ("GET", "/api/preview-stream/ws") => match svc.preview_viewer(&request.query) {
+            Ok(viewer) => socket::preview(stream, &request, viewer, stop, span),
+            Err(r) => refused(&mut stream, r, NO_STORE),
         },
         ("GET", "/ws") => match svc.connect(&request.query) {
             Ok(connection) => socket::upgrade(stream, &request, connection, stop, span),

@@ -64,6 +64,12 @@ pub struct Call<'a> {
 }
 
 #[async_trait]
+pub trait BrowserPages: Send + Sync {
+    async fn open_page(&self, workspace: &str, key: &str, url: Option<&str>) -> Result<(), (String, String)>;
+    async fn close_page(&self, workspace: &str, key: &str) -> Result<(), (String, String)>;
+}
+
+#[async_trait]
 pub trait Group: Send + Sync {
     fn name(&self) -> GroupName;
 

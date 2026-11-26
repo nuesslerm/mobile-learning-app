@@ -39,8 +39,9 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 152] = [
+pub const USES: [Method; 156] = [
     STATUS,
+    preview::rendering::FRAME, preview::rendering::INPUT, preview::rendering::GOTO, preview::rendering::HISTORY,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
     agent_api_agent::THREAD_GET,
@@ -735,6 +736,11 @@ impl RcaAgent {
         // A path to give the executor only when the directory is below the workspace's own
         let below = |path: String| Some(path).filter(|p| p != ".");
         Ok(Some(match op {
+            Op::OpenServerPreview {root, params} => {
+                let mut params = params.clone();
+                params["workspace"] = json!(self.place(client, root, "")?.0);
+                (preview::sessions::OPEN, params)
+            }
             Op::ProviderCommands { root, driver } => {
                 let (workspace, path) = self.place(client, root, "")?;
                 let mut params = json!({"workspace": workspace, "driver": driver});
@@ -939,6 +945,10 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
             let found = schedules::METHODS.iter().find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("{method} is no schedules method of the agent API")))?;
             (found, params.clone())
         }
+        Op::PreviewPage {method, params} => {
+            let found = preview::rendering::METHODS.iter().find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("Unknown preview page operation {method}")))?;
+            (found, params.clone())
+        }
         Op::Preview { method, params } => {
             let found = preview::sessions::METHODS.iter().chain(preview::watch::METHODS).find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("{method} is no preview.sessions method of the agent API")))?;
             (found, params.clone())
@@ -960,7 +970,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateCompareAndSet { scope, key, expected, value } => (agent_api_state::COMPARE_AND_SET, json!({"scope": scope, "key": key, "expected": expected, "value": value})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::CheckoutPullRequest { .. } | Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::OpenServerPreview { .. } | Op::CheckoutPullRequest { .. } | Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -972,7 +982,7 @@ fn is_accounts(op: &Op) -> bool {
 
 /// The requests whose refusals keep the service's own codes (`CLI_NOT_INSTALLED`, `PROVIDER_NOT_SIGNED_IN`, the executor's).
 fn is_hosted(op: &Op) -> bool {
-    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. } | Op::Catalog { .. })
+    matches!(op, Op::PreviewPage { .. } | Op::OpenServerPreview { .. } | Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. } | Op::Catalog { .. })
 }
 
 /// The requests about directories and workspaces whose refusals keep the codes the app tells apart (`ALREADY_EXISTS`, `PATH_OUTSIDE_ROOT`,

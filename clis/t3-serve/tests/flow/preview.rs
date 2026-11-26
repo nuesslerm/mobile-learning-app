@@ -50,7 +50,7 @@ fn what_rca_does_not_offer_or_the_phone_got_wrong_is_refused_by_name_and_nothing
     let bad = rpc.call("preview.resize", json!({"threadId": "t1", "tabId": "a", "viewport": {"_tag": "wide"}}));
     // Then the server runtime is an UnsupportedOperationError that says why, the addresses are PreviewInvalidUrlError with their reason, the viewport a defect
     assert_eq!((failure(&server)["_tag"].clone(), failure(&server)["method"].clone()), (json!("UnsupportedOperationError"), json!("preview.open")));
-    assert!(failure(&server)["message"].as_str().unwrap().contains("starts no browser"), "{server}");
+    assert!(failure(&server)["message"].as_str().unwrap().contains("checkout is unavailable"), "{server}");
     assert_eq!((failure(&file)["_tag"].clone(), failure(&file)["reason"].clone(), failure(&file)["protocol"].clone()), (json!("PreviewInvalidUrlError"), json!("unsupported-protocol"), json!("file:")));
     assert_eq!(failure(&empty)["reason"], json!("empty"));
     assert!(bad.to_string().contains("viewport"), "{bad}");

@@ -83,6 +83,7 @@ mod tests {
         let runner = rca_group_agent::Runner::new(Arc::new(rca_group_agent::testing::MemoryThreads::default()), executors.clone(), Arc::new(rca_group_agent::host::FixedLinker(ScriptedOpencode::new().linker())), Arc::new(NoMcp));
         let hub = Arc::new(StateHub::new(Arc::new(MemoryStore::default())));
         let previews = Previews::new(Arc::new(rca_group_preview::testing::FakeClock::at(1)), Arc::new(rca_group_preview::testing::CountingIds::default()), 0);
+        let browser = Arc::new(BrowserGroup::new(executors.clone(), false));
         vec![
             Arc::new(ServiceGroup),
             Arc::new(ActivityGroup::new(Arc::new(TestClock))),
@@ -106,9 +107,9 @@ mod tests {
             Arc::new(AttachmentsGroup::new(Attachments::new(Arc::new(rca_group_attachments::testing::MemoryBlobs::default()), Arc::new(rca_group_attachments::testing::FixedClock(1)), Arc::new(rca_group_attachments::testing::CountingIds::default()), executors.clone()))),
             Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(rca_group_catalog::testing::SetClock::at(1)), Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world")), None))),
             Arc::new(PreviewGroup::new(executors.clone())),
-            Arc::new(PreviewSessionGroup::new(previews.clone())),
+            Arc::new(PreviewSessionGroup::new(previews.clone()).with_browser(browser.clone())),
             Arc::new(PreviewWatchGroup::new(previews)),
-            Arc::new(BrowserGroup::new(executors.clone(), false)),
+            browser,
             Arc::new(NotificationsGroup::new(Notifications::new(Arc::new(TestClock), "test-epoch".into()))),
             Arc::new(PanesGroup::new(Panes::new(Arc::new(TestClock), Arc::new(MemoryPanes::default()), Arc::new(rca_group_agent::testing::MemoryThreads::default())))),
         ]

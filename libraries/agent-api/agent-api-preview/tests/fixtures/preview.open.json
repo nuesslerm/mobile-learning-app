@@ -89,7 +89,7 @@
       }
     },
     {
-      "name": "returns the selected server runtime in the tab snapshot",
+      "name": "refuses a server preview on a host without a browser",
       "request": {
         "id": 1,
         "method": "preview.open",
@@ -100,21 +100,9 @@
       },
       "response": {
         "id": 1,
-        "result": {
-          "session": {
-            "thread": "t1",
-            "runtime": "server",
-            "tab": "tab-2",
-            "nav": {
-              "state": "idle"
-            },
-            "can_go_back": false,
-            "can_go_forward": false,
-            "viewport": {
-              "mode": "fill"
-            },
-            "updated_ms": 1
-          }
+        "error": {
+          "code": "BROWSER_DISABLED",
+          "message": "This host cannot stream a browser"
         }
       }
     }

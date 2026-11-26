@@ -20,6 +20,7 @@ pub mod queries;
 pub mod runner;
 pub mod prepare;
 pub mod preview;
+pub mod preview_viewer;
 pub mod schedules;
 pub mod service;
 pub mod settings;

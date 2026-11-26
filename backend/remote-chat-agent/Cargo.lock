@@ -75,6 +75,7 @@ dependencies = [
 name = "agent-api-preview"
 version = "0.1.0"
 dependencies = [
+ "agent-api-browser",
  "agent-api-proto",
  "exec-preview",
  "serde",

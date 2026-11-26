@@ -56,5 +56,17 @@
         "verdict": "pass"
       }
     ]
+  },
+  {
+    "journey": "T3 server preview frame, text input, resize, reconnect and close",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 8.8,
+    "cases": [
+      {
+        "name": "workspace_tabs::paired_server_preview_displays_desktop_content_accepts_input_and_reconnects",
+        "verdict": "pass"
+      }
+    ]
   }
 ]
