@@ -166,11 +166,19 @@ impl Area for WorkspaceArea {
 
     fn capabilities(&self) -> &'static [&'static str] {
         // Mobile uses this capability for create-new and checks a separate one for open-existing-v2.
-        &["worktree.open-existing-branch.v2"]
+        &["worktree.open-existing-branch.v2", "files.mutation-ownership.v1"]
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let agent = ctx.agent;
+        if matches!(method, FILES_CREATE_FILE | FILES_WRITE_TERMINAL_ARTIFACT | MARKDOWN_SAVE_TAB) {
+            if params.get("expectedExecutionHostId").is_some_and(|host| host != "local") {
+                return Err(files::plain("Workspace host changed; refresh and try again"));
+            }
+            if params.get("expectedSshTargetId").is_some() || params.get("expectedSshConnectionGeneration").is_some() {
+                return Err(files::plain("SSH connection changed; refresh and try again"));
+            }
+        }
         match method {
             FILES_LIST => files::list(agent, params),
             FILES_SEARCH_PATHS => files::search_paths(agent, params),

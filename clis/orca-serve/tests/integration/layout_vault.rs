@@ -91,13 +91,22 @@ fn new_markdown_note_preserves_existing_files_and_detects_an_edit_from_the_deskt
         std::fs::write(&existing, "original").unwrap();
         let mut phone = Phone::connect(case, &chain);
         let path = |name: &str| json!({"worktree": WS_SELECTOR, "relativePath": name});
+        let status = phone.call(case, &chain, &["rpc:status.get"], "status.get", json!({}));
+        assert!(status["result"]["capabilities"].as_array().unwrap().contains(&json!("files.mutation-ownership.v1")));
+        let mut wrong_owner = path("untitled-2.md");
+        wrong_owner["expectedExecutionHostId"] = json!("ssh:previous-host");
+        let rejected = phone.refused(case, &chain, &["rpc:files.createFile"], "files.createFile", wrong_owner);
+        assert_eq!(rejected["error"]["message"], "Workspace host changed; refresh and try again");
+        assert!(!chain.repo.path().join("untitled-2.md").exists());
         // When the phone tries the default name, then the collision is visible and the original survives
         let collision = phone.call(case, &chain, &["rpc:files.createFile"], "files.createFile", path("untitled.md"));
         assert_eq!(collision["ok"], false, "{collision}");
         assert!(collision["error"]["message"].as_str().unwrap().contains("already exists"), "{collision}");
         assert_eq!(std::fs::read_to_string(existing).unwrap(), "original");
         // When the phone creates its next name and opens it, then it reads an empty versioned document
-        let created = phone.call(case, &chain, &["rpc:files.createFile"], "files.createFile", path("untitled-2.md"));
+        let mut next = path("untitled-2.md");
+        next["expectedExecutionHostId"] = json!("local");
+        let created = phone.call(case, &chain, &["rpc:files.createFile"], "files.createFile", next);
         assert_eq!(created["ok"], true, "{created}");
         let opened = phone.call(case, &chain, &["rpc:files.open"], "files.open", path("untitled-2.md"));
         assert_eq!(opened["ok"], true, "{opened}");

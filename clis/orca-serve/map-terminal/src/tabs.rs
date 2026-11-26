@@ -67,7 +67,13 @@ fn snapshot(agent: &dyn AgentApi, target: &Target, chosen: Option<String>) -> Re
             let name = t["terminal"].as_str().unwrap_or_default();
             let mut tab = json!({"type": "terminal", "id": name, "title": t["title"], "parentTabId": name, "leafId": name, "isActive": active.as_deref() == Some(name)});
             if t["status"] == "running" {
-                tab["ptyId"] = json!(handle_of(&target.workspace, name));
+                let handle = handle_of(&target.workspace, name);
+                tab["ptyId"] = json!(handle);
+                tab["terminal"] = json!(handle);
+                tab["status"] = json!("ready");
+            } else {
+                tab["terminal"] = Value::Null;
+                tab["status"] = json!("pending-handle");
             }
             tab
         })
