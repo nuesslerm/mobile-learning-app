@@ -1,0 +1,40 @@
+{
+  "width": 1320,
+  "height": 2868,
+  "referenceDesktops": 2,
+  "expoDesktops": 1,
+  "full": {
+    "top": 0,
+    "bottom": 2868,
+    "pixels": 3785760,
+    "changed": 341574
+  },
+  "header": {
+    "top": 180,
+    "bottom": 300,
+    "pixels": 158400,
+    "changed": 0
+  },
+  "bottomBar": {
+    "top": 2615,
+    "bottom": 2868,
+    "pixels": 333960,
+    "changed": 0
+  },
+  "firstGroupTop": {
+    "reference": 537,
+    "expo": 405
+  },
+  "openedChat": {
+    "top": 0,
+    "bottom": 2868,
+    "pixels": 3785760,
+    "changed": 428032
+  },
+  "listAfterBack": {
+    "top": 180,
+    "bottom": 2868,
+    "pixels": 3548160,
+    "changed": 0
+  }
+}

@@ -1,0 +1,6 @@
+device:take_screenshot(env.out .. "/typed.png")
+device:tap_on({point="90%,59%"})
+sleep_ms(450)
+device:take_screenshot(env.out .. "/sent.png")
+sleep_ms(4300)
+device:take_screenshot(env.out .. "/settled.png")

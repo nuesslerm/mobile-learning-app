@@ -19,7 +19,7 @@ import { useOutboxStore } from '../state/outboxStore';
 import { useThreadDetailStore } from '../state/threadDetailStore';
 import { FakeGateway } from '../state/__tests__/fakeGateway';
 import { captureLogs } from './captureLogs';
-import { app } from './flowApp';
+import { app } from './legacyFlowApp';
 import { THREAD_ID } from './threadFixtures';
 
 const PROMPT = 'PRIVATE prompt text the user typed';

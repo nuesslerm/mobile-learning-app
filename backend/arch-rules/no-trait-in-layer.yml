@@ -5,6 +5,7 @@ message: "A domain or api module declares no trait; a port lives in the core cra
 note: "The globs are generated from package-types.json (`wf check --layout --write`): the domain ring of a rust-core and the api ring of a rust-rs."
 files:
   # BEGIN generated:ast-grep-files
+  - "**/clis/mimic/proxy-core/src/domain/**/*.rs"
   - "**/leetcode-auth-cookie-capture/core/src/domain/**/*.rs"
   - "**/leetcode-auth-cookie-capture/rs/src/api/**/*.rs"
   - "**/leetcode-backend/rs/src/api/**/*.rs"

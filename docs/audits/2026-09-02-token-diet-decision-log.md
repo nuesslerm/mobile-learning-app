@@ -3812,3 +3812,33 @@ An up-to-date build took 0.339 s and check took 0.268 s across 311 records. One 
 2026-11-25 — On five Tamil iOS pairs, median elapsed time was 5.49 s with wf and 27.22 s with Maestro. Median incremental driver RSS was 133.0 and 951.8 MiB. On five web pairs, elapsed time was 6.36 and 19.13 s on the same Chrome executable. Maestro produced an empty web video. With recording disabled for both drivers, three further pairs took 4.30 and 17.49 s. After instrumentation, five iOS pairs took 5.21 and 23.40 s and three hosted Android pairs took 5.93 and 26.68 s. Keep the current drivers for these workloads. OpenTelemetry spans, Buoy measurements and the separate integration suite outcomes are in the report. [Measurements and evidence](../benchmarks/reports/2026-11-25-tamil-harness-traces/report.json)
 
 2026-11-25 — Clean PR scope check against the existing dev branch (one local run, 0.175 s): 160 commits and 779 changed files. Checking history and the file list exposes the inherited scope before opening a task PR. [Branch procedure](../solutions/workflow/land-on-dev.md)
+
+2026-11-25 — Basic Memory encrypted Git round trip, one Markdown note and one local run per command. Saving took 0.454 s, first agent-config sync in a fresh clone took 0.172 s, and repeat sync took 0.141 s. Keep decryption on session sync and seal edited notes explicitly before commit.
+
+2026-11-25 — Clean PR from dev to main. In one merge of main (d8e537fe) into dev (1d169f4a), the count from `git rev-list --count dev..origin/main` fell from 1 to 0. The resolved merge tree matched the pre-merge dev tree exactly. Use a normal merge and push for this request.
+
+### 2026-11-25 — Target native iOS text input for RCA pairing
+
+One native T3 pairing run on the simulator named `rca`. The previous input runner targeted Expo Go during address entry. With `WF_IOS_APP_ID=com.t3tools.t3code` and the persistent XCTest driver, two field entries and one submit produced one successful OAuth exchange, a WebSocket ticket and a 101 upgrade against the pinned T3 server. Keep the bundle ID override for native runbooks. Existing Expo Go runs retain the default.
+
+### 2026-11-25 — Observe native T3 pairing through Mimic
+
+One paired iOS run against the pinned 0.1.9 server produced 106 traffic rows before the footer, including OAuth, a ticket, the shell snapshot, a 101 upgrade and correlated RPC frames. A second capture opening the fixture thread demonstrated the additional orchestration, preview, source-control and terminal subscriptions. Keep the filtered vocabulary and connection-local request labels. Targeted Mimic flow suite including split T3 replies and chunked HTTP: 29 passed in 1.53 s locally.
+
+### 2026-11-25 — iPhone keyboard coverage in the browser runbook
+
+Same iPhone 15 Pro preset, focused Expo chat, 852 CSS px viewport. The software keyboard started at y=582. The harness previously told the app the keyboard resized its viewport while the device shell overlaid it, placing the Send button’s bottom at y=831. Resolving the platform through the device’s existing iOS default moved Send to y=561. One real RCA reply arrived after tapping it with the keyboard visible.
+
+### 2026-11-26 — Holding a checkout on the RCA iPhone
+
+One 800 ms stationary gesture on the same checkout in the installed Orca app took 826 ms through idb swipe and left the list visible. The iOS bridge sent a touch held for the same duration through idb tap in 824 ms and opened the checkout menu. Use a held touch for identical endpoints. [Runbook and captures](../plans/orca-mobile-interface/reference/ios/checkout-settings/README.md).
+
+2026-11-26 — Hosted CI check names. PR #103 showed three successful shard 2/6 core checks with one distinct name. Applying the six hosted workflows’ existing area_phase prefixes to that sample gives three distinct names. Keep the short prefix on caller jobs and the stage and shard on the called jobs.
+
+## 2026-11-26 · Mimic preview viewer upgrade
+
+One T3 0.1.9 preview viewer per build, through the loopback recording proxy. The original build recorded six interactions and a failed viewer handshake. The revised build recorded seven interactions, including the second WebSocket with two JPEG frames and one client acknowledgement. The local proxy flow suite passed 15 cases in 2.22 s. Keep the upstream upgrade deadline separate from the 100 ms frame polling interval.
+
+### Workspace browser rotation on iOS
+
+One landscape rotation on the booted rca simulator took 0.41 seconds through the active XCTest session. The Expo accessibility tree measured 956 × 440 points and the desktop browser fixture remained visible. Keep the session operation for device rotation checks.

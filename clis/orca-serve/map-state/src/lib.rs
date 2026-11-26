@@ -37,7 +37,7 @@ pub const UI_GET: &str = "ui.get";
 pub const UI_SET: &str = "ui.set";
 
 /// The agent methods this crate sends (it reads with the port's `state_get`): a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[SET];
+pub const USES: &[AgentMethod] = &[SET, agent_api_state::COMPARE_AND_SET];
 
 const METHODS: &[Method] = &[
     Method { name: SETTINGS_GET, kind: Kind::Unary },

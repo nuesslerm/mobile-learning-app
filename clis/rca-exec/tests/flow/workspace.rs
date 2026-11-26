@@ -627,3 +627,18 @@ fn the_serve_verb_fails_with_json_and_never_connects_for_a_base_inside_the_root_
     // And rca was never connected to
     assert!(listener.accept().is_err());
 }
+
+#[test]
+fn listing_distinguishes_a_deleted_directory_from_a_present_worktree() {
+    // Given a Git worktree whose directory was removed outside Git
+    let r = rig();
+    add(&r, "gone", "feature/gone");
+    std::fs::remove_dir_all(r.base.join("gone")).unwrap();
+    // When RCA asks Git for the current inventory
+    let listed = call(&r.ex, "git_worktree_list", json!({})).unwrap();
+    // Then the registered entry is marked missing and the working root stays available
+    let rows = listed["worktrees"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1]["missing"], true);
+    assert!(rows[0].get("missing").is_none());
+}

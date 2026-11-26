@@ -1,0 +1,226 @@
+{
+  "upstreamPackage": "t3@0.1.9",
+  "upstreamRevision": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
+  "clientBundle": "com.t3tools.t3code",
+  "simulator": "rca",
+  "checkpoints": [
+    {
+      "journey": "pair-and-open-home",
+      "operations": [
+        {
+          "kind": "http.request",
+          "method": "GET",
+          "route": "/.well-known/t3/environment",
+          "status": 200,
+          "firstSequence": 1
+        },
+        {
+          "kind": "http.request",
+          "method": "POST",
+          "route": "/oauth/token",
+          "status": 200,
+          "firstSequence": 3
+        },
+        {
+          "kind": "http.request",
+          "method": "POST",
+          "route": "/api/auth/websocket-ticket/rpc",
+          "status": 200,
+          "firstSequence": 7
+        },
+        {
+          "kind": "ws.open",
+          "route": "/ws",
+          "status": 101,
+          "firstSequence": 9
+        },
+        {
+          "kind": "rpc",
+          "method": "subscribeServerConfig",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 10
+        },
+        {
+          "kind": "http.request",
+          "method": "GET",
+          "route": "/api/orchestration/shell",
+          "status": 200,
+          "firstSequence": 15
+        },
+        {
+          "kind": "http.request",
+          "method": "GET",
+          "route": "/api/auth/session",
+          "status": 200,
+          "firstSequence": 17
+        },
+        {
+          "kind": "rpc",
+          "method": "orchestration.subscribeShell",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 19
+        },
+        {
+          "kind": "rpc",
+          "method": "server.refreshProviders",
+          "observedReplies": [],
+          "firstSequence": 23
+        },
+        {
+          "kind": "rpc",
+          "method": "server.reportClientActivity",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 36
+        }
+      ]
+    },
+    {
+      "journey": "reconnect-and-open-fixture-thread",
+      "operations": [
+        {
+          "kind": "http.request",
+          "method": "GET",
+          "route": "/.well-known/t3/environment",
+          "status": 200,
+          "firstSequence": 1
+        },
+        {
+          "kind": "http.request",
+          "method": "POST",
+          "route": "/api/auth/websocket-ticket/rpc",
+          "status": 200,
+          "firstSequence": 3
+        },
+        {
+          "kind": "ws.open",
+          "route": "/ws",
+          "status": 101,
+          "firstSequence": 5
+        },
+        {
+          "kind": "rpc",
+          "method": "subscribeServerConfig",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 6
+        },
+        {
+          "kind": "rpc",
+          "method": "orchestration.subscribeShell",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 10
+        },
+        {
+          "kind": "rpc",
+          "method": "orchestration.subscribeThread",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 11
+        },
+        {
+          "kind": "http.request",
+          "method": "GET",
+          "route": "/api/auth/session",
+          "status": 200,
+          "firstSequence": 12
+        },
+        {
+          "kind": "rpc",
+          "method": "vcs.refreshStatus",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 22
+        },
+        {
+          "kind": "rpc",
+          "method": "server.refreshProviders",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 23
+        },
+        {
+          "kind": "rpc",
+          "method": "orchestration.dispatchCommand",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 25
+        },
+        {
+          "kind": "rpc",
+          "method": "subscribeVcsStatus",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 28
+        },
+        {
+          "kind": "rpc",
+          "method": "subscribeTerminalMetadata",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 29
+        },
+        {
+          "kind": "rpc",
+          "method": "subscribeDeviceState",
+          "observedReplies": [
+            "Chunk"
+          ],
+          "firstSequence": 30
+        },
+        {
+          "kind": "rpc",
+          "method": "subscribePreviewEvents",
+          "observedReplies": [],
+          "firstSequence": 31
+        },
+        {
+          "kind": "rpc",
+          "method": "server.discoverSourceControl",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 34
+        },
+        {
+          "kind": "rpc",
+          "method": "preview.list",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 35
+        },
+        {
+          "kind": "rpc",
+          "method": "vcs.listRefs",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 50
+        },
+        {
+          "kind": "rpc",
+          "method": "server.reportClientActivity",
+          "observedReplies": [
+            "Exit"
+          ],
+          "firstSequence": 52
+        }
+      ]
+    }
+  ]
+}

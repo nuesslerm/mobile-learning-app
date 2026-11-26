@@ -29,13 +29,14 @@ fn session(extra: Value) -> Value {
 fn opening_a_tab_sends_the_address_made_whole_and_the_viewport_in_the_contracts_shape_and_shows_the_phone_the_snapshot_the_service_kept() {
     // Given a service that answers an open with a tab loading the address it was given
     let (h, mut rpc) = started();
-    reply(&h, "preview.open", Ok(json!({"session": session(json!({"viewport": {"mode": "preset", "width": 390, "height": 844, "preset": "iphone-14"}, "profile": "p1"}))})));
+    reply(&h, "preview.open", Ok(json!({"session": session(json!({"viewport": {"mode": "preset", "width": 390, "height": 844, "preset": "iphone-14"}, "runtime": "desktop", "profile": "p1"}))})));
     // When the phone opens a tab on a bare local address with a preset viewport and a profile
-    let exit = rpc.call("preview.open", json!({"threadId": "t1", "url": "localhost:3000", "viewport": {"_tag": "preset", "width": 390, "height": 844, "presetId": "iphone-14"}, "profileId": "p1", "reveal": true}));
+    let exit = rpc.call("preview.open", json!({"threadId": "t1", "url": "localhost:3000", "viewport": {"_tag": "preset", "width": 390, "height": 844, "presetId": "iphone-14"}, "runtime": "desktop", "profileId": "p1", "reveal": true}));
     // Then the service was asked once with the address made whole and the viewport as the contract has it
-    assert_eq!(asked(&h), [("preview.open".to_string(), json!({"thread": "t1", "url": "http://localhost:3000", "viewport": {"mode": "preset", "width": 390, "height": 844, "preset": "iphone-14"}, "profile": "p1", "reveal": true}))]);
+    assert_eq!(asked(&h), [("preview.open".to_string(), json!({"thread": "t1", "url": "http://localhost:3000", "viewport": {"mode": "preset", "width": 390, "height": 844, "preset": "iphone-14"}, "runtime": "desktop", "profile": "p1", "reveal": true}))]);
     // And the phone is shown the snapshot with its own names
     let tab = success(&exit);
+    assert_eq!(tab["runtime"], "desktop");
     assert_eq!((tab["threadId"].clone(), tab["tabId"].clone(), tab["navStatus"].clone(), tab["viewport"].clone(), tab["profileId"].clone(), tab["updatedAt"].clone()), (json!("t1"), json!("tab-1"), json!({"_tag": "Loading", "url": "http://localhost:3000/", "title": ""}), json!({"_tag": "preset", "width": 390, "height": 844, "presetId": "iphone-14"}), json!("p1"), json!("2023-11-14T22:13:20.000Z")));
 }
 
@@ -49,7 +50,7 @@ fn what_rca_does_not_offer_or_the_phone_got_wrong_is_refused_by_name_and_nothing
     let bad = rpc.call("preview.resize", json!({"threadId": "t1", "tabId": "a", "viewport": {"_tag": "wide"}}));
     // Then the server runtime is an UnsupportedOperationError that says why, the addresses are PreviewInvalidUrlError with their reason, the viewport a defect
     assert_eq!((failure(&server)["_tag"].clone(), failure(&server)["method"].clone()), (json!("UnsupportedOperationError"), json!("preview.open")));
-    assert!(failure(&server)["message"].as_str().unwrap().contains("starts no browser"), "{server}");
+    assert!(failure(&server)["message"].as_str().unwrap().contains("checkout is unavailable"), "{server}");
     assert_eq!((failure(&file)["_tag"].clone(), failure(&file)["reason"].clone(), failure(&file)["protocol"].clone()), (json!("PreviewInvalidUrlError"), json!("unsupported-protocol"), json!("file:")));
     assert_eq!(failure(&empty)["reason"], json!("empty"));
     assert!(bad.to_string().contains("viewport"), "{bad}");

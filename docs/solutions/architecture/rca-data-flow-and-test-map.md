@@ -237,7 +237,7 @@ All six per-push workflows are thin callers of the reusable `.github/workflows/p
 | `mimic-record.yml` | Mimic record | n/a | `plan`, `capture` (one set at a time, 240 min), `codex-login-writeback` | 1 | empty dev commit tagged `[record <set>]` or `[replay <set>]`, routed by `scheduled-triggers.yml` |
 | `track-contracts.yml` | Track contracts | n/a | `plan`, `capture`, `drop-checkpoints`, `report` | 1 | daily 02:23 UTC, or manual |
 | `image-build-probe.yml` | Image build probe | n/a | docker build of the t3-serve and orca-serve images | 1 | push to dev touching either Dockerfile, `libraries/agent-api/**`, `clis/wf-kit/**` or `clis/Cargo.lock` |
-| `github-projects-record.yml` | GitHub projects record | n/a | `record` of the `hosted_project_*` executor actions | 1 | push to dev touching itself or `clis/mimic/src/projects_verb.rs` |
+| `github-projects-record.yml` | GitHub projects record | n/a | `record` of the `hosted_project_*` executor actions | 1 | push to dev touching itself or `clis/mimic/cli/src/projects_verb.rs` |
 | `ci-audit.yml` | CI audit | n/a | `audit` of the last 24 h of the six callers | 1 | daily 02:23 UTC, Sundays 03:37 UTC, or `[ci-audit]` empty commit. Never gates a push. |
 
 `pipeline.yml` jobs, by stage:

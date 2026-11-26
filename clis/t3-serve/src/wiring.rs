@@ -88,3 +88,23 @@ pub fn service(settings: &Settings, store: Arc<SqliteStore>) -> Result<Wired, St
     service.resume_runs();
     Ok(Wired { service, environment_id: id })
 }
+
+pub fn listen(settings: &Settings, bind: impl std::net::ToSocketAddrs) -> Result<(t3_http::Running, String), String> {
+    let wired = service(settings, open_store(&settings.state_dir)?)?;
+    let server = t3_http::serve(bind, wired.service).map_err(|e| format!("cannot listen: {e}"))?;
+    Ok((server, wired.environment_id))
+}
+
+pub use t3_core::usecases::pairing::PairingRequest;
+
+pub fn pair_link(dir: &Path, base: &str, request: PairingRequest) -> Result<serde_json::Value, String> {
+    let store = open_store(dir)?;
+    let environment = environment_id(store.as_ref(), &OsIds)?;
+    let ttl = request.ttl_seconds;
+    let pairing = t3_core::usecases::pairing::mint(store.as_ref(), &SystemClock, &OsIds, request)?;
+    Ok(serde_json::json!({
+        "ok": true, "url": format!("{}/pair#token={}", base.trim_end_matches('/'), pairing.code),
+        "code": pairing.code, "baseUrl": base, "expiresAt": t3_contracts::time::iso(pairing.expires_at),
+        "ttlSeconds": ttl, "scopes": pairing.scopes, "label": pairing.label, "environmentId": environment
+    }))
+}

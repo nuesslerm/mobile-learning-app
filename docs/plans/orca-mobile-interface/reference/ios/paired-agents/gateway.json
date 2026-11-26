@@ -1,0 +1,16 @@
+{
+  "agents": 24,
+  "checkouts": 1,
+  "byStatus": {
+    "done": 21,
+    "interrupted": 3
+  },
+  "responseBytesCompactJson": 4629,
+  "loopbackMilliseconds": [
+    829.1,
+    817.0,
+    1603.9,
+    1094.0,
+    1319.9
+  ]
+}

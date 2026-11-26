@@ -82,9 +82,9 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, &'static str> {
     let (path, query) = target.split_once('?').map_or((target, ""), |(p, q)| (p, q));
     let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_string())).collect();
     let length: usize = headers.iter().find(|(k, _)| k == "content-length").and_then(|(_, v)| v.parse().ok()).unwrap_or(0);
-    let upload = method == "POST" && path.starts_with(&format!("{UPLOAD_PREFIX}/"));
+    let upload = method == "POST" && (path.starts_with(&format!("{UPLOAD_PREFIX}/")) || path == "/api/mobile/terminal-images");
     let voice = method == "POST" && path == VOICE_TRANSCRIBE;
-    if length > if upload { MAX_UPLOAD_BYTES as usize } else if voice { MAX_VOICE_BYTES } else { MAX_BODY } {
+    if length > if upload { MAX_UPLOAD_BYTES as usize } else if voice { MAX_VOICE_BYTES } else if path == "/api/mobile/notes" { 4 * 1024 * 1024 } else { MAX_BODY } {
         if voice {
             return Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body: Vec::new(), oversized: true });
         }
@@ -119,6 +119,7 @@ fn reason(status: u16) -> &'static str {
         401 => "Unauthorized",
         403 => "Forbidden",
         404 => "Not Found",
+        422 => "Unprocessable Content",
         426 => "Upgrade Required",
         502 => "Bad Gateway",
         503 => "Service Unavailable",
@@ -210,11 +211,29 @@ fn send_asset(stream: &mut TcpStream, svc: &Service, token: &str) {
 }
 
 fn respond_with(stream: &mut TcpStream, status: u16, body: &Value, extra: &str) {
-    record_status(status);
     let text = if status == 204 { String::new() } else { body.to_string() };
+    respond_json_bytes(stream, status, text.as_bytes(), extra);
+}
+
+fn respond_json_bytes(stream: &mut TcpStream, status: u16, bytes: &[u8], extra: &str) {
+    record_status(status);
     let cors = if status == 204 { CORS_PREFLIGHT } else { COMMON };
-    let head = format!("HTTP/1.1 {status} {}\r\n{cors}{extra}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), text.len());
-    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(text.as_bytes())).and_then(|()| stream.flush());
+    let head = format!("HTTP/1.1 {status} {}\r\n{cors}{extra}Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), bytes.len());
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(bytes)).and_then(|()| stream.flush());
+}
+
+fn source_control_response(stream: &mut TcpStream, request: &Request, body: Value) {
+    let json = body.to_string();
+    let extra = format!("{NO_STORE}Vary: Accept-Encoding\r\n");
+    let gzip = request.header("accept-encoding").is_some_and(|list| list.split(',').any(|coding| coding.trim().eq_ignore_ascii_case("gzip")));
+    if gzip && json.len() >= 4096 {
+        let mut compressed = Vec::new();
+        let mut encoder = flate2::read::GzEncoder::new(json.as_bytes(), flate2::Compression::fast());
+        if encoder.read_to_end(&mut compressed).is_ok() && compressed.len() < json.len() {
+            return respond_json_bytes(stream, 200, &compressed, &format!("{extra}Content-Encoding: gzip\r\n"));
+        }
+    }
+    respond_json_bytes(stream, 200, json.as_bytes(), &extra);
 }
 
 fn refused(stream: &mut TcpStream, r: Refusal, extra: &str) {
@@ -259,7 +278,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/mobile/workspace-tabs" | "/api/mobile/notes" | "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspace-disclosure" | "/api/mobile/workspace-statuses" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/checkout" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -268,12 +287,13 @@ fn route_name(path: &str) -> &str {
         "/api/voice/post-process" | "/api/voice/status" | "/api/voice/transcribe" |
         "/health" | "/oauth/mcp/approval" | "/oauth/mcp/authorize" |
         "/oauth/mcp/decision" | "/oauth/mcp/register" | "/oauth/mcp/token" |
-        "/oauth/token" | "/ws" => path,
+        "/oauth/token" | "/ws" | "/api/preview-stream/ws" => path,
         _ if path.starts_with("/api/auth/websocket-ticket/") => "/api/auth/websocket-ticket/:use",
         _ if path.starts_with(THREADS) => match path[THREADS.len()..].split_once('/') {
             None => "/api/orchestration/threads/:threadId",
             Some((_, "history")) => "/api/orchestration/threads/:threadId/history",
             Some((_, "transcript")) => "/api/orchestration/threads/:threadId/transcript",
+            Some((_, "session-context")) => "/api/orchestration/threads/:threadId/session-context",
             Some((_, "bounded")) => "/api/orchestration/threads/:threadId/bounded",
             _ => "unknown",
         },
@@ -352,9 +372,143 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
         ("GET" | "POST" | "PUT" | "PATCH", path) if path.strip_prefix(HOOKS).and_then(|rest| rest.split_once('/')).is_some_and(|(a, b)| !a.is_empty() && !b.is_empty() && !b.contains('/')) => {
             respond_with(&mut stream, 404, &json!({"error": "hook_not_found"}), "x-t3-hook-outcome: not_found\r\n")
         }
+        ("GET", "/api/mobile/source-control/checkout") => {
+            let param = |name: &str| request.query.iter().find(|(key, _)| key == name).map(|(_, value)| value.as_str());
+            let Some(thread) = param("thread").filter(|id| !id.is_empty()) else { return respond(&mut stream, 400, &json!({})); };
+            match svc.thread_checkout_http(auth, thread, param("checkout")) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET" | "POST", "/api/mobile/workspace-tabs") => {
+            let checkout = request.query.iter().find(|(k, _)| k == "checkout").map(|(_,v)| v.as_str()).unwrap_or("");
+            let mutation = if request.method == "POST" {
+                let Some(body) = json_object(&mut stream, &request) else { return };
+                Some(body)
+            } else { None };
+            match svc.workspace_tabs_http(auth, checkout, mutation) {
+                Ok(layout) => respond_with(&mut stream, 200, &layout, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("POST", "/api/mobile/terminal-images") => {
+            let checkout = request.query.iter().find(|(k,_)| k=="checkout").map(|(_,v)|v.as_str()).unwrap_or("");
+            match svc.terminal_image(auth, checkout, &request.body) {
+                Ok(image) => respond_with(&mut stream, 200, &image, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET", "/api/mobile/notes") => {
+            let query = |key: &str| request.query.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str()).unwrap_or("");
+            let action = t3_core::ports::NoteAction::Read { path: query("path").into() };
+            match svc.checkout_note_http(auth, query("checkout"), action) {
+                Ok(doc) => respond_with(&mut stream, 200, &doc, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        (method @ ("POST" | "PUT"), "/api/mobile/notes") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            let action = if method == "POST" {
+                t3_core::ports::NoteAction::Create
+            } else if let (Some(path), Some(previous), Some(content)) = (body["path"].as_str(), body["previous"].as_str(), body["content"].as_str()) {
+                t3_core::ports::NoteAction::Save { path: path.into(), previous: previous.into(), content: content.into() }
+            } else {
+                return refused(&mut stream, Refusal::bare(422), NO_STORE);
+            };
+            match svc.checkout_note_http(auth, body["checkout"].as_str().unwrap_or(""), action) {
+                Ok(doc) => respond_with(&mut stream, 200, &doc, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET", "/api/mobile/agents") => match svc.mobile_agents_http(auth) {
+            Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+            Err(r) => refused(&mut stream, r, NO_STORE),
+        },
+        ("GET", "/api/mobile/home") => match svc.mobile_home_http(auth) {
+            Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+            Err(r) => refused(&mut stream, r, NO_STORE),
+        },
+        ("GET", path @ ("/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request")) => {
+            let param = |key: &str| request.query.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str());
+            let result = if path.ends_with("/pull-request") {
+                svc.checkout_pull_request_http(auth, param("checkout"))
+            } else if path.ends_with("/branches") {
+                svc.checkout_branches_http(auth, param("checkout"))
+            } else if path.ends_with("/file") {
+                svc.checkout_file_http(auth, param("checkout"), param("head"), param("base"), param("path"), param("oldPath"))
+            } else if path.ends_with("/commit") {
+                svc.checkout_commit_http(auth, param("checkout"), param("sha"))
+            } else if path.ends_with("/changes") {
+                svc.checkout_changes_http(auth, param("checkout"))
+            } else {
+                svc.checkout_history_http(auth, param("checkout"), param("head"), param("base"), param("offset"))
+            };
+            match result {
+                Ok(body) => source_control_response(&mut stream, &request, body),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("POST", "/api/mobile/source-control/pull-request") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            match svc.link_checkout_pull_request_http(auth, body) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("POST", "/api/mobile/source-control/branches") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            match svc.switch_checkout_branch_http(auth, body) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET", "/api/mobile/workspace-statuses") => {
+            match svc.workspace_statuses_http(auth) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("POST", "/api/mobile/workspaces") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            match svc.edit_mobile_workspace(auth, body) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET", "/api/mobile/workspaces") => {
+            let checkout = request.query.iter().find(|(k, _)| k == "checkout").map(|(_, v)| v.as_str());
+            match svc.mobile_workspaces_http(auth, checkout) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET" | "POST", "/api/mobile/workspace-disclosure") => {
+            let change = if request.method == "POST" {
+                let Some(body) = json_object(&mut stream, &request) else { return };
+                Some(body)
+            } else { None };
+            match svc.workspace_disclosure_http(auth, change.as_ref()) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET" | "POST", "/api/mobile/workspace-preferences") => {
+            let patch = if request.method == "POST" {
+                let Some(body) = json_object(&mut stream, &request) else { return };
+                Some(body)
+            } else { None };
+            match svc.workspace_preferences_http(auth, patch.as_ref()) {
+                Ok(body) => respond(&mut stream, 200, &body),
+                Err(r) => refused(&mut stream, r, ""),
+            }
+        }
         ("GET", "/api/projects") => match svc.projects_snapshot_http(auth) {
             Ok(body) => respond(&mut stream, 200, &body),
             Err(r) => refused(&mut stream, r, ""),
+        },
+        ("GET", "/api/preview-stream/ws") => match svc.preview_viewer(&request.query) {
+            Ok(viewer) => socket::preview(stream, &request, viewer, stop, span),
+            Err(r) => refused(&mut stream, r, NO_STORE),
         },
         ("GET", "/ws") => match svc.connect(&request.query) {
             Ok(connection) => socket::upgrade(stream, &request, connection, stop, span),
@@ -382,7 +536,8 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             let answer = match path[THREADS.len()..].split_once('/') {
                 Some((thread, "history")) => svc.thread_history_page(&env, &percent_decode(thread), &request.query),
                 Some((thread, "transcript")) => svc.thread_transcript(&env, &percent_decode(thread)),
-                Some((thread, "bounded")) => svc.thread_bounded_snapshot(&env, &percent_decode(thread)),
+                Some((thread, "session-context")) => svc.session_context_http(&env, &percent_decode(thread), request.query.iter().any(|(key, value)| key == "savedTabs" && value == "1")),
+                Some((thread, "bounded")) => svc.thread_bounded_snapshot(&env, &percent_decode(thread), request.query.iter().any(|(key, value)| key == "rcaChatLayout" && value == "1")),
                 _ => return respond(&mut stream, 404, &json!({"code": "not_found", "message": "No such route."})),
             };
             match answer {

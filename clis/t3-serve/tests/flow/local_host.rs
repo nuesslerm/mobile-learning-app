@@ -176,3 +176,374 @@ fn health_answers_without_a_credential_and_the_healthcheck_of_the_binary_is_gree
     assert_eq!((up.status.code(), down.status.code()), (Some(0), Some(1)), "{}", String::from_utf8_lossy(&down.stderr));
     assert!(String::from_utf8_lossy(&down.stderr).contains("no healthy server"));
 }
+
+#[test]
+fn session_context_shows_only_openable_threads_in_the_same_rca_workspace() {
+    // Given three T3 threads and an RCA session outside the T3 project
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    for thread in ["other", "sibling"] {
+        success(&rpc.call("orchestration.dispatchCommand", thread_create(thread, thread, "p1")));
+    }
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        t3_core::ports::Op::ThreadList => Some(Ok(json!({"threads": [
+            {"id": "unprojected", "workspace": "worktree"}, {"id": "sibling", "workspace": "worktree"},
+            {"id": "other", "workspace": "elsewhere"}, {"id": "t1", "workspace": "worktree"}
+        ]}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let get = |thread: &str, token: &str| http(h.addr, "GET", &format!("/api/orchestration/threads/{thread}/session-context"),
+        &[("Authorization", token), ("x-t3-orchestration-protocol", "2")], "");
+    // When the session picker opens, then the server preserves workspace activity order
+    let reply = get("t1", &reader);
+    assert_eq!(reply.status, 200);
+    assert_eq!(reply.body, json!({"workspace":"worktree","sessions":[{"id":"sibling","title":"Thread sibling"},{"id":"t1","title":"Thread t1"}]}));
+    assert_eq!(get("unprojected", &reader).status, 404);
+    assert_eq!(get("t1", "").status, 401);
+    assert_eq!(get("t1", &scoped(&h, &["relay:read"])).status, 403);
+}
+
+#[test]
+fn session_context_opens_a_saved_chat_once_and_rejects_another_workspace() {
+    use t3_core::ports::Op;
+    // Given a saved tab that has no T3 projection yet
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::ThreadList => Some(Ok(json!({"threads":[
+            {"id":"t1","workspace":"desk"},
+            {"id":"saved","workspace":"desk","driver":"opencode","model":"gpt-5"},
+            {"id":"outside","workspace":"other"}
+        ]}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "tabs.extra.desk" =>
+            Some(Ok(json!({"value":[
+                {"kind":"agent-session","sessionId":"saved","title":"Second"},
+                {"kind":"agent-session","sessionId":"outside","title":"Elsewhere"},
+                {"kind":"agent-session","sessionId":"t1","title":"First"}
+            ]}))),
+        _ => None,
+    }));
+    let token = scoped(&h, &["orchestration:read"]);
+    let context = || http(h.addr,"GET","/api/orchestration/threads/t1/session-context?savedTabs=1",
+        &[("Authorization",&token),("x-t3-orchestration-protocol","2")],"").body;
+    // When the picker opens, then it preserves the saved order within the workspace
+    let mut expected = json!([{"id":"saved","title":"Second","agent":"opencode","needsProjection":true},{"id":"t1","title":"First"}]);
+    assert_eq!(context()["sessions"], expected);
+    // When a selection is retried, then the same projected chat remains openable
+    for _ in 0..2 {
+        assert_eq!(success(&rpc.call("mobile.session.openTab",json!({"threadId":"t1","tabId":"saved"}))), &json!({"threadId":"saved"}));
+    }
+    expected[0].as_object_mut().unwrap().remove("needsProjection");
+    assert_eq!(context()["sessions"], expected);
+    failure(&rpc.call("mobile.session.openTab",json!({"threadId":"t1","tabId":"outside"})));
+}
+
+#[test]
+fn a_reader_can_inspect_a_checkout_pull_request_and_only_an_operator_can_link_it() {
+    use t3_core::ports::Op;
+    // Given a paired mobile reader, operator and a checkout recognized by the gateway.
+    let h=Harness::start();
+    *h.agent.responder.lock().unwrap()=Some(Box::new(|op| match op {
+        Op::CheckoutPullRequest {checkout,link} if checkout=="desk::/topic" =>
+            Some(Ok(json!({"branch":"topic","pullRequest":link.map(|n| json!({"number":n}))}))),
+        _ => None,
+    }));
+    let path="/api/mobile/source-control/pull-request";
+    let query=format!("{path}?checkout=desk%3A%3A%2Ftopic");
+    let reader=scoped(&h,&["orchestration:read"]);
+    let operator=scoped(&h,&["orchestration:operate"]);
+    let post=|token:&str, number:u64| http(h.addr,"POST",path,&[("Authorization",token),("Content-Type","application/json")],&json!({"checkout":"desk::/topic","number":number}).to_string());
+    // When reading the panel, credentials and a concrete checkout are required.
+    assert_eq!(http(h.addr,"GET",&query,&[],"").status,401);
+    assert_eq!(http(h.addr,"GET",path,&[("Authorization",&reader)],"").status,422);
+    assert_eq!(http(h.addr,"GET",&query,&[("Authorization",&reader)],"").body,json!({"branch":"topic","pullRequest":null}));
+    // Then linking rejects a reader and a zero number, and forwards exactly the requested PR.
+    assert_eq!(post(&reader,17).status,403);
+    assert_eq!(post(&operator,0).status,422);
+    assert_eq!(post(&operator,17).body["pullRequest"]["number"],17);
+}
+
+#[test]
+fn source_control_resolves_a_projected_chat_only_for_an_orchestration_reader() {
+    use t3_core::ports::Op;
+    // Given a projected chat and a desktop with a differently named linked checkout.
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileThreadCheckout { thread, selected, .. } if thread == "t1" && selected.as_deref() == Some("desk::/linked") =>
+            Some(Ok(json!({"id":"desk::/linked","name":"Review","branch":"feature","main":false,"workspace":"internal","path":"/linked"}))),
+        _ => None,
+    }));
+    // When the chat opens its checkout then the screen receives only the public checkout record.
+    let get = |thread:&str,token:&str| http(h.addr,"GET",&format!("/api/mobile/source-control/checkout?thread={thread}&checkout=desk%3A%3A%2Flinked"),&[("Authorization",token)],"");
+    let reader = scoped(&h, &["orchestration:read"]);
+    let resolved = get("t1",&reader);
+    assert_eq!(resolved.status, 200);
+    assert_eq!(resolved.body["name"], "Review");
+    assert_eq!(resolved.body["directory"], "/linked");
+    assert!(resolved.body.get("workspace").is_none());
+    assert_eq!(get("unknown",&reader).status,404);
+    assert_eq!(get("t1","").status,401);
+    assert_eq!(get("t1",&scoped(&h,&["relay:read"])).status,403);
+}
+
+#[test]
+fn paired_agents_require_an_orchestration_reader_and_forward_host_failure() {
+    use t3_core::ports::{AgentError, Op};
+    // Given a desktop with no activities.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileAgents => Some(Ok(json!({"repo":"desk","checkouts":{},"agents":[]}))),
+        _ => None,
+    }));
+    // When requests arrive with different scopes, then only the reader receives this desktop's list.
+    let get = |token: &str| http(h.addr, "GET", "/api/mobile/agents", &[("Authorization", token)], "");
+    assert_eq!(get("").status, 401);
+    assert_eq!(get(&scoped(&h, &["relay:read"])).status, 403);
+    let reader = scoped(&h, &["orchestration:read"]);
+    let response = get(&reader);
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body, json!({"repo":"desk","checkouts":{},"agents":[]}));
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileAgents => Some(Err(AgentError::Failed("desktop unavailable".into()))),
+        _ => None,
+    }));
+    assert_eq!(get(&reader).status, 502);
+}
+
+#[test]
+fn mobile_home_returns_only_host_and_count_from_the_worktree_read() {
+    use t3_core::ports::Op;
+    // Given a desktop with two worktrees and no checkout metadata available
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::WorktreeList { root } if root.is_empty() => Some(Ok(json!({"worktrees":[{}, {}]}))),
+        _ => None,
+    }));
+    // When the reader opens Feed, then it receives a compact summary and no checkout data
+    let get = |auth: &str| http(h.addr, "GET", "/api/mobile/home", &[("Authorization", auth)], "");
+    let result = get(&scoped(&h, &["orchestration:read"]));
+    assert_eq!(result.status, 200);
+    assert!(result.body["host"]["name"].is_string());
+    assert!(result.body["host"]["os"].is_string());
+    assert_eq!(result.body, json!({"host":result.body["host"], "worktreeCount":2}));
+    assert_eq!(get("").status, 401);
+    assert_eq!(get(&scoped(&h, &["relay:read"])).status, 403);
+}
+
+#[test]
+fn mobile_checkouts_open_the_saved_projected_chat_only_inside_the_selected_workspace() {
+    use t3_core::ports::Op;
+    // Given a detached checkout with a saved RCA chat and another executor with a projected thread
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    success(&rpc.call("orchestration.dispatchCommand", thread_create("outside", "outside", "p1")));
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileWorktrees => Some(Ok(json!({"repo":"desk","checkouts":[
+            {"id":"desk::/fixture", "name":"fixture","automaticName":"fixture","path":"/fixture","workspace":"desk","branch":null,"main":false}
+        ]}))),
+        Op::ThreadList => Some(Ok(json!({"threads":[{"id":"t1","workspace":"desk"},{"id":"outside","workspace":"another"}]}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "tabs.active.desk" => Some(Ok(json!({"value":"t1"}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let get = |path, auth: &str| http(h.addr, "GET", path, &[("Authorization", auth)], "");
+    // When the phone reads the catalog and opens the checkout, then only its projected chat is eligible
+    let list = get("/api/mobile/workspaces", &reader);
+    assert_eq!(list.status, 200);
+    assert_eq!(list.body["checkouts"], json!([{"id":"desk::/fixture","name":"fixture","automaticName":"fixture","pinned":false,"unread":false,"branch":null,"main":false}]));
+    let result = get("/api/mobile/workspaces?checkout=desk%3A%3A%2Ffixture", &reader);
+    assert_eq!(result.body["active"], "t1");
+    assert_eq!(result.body["sessions"].as_array().unwrap().len(), 1);
+    assert_eq!(get("/api/mobile/workspaces?checkout=outside", &reader).status, 404);
+    assert_eq!(get("/api/mobile/workspaces", "").status, 401);
+    assert_eq!(get("/api/mobile/workspaces", &scoped(&h, &["relay:read"])).status, 403);
+}
+
+#[test]
+fn mobile_workspace_edits_preserve_other_metadata_and_require_operate_scope() {
+    use t3_core::ports::Op;
+    // Given a checkout whose native Orca settings already contain notes
+    let h = Harness::start();
+    let state = std::sync::Arc::new(std::sync::Mutex::new(json!({"comment":"kept"})));
+    let saved = state.clone();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(move |op| match op {
+        Op::MobileWorktrees => Some(Ok(json!({"repo":"desk","checkouts":[
+            {"id":"desk::/one","name":"main","automaticName":"main","branch":"main","main":true,"unreadPanes":["thread:done"]}
+        ]}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "ui" => Some(Ok(json!({"value":{
+            "workspaceStatuses":[{"id":"review","label":"Needs QA","icon":"flag"},{"id":"release","label":"Release"}]
+        }}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "orca.worktree.desk::/one" => Some(Ok(json!({"value":saved.lock().unwrap().clone()}))),
+        Op::StateSet {scope,key,value} if scope == "orca" && key == "orca.worktree.desk::/one" => {
+            *saved.lock().unwrap() = value.clone(); Some(Ok(json!({})))
+        }
+        Op::ReadPanes { panes } => { assert_eq!(panes, &["thread:done"]); Some(Ok(Value::Null)) }
+        _ => None,
+    }));
+    let writer = scoped(&h, &["orchestration:operate"]);
+    let reader = scoped(&h, &["orchestration:read"]);
+    let edit = |token:&str, body:Value| http(h.addr,"POST","/api/mobile/workspaces",&[("Authorization",token),("Content-Type","application/json")],&body.to_string());
+    // When the phone pins and renames a checkout, then the updates share the native record and can be retried
+    let pin = json!({"checkout":"desk::/one","isPinned":true});
+    assert_eq!(edit(&reader,pin.clone()).status,403);
+    for _ in 0..2 { assert_eq!(edit(&writer,pin.clone()).body["pinned"],true); }
+    let renamed = edit(&writer,json!({"checkout":"desk::/one","displayName":"Preview"}));
+    assert_eq!(renamed.body["name"],"Preview");
+    assert_eq!(*state.lock().unwrap(), json!({"comment":"kept","isPinned":true,"displayName":"Preview"}));
+    // When a name is cleared, then the branch is visible and unrelated metadata survives a rejected edit
+    assert_eq!(edit(&writer,json!({"checkout":"desk::/one","displayName":""})).body["name"],"main");
+    assert_eq!(edit(&writer,json!({"checkout":"other::/one","displayName":"wrong"})).status,404);
+    assert_eq!(edit(&writer,json!({"checkout":"desk::/one","isPinned":"yes"})).status,422);
+    assert_eq!(*state.lock().unwrap(),json!({"comment":"kept","isPinned":true}));
+    // When the checkout is read, then pending pane attention is acknowledged and its read flag persists with other metadata.
+    assert_eq!(edit(&writer, json!({"checkout":"desk::/one", "isUnread":false})).body["unread"], false);
+    assert_eq!(*state.lock().unwrap(), json!({"comment":"kept", "isPinned":true, "isUnread":false}));
+    assert_eq!(edit(&writer, json!({"checkout":"desk::/one", "isUnread":true})).body["unread"], true);
+    assert_eq!(edit(&reader, json!({"checkout":"desk::/one", "isUnread":false})).status, 403);
+    // When the desktop uses custom statuses, then a reader sees them in order and only an operator can assign one.
+    let choices = |token: &str| http(h.addr,"GET","/api/mobile/workspace-statuses",&[("Authorization",token)],"");
+    assert_eq!(choices(&reader).body, json!([{"id":"review","label":"Needs QA"},{"id":"release","label":"Release"}]));
+    assert_eq!(choices(&scoped(&h, &["relay:read"])).status, 403);
+    let status = |id: &str| json!({"checkout":"desk::/one","workspaceStatus":id});
+    assert_eq!(edit(&reader,status("review")).status, 403);
+    assert_eq!(edit(&writer,status("gone")).status, 422);
+    assert!(state.lock().unwrap().get("workspaceStatus").is_none());
+    assert_eq!(edit(&writer,status("review")).body["workspaceStatus"], "review");
+    assert_eq!(*state.lock().unwrap(), json!({"comment":"kept","isPinned":true,"isUnread":true,"workspaceStatus":"review"}));
+}
+
+#[test]
+fn mobile_checkout_history_enforces_scope_and_requires_immutable_paging_anchors() {
+    use t3_core::ports::{AgentError, Op};
+    // Given a paired reader and a checkout that has moved since the phone's last page.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutHistory { checkout, .. } if checkout != "desk::/linked" => Some(Err(AgentError::Refused {
+            code: "CHECKOUT_NOT_FOUND".into(), message: "unknown".into()
+        })),
+        Op::CheckoutHistory { expected_head: Some(_), .. } => Some(Err(AgentError::Refused {
+            code: "CHECKOUT_HEAD_CHANGED".into(), message: "moved".into()
+        })),
+        Op::CheckoutHistory { .. } => Some(Ok(json!({"branch":null,"head":null,"commits":[],"nextOffset":null}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let get = |query: &str, auth: &str| http(h.addr, "GET", &format!("/api/mobile/source-control/history?{query}"), &[("Authorization", auth)], "");
+    let checkout = "checkout=desk%3A%3A%2Flinked";
+    // When the first page is read, then the server enforces the read grant and returns an empty page for an unborn checkout.
+    assert_eq!(get(checkout, "").status, 401);
+    assert_eq!(get(checkout, &scoped(&h, &["relay:read"])).status, 403);
+    let page = get(checkout, &reader);
+    assert_eq!(page.status, 200);
+    assert_eq!(page.body, json!({"branch":null,"head":null,"commits":[],"nextOffset":null}));
+    // When the client uses a moving ref, an unanchored offset, a stale head or an unknown checkout, then it receives a specific refusal.
+    for invalid in ["offset=50", "offset=-1", "base=main", "head=HEAD"] {
+        assert_eq!(get(&format!("{checkout}&{invalid}"), &reader).status, 422);
+    }
+    assert_eq!(get(&format!("{checkout}&head={}&offset=50", "a".repeat(40)), &reader).status, 409);
+    assert_eq!(get("checkout=absent", &reader).status, 404);
+}
+
+#[test]
+fn checkout_changes_and_commit_details_share_the_read_grant_and_validate_the_selected_revision() {
+    use t3_core::ports::Op;
+    // Given a paired reader with a selected checkout and a valid commit.
+    let h = Harness::start();
+    let sha = "a".repeat(40);
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutChanges { checkout } if checkout == "r::/wt" => Some(Ok(json!({"comparison":null}))),
+        Op::CheckoutCommit { checkout, sha } if checkout == "r::/wt" => Some(Ok(json!({"sha":sha}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let denied = scoped(&h, &["relay:read"]);
+    let get = |path: &str, auth: &str| http(h.addr,"GET",&format!("/api/mobile/source-control/{path}"), &[("Authorization",auth)], "");
+    let changes = "changes?checkout=r%3A%3A%2Fwt";
+    let detail = format!("commit?checkout=r%3A%3A%2Fwt&sha={sha}");
+    // When requesting either read, then only the correct scope and a full hash can reach the selected revision.
+    for path in [changes, detail.as_str()] {
+        assert_eq!(get(path,"").status,401);
+        assert_eq!(get(path,&denied).status,403);
+        assert_eq!(get(path,&reader).status,200);
+    }
+    assert_eq!(get(&detail,&reader).body["sha"],sha);
+    assert_eq!(get("commit?checkout=r%3A%3A%2Fwt&sha=HEAD",&reader).status,422);
+    assert_eq!(get("changes",&reader).status,422);
+}
+
+#[test]
+fn mobile_file_comparisons_require_paired_read_access_and_immutable_revisions() {
+    use t3_core::ports::Op;
+    // Given a paired reader and a renamed file.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutFile {
+            checkout,
+            head,
+            base,
+            path,
+            old_path,
+        } => Some(Ok(json!([checkout, head, base, path, old_path]))),
+        _ => None,
+    }));
+    let head = "a".repeat(40);
+    let base = "b".repeat(40);
+    let reader = scoped(&h, &["orchestration:read"]);
+    let denied = scoped(&h, &["relay:read"]);
+    let get = |args: &str, auth: &str| {
+        http(
+            h.addr,
+            "GET",
+            &format!("/api/mobile/source-control/file?checkout=w&{args}"),
+            &[("Authorization", auth)],
+            "",
+        )
+    };
+    let args = format!("head={head}&base={base}&path=new%20file&oldPath=old%20file");
+    // When the selected rename is requested, then both paths survive decoding and every guard runs before dispatch.
+    assert_eq!(get(&args, "").status, 401);
+    assert_eq!(get(&args, &denied).status, 403);
+    assert_eq!(get(&args, &reader).body, json!(["w", head, base, "new file", "old file"]));
+    for invalid in [
+        "head=HEAD&path=a".to_owned(),
+        format!("head={head}&base=main&path=a"),
+        format!("head={head}&path=..%2Foutside"),
+        format!("head={head}&path=a&oldPath=b"),
+    ] {
+        assert_eq!(get(&invalid, &reader).status, 422);
+    }
+}
+
+#[test]
+fn mobile_branch_picker_lists_for_readers_and_switches_only_for_operators() {
+    use t3_core::ports::{AgentError, Op};
+    // Given a detached checkout, an available local branch and a branch used by another checkout.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutBranches { checkout } if checkout == "r::/wt" => Some(Ok(json!({"current":null,"branches":["feature","main"],"truncated":false}))),
+        Op::SwitchCheckoutBranch { checkout, branch } if checkout == "r::/wt" => Some(if branch == "feature" {
+            Ok(json!({"branch":"feature","detached":false}))
+        } else { Err(AgentError::Refused { code:"CHANGED".into(), message:"already checked out".into() }) }),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let writer = scoped(&h, &["orchestration:operate"]);
+    let route = "/api/mobile/source-control/branches";
+    let switch = |token: &str, branch: &str| http(h.addr, "POST", route, &[("Authorization",token),("Content-Type","application/json")], &json!({"checkout":"r::/wt","branch":branch}).to_string());
+    // When the paired reader opens the list, then the selected checkout has no current branch.
+    let list = http(h.addr,"GET",&format!("{route}?checkout=r%3A%3A%2Fwt"), &[("Authorization",&reader)], "");
+    assert_eq!(list.status,200);
+    assert_eq!(list.body,json!({"current":null,"branches":["feature","main"],"truncated":false}));
+    // Switching enforces the write grant and surfaces conflicts to the caller.
+    assert_eq!(switch("", "feature").status,401);
+    assert_eq!(switch(&reader, "feature").status,403);
+    assert_eq!(switch(&writer, "feature").status,200);
+    assert_eq!(switch(&writer, "main").status,409);
+    assert_eq!(switch(&writer, "").status,422);
+}

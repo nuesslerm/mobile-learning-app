@@ -9,7 +9,7 @@ import {
 } from '@lib/flow-test-harness';
 import { describe, expect, it } from 'vitest';
 
-import { app } from '../../__tests__/flowApp';
+import { app } from '../../__tests__/legacyFlowApp';
 
 // Fixture gateway keys threads as `fx-thread-<FixtureId>` (fixtureGateway.ts).
 const FX_THREAD_BASIC = 'fx-thread-fx-basic';

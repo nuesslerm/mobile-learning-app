@@ -31,13 +31,14 @@ function expoConfig(_config) {
       name: 'mla-tamagui',
       slug: 'mla-tamagui',
       version: pkg.version,
-      orientation: 'portrait',
+      orientation: 'default',
       icon: './assets/images/icon.png',
       scheme: 'mla-tamagui',
       userInterfaceStyle: 'automatic',
       newArchEnabled: true,
       ios: {
         supportsTablet: true,
+        infoPlist: { NSPhotoLibraryAddUsageDescription: 'Save chat images you choose to your photo library.' },
         bundleIdentifier: BUNDLE_ID,
       },
       android: {
@@ -52,6 +53,7 @@ function expoConfig(_config) {
       plugins: [
         'expo-router',
         'expo-font',
+        ['expo-camera', { cameraPermission: 'Allow Orca to use the camera for QR code scanning.', recordAudioAndroid: false }],
         // Without it a dev or EAS build has no NSMicrophoneUsageDescription: iOS closes the app the first time the
         // voice editor records. Expo Go supplies its own string, which is why nothing failed there.
         [

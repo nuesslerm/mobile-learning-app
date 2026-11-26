@@ -1,0 +1,24 @@
+{
+  "branch": "dev",
+  "pullRequest": {
+    "number": 103,
+    "title": "dev \u2192 main",
+    "state": "open",
+    "draft": false,
+    "base": "main",
+    "head": "dev",
+    "author": "nuesslerm-choco",
+    "url": "https://github.com/nuesslerm/mobile-learning-app/pull/103",
+    "description": "This is `dev`",
+    "mergeable": "mergeable",
+    "reviewDecision": null,
+    "files": 948,
+    "additions": 33599,
+    "deletions": 716,
+    "checks": {
+      "passing": 39,
+      "failing": 2,
+      "pending": 5
+    }
+  }
+}

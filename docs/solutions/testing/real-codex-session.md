@@ -28,7 +28,7 @@ Without `CODEX_HOME` pointing at a directory named `codex` that holds an `auth.j
 
 ## The wiring: `wf mimic exec --clis real:codex-ci`
 
-The test never touches the vault. The launcher does (`clis/mimic/src/exec_verb.rs`, `real_clis.rs`):
+The test never touches the vault. The launcher does (`clis/mimic/cli/src/exec_verb.rs`, `real_clis.rs`):
 
 - Reads `CODEX_CI_OAUTH_JSON_B64` in memory (`secrets::load_values`), decodes it to `<private home>/providers/codex/auth.json`: directory 0700, file 0600, and `CODEX_HOME` names that directory. The command gets the default-deny child environment (never `BWS_*`, never the login as a variable) and `MIMIC_REAL_CLI_DIR` (the pinned binary).
 - `--skip-when-empty`: a missing or blank secret skips the run: exit 0, `{"ran": false, "skipped": "<KEY> holds no value ... wf secret login codex-ci"}`, the message also on stderr, the command never starts. Without the flag it fails with exit 2.
@@ -51,7 +51,7 @@ The test never touches the vault. The launcher does (`clis/mimic/src/exec_verb.r
 
 ## Run it by hand against a stub
 
-The flow tests of the wiring (`clis/mimic/tests/flow/real_clis.rs`, `clis/secrets/tests/flow/secrets.rs`) run with `sh -c` as the command and a `bws` stub, never a real login: the login restored to `providers/codex/auth.json` with 0600/0700, the write-back only when the file changed (one `bws secret edit` of that key, none otherwise), a refused write-back failing the run, no refresh token in any printed line, the run skipped with the reason when the secret is empty. The test itself was run through the whole chain with a scripted `codex` on `PATH` (an authored app-server, not committed):
+The flow tests of the wiring (`clis/mimic/cli/tests/flow/real_clis.rs`, `clis/secrets/tests/flow/secrets.rs`) run with `sh -c` as the command and a `bws` stub, never a real login: the login restored to `providers/codex/auth.json` with 0600/0700, the write-back only when the file changed (one `bws secret edit` of that key, none otherwise), a refused write-back failing the run, no refresh token in any printed line, the run skipped with the reason when the secret is empty. The test itself was run through the whole chain with a scripted `codex` on `PATH` (an authored app-server, not committed):
 
 ```sh
 CODEX_CI_OAUTH_JSON_B64=<base64 of an auth.json> wf mimic exec --clis real:codex-ci --cli-dir <dir with a codex> --skip-when-empty -- \

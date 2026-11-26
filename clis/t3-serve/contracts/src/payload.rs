@@ -2,7 +2,7 @@
 //! as the pinned server's Effect schema refuses them: the first field in declaration order that is missing or of the wrong type is a defect, never a typed error.
 use serde_json::{Map, Value};
 
-/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `sn` string or null, `p(day|http|npm)` a string matching a contract pattern, `l(x|y)` one of
+/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `x` any value, `sn` string or null, `p(day|http|npm)` a string matching a contract pattern, `l(x|y)` one of
 /// the literals, `ln(x|y)` one of the numeric literals, `pi` an integer above 0, `pp` a port (above 0 and below 65536), `vp` a preview viewport setting, `ns` a navigation status, a trailing `?` for an optional key, a trailing `~` for an optional key that also takes null (its defect names `| null`). What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
 const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.start", "instanceId:s"),
@@ -16,6 +16,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("server.prepareTriage", "client:o"),
     ("server.listTextGeneratorModels", "id:s config:o(textGenerator)? refresh:b? test:b? model:s?"),
     ("server.updateSettings", "patch:o(settingsPatch) providerInstanceMutation:o?"),
+    // The patch of the phone's view preferences is checked by the handler, not here: every refusal then names the path it is at.
+    ("mobile.session.openTab", "threadId:s tabId:s"),
+    ("mobile.viewPreferences.set", "version:n preferences:o(viewPreferencesPatch)"),
     ("orchestration.getWorktreeThreadIds", "worktreePath:s"),
     ("orchestration.getThreadProjection", "threadId:s"),
     ("orchestration.getThreadTitles", "threadIds:a"),
@@ -148,6 +151,7 @@ const NESTED: &[(&str, &str)] = &[
     ("keybindingRule", "key:s command:kc when:s?"),
     ("textGenerator", "kind:l(openaiCompatible|anthropic) label:s? baseUrl:p(url) enabled:b?"),
     ("settingsPatch", "setModelFavorites:a(favoriteItem)? setModelsHidden:a(hiddenItem)? setProviderModelOrder:o(modelOrder)?"),
+    ("viewPreferencesPatch", "groupBy:x? sortBy:x? projectOrderBy:x? cardLayout:x? worktreeCardProperties:x? agentActivityDisplayMode:x? filters:x?"),
     ("browserProfile", "id:s name:s kind:l(persistent|incognito)"),
     ("uploadImage", "id:s? type:l(image) name:s mimeType:p(image) sizeBytes:n dataUrl:s source:x?"),
     ("settledCursor", "settledAt:s threadId:s?"),

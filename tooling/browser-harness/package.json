@@ -13,7 +13,8 @@
   "dependencies": {
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-device-frameset": "catalog:"
+    "react-device-frameset": "catalog:",
+    "@tooling/device-frame-ui": "workspace:*"
   },
   "devDependencies": {
     "@typescript/native": "catalog:",

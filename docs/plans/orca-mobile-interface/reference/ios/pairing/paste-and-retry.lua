@@ -1,0 +1,11 @@
+local out = env.out
+device:assert_visible("Pair with desktop")
+device:tap_on({point="50%,61.3%"})
+device:assert_visible("Paste pairing code")
+device:take_screenshot(out .. "/paste.png")
+device:input_text("invalid-test-invite")
+device:tap_on("Save")
+device:assert_visible("Try Again")
+device:take_screenshot(out .. "/invalid.png")
+device:tap_on("Try Again")
+device:assert_visible("Pair with desktop")

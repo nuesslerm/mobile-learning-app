@@ -148,12 +148,14 @@ impl Chain {
         }
         std::fs::write(shared.join("notes.txt"), "not a directory").unwrap();
         let flags = ["--worktree-base", base.to_str().unwrap(), "--browse-allow", shared.to_str().unwrap()];
+        let executor_env: Vec<_> = env.iter().filter(|(k,_)| k.starts_with("RCA_EXEC_") || *k=="PLAYWRIGHT_BROWSERS_PATH").map(|(k,v)|(k.to_string(),v.to_string())).collect();
         let exec = match &real {
-            None => RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path()),
+            None => RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path(), None, &executor_env),
             Some(real) => {
                 // the real binaries come first on the executor's PATH and the scripted ones stay behind them for the names not run for real
                 let path = std::env::join_paths(std::iter::once(real.bin.clone()).chain(std::env::split_paths(&cli.path()))).expect("a PATH of two directories");
                 let mut env = real.env.clone();
+                env.extend(executor_env);
                 // Claude Code refuses its skip-permissions flag as root unless it is told it runs in a sandbox
                 if std::process::Command::new("id").arg("-u").output().is_ok_and(|o| o.stdout.starts_with(b"0\n")) {
                     env.push(("IS_SANDBOX".into(), "1".into()));

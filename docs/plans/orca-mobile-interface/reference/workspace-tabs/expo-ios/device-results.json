@@ -1,0 +1,79 @@
+[
+  {
+    "journey": "pty-visible",
+    "runId": "run-acbdf759bfc306a4",
+    "verdict": "pass",
+    "started": "2026-11-26T19:58:24.833Z",
+    "durationS": 2.6
+  },
+  {
+    "journey": "pty-reattach",
+    "runId": "run-db5bd5cf5847c1c4",
+    "verdict": "pass",
+    "started": "2026-11-26T19:59:24.798Z",
+    "durationS": 20.8
+  },
+  {
+    "journey": "browser-start",
+    "runId": "run-c6cd7d793295bb0e",
+    "verdict": "pass",
+    "started": "2026-11-26T20:00:03.025Z",
+    "durationS": 13.5
+  },
+  {
+    "journey": "browser-typed",
+    "runId": "run-6c3a6826cc68ee8c",
+    "verdict": "pass",
+    "started": "2026-11-26T20:00:29.878Z",
+    "durationS": 6.9
+  },
+  {
+    "journey": "browser-click",
+    "runId": "run-001135a95e2d372e",
+    "verdict": "pass",
+    "started": "2026-11-26T20:00:53.114Z",
+    "durationS": 2.6
+  },
+  {
+    "journey": "note-saved",
+    "runId": "run-de8c5b5bd74fb066",
+    "verdict": "pass",
+    "started": "2026-11-26T20:01:06.751Z",
+    "durationS": 10.1
+  },
+  {
+    "journey": "note-reopened",
+    "runId": "run-b4526936b9014189",
+    "verdict": "pass",
+    "started": "2026-11-26T20:01:28.836Z",
+    "durationS": 4.6
+  },
+  {
+    "journey": "note-conflict",
+    "runId": "run-45dc96c2d7e7de86",
+    "verdict": "pass",
+    "started": "2026-11-26T20:01:52.910Z",
+    "durationS": 7.9
+  },
+  {
+    "journey": "draft-reopened",
+    "runId": "run-98e6ce12ef438398",
+    "verdict": "pass",
+    "started": "2026-11-26T20:02:57.899Z",
+    "durationS": 3.4
+  },
+  {
+    "journey": "note-cold",
+    "runId": "run-ff04fd93e84b58d0",
+    "verdict": "pass",
+    "started": "2026-11-26T20:03:21.233Z",
+    "durationS": 8.6
+  },
+  {
+    "journey": "closed",
+    "runId": "run-07cccdd65a78abc4",
+    "verdict": "pass",
+    "started": "2026-11-26T20:03:58.414Z",
+    "durationS": 3.6
+  }
+]

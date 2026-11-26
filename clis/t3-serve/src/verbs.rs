@@ -1,12 +1,10 @@
 //! `wf t3 <verb>`: parse the line, wire the adapters, run the use case, print one JSON object on stdout. A failure prints
 //! `{ok: false, error, next}` and exits 1; a malformed line exits 2. No verb prompts. `serve` prints one line when it listens
 //! and then runs until it is stopped; `pair` prints the one-time code, the only place a secret is ever written out.
-use crate::adapters::{OsIds, SystemClock};
 use crate::wiring::{self, Settings, DEFAULT_BIND, DEFAULT_PORT};
-use serde_json::{json, Value};
+use serde_json::json;
 use std::path::PathBuf;
-use t3_contracts::time::iso;
-use t3_core::usecases::pairing::{self, PairingRequest};
+use t3_core::usecases::pairing::PairingRequest;
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const SERVE: Spec = Spec { values: &["state-dir", "bind", "port", "label", "catalog", "rca-url", "rca-workspace"], flags: &["healthcheck"], positional: Positional::None, ..Spec::NONE };
@@ -62,10 +60,7 @@ fn serve_verb(p: &Parsed) -> Option<i32> {
         rca_workspace: setting(p, "rca-workspace", "T3_RCA_WORKSPACE"),
         guest_host: std::env::var("T3_GUEST_HOST").ok().map(|h| h.trim().to_string()).filter(|h| !h.is_empty()),
     };
-    let started = wiring::open_store(&settings.state_dir).and_then(|store| wiring::service(&settings, store)).and_then(|wired| {
-        let running = t3_http::serve((bind.as_str(), port), wired.service).map_err(|e| format!("cannot listen on {bind}:{port}: {e}"))?;
-        Ok((running, wired.environment_id))
-    });
+    let started = wiring::listen(&settings, (bind.as_str(), port));
     match started {
         Err(error) => failure("serve", error, "free the port or pick another with --port, and check --state-dir is writable"),
         Ok((running, environment_id)) => {
@@ -113,18 +108,10 @@ fn pair_verb(p: &Parsed) -> Option<i32> {
     }
     let base = setting(p, "base-url", "T3_BASE_URL").unwrap_or_else(|| format!("http://{DEFAULT_BIND}:{DEFAULT_PORT}")).trim_end_matches('/').to_string();
     let dir = state_dir(p);
-    let outcome = wiring::open_store(&dir).and_then(|store| {
-        let environment_id = wiring::environment_id(store.as_ref(), &OsIds)?;
-        pairing::mint(store.as_ref(), &SystemClock, &OsIds, request).map(|pairing| (pairing, environment_id))
-    });
-    match outcome {
+    match wiring::pair_link(&dir, &base, request) {
         Err(error) => failure("pair", error, "pass scopes from the 17 (see wf t3 pair --help) and a writable --state-dir"),
-        Ok((pairing, environment_id)) => {
-            let url: Value = format!("{base}/pair#token={}", pairing.code).into();
-            println!(
-                "{}",
-                json!({"ok": true, "url": url, "code": pairing.code, "baseUrl": base, "expiresAt": iso(pairing.expires_at), "ttlSeconds": ttl_seconds, "scopes": pairing.scopes, "label": pairing.label, "environmentId": environment_id})
-            );
+        Ok(link) => {
+            println!("{link}");
             Some(0)
         }
     }

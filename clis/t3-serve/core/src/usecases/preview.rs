@@ -1,7 +1,4 @@
-//! `preview.*` and `subscribePreviewEvents`: the phone's preview tabs over the agent API's `preview.sessions` and `preview.watch` groups. The
-//! service keeps which tabs a thread has, their viewport, zoom and colour scheme, and what the phone reported of their navigation; the phone draws
-//! the page itself (the service starts no browser), so a tab of the `server` runtime, which is a browser on the server, is refused with its reason
-//! and never opened as something else.
+//! T3 preview tab lifecycle and events over RCA preview sessions.
 use super::queries::{field, QueryFailure};
 use super::service::Service;
 use crate::ports::{AgentError, Follow, Op};
@@ -98,7 +95,7 @@ pub fn snapshot_from_agent(session: &Value) -> Value {
         "canGoBack": session["can_go_back"], "canGoForward": session["can_go_forward"], "viewport": viewport_from_agent(&session["viewport"]),
         "updatedAt": iso(session["updated_ms"].as_i64().unwrap_or(0)),
     });
-    for (from, to) in [("color_scheme", "colorScheme"), ("zoom", "zoomFactor"), ("profile", "profileId"), ("reveal", "reveal")] {
+    for (from, to) in [("runtime", "runtime"), ("color_scheme", "colorScheme"), ("zoom", "zoomFactor"), ("profile", "profileId"), ("reveal", "reveal")] {
         if !session[from].is_null() {
             out[to] = session[from].clone();
         }
@@ -157,9 +154,6 @@ impl Service {
     /// `preview.open`
     pub fn preview_open(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let thread = field(payload, "threadId")?;
-        if payload["runtime"] == "server" {
-            return Err(QueryFailure::Error(json!({"_tag": "UnsupportedOperationError", "method": "preview.open", "message": "preview.open with the server runtime is not offered: the service starts no browser, the app draws the page itself."})));
-        }
         let mut params = json!({"thread": thread});
         if let Some(url) = payload.get("url").filter(|u| !u.is_null()) {
             params["url"] = json!(normalize_url(url.as_str().unwrap_or_default())?);
@@ -167,12 +161,20 @@ impl Service {
         if let Some(viewport) = payload.get("viewport").filter(|v| !v.is_null()) {
             params["viewport"] = viewport_to_agent(viewport)?;
         }
-        for (from, to) in [("profileId", "profile"), ("reveal", "reveal")] {
+        for (from, to) in [("runtime", "runtime"), ("profileId", "profile"), ("reveal", "reveal")] {
             if let Some(value) = payload.get(from).filter(|v| !v.is_null()) {
                 params[to] = value.clone();
             }
         }
-        let answer = self.preview_run("preview.open", params).map_err(|e| refused(&e, thread, ""))?;
+        let answer = if payload["runtime"] == "server" {
+            let root = self.resource_root(thread)?;
+            if root.is_empty() || self.root_missing(&root) {
+                return Err(QueryFailure::Error(json!({"_tag":"UnsupportedOperationError","method":"preview.open","message":"The checkout is unavailable. Reopen an existing checkout."})));
+            }
+            self.agent().run(&Op::OpenServerPreview {root, params})
+        } else {
+            self.preview_run("preview.open", params)
+        }.map_err(|e| refused(&e, thread, ""))?;
         Ok(snapshot_from_agent(&answer["session"]))
     }
 

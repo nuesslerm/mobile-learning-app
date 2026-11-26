@@ -1,0 +1,74 @@
+{
+  "method": "state.compareAndSet",
+  "exchanges": [
+    {
+      "name": "sets an absent value",
+      "request": {
+        "id": 1,
+        "method": "state.compareAndSet",
+        "params": {
+          "scope": "contract-recording",
+          "key": "first",
+          "expected": null,
+          "value": "saved"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "applied": true
+        }
+      }
+    },
+    {
+      "name": "preserves a newer value",
+      "before": [
+        {
+          "id": "setup",
+          "method": "state.set",
+          "params": {
+            "scope": "contract-recording",
+            "key": "conflict",
+            "value": "desktop"
+          }
+        }
+      ],
+      "request": {
+        "id": 2,
+        "method": "state.compareAndSet",
+        "params": {
+          "scope": "contract-recording",
+          "key": "conflict",
+          "expected": null,
+          "value": "draft"
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "applied": false,
+          "value": "desktop"
+        }
+      }
+    },
+    {
+      "name": "requires the expected value",
+      "request": {
+        "id": 3,
+        "method": "state.compareAndSet",
+        "params": {
+          "scope": "contract-recording",
+          "key": "missing",
+          "value": "value"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "expected is required"
+        }
+      }
+    }
+  ]
+}

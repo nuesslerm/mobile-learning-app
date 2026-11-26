@@ -23,6 +23,7 @@ COPY clis/t3-serve ./clis/t3-serve
 # would be dropped from the hash because that directory holds a workspace manifest. Their tests are not in the context (.dockerignore).
 COPY libraries/agent-api/agent-api-accounts ./libraries/agent-api/agent-api-accounts
 COPY libraries/agent-api/agent-api-agent ./libraries/agent-api/agent-api-agent
+COPY libraries/agent-api/agent-api-browser ./libraries/agent-api/agent-api-browser
 COPY libraries/agent-api/agent-api-client ./libraries/agent-api/agent-api-client
 COPY libraries/agent-api/agent-api-proto ./libraries/agent-api/agent-api-proto
 COPY libraries/agent-api/agent-api-service ./libraries/agent-api/agent-api-service
@@ -35,6 +36,7 @@ COPY libraries/agent-api/agent-api-attachments ./libraries/agent-api/agent-api-a
 COPY libraries/agent-api/agent-api-catalog ./libraries/agent-api/agent-api-catalog
 COPY libraries/agent-api/agent-api-preview ./libraries/agent-api/agent-api-preview
 COPY libraries/agent-api/agent-api-workspace ./libraries/agent-api/agent-api-workspace
+COPY libraries/agent-api/exec-browser ./libraries/agent-api/exec-browser
 COPY libraries/agent-api/exec-fs ./libraries/agent-api/exec-fs
 COPY libraries/agent-api/exec-git ./libraries/agent-api/exec-git
 COPY libraries/agent-api/exec-hosted ./libraries/agent-api/exec-hosted

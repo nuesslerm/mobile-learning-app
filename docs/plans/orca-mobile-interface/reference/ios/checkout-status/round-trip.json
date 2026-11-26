@@ -1,0 +1,30 @@
+{
+  "original": {
+    "fixture": "native-fixture",
+    "status": null,
+    "otherMetadataUnchanged": true,
+    "matchesOriginalStatus": true,
+    "customStatuses": null
+  },
+  "afterOrca": {
+    "fixture": "native-fixture",
+    "status": "in-review",
+    "otherMetadataUnchanged": true,
+    "matchesOriginalStatus": false,
+    "customStatuses": null
+  },
+  "afterExpo": {
+    "fixture": "native-fixture",
+    "status": "in-progress",
+    "otherMetadataUnchanged": true,
+    "matchesOriginalStatus": false,
+    "customStatuses": null
+  },
+  "restored": {
+    "fixture": "native-fixture",
+    "status": null,
+    "otherMetadataUnchanged": true,
+    "matchesOriginalStatus": true,
+    "customStatuses": null
+  }
+}

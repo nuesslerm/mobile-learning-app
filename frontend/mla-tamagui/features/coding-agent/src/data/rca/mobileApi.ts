@@ -4,13 +4,8 @@ import type { AgentEvent, MobilePort, MobileThread, Pairing, RepositoryTask, Tra
 import { ThreadNotFound } from '../../domain/mobile';
 import { readPairing, savePairing } from './credentials';
 
-function endpoint(input: string) {
-  const url = new URL(input.trim());
-  const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  if ((url.protocol !== 'https:' && !(local && url.protocol === 'http:')) ||
-      url.username || url.password || url.search || url.hash) throw new Error('Enter an HTTPS address or a local simulator address.');
-  return url.href.replace(/\/$/, '');
-}
+import { endpoint } from './endpoint';
+
 const wsPath = (id: string) => '/workspaces/' + encodeURIComponent(id);
 const threadPath = (id: string) => '/threads/' + encodeURIComponent(id);
 async function request<T>(pair: Pairing, path: string, method = 'GET', body?: unknown): Promise<T> {

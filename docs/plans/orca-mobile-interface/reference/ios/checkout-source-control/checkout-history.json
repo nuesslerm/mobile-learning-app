@@ -1,0 +1,30 @@
+{
+  "t3Http": {
+    "checkout": "native-fixture",
+    "branch": null,
+    "head": "f5b0c4439500250318e6dc7ff4835baba0462711",
+    "matchedGitCommits": 100,
+    "first": {
+      "rows": 50,
+      "bytes": 11666,
+      "ms": 173.0
+    },
+    "second": {
+      "rows": 50,
+      "bytes": 11756,
+      "ms": 126.3
+    },
+    "baseRangeRows": 1,
+    "unknownCheckout": 404,
+    "changedHead": 409,
+    "unanchoredContinuation": 422
+  },
+  "orcaRpc": {
+    "checkout": "native-fixture",
+    "head": "f5b0c4439500250318e6dc7ff4835baba0462711",
+    "nativeHistoryMatchesGit": 100,
+    "detached": true,
+    "comparison": "ready",
+    "unmanagedWorkingTreeStatus": "runtime_error"
+  }
+}

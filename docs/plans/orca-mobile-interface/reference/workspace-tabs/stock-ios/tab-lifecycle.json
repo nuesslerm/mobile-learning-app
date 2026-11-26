@@ -1,0 +1,123 @@
+[
+  {
+    "method": "session.tabs.activate",
+    "resource": "terminal",
+    "observedKeys": [
+      "worktree",
+      "publicationEpoch",
+      "snapshotVersion",
+      "activeGroupId",
+      "activeTabId",
+      "activeTabType",
+      "tabGroups",
+      "tabGroupLayout",
+      "tabs"
+    ]
+  },
+  {
+    "method": "session.tabs.close",
+    "resource": "terminal",
+    "observedKeys": [
+      "closed",
+      "retirementConfirmed"
+    ]
+  },
+  {
+    "method": "session.tabs.createTerminal",
+    "resource": "terminal",
+    "observedKeys": [
+      "tab",
+      "publicationEpoch",
+      "snapshotVersion"
+    ]
+  },
+  {
+    "resource": "terminal",
+    "observed": [
+      "selected",
+      "closed and absent",
+      "reopened and listed"
+    ]
+  },
+  {
+    "method": "session.tabs.activate",
+    "resource": "markdown",
+    "observedKeys": [
+      "worktree",
+      "publicationEpoch",
+      "snapshotVersion",
+      "activeGroupId",
+      "activeTabId",
+      "activeTabType",
+      "tabGroups",
+      "tabGroupLayout",
+      "retiredTerminalSurfaces",
+      "tabs"
+    ]
+  },
+  {
+    "method": "session.tabs.close",
+    "resource": "markdown",
+    "observedKeys": [
+      "closed",
+      "retirementConfirmed"
+    ]
+  },
+  {
+    "method": "files.open",
+    "resource": "markdown",
+    "observedKeys": [
+      "worktree",
+      "relativePath",
+      "kind",
+      "opened"
+    ]
+  },
+  {
+    "resource": "markdown",
+    "observed": [
+      "selected",
+      "closed and absent",
+      "reopened and listed"
+    ]
+  },
+  {
+    "method": "session.tabs.activate",
+    "resource": "browser",
+    "observedKeys": [
+      "worktree",
+      "publicationEpoch",
+      "snapshotVersion",
+      "activeGroupId",
+      "activeTabId",
+      "activeTabType",
+      "tabGroups",
+      "tabGroupLayout",
+      "retiredTerminalSurfaces",
+      "tabs"
+    ]
+  },
+  {
+    "method": "session.tabs.close",
+    "resource": "browser",
+    "observedKeys": [
+      "closed",
+      "retirementConfirmed"
+    ]
+  },
+  {
+    "method": "browser.tabCreate",
+    "resource": "browser",
+    "observedKeys": [
+      "browserPageId"
+    ]
+  },
+  {
+    "resource": "browser",
+    "observed": [
+      "selected",
+      "closed and absent",
+      "reopened and listed"
+    ]
+  }
+]

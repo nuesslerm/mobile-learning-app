@@ -112,15 +112,40 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
         assert!(kinds.contains(&"user_message") && kinds.contains(&"command_execution"), "{kinds:?}");
         assert_eq!(page.body["items"].as_array().unwrap().iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>(), items.iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>());
         // When the phone lists the notes directory and reads the file the model wrote
-        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"cwd": chain.repo.path().display().to_string(), "directoryPath": "notes"}));
+        let cwd = chain.repo.path().canonicalize().unwrap();
+        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"cwd": cwd, "directoryPath": "notes"}));
         let (listing_agent, listing_executor) = last_window(case);
-        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"cwd": chain.repo.path().display().to_string(), "relativePath": "notes/a.txt"}));
+        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"cwd": cwd, "relativePath": "notes/a.txt"}));
         let (read_agent, read_executor) = last_window(case);
         // Then the entries and the contents are the repository's, and each call went agent API, then executor
         assert_eq!(success(&listed)["entries"][0]["path"], "notes/a.txt");
         assert_eq!(success(&read)["contents"], "hello from the model");
-        assert_eq!((listing_agent, read_agent), (vec![("worktree.list".to_string(), true), ("file.list".to_string(), true)], vec![("worktree.list".to_string(), true), ("file.read".to_string(), true)]));
-        assert!(hit(&listing_executor, "tool", "list_dir").is_some_and(|h| h["ok"] == true) && hit(&read_executor, "tool", "read_file").is_some_and(|h| h["ok"] == true), "{listing_executor} {read_executor}");
+        assert_eq!((listing_agent, read_agent), (vec![("worktree.list".to_string(), true), ("file.list".to_string(), true)], vec![("worktree.list".to_string(), true), ("file.readChunk".to_string(), true)]));
+        assert!(hit(&listing_executor, "tool", "list_dir").is_some_and(|h| h["ok"] == true) && hit(&read_executor, "tool", "read_chunk").is_some_and(|h| h["ok"] == true), "{listing_executor} {read_executor}");
+    });
+}
+
+#[test]
+fn given_two_projects_when_the_phone_searches_files_and_skills_then_only_the_selected_projects_matches_are_returned() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given two projects below one executor, each with its own README and Codex skill
+        let chain = Chain::start();
+        for project in ["one", "two"] {
+            chain.repo.write(&format!("{project}/README-{project}.md"), project);
+            chain.repo.write(&format!("{project}/.agents/skills/{project}/SKILL.md"), &format!("---\nname: {project}\ndescription: Project {project}\n---\n"));
+        }
+        let mut phone = Phone::connect(case, &chain);
+        let cwd = chain.repo.path().join("two").canonicalize().unwrap();
+        // When the phone searches and refreshes the catalog for the second project
+        let files = phone.call(case, &chain, &["rpc:projects.searchEntries"], "projects.searchEntries", json!({"cwd": cwd, "query": "README", "limit": 10, "kind": "file"}));
+        let catalog = phone.call(case, &chain, &["rpc:server.refreshProviders"], "server.refreshProviders", json!({"instanceId": "codex", "cwd": cwd, "workspaceSnapshotsOnDemand": true}));
+        // Then paths are relative to the selected project and its skill came from the same directory
+        assert_eq!(success(&files)["entries"], json!([{"path": "README-two.md", "kind": "file"}]));
+        let provider = hit(&success(&catalog)["providers"], "instanceId", "codex").unwrap();
+        let snapshot = &provider["workspaceSnapshots"][0];
+        assert_eq!(snapshot["cwd"], json!(cwd));
+        assert!(hit(&snapshot["skills"], "name", "two").is_some(), "{snapshot}");
+        assert!(hit(&snapshot["skills"], "name", "one").is_none(), "{snapshot}");
     });
 }
 

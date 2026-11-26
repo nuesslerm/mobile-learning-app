@@ -45,7 +45,6 @@ describe('App drawer', () => {
       expect(closeDrawer()).toBeTruthy();
     });
 
-    expect(screen.getAllByRole('button', { name: /settings/i })).toHaveLength(1);
     await session.tap('DrawerItemSettings');
 
     await waitFor(() => {
@@ -69,6 +68,17 @@ describe('App drawer', () => {
     } finally {
       dismiss.mockRestore();
     }
+  });
+
+  it('given the open drawer, when the account is tapped, then Settings opens over the drawer', async () => {
+    const session = await app.render('/');
+    await screen.findByTestId('LibraryHomeMenuButton');
+    await session.tap('LibraryHomeMenuButton');
+    await screen.findByRole('button', { name: 'Open account settings' });
+    await session.tap('AppDrawerAccount');
+    expect(routerHarness().lastPush()).toBe('/settings');
+    expect(closeDrawer()).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'LeetCode Library', current: 'page' })).toBeTruthy();
   });
 
   it('given the open drawer, when the Coding agent shortcut is tapped, then the drawer closes and the app opens Coding agent', async () => {

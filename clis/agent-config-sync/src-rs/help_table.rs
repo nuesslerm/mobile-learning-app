@@ -2,5 +2,6 @@
 //! `(command path, bare invocation prints the help to stderr and exits 1, help text)`.
 pub const HELP: &[(&str, bool, &str)] = &[
     ("agent-config", true, include_str!("help/wf__agent-config.txt")),
+    ("agent-config save-memory", false, include_str!("help/wf__agent-config__save-memory.txt")),
     ("agent-config sync", false, include_str!("help/wf__agent-config__sync.txt")),
 ];

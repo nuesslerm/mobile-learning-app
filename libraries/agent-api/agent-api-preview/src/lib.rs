@@ -6,6 +6,11 @@
 use agent_api_proto::{text, GroupName, Method, ParamError};
 use serde_json::{Map, Value};
 
+/// Executor operations used by a server-rendered preview viewer.
+pub mod rendering {
+    pub use agent_api_browser::{EVAL, FRAME, GOTO, HISTORY, INPUT, OPEN, PAGES};
+    pub const METHODS: &[agent_api_proto::Method] = &[EVAL, FRAME, GOTO, HISTORY, INPUT, OPEN, PAGES];
+}
 pub mod sessions;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;

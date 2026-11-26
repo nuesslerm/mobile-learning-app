@@ -201,7 +201,7 @@ pub enum Finish {
 pub enum AgentEventKind {
     TurnStarted,
     /// The user's own message, which t3 recorded itself when it was sent.
-    UserText(String),
+    UserMessage { text: String, attachments: Vec<(String, String)> },
     Text(String),
     Reasoning(String),
     ToolStarted { id: String, name: String, input: Value },
@@ -249,6 +249,13 @@ pub enum Follow {
     Stop,
 }
 
+pub const FILE_PREVIEW_LIMIT: usize = 1024 * 1024;
+
+pub struct FilePreview {
+    pub bytes: Vec<u8>,
+    pub total_bytes: u64,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct DirEntry {
     pub name: String,
@@ -274,7 +281,16 @@ pub struct ClientActivity {
 /// A request to the agent API beyond a turn's own life: the answers, the queue, the lifecycle and the device state, in the contract's words
 /// (snake_case, times in milliseconds). `run` answers the contract's result, or the refusal in the message T3 shows.
 #[derive(Debug, Clone, PartialEq)]
+pub enum NoteAction {
+    Create,
+    Read { path: String },
+    Save { path: String, previous: String, content: String },
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Op {
+    StageTerminalImage { root: String, id: String },
+    CheckoutNote { checkout: String, action: NoteAction },
     ApprovalAnswer { thread: String, approval: String, decision: String },
     InputAnswer { thread: String, request: String, answer: String },
     InputDismiss { thread: String, request: String },
@@ -293,6 +309,18 @@ pub enum Op {
     ThreadSettle { thread: String, state: &'static str, until_ms: Option<u64>, at_ms: Option<u64> },
     ThreadSearch { query: String, limit: u32 },
     ThreadFamily { thread: String },
+    MobileWorktrees,
+    MobileAgents,
+    MobileThreadCheckout { thread: String, path: Option<String>, selected: Option<String> },
+    CheckoutBranches { checkout: String },
+    CheckoutPullRequest { checkout: String, link: Option<u64> },
+    SwitchCheckoutBranch { checkout: String, branch: String },
+    CheckoutChanges { checkout: String },
+    CheckoutFile { checkout: String, head: String, base: Option<String>, path: String, old_path: Option<String> },
+    CheckoutCommit { checkout: String, sha: String },
+    CheckoutHistory { checkout: String, expected_head: Option<String>, base: Option<String>, offset: u32 },
+    ReadPanes { panes: Vec<String> },
+    ThreadList,
     ThreadForceStop { thread: String, turn: Option<String> },
     ItemGet { thread: String, seq: u64 },
     WorkflowStop { thread: String, turn: String, workflow: Option<String> },
@@ -304,6 +332,7 @@ pub enum Op {
     ThreadShelf { shelf: &'static str, before: Option<(u64, Option<String>)>, limit: u32 },
     StateGet { scope: String, key: String },
     StateSet { scope: String, key: String, value: Value },
+    StateCompareAndSet { scope: String, key: String, expected: Value, value: Value },
     ClientActivity(ClientActivity),
     /// The files and worktrees of a project: `root` is the project's directory (a worktree's path, or the project's own), `path` is under it
     /// unless it is absolute (`FileBrowse`).
@@ -386,6 +415,8 @@ pub enum Op {
     /// A request of the `preview.sessions` group (`preview.open`, `preview.resize`, ..., `preview.subscribe` for where the stream stands): `method` is
     /// the agent API method.
     Preview { method: &'static str, params: Value },
+    PreviewPage { method: &'static str, params: Value },
+    OpenServerPreview { root: String, params: Value },
     /// A request of the catalog group's speech methods (`speech.status`, `speech.transcribe`): the service's own engine, the executor is never asked.
     Speech { method: &'static str, params: Value },
     /// A request of the catalog group that reads the executor's own host (`sessions.list`): `method` is the agent API method.
@@ -413,6 +444,20 @@ impl Op {
             Op::ThreadSettle { .. } => "thread.settle",
             Op::ThreadSearch { .. } => "thread.search",
             Op::ThreadFamily { .. } => "thread.family",
+            Op::MobileWorktrees => "mobile.worktrees",
+            Op::MobileAgents => "mobile.agents",
+            Op::StageTerminalImage { .. } => "attachment.stage",
+            Op::CheckoutNote { .. } => "mobile.checkoutNote",
+            Op::MobileThreadCheckout { .. } => "mobile.threadCheckout",
+            Op::CheckoutBranches { .. } => "mobile.checkoutBranches",
+            Op::CheckoutPullRequest { .. } => "mobile.checkoutPullRequest",
+            Op::SwitchCheckoutBranch { .. } => "mobile.switchCheckoutBranch",
+            Op::CheckoutChanges { .. } => "mobile.checkoutChanges",
+            Op::CheckoutFile { .. } => "mobile.checkoutFile",
+            Op::CheckoutCommit { .. } => "mobile.checkoutCommit",
+            Op::CheckoutHistory { .. } => "mobile.checkoutHistory",
+            Op::ReadPanes { .. } => "pane.mark",
+            Op::ThreadList => "thread.list",
             Op::ThreadForceStop { .. } => "thread.forceStop",
             Op::ItemGet { .. } => "item.get",
             Op::WorkflowStop { .. } => "workflow.stop",
@@ -423,6 +468,7 @@ impl Op {
             Op::ThreadShelf { .. } => "thread.shelf",
             Op::StateGet { .. } => "state.get",
             Op::StateSet { .. } => "state.set",
+            Op::StateCompareAndSet { .. } => "state.compareAndSet",
             Op::ClientActivity(_) => "service.clientActivity",
             Op::FileStat { .. } => "file.stat",
             Op::FileWrite { .. } => "file.write",
@@ -470,6 +516,8 @@ impl Op {
             Op::UsageSummary => "usage.summary",
             Op::ResetCredit { .. } => "provider.resetCredit",
             Op::ServiceLogs { .. } => "service.logs",
+            Op::PreviewPage { method, .. } => method,
+            Op::OpenServerPreview { .. } => "preview.open",
             Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } | Op::Speech { method, .. } | Op::Catalog { method, .. } => method,
         }
     }
@@ -533,6 +581,12 @@ pub trait AgentApi: Send + Sync {
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError>;
     fn list_dir(&self, root: &str, path: &str) -> Result<Vec<DirEntry>, AgentError>;
     fn read_file(&self, root: &str, path: &str) -> Result<String, AgentError>;
+    fn file_preview(&self, root: &str, path: &str) -> Result<FilePreview, AgentError> {
+        let mut bytes = self.read_file(root, path)?.into_bytes();
+        let total_bytes = bytes.len() as u64;
+        bytes.truncate(FILE_PREVIEW_LIMIT);
+        Ok(FilePreview { bytes, total_bytes })
+    }
     /// The setup events of the worktree at `root` after `after_seq`, those it has first, waiting up to `wait` for the setup to finish.
     fn setup_events(&self, root: &str, after_seq: u64, wait: std::time::Duration) -> Result<SetupBatch, AgentError>;
     /// What the terminal `terminal` of the directory `root` did after the byte offset `after_offset` (a snapshot of what is kept when none is

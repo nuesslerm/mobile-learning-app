@@ -196,12 +196,12 @@ impl Workspaces {
         if s.refused_outside.iter().any(|x| path.starts_with(x.as_str())) {
             return Err(refused("PATH_OUTSIDE_ROOT", format!("{path} is outside the root")));
         }
-        let (bytes, version) = s.artifacts.get(&path).cloned().ok_or_else(|| refused("NOT_FOUND", format!("{path} does not exist")))?;
+        let (bytes, version) = s.artifacts.get(&path).cloned().or_else(|| s.files.get(&(p["workspace"].as_str()?.into(), path.clone())).map(|b| (b.clone(), 0))).ok_or_else(|| refused("NOT_FOUND", format!("{path} does not exist")))?;
         Ok((path, bytes, version))
     }
 
     fn identity(path: &str, bytes: &[u8], version: u64) -> (String, String) {
-        (format!("{path}:{}:{version}", bytes.len()), format!("{:016x}", bytes.iter().fold(version, |h, b| h.wrapping_mul(31).wrapping_add(u64::from(*b)))))
+        (format!("{path}:{}:{version}", bytes.len()), agent_api_workspace::edit::artifact_fingerprint(bytes))
     }
 
     fn artifact_stat(&self, p: &Value) -> Result<Value, AgentError> {
@@ -242,7 +242,12 @@ impl Workspaces {
         let content = p["content"].as_str().unwrap_or("").as_bytes().to_vec();
         let (identity, fingerprint) = Self::identity(&path, &content, version + 1);
         let n = content.len();
-        self.0.lock().unwrap().artifacts.insert(path.clone(), (content, version + 1));
+        let mut state = self.0.lock().unwrap();
+        if let Some(file) = state.files.get_mut(&(p["workspace"].as_str().unwrap_or_default().into(), path.clone())) {
+            *file = content;
+        } else {
+            state.artifacts.insert(path.clone(), (content, version + 1));
+        }
         Ok(json!({"path": path, "bytes": n, "identity": identity, "fingerprint": fingerprint}))
     }
 

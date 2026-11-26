@@ -10,7 +10,7 @@ on:
     branches: [dev]
     paths:
       - .github/workflows/github-projects-record.yml
-      - clis/mimic/src/projects_verb.rs
+      - clis/mimic/cli/src/projects_verb.rs
   workflow_dispatch:
 
 permissions:

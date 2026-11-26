@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use rca_agent_core::{Call, Group, Served};
 use std::sync::Arc;
 
-const SERVED: [Served; 2] = [Served::service(state::GET, &[]), Served::service(state::SET, &[])];
+const SERVED: [Served; 3] = [Served::service(state::GET, &[]), Served::service(state::SET, &[]), Served::service(state::COMPARE_AND_SET, &[])];
 const WATCH_SERVED: [Served; 1] = [Served::service(watch::SUBSCRIBE, &[])];
 
 pub struct StateGroup {
@@ -43,6 +43,14 @@ impl Group for StateGroup {
                     Err(why) => Response::error(id, state::STATE_UNAVAILABLE, why),
                 },
                 Err(e) => e.response(id),
+            },
+            state::COMPARE_AND_SET => match (state::SetArgs::parse(params), params.get("expected")) {
+                (Ok(args), Some(expected)) => match self.hub.compare_and_set(&args.key.scope, &args.key.key, expected, args.value) {
+                    Ok(result) => Response::result(id, result),
+                    Err(why) => Response::error(id, state::STATE_UNAVAILABLE, why),
+                },
+                (Err(e), _) => e.response(id),
+                (_, None) => agent_api_proto::ParamError("expected is required".into()).response(id),
             },
             other => unreachable!("the state group does not serve {}", other.name()),
         }

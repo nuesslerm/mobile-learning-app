@@ -28,7 +28,7 @@ fn the_phone_opens_a_markdown_tab_reads_and_saves_it_and_opens_a_diff_and_the_ss
         let read = phone.call(case, &chain, &["rpc:markdown.readTab"], "markdown.readTab", json!({"worktree": WS_SELECTOR, "tabId": tab}));
         assert_eq!(read["result"]["content"], "# one\n", "{read}");
         let saved = phone.call(case, &chain, &["rpc:markdown.saveTab"], "markdown.saveTab", json!({"worktree": WS_SELECTOR, "tabId": tab, "baseVersion": read["result"]["version"], "content": "# two\n"}));
-        answered(case, "file.write");
+        answered(case, "artifact.write");
         assert_eq!(saved["result"]["content"], "# two\n", "{saved}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("notes.md")).unwrap(), "# two\n");
         // When the phone asks for the SSH targets, the state of the executor and a connect to it
@@ -79,5 +79,50 @@ fn the_phone_lists_the_session_files_of_the_executors_home_reveals_a_chat_and_sa
         answered(case, "state.set");
         assert!(picked["result"].is_object(), "{picked}");
         let _: &Value = &picked;
+    });
+}
+
+#[test]
+fn new_markdown_note_preserves_existing_files_and_detects_an_edit_from_the_desktop() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a paired checkout already containing Orca's first choice of note name
+        let chain = Chain::start(None);
+        let existing = chain.repo.path().join("untitled.md");
+        std::fs::write(&existing, "original").unwrap();
+        let mut phone = Phone::connect(case, &chain);
+        let path = |name: &str| json!({"worktree": WS_SELECTOR, "relativePath": name});
+        let status = phone.call(case, &chain, &["rpc:status.get"], "status.get", json!({}));
+        assert!(status["result"]["capabilities"].as_array().unwrap().contains(&json!("files.mutation-ownership.v1")));
+        let mut wrong_owner = path("untitled-2.md");
+        wrong_owner["expectedExecutionHostId"] = json!("ssh:previous-host");
+        let rejected = phone.refused(case, &chain, &["rpc:files.createFile"], "files.createFile", wrong_owner);
+        assert_eq!(rejected["error"]["message"], "Workspace host changed; refresh and try again");
+        assert!(!chain.repo.path().join("untitled-2.md").exists());
+        // When the phone tries the default name, then the collision is visible and the original survives
+        let collision = phone.call(case, &chain, &["rpc:files.createFile"], "files.createFile", path("untitled.md"));
+        assert_eq!(collision["ok"], false, "{collision}");
+        assert!(collision["error"]["message"].as_str().unwrap().contains("already exists"), "{collision}");
+        assert_eq!(std::fs::read_to_string(existing).unwrap(), "original");
+        // When the phone creates its next name and opens it, then it reads an empty versioned document
+        let mut next = path("untitled-2.md");
+        next["expectedExecutionHostId"] = json!("local");
+        let created = phone.call(case, &chain, &["rpc:files.createFile"], "files.createFile", next);
+        assert_eq!(created["ok"], true, "{created}");
+        let opened = phone.call(case, &chain, &["rpc:files.open"], "files.open", path("untitled-2.md"));
+        assert_eq!(opened["ok"], true, "{opened}");
+        let tab = json!({"worktree": WS_SELECTOR, "tabId": "markdown:untitled-2.md"});
+        let read = phone.call(case, &chain, &["rpc:markdown.readTab"], "markdown.readTab", tab.clone());
+        assert_eq!(read["result"]["content"], "", "{read}");
+        let mut save = tab.clone();
+        save["baseVersion"] = read["result"]["version"].clone();
+        save["content"] = json!("phone draft");
+        // When the desktop edits before save, then the caller sees the conflict and can read the desktop text after reconnect
+        std::fs::write(chain.repo.path().join("untitled-2.md"), "desktop edit").unwrap();
+        let conflict = phone.call(case, &chain, &["rpc:markdown.saveTab"], "markdown.saveTab", save);
+        assert_eq!(conflict["error"]["message"], "conflict", "{conflict}");
+        drop(phone);
+        let mut reopened = Phone::connect(case, &chain);
+        let read = reopened.call(case, &chain, &["rpc:markdown.readTab"], "markdown.readTab", tab);
+        assert_eq!(read["result"]["content"], "desktop edit", "{read}");
     });
 }

@@ -1,0 +1,72 @@
+[
+  {
+    "journey": "configured terminal path",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 10.6,
+    "cases": [
+      {
+        "name": "terminal_pty::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
+        "verdict": "pass"
+      },
+      {
+        "name": "terminal_pty::a_terminal_is_attached_typed_into_resized_observed_cleared_listed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+        "verdict": "pass"
+      }
+    ]
+  },
+  {
+    "journey": "Orca navigation and input",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 8.6,
+    "cases": [
+      {
+        "name": "browser::the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_in_the_executors_chromium",
+        "verdict": "pass"
+      }
+    ]
+  },
+  {
+    "journey": "RCA executor frame",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 10.3,
+    "cases": [
+      {
+        "name": "browser::the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_in_the_executors_chromium",
+        "verdict": "pass"
+      }
+    ]
+  },
+  {
+    "journey": "Stock Orca tab switching",
+    "platform": "ios",
+    "verdict": "pass",
+    "durationS": 4.3
+  },
+  {
+    "journey": "Orca paired protocol browser screencast and close",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 12.3,
+    "cases": [
+      {
+        "name": "browser::the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_in_the_executors_chromium",
+        "verdict": "pass"
+      }
+    ]
+  },
+  {
+    "journey": "T3 server preview frame, text input, resize, reconnect and close",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 8.8,
+    "cases": [
+      {
+        "name": "workspace_tabs::paired_server_preview_displays_desktop_content_accepts_input_and_reconnects",
+        "verdict": "pass"
+      }
+    ]
+  }
+]

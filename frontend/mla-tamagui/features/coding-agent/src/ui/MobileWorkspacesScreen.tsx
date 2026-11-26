@@ -8,7 +8,7 @@ import { useCodingAgentPorts } from '../state/ports';
 import { ThreadListScreen } from './ThreadListScreen';
 import { DispatchRunsSection } from './DispatchRunsSection';
 
-export function MobileWorkspacesScreen({ api, destination }: { api: MobilePort; destination?: string }) {
+export function MobileWorkspacesScreen({ api, destination, orca }: { api: MobilePort; destination?: string; orca?: boolean }) {
   const home = useMobileHome(api);
   const [host, setHost] = useState('');
   const [code, setCode] = useState('');
@@ -43,7 +43,7 @@ export function MobileWorkspacesScreen({ api, destination }: { api: MobilePort; 
             const saved = await api.pair(host, code);
             setCode('');
             home.setConnection(saved);
-            if (destination) router.replace({ pathname: '/coding-agent/[threadId]', params: { threadId: destination, paired: saved.endpoint } });
+            if (destination) router.replace({ pathname: '/coding-agent/[threadId]', params: { threadId: destination, paired: saved.endpoint, ...(orca && { presentation: 'orca' }) } });
           })}>Pair device</Button>
         </> : home.selected ? <>
           <Text variant="h3">Threads</Text>

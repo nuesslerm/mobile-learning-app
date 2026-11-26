@@ -1,5 +1,6 @@
 //! The three groups: `preview` asks the workspace's executor, `preview.sessions` answers from the tabs, and `preview.watch` answers
 //! `preview.subscribe` and then pushes each event of the stream until the peer is gone or falls behind the retained tail.
+use rca_agent_core::BrowserPages;
 use crate::sessions::{Failure, Previews};
 use agent_api_preview::sessions::{self as tabs, AdjustParams, CloseParams, ListParams, OpenParams, ReportParams, ResizeParams, SessionResult};
 use agent_api_preview::watch::{self, SubscribeParams};
@@ -62,13 +63,47 @@ fn answer<T: Serialize>(id: Value, result: Result<T, Failure>) -> Response {
 }
 
 pub struct PreviewSessionGroup {
+    browser: Option<Arc<dyn BrowserPages>>,
     previews: Arc<Previews>,
 }
 
 impl PreviewSessionGroup {
     pub fn new(previews: Arc<Previews>) -> PreviewSessionGroup {
-        PreviewSessionGroup { previews }
+        PreviewSessionGroup { previews, browser: None }
     }
+    pub fn with_browser(mut self, browser: Arc<dyn BrowserPages>) -> Self {
+        self.browser = Some(browser);
+        self
+    }
+
+    async fn open(&self, params: OpenParams) -> Result<SessionResult, Failure> {
+        if params.runtime != Some(tabs::Runtime::Server) {
+            return self.previews.open(params).map(|session| SessionResult { session });
+        }
+        let browser = self.browser.as_ref().ok_or_else(|| Failure { code: "BROWSER_DISABLED".into(), message: "This host cannot stream a browser".into() })?;
+        let workspace = params.workspace.clone().filter(|w| !w.is_empty()).ok_or_else(|| Failure { code: code::INVALID_PARAMS.into(), message: "A server preview needs a workspace".into() })?;
+        let key = self.previews.next_tab_id();
+        browser.open_page(&workspace, &key, params.url.as_deref()).await.map_err(|(code,message)| Failure {code,message})?;
+        match self.previews.open_with_id(params, key.clone()) {
+            Ok(session) => Ok(SessionResult { session }),
+            Err(error) => {
+                browser.close_page(&workspace, &key).await.map_err(|(code,message)| Failure {code,message})?;
+                Err(error)
+            }
+        }
+    }
+    async fn close(&self, params: CloseParams) -> Result<tabs::CloseResult, Failure> {
+        let sessions = self.previews.list(ListParams { thread: params.thread.clone() }).sessions;
+        let mut closed = Vec::new();
+        for tab in sessions.into_iter().filter(|s| params.tab.as_ref().is_none_or(|id| *id == s.tab)) {
+            if let (Some(browser), Some(workspace), Some(tabs::Runtime::Server)) = (&self.browser, &tab.workspace, tab.runtime) {
+                browser.close_page(workspace, &tab.tab).await.map_err(|(code,message)| Failure {code,message})?;
+            }
+            closed.extend(self.previews.close(CloseParams { thread:params.thread.clone(),tab:Some(tab.tab) }).closed);
+        }
+        Ok(tabs::CloseResult {closed})
+    }
+
 }
 
 #[async_trait]
@@ -94,7 +129,7 @@ impl Group for PreviewSessionGroup {
         match method {
             tabs::OPEN => {
                 let p = parsed!(OpenParams::parse(params));
-                answer(id, self.previews.open(p).map(|session| SessionResult { session }))
+                answer(id, self.open(p).await)
             }
             tabs::REPORT => {
                 let p = parsed!(ReportParams::parse(params));
@@ -110,7 +145,7 @@ impl Group for PreviewSessionGroup {
             }
             tabs::CLOSE => {
                 let p = parsed!(CloseParams::parse(params));
-                answer(id, Ok(self.previews.close(p)))
+                answer(id, self.close(p).await)
             }
             tabs::LIST => {
                 let p = parsed!(ListParams::parse(params));

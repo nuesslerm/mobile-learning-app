@@ -872,3 +872,48 @@ fn over_the_channel_a_watch_streams_on_a_thread_of_its_own_while_other_requests_
     assert_eq!((events[0]["seq"].clone(), events[0]["event"]["kind"].clone()), (json!(1), json!("git.status")));
     assert_eq!((cancel["result"]["cancelled"].clone(), result["result"]["cancelled"].clone()), (json!(true), json!(true)));
 }
+
+#[test]
+fn switching_a_listed_checkout_preserves_parent_and_worktree_changes() {
+    // Given two checkouts and a branch which changes a tracked file.
+    let r = repo(&[("file", "base")]);
+    sh(r.path(), &["switch", "-c", "feature"]);
+    put(r.path(), "file", "feature");
+    sh(r.path(), &["commit", "-am", "feature change"]);
+    sh(r.path(), &["switch", "main"]);
+    let dir = r.base.path().canonicalize().unwrap().join("checkout space\nline");
+    let path = dir.to_str().unwrap();
+    sh(r.path(), &["worktree", "add", "--detach", path]);
+    let switch = |name| json!({"path":path,"branch":name});
+    // When the selected worktree has a conflicting edit, Git refuses to replace it.
+    put(&dir, "file", "local");
+    r.err("git_switch_worktree_branch", switch("feature"));
+    assert_eq!(read(&dir, "file"), "local");
+    sh(&dir, &["restore", "file"]);
+    // Then switching the detached checkout acts there alone, and the primary branch remains occupied.
+    let moved = r.ok("git_switch_worktree_branch", switch("feature"));
+    assert_eq!(moved["branch"], "feature");
+    assert_eq!(read(&dir, "file"), "feature");
+    assert_eq!(sh(r.path(), &["branch", "--show-current"]), "main");
+    assert_eq!(read(r.path(), "file"), "base");
+    r.err("git_switch_worktree_branch", switch("main"));
+    r.err("git_switch_worktree_branch", switch("missing"));
+    assert_eq!(sh(&dir, &["branch", "--show-current"]), "feature");
+    // A stale record whose path now holds an unrelated repository cannot authorize a switch.
+    std::fs::rename(&dir, r.base.path().join("moved")).unwrap();
+    std::fs::create_dir(&dir).unwrap();
+    let other = r.base.path().canonicalize().unwrap().join("other");
+    sh(r.path(), &["worktree", "add", "--detach", other.to_str().unwrap()]);
+    std::fs::copy(other.join(".git"), dir.join(".git")).unwrap();
+    assert_eq!(r.err("git_switch_worktree_branch", switch("feature")).0, Code::NotFound);
+    assert_eq!(sh(&other, &["branch", "--show-current"]), "");
+    std::fs::remove_file(dir.join(".git")).unwrap();
+    init(&dir);
+    put(&dir, "unrelated", "untouched");
+    sh(&dir, &["add", "unrelated"]);
+    sh(&dir, &["commit", "-m", "separate repository"]);
+    sh(&dir, &["branch", "feature"]);
+    assert_eq!(r.err("git_switch_worktree_branch", switch("feature")).0, Code::NotFound);
+    assert_eq!(sh(&dir, &["branch", "--show-current"]), "main");
+    assert_eq!(r.err("git_switch_worktree_branch", json!({"path":r.base.path(),"branch":"main"})).0, Code::NotFound);
+}

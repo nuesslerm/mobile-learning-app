@@ -95,9 +95,9 @@ impl Catalog {
     }
 
     /// The skills of the workspace and of its executor's home, as the executor's `skill_scan` found them.
-    async fn scan(&self, workspace: &str, dirs: Option<&[String]>, home_dirs: Option<&[String]>) -> Result<SkillsResult, Refusal> {
+    async fn scan(&self, workspace: &str, path: &str, dirs: Option<&[String]>, home_dirs: Option<&[String]>) -> Result<SkillsResult, Refusal> {
         let channel = self.executors.get(workspace).ok_or_else(|| Refusal::new(Code::NoExecutor.as_str(), format!("no executor is attached for workspace {workspace}")))?;
-        let root = self.executors.place(workspace).path(".").map_err(|e| Refusal::new(Code::InvalidArgs.as_str(), e))?;
+        let root = self.executors.place(workspace).path(path).map_err(|e| Refusal::new(Code::InvalidArgs.as_str(), e))?;
         let mut args = json!({"root": root, "home": true});
         if let Some(d) = dirs {
             args["dirs"] = json!(d);
@@ -128,7 +128,7 @@ impl Catalog {
     }
 
     pub async fn skills(&self, p: SkillsParams) -> Result<SkillsResult, Refusal> {
-        self.scan(&p.workspace, p.dirs.as_deref(), p.home_dirs.as_deref()).await
+        self.scan(&p.workspace, ".", p.dirs.as_deref(), p.home_dirs.as_deref()).await
     }
 
     /// The driver's own commands (a headless CLI has none) and the skills it reads, a skill of the workspace hiding one of the same name in the home.
@@ -136,7 +136,7 @@ impl Catalog {
         let mut commands: Vec<Command> = Vec::new();
         if let Some(workspace) = &p.workspace {
             let dirs = skill_dirs(&p.driver);
-            let mut skills = self.scan(workspace, None, None).await?.skills;
+            let mut skills = self.scan(workspace, p.path.as_deref().unwrap_or("."), None, None).await?.skills;
             skills.retain(|s| dirs.contains(&s.dir.as_str()));
             skills.sort_by_key(|s| (s.scope != Scope::Workspace, dirs.iter().position(|d| *d == s.dir)));
             for skill in skills {

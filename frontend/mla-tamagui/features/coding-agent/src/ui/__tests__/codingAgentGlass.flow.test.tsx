@@ -9,7 +9,7 @@ import {
 import { Platform } from 'react-native';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { app } from '../../__tests__/flowApp';
+import { app } from '../../__tests__/legacyFlowApp';
 
 const FX_THREAD_BASIC = 'fx-thread-fx-basic';
 const realOS = Platform.OS;

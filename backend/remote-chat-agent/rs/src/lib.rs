@@ -132,6 +132,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         }));
     }
     let previews = Previews::new(Arc::new(infrastructure::previews::SystemClock), Arc::new(infrastructure::previews::RandomIds), config.state_seq_base);
+    let browser = Arc::new(BrowserGroup::new(executors.clone(), config.browser));
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(ServiceGroup),
         Arc::new(ActivityGroup::new(Arc::new(SystemClock))),
@@ -162,9 +163,9 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(AttachmentsGroup::new(attachments)),
         Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(infrastructure::catalog::SystemClock), speech, config.opencode_models.as_deref()))),
         Arc::new(PreviewGroup::new(executors.clone())),
-        Arc::new(PreviewSessionGroup::new(previews.clone())),
+        Arc::new(PreviewSessionGroup::new(previews.clone()).with_browser(browser.clone())),
         Arc::new(PreviewWatchGroup::new(previews)),
-        Arc::new(BrowserGroup::new(executors.clone(), config.browser)),
+        browser,
         Arc::new(NotificationsGroup::new(notifications)),
         Arc::new(PanesGroup::new(panes)),
     ];

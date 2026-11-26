@@ -418,6 +418,7 @@ mod tests {
     fn placeholder(action: &exec_proto::Action, key: &str) -> Value {
         match (key, action.properties.iter().find(|p| p.name == key).map(|p| p.kind)) {
             ("kind", _) if action.name == exec_browser::BROWSER_INPUT => json!("mouse_down"),
+            ("path", _) if action.name == exec_git::GIT_SWITCH_WORKTREE_BRANCH => json!("/fixture/checkout"),
             ("direction", _) => json!("back"),
             ("kind", _) => json!("content"),
             ("programs", _) => json!(["claude"]),
@@ -434,7 +435,8 @@ mod tests {
             ("verdict", _) => json!("approve"),
             ("content", _) => json!("+1"),
             (_, Some("array")) => json!(["v"]),
-            (_, Some("integer")) => json!(1),
+            (_, Some("boolean")) => json!(false),
+            (_, Some("integer" | "number")) => json!(1),
             _ => json!("v"),
         }
     }

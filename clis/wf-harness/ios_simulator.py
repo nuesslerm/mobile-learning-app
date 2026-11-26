@@ -82,6 +82,51 @@ def prepare(udid):
     print(json.dumps(manifest))
 
 
+def installed_app(udid, bundle):
+    """The .app of a bundle id inside a simulator's data, read from disk so the device need not be booted."""
+    root = Path.home() / "Library/Developer/CoreSimulator/Devices" / udid / "data/Containers/Bundle/Application"
+    for plist in root.glob("*/*.app/Info.plist"):
+        info = plistlib.loads(plist.read_bytes())
+        if info.get("CFBundleIdentifier") == bundle:
+            return plist.parent, info.get("CFBundleShortVersionString", "")
+    return None, ""
+
+
+def fresh(name, source, bundles, schemes=(), reset=()):
+    """A simulator of its own for one piece of work: the source's model and runtime, with the named apps copied from it.
+    The source is only read. A device of that name is used again, and gets the apps it lacks."""
+    devices = [dict(d, runtime=runtime) for runtime, rows in json.loads(sim("list", "devices", "available", "-j"))["devices"].items() for d in rows]
+    origin = next((d for d in devices if source in (d["udid"], d["name"])), None)
+    if origin is None:
+        raise ValueError(f"No simulator is named {source}")
+    target = next((d for d in devices if d["name"] == name), None)
+    udid = target["udid"] if target else sim("create", name, origin["deviceTypeIdentifier"], origin["runtime"])
+    if not target or target["state"] != "Booted":
+        sim("boot", udid)
+    subprocess.run(["xcrun", "simctl", "bootstatus", udid, "-b"], check=True, stdout=sys.stderr)
+    apps = []
+    for bundle in bundles:
+        if bundle in reset:
+            # An app's pairings and caches go with it: the next install starts as a new user's.
+            subprocess.run(["xcrun", "simctl", "uninstall", udid, bundle], check=True, stdout=sys.stderr)
+        app, version = (None, "") if bundle in reset else installed_app(udid, bundle)
+        if app is None:
+            app, version = installed_app(origin["udid"], bundle)
+            if app is None:
+                raise ValueError(f"{source} has no app {bundle}")
+            print(f"Installing {bundle} {version} on {name}", file=sys.stderr, flush=True)
+            sim("install", udid, str(app))
+        apps.append({"bundle": bundle, "version": version})
+    for key in ("AccessibilityEnabled", "ApplicationAccessibilityEnabled"):
+        sim("spawn", udid, "defaults", "write", "com.apple.Accessibility", key, "-bool", "true")
+    # CoreSimulatorBridge opens links. Its first-open prompt per scheme belongs to SpringBoard, where no test can tap it.
+    for scheme, bundle in (pair.split("=", 1) for pair in schemes):
+        sim("spawn", udid, "defaults", "write", "com.apple.launchservices.schemeapproval",
+            f"com.apple.CoreSimulator.CoreSimulatorBridge-->{scheme}", "-string", bundle)
+    print(json.dumps({"device": name, "udid": udid, "model": origin["deviceTypeIdentifier"], "runtime": origin["runtime"],
+                      "created": target is None, "appsFrom": origin["name"], "apps": apps, "schemes": list(schemes)}))
+
+
 def simulator_manifest(udid):
     device = device_info(udid)
     app = Path(sim("get_app_container", udid, EXPO, "app"))
@@ -238,10 +283,17 @@ def run_case(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     verbs = parser.add_subparsers(dest="verb", required=True)
-    target = verbs.add_parser("prepare").add_mutually_exclusive_group()
+    prepare_verb = verbs.add_parser("prepare")
+    target = prepare_verb.add_mutually_exclusive_group()
     target.add_argument("--device")
     target.add_argument("--stop-automation", metavar="UDID")
     target.add_argument("--build-input", action="store_true")
+    target.add_argument("--fresh", metavar="NAME")
+    prepare_verb.add_argument("--orientation", choices=("portrait", "landscape-left", "landscape-right"))
+    prepare_verb.add_argument("--apps-from", metavar="DEVICE")
+    prepare_verb.add_argument("--app", action="append", default=[], metavar="BUNDLE")
+    prepare_verb.add_argument("--scheme", action="append", default=[], metavar="SCHEME=BUNDLE")
+    prepare_verb.add_argument("--reset", action="append", default=[], metavar="BUNDLE")
     case = verbs.add_parser("case")
     case.add_argument("--platform", choices=("ios", "android"), required=True)
     case.add_argument("--device", required=True)
@@ -249,6 +301,14 @@ def main():
     args = parser.parse_args()
     if args.verb == "prepare":
         sys.path.insert(0, str(Path(__file__).resolve().parent / "src/ios"))
+        if args.orientation:
+            if not args.device:
+                parser.error("--orientation requires --device UDID")
+            import xcui
+            session = json.loads(xcui.state_file(args.device).read_text())
+            xcui.call(Path(session["folder"]), "orientation", value=args.orientation)
+            print(json.dumps({"device": args.device, "orientation": args.orientation}))
+            return 0
         if args.stop_automation:
             import xcui
             xcui.stop(args.stop_automation)
@@ -257,6 +317,11 @@ def main():
         elif args.build_input:
             bridge = Path(__file__).parent / "src/ios/bridge.py"
             return subprocess.call([sys.executable, bridge, "--build-input"])
+        if args.fresh:
+            if not args.apps_from:
+                raise ValueError("--fresh needs --apps-from <device>: the simulator whose model, runtime and apps it takes")
+            fresh(args.fresh, args.apps_from, args.app, args.scheme, args.reset)
+            return 0
         prepare(args.device)
         return 0
     # The parent runner signals the whole process group, including the child.

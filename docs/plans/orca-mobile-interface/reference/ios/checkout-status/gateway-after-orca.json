@@ -1,0 +1,22 @@
+{
+  "choices": [
+    {
+      "id": "todo",
+      "label": "Todo"
+    },
+    {
+      "id": "in-progress",
+      "label": "In progress"
+    },
+    {
+      "id": "in-review",
+      "label": "In review"
+    },
+    {
+      "id": "completed",
+      "label": "Done"
+    }
+  ],
+  "fixture": "native-fixture",
+  "savedStatus": "in-review"
+}

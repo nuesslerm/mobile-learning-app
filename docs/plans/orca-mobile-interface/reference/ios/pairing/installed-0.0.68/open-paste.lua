@@ -1,0 +1,6 @@
+device:tap_on({point=env.pair})
+sleep_ms(1400)
+device:take_screenshot(env.out .. "/pair.png")
+device:tap_on({point=env.button})
+sleep_ms(1100)
+device:take_screenshot(env.out .. "/paste.png")

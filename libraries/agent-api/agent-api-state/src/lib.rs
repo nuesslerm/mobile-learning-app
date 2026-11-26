@@ -12,8 +12,10 @@ pub const GROUP: GroupName = GroupName::new("state");
 pub const GET: Method = Method::new(GROUP, "state.get");
 pub const SET: Method = Method::new(GROUP, "state.set");
 
+pub const COMPARE_AND_SET: Method = Method::new(GROUP, "state.compareAndSet");
+
 /// Every method of the group.
-pub const METHODS: &[Method] = &[GET, SET];
+pub const METHODS: &[Method] = &[GET, SET, COMPARE_AND_SET];
 
 /// The code of a `state.set` the store could not keep; the message is the store's reason.
 pub const STATE_UNAVAILABLE: &str = "STATE_UNAVAILABLE";
@@ -79,6 +81,6 @@ mod tests {
         assert_eq!(get_result(Some(json!(["ls"]))), json!({"value": ["ls"]}));
         assert_eq!(get_result(None), json!({"value": null}));
         assert_eq!(set_result(), json!({}));
-        assert_eq!(METHODS, [GET, SET]);
+        assert_eq!(METHODS, [GET, SET, COMPARE_AND_SET]);
     }
 }

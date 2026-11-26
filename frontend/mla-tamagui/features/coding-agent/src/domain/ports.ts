@@ -1,3 +1,7 @@
+import type { WorkspaceTabsPort } from './workspaceTabs/tabs';
+import type { ChatTextPreference } from '@lib/agent-ui-contracts';
+import type { ChatImageFile, ImageActions } from './imageActions';
+import type { T3MobilePort } from './t3Mobile';
 import type { MobilePort } from './mobile';
 import type {
   OrchestrationSubscribeShellItem,
@@ -83,9 +87,68 @@ export type TokenStorePort = {
   clear(): Promise<void>;
 };
 
+/** The theme a device asks for; "system" follows the device's own setting. */
+export type AppearancePreference = 'system' | 'light' | 'dark';
+
+/** The settings this app keeps on the device. */
+export interface SettingsPreferencesPort {
+  readChatText(): Promise<Partial<ChatTextPreference> | null>;
+  writeChatText(value: ChatTextPreference | null): Promise<void>;
+  readAppearance(): Promise<AppearancePreference>;
+  writeAppearance(preference: AppearancePreference): Promise<void>;
+  /** Whether the user asked for agent notifications. */
+  readNotificationsEnabled(): Promise<boolean>;
+  writeNotificationsEnabled(enabled: boolean): Promise<void>;
+  /** When the user last asked for an update check, or null when never. */
+  readLastUpdateCheckAt(): Promise<number | null>;
+  writeLastUpdateCheckAt(at: number): Promise<void>;
+}
+
+/** What an update check found. */
+export type AppUpdateCheck =
+  | { status: 'available'; updateId: string }
+  | { status: 'up-to-date' }
+  | { status: 'failed'; message: string };
+
+/** The app's own update channel. */
+export interface AppUpdatePort {
+  /** Looks for a published update; it runs only when the user asks for it. */
+  checkNow(): Promise<AppUpdateCheck>;
+  /** Fetches and applies an update the check found. */
+  install(updateId: string): Promise<void>;
+}
+
+/** The links that leave the app. */
+export interface ExternalLinksPort {
+  open(url: string): Promise<void>;
+}
+
+/** The app's own identity. */
+export interface AppInfoPort {
+  /** The app's version, e.g. "1.0.0"; null when the build carries none. */
+  version(): Promise<string | null>;
+  /** The native build number; null when the build carries none. */
+  build(): Promise<string | null>;
+}
+
+export type PairingCameraPermission = { granted: boolean; canAskAgain: boolean };
+export interface PairingCameraPort {
+  get(): Promise<PairingCameraPermission>;
+  request(): Promise<PairingCameraPermission>;
+}
+
 export type CodingAgentPorts = {
+  imageActionsFor(image: ChatImageFile, signal: AbortSignal): ImageActions | Promise<ImageActions>;
+  copyMessage(text: string): Promise<boolean>;
+  pairingCamera: PairingCameraPort;
+  t3Mobile?: T3MobilePort;
+  workspaceTabs?: WorkspaceTabsPort;
   mobile?: MobilePort;
   orchestration: OrchestrationPort;
   dispatchRuns: DispatchRunsPort;
   tokenStore: TokenStorePort;
+  preferences: SettingsPreferencesPort;
+  appUpdate: AppUpdatePort;
+  appInfo: AppInfoPort;
+  externalLinks: ExternalLinksPort;
 };

@@ -649,6 +649,27 @@ fn given_a_caller_that_sends_snapshot_ids_when_the_rows_change_then_it_gets_the_
 }
 
 #[test]
+fn given_unread_panes_when_a_checkout_is_marked_read_then_only_its_own_agent_attention_is_acknowledged() {
+    let mut rig = busy();
+    let id = "main::/base/feat2";
+    // Given a saved unread flag, an unread finish in this workspace and a finish in another workspace
+    rig.ok("worktree.set", json!({"worktree":id,"isUnread":true,"comment":"keep"}));
+    rig.agent.reply("pane.list", |p| {
+        assert_eq!(p["workspace"], "feat2");
+        Ok(json!({"panes":[pane("w", "feat2", "done", true, 4000), pane("x", "main", "done", true, 5000), pane("r", "feat2", "done", false, 2000)]}))
+    });
+    rig.agent.reply("pane.mark", |_| Ok(json!({"marked":1})));
+    // When installed Orca sends Mark Read, then only the unread finish of this checkout is marked
+    let saved = rig.ok("worktree.set", json!({"worktree":id,"isUnread":false,"acknowledgeAttention":true}));
+    assert_eq!(saved["worktree"]["isUnread"], false);
+    assert_eq!(saved["worktree"]["comment"], "keep");
+    assert!(saved["worktree"].get("acknowledgeAttention").is_none());
+    let marks: Vec<_> = rig.agent.requests().into_iter().filter(|(method, _)| method == "pane.mark").collect();
+    assert_eq!(marks.len(), 1);
+    assert_eq!(marks[0].1, json!({"panes":["thread:w"],"mark":"read"}));
+}
+
+#[test]
 fn given_a_worktree_with_a_working_agent_when_it_sleeps_and_is_activated_then_the_agent_is_stopped_and_the_terminals_slept_and_woken_and_its_finished_agents_are_read() {
     // Given a service where the linked worktree's workspace runs a thread
     let mut rig = busy();

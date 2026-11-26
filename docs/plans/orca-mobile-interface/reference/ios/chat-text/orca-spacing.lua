@@ -1,0 +1,8 @@
+device:tap_on({point="48%,29%"})
+sleep_ms(500)
+device:tap_on({point="22%,70.2%"})
+sleep_ms(650)
+device:take_screenshot(env.out .. "/compact.png")
+device:tap_on({point="50%,70.2%"})
+sleep_ms(600)
+device:take_screenshot(env.out .. "/restored.png")

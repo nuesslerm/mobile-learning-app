@@ -60,7 +60,7 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
         answered(case, "browser.input", true);
         let pressed = phone.call(case, &chain, &["rpc:browser.mouseDown"], "browser.mouseDown", params(json!({"button": "left"})));
         let released = phone.call(case, &chain, &["rpc:browser.mouseUp"], "browser.mouseUp", params(json!({})));
-        let clicked = phone.call(case, &chain, &["rpc:browser.mouseClick"], "browser.mouseClick", params(json!({"x": 20, "y": 20, "modifiers": ["ctrl"]})));
+        let clicked = phone.call(case, &chain, &["rpc:browser.mouseClick"], "browser.mouseClick", params(json!({"x": 20, "y": 20, "modifiers": ["shift"]})));
         let scrolled = phone.call(case, &chain, &["rpc:browser.mouseWheel"], "browser.mouseWheel", params(json!({"dy": 300})));
         eval(&mut rca, &page, "document.getElementById('f').focus(); true");
         let typed = phone.call(case, &chain, &["rpc:browser.keyboardInsertText"], "browser.keyboardInsertText", params(json!({"text": "hello"})));
@@ -76,10 +76,46 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
         assert_eq!(eval(&mut rca, &page, "document.getElementById('f').value"), json!("hello!"));
+        // When a second viewport subscribes to this page, then the executor captures JPEG pixels at the new CSS dimensions.
+        for width in [390, 520] {
+            let frame = rca.call("browser", "browser.frame", json!({"workspace":"w1","key":page,"width":width,"height":680,"quality":72,"mobile":false})).expect("the executor captures the page");
+            assert_eq!(frame["mime"], "image/jpeg");
+            assert_eq!(frame["navigation"]["url"], format!("{url}next"));
+            assert_eq!(frame["navigation"]["can_go_back"], true);
+            assert_eq!(frame["navigation"]["can_go_forward"], false);
+            assert!(frame["data"].as_str().unwrap().starts_with("/9j/"));
+            assert_eq!(eval(&mut rca, &page, "[innerWidth,innerHeight]"), json!([width,680]));
+        }
+        // When the paired phone subscribes, then it receives a JPEG in Orca's binary envelope and can acknowledge its sequence.
+        let caps = phone.call(case, &chain, &["rpc:status.get"], "status.get", json!({}));
+        assert!(caps["result"]["capabilities"].as_array().unwrap().contains(&json!("browser.screencast.v1")));
+        let (_, ready) = phone.subscribe(case, &chain, &["rpc:browser.screencast"], "browser.screencast",
+            json!({"worktree":WS,"page":page,"viewportWidth":390,"viewportHeight":680,"format":"jpeg","quality":72,"frameAck":1}));
+        let subscription = &ready["result"]["subscriptionId"];
+        assert_eq!(ready["result"]["frameAck"], true, "{ready}");
+        let frame = phone.next_binary();
+        assert_eq!(&frame[..8], &[0x62,1,1,1,0,0,0,0]);
+        let meta_end = 16 + u32::from_le_bytes(frame[8..12].try_into().unwrap()) as usize;
+        assert_eq!(serde_json::from_slice::<Value>(&frame[16..meta_end]).unwrap()["deviceWidth"],390);
+        assert_eq!(&frame[meta_end..meta_end+2], &[0xff,0xd8]);
+        let credit = phone.call(case, &chain, &["rpc:browser.screencast.ack"], "browser.screencast.ack", json!({"subscriptionId":subscription,"seq":0}));
+        assert_eq!(credit["result"]["credited"],true);
+        let end = phone.call(case, &chain, &["rpc:browser.screencast.unsubscribe"], "browser.screencast.unsubscribe", json!({"subscriptionId":subscription}));
+        assert_eq!(end["ok"],true);
         // And a late acknowledgement of a screencast credits nothing, and the executor is left with no browser and no dev server
         let ack = phone.call(case, &chain, &["rpc:browser.screencast.ack"], "browser.screencast.ack", json!({"subscriptionId": "none", "seq": 3}));
         assert_eq!(ack["result"], json!({"credited": false}));
-        assert_eq!(rca.call("browser", "browser.close", json!({"workspace": "w1", "key": page})).expect("the page closes"), json!({"closed": true}));
+        // When the executor has reclaimed the idle page, a new phone reopens the kept tab at its last address.
+        rca.call("browser","browser.close",json!({"workspace":"w1","key":page})).unwrap();
+        drop(phone);
+        let mut phone = Phone::connect(case, &chain);
+        let (_, restored) = phone.subscribe(case, &chain, &["rpc:browser.screencast"], "browser.screencast",
+            json!({"worktree":WS,"page":page,"viewportWidth":390,"viewportHeight":680,"frameAck":1}));
+        assert_eq!(restored["result"]["tab"]["url"], format!("{url}next"), "{restored}");
+        assert!(!phone.next_binary().is_empty());
+        let close = phone.call(case, &chain, &["rpc:session.tabs.close"], "session.tabs.close", json!({"worktree":WS,"tabId":page,"reason":"user"}));
+        assert_eq!(close["result"]["closed"],true,"{close}");
+        assert_eq!(rca.call("browser","browser.pages",json!({"workspace":"w1"})).unwrap()["pages"],json!([]));
         rca.call("preview", "preview.stop", json!({"workspace": "w1", "id": server["id"]})).expect("the dev server stops");
     });
 }

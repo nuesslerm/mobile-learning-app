@@ -1,7 +1,7 @@
 //! `AgentApi` over rca's agent API (`GET /agent/v1/socket`, a device bearer), through `agent-api-client`. A turn is `thread.create`,
 //! `turn.start` and `thread.subscribe` on `agent.threads`, followed as the thread's events until its `turn.finished`; a thread's past is
-//! `thread.history`; project files are `file.list` and `file.read` in one rca workspace, whose executor works where the files are. Each call
-//! opens a socket of its own, so an interrupt never waits behind the turn it stops.
+//! `thread.history`; project files are `file.list` and `file.read` in one rca workspace, whose executor works where the files are. History pages can share an idle socket.
+//! Turn control and subscriptions use independent connections.
 use agent_api_agent::lifecycle::{self, Cursor, Shelf, SettleState};
 use agent_api_agent::queue::{self, TURN_STEER};
 use agent_api_agent::requests::{self, Decision};
@@ -9,6 +9,7 @@ use agent_api_agent::{code as thread_code, CreateParams, FinishReason, HistoryPa
 use agent_api_client::{Client, Config, Error, Subscribe};
 use agent_api_proto::{thread_topic, Event, GroupName, Method, PROTOCOL};
 use agent_api_service::activity::ClientActivityParams;
+use agent_api_service::panes::{PaneState, PaneView};
 use agent_api_service::{StatusResult, CLIENT_ACTIVITY, STATUS};
 use agent_api_accounts as accounts;
 use agent_api_catalog as catalog;
@@ -21,7 +22,7 @@ use agent_api_terminal as terminal;
 use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FILE_READ, REPO_LIST, WORKSPACE, WORKSPACE_CREATE, WORKSPACE_REMOVE};
 use exec_fs::{EntryKind, ListResult, ReadResult};
 use serde_json::{json, Value};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, RuntimeRequestEvent, RuntimeResponse, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
@@ -33,13 +34,17 @@ pub struct RcaAgent {
     /// The rca workspace whose executor works where the projects' files are: every turn and file call acts there.
     workspace: String,
     providers: OnceLock<Vec<CatalogProvider>>,
+    idle_history: Mutex<Option<Client>>,
 }
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 144] = [
+pub const USES: [Method; 161] = [
     STATUS,
+    preview::rendering::EVAL, preview::rendering::OPEN, preview::rendering::PAGES, preview::rendering::FRAME, preview::rendering::INPUT, preview::rendering::GOTO, preview::rendering::HISTORY,
     THREAD_CREATE,
+    agent_api_agent::THREAD_LIST,
+    agent_api_agent::THREAD_GET,
     THREAD_SUBSCRIBE,
     THREAD_HISTORY,
     TURN_START,
@@ -70,9 +75,16 @@ pub const USES: [Method; 144] = [
     lifecycle::TURN_RETRY,
     lifecycle::THREAD_SHELF,
     agent_api_state::GET,
+    agent_api_state::watch::SUBSCRIBE,
+    agent_api_service::panes::LIST,
+    agent_api_service::panes::MARK,
     agent_api_state::SET,
+    agent_api_state::COMPARE_AND_SET,
     CLIENT_ACTIVITY,
+    edit::FILE_CREATE,
+    edit::ARTIFACT_WRITE,
     edit::FILE_STAT,
+    edit::FILE_READ_CHUNK,
     edit::FILE_WRITE,
     edit::FILE_BROWSE,
     edit::FILE_MKDIR,
@@ -98,6 +110,7 @@ pub const USES: [Method; 144] = [
     git::REFS,
     git::HISTORY,
     git::CHECKOUT,
+    git::SWITCH_WORKTREE_BRANCH,
     git::CREATE_REF,
     git::FETCH,
     git::COMPARE,
@@ -202,6 +215,36 @@ pub fn needed_groups() -> Vec<GroupName> {
 /// How long a followed thread waits for its next event before it looks again; a silent CLI is not an error.
 const QUIET: Duration = Duration::from_secs(1);
 
+struct MobilePlacement {
+    missing: bool,
+    path: String,
+    branch: Option<String>,
+    main: bool,
+    owner: Option<String>,
+}
+
+impl MobilePlacement {
+    fn metadata_key(&self, repo: &str) -> String { format!("orca.worktree.{repo}::{}", self.path) }
+
+    fn row(&self, repo: &str, meta: Option<&Value>) -> Value {
+        let path = self.path.as_str();
+        let title = self.branch.as_deref().unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
+        let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
+        json!({"id":format!("{repo}::{path}"),"name":name,"automaticName":title,
+            "missing":self.missing,"pinned":meta.is_some_and(|m| m["isPinned"] == true),"branch":self.branch,"main":self.main,
+            "workspace":self.owner.as_deref().unwrap_or(repo),"path":path,"workspaceStatus":meta.and_then(|m| m["workspaceStatus"].as_str()),"unread":meta.is_some_and(|m| m["isUnread"] == true)})
+    }
+}
+
+struct MobileInventory {
+    checkouts: Vec<(Value, Option<String>)>,
+    panes: Vec<PaneView>,
+}
+
+fn checkout_missing() -> AgentError {
+    AgentError::Refused { code: "CHECKOUT_NOT_FOUND".into(), message: "Checkout not found".into() }
+}
+
 fn failed(e: Error) -> AgentError {
     if e.code == thread_code::THREAD_NOT_FOUND {
         return AgentError::NoThread;
@@ -254,7 +297,7 @@ pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
     let read = ThreadEvent::from_event(event).map_err(|e| AgentError::Failed(format!("rca sent an event this t3 serve cannot read: {}", e.0)))?;
     let kind = match read {
         ThreadEvent::TurnStarted {} => AgentEventKind::TurnStarted,
-        ThreadEvent::MessageDelta { role: Role::User, text, .. } => AgentEventKind::UserText(text),
+        ThreadEvent::MessageDelta { role: Role::User, text, attachments } => AgentEventKind::UserMessage { text, attachments: attachments.into_iter().map(|a| (a.id, a.name)).collect() },
         ThreadEvent::MessageDelta { role: Role::Assistant, text, .. } => AgentEventKind::Text(text),
         ThreadEvent::ReasoningDelta { text } => AgentEventKind::Reasoning(text),
         ThreadEvent::ToolStarted { call, tool, args } => AgentEventKind::ToolStarted { id: call, name: tool, input: args },
@@ -277,7 +320,7 @@ impl RcaAgent {
     /// `url` is `http://host:port`; anything else is refused at startup.
     pub fn new(url: &str, bearer: &str, workspace: &str) -> Result<RcaAgent, String> {
         let authority = url.strip_prefix("http://").map(|r| r.trim_end_matches('/').to_string()).filter(|a| !a.is_empty() && !a.contains('/'));
-        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string(), providers: OnceLock::new() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
+        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string(), providers: OnceLock::new(), idle_history: Mutex::default() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
     }
 
     fn open(&self) -> Result<Client, Error> {
@@ -302,6 +345,384 @@ impl RcaAgent {
 
     fn call(client: &mut Client, method: Method, params: Value) -> Result<Value, AgentError> {
         client.call(method, params).map_err(failed)
+    }
+
+    fn checkout_path<'a>(&self, checkout: &'a str) -> Result<&'a str, AgentError> {
+        checkout.split_once("::")
+            .filter(|(repo, path)| *repo == self.workspace && !path.is_empty())
+            .map(|(_, path)| path)
+            .ok_or_else(checkout_missing)
+    }
+
+    fn selected_checkout(&self, client: &mut Client, checkout: &str) -> Result<exec_git::WorktreeInfo, AgentError> {
+        let path = self.checkout_path(checkout)?;
+        let catalog = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace":self.workspace}))?;
+        let catalog: exec_git::WorktreeListed =
+            serde_json::from_value(catalog).map_err(|_| AgentError::Failed("Invalid RCA worktree list".into()))?;
+        let row = catalog.worktrees.into_iter().find(|row| row.path == path).ok_or_else(checkout_missing)?;
+        let head = &row.head;
+        if !head.is_empty() && (!matches!(head.len(), 40 | 64) || !head.bytes().all(|b| b.is_ascii_hexdigit())) {
+            return Err(AgentError::Failed("Invalid checkout HEAD".into()));
+        }
+        Ok(row)
+    }
+
+    fn checkout_note(&self, client: &mut Client, checkout: &str, action: &t3_core::ports::NoteAction) -> Result<Value, AgentError> {
+        use t3_core::ports::NoteAction;
+        let row = self.selected_checkout(client, checkout)?;
+        if row.missing { return Err(checkout_missing()); }
+        let root = if row.is_main { "" } else { row.path.as_str() };
+        let (workspace, directory) = self.place(client, root, "")?;
+        let location = |name: &str| if directory == "." { name.to_owned() } else { under(&directory, name) };
+        match action {
+            NoteAction::Create => {
+                for index in 1..=100 {
+                    let name = if index == 1 { "untitled.md".into() } else { format!("untitled-{index}.md") };
+                    match client.call(edit::FILE_CREATE, json!({"workspace":workspace,"path":location(&name),"content":""})) {
+                        Ok(_) => return Ok(json!({"path":name,"content":""})),
+                        Err(e) if e.code == "ALREADY_EXISTS" => continue,
+                        Err(e) => return Err(refused(e)),
+                    }
+                }
+                Err(AgentError::Refused { code:"CHANGED".into(), message:"All untitled note names are in use".into() })
+            }
+            NoteAction::Read { path } => {
+                let result = client.call(edit::FILE_READ_CHUNK, json!({"workspace":workspace,"path":location(path),"length":256*1024})).map_err(refused)?;
+                let chunk: exec_fs::ChunkResult = serde_json::from_value(result).map_err(unreadable("file.readChunk"))?;
+                let text = terminal::b64::decode(&chunk.data).and_then(|b| String::from_utf8(b).ok());
+                let content = text.filter(|s| chunk.eof && !s.contains('\0') && s.len() as u64 == chunk.total_bytes)
+                    .ok_or_else(|| AgentError::Refused { code:"INVALID_ARGS".into(), message:"This note exceeds the editor limit or is not UTF-8 text".into() })?;
+                Ok(json!({"path":path,"content":content}))
+            }
+            NoteAction::Save { path, previous, content } => {
+                client.call(edit::ARTIFACT_WRITE, json!({"workspace":workspace,"path":location(path),"fingerprint":edit::artifact_fingerprint(previous.as_bytes()),"content":content})).map_err(refused)?;
+                Ok(json!({"path":path,"content":content}))
+            }
+        }
+    }
+
+    fn checkout_base(&self, client: &mut Client, checkout: &str) -> Result<Option<String>, AgentError> {
+        for (key, field) in [
+            (format!("orca.worktree.{checkout}"), "baseRef"),
+            (format!("orca.repo.{}", self.workspace), "worktreeBaseRef"),
+        ] {
+            let meta = Self::call(client, agent_api_state::GET, json!({"scope":"orca","key":key}))?;
+            if let Some(base) = meta["value"][field].as_str().filter(|s| !s.is_empty()) {
+                return Ok(Some(base.to_owned()));
+            }
+        }
+        let value = Self::call(client, git::REFS, json!({"workspace":self.workspace}))?;
+        let refs: exec_git::vcs::RefsResult = serde_json::from_value(value).map_err(|_| AgentError::Failed("Invalid Git refs".into()))?;
+        let default = ["origin/main", "origin/master", "main", "master"]
+            .into_iter()
+            .find(|name| refs.refs.iter().any(|r| r.name == *name && r.kind != "tag"));
+        Ok(default.map(str::to_owned).or(refs.current))
+    }
+
+    fn checkout_pull_request(&self, client: &mut Client, checkout: &str, link: Option<u64>) -> Result<Value, AgentError> {
+        let row = self.selected_checkout(client, checkout)?;
+        let meta = Self::call(client, agent_api_state::GET, json!({"scope":"orca","key":format!("orca.worktree.{checkout}")}))?;
+        let metadata = &meta["value"];
+        let number = if let Some(linked) = link.or_else(|| metadata["linkedPR"].as_u64().filter(|n| *n > 0)) {
+            Some(linked)
+        } else if let Some(branch) = row.branch.as_deref().filter(|s| !s.is_empty()) {
+            let listed = Self::call(client, hosted::pr::LIST, json!({"workspace":self.workspace,"provider":"github","head":branch,"state":"all","limit":20}))?;
+            let rows = listed["prs"].as_array().ok_or_else(|| AgentError::Failed("Missing pull request list.".into()))?;
+            let eligible = || rows.iter().filter(|p| p["head_ref"] == branch && p["number"] != metadata["suppressedGitHubPR"]);
+            eligible().find(|p| p["state"] == "open").or_else(|| eligible().next())
+                .map(|p| p["number"].as_u64().filter(|n| *n > 0).ok_or_else(|| AgentError::Failed("Invalid pull request number.".into()))).transpose()?
+        } else {
+            None
+        };
+        let summary = number.map(|number| -> Result<Value, AgentError> {
+            let params = json!({"workspace":self.workspace,"provider":"github","number":number});
+            let view = Self::call(client, hosted::pr::VIEW, params.clone())?;
+            let p = &view["pr"];
+            let malformed = || AgentError::Failed("Invalid pull request summary.".into());
+            if p["number"].as_u64() != Some(number) { return Err(malformed()); }
+            let title = p["title"].as_str().ok_or_else(malformed)?;
+            let state = p["state"].as_str().filter(|s| matches!(*s,"open"|"closed"|"merged")).ok_or_else(malformed)?;
+            let checks = if link.is_none() {
+                match client.call(hosted::pr::CHECKS, params).map_err(refused) {
+                    Ok(result) => Some(json!({"passing":result["pass"],"failing":result["fail"],"pending":result["pending"]})),
+                    Err(AgentError::Refused { .. }) => None,
+                    Err(other) => return Err(other),
+                }
+            } else { None };
+            Ok(json!({"number":number,"title":title,"state":state,"draft":p["draft"]==true,
+                "base":p["base_ref"],"head":p["head_ref"],"author":p["author"],"url":p["url"],
+                "description":p["body"],"mergeable":p["mergeable"],"reviewDecision":p["review_decision"],
+                "files":p["changed_files"],"additions":p["additions"],"deletions":p["deletions"],"checks":checks}))
+        }).transpose()?;
+        if let Some(number) = link {
+            let mut value = match metadata {
+                Value::Object(obj) => obj.clone(),
+                Value::Null => serde_json::Map::new(),
+                _ => return Err(AgentError::Failed("Invalid checkout metadata.".into())),
+            };
+            value.insert("linkedPR".into(), json!(number));
+            value.remove("suppressedGitHubPR");
+            Self::call(client, agent_api_state::SET, json!({"scope":"orca","key":format!("orca.worktree.{checkout}"),"value":value}))?;
+        }
+        Ok(json!({"branch":row.branch,"pullRequest":summary}))
+    }
+
+    fn checkout_changes(&self, client: &mut Client, checkout: &str) -> Result<Value, AgentError> {
+        let row = self.selected_checkout(client, checkout)?;
+        if row.head.is_empty() || row.head.bytes().all(|b| b == b'0') {
+            return Ok(json!({"head":null,"branch":row.branch,"comparison":null}));
+        }
+        let base = self.checkout_base(client, checkout)?;
+        let comparison = match base {
+            Some(base) => {
+                let mut diff = self.compare_checkout(client, &base, &row.head)?;
+                let base_oid = match diff.merge_base.clone() {
+                    Some(oid) => oid,
+                    None => {
+                        // Unrelated histories compare directly to the base commit.
+                        let log = Self::call(client, git::HISTORY, json!({"workspace":self.workspace,"rev":base,"limit":1}))?;
+                        let pinned = log["commits"][0]["sha"].as_str().ok_or_else(|| AgentError::Failed("Missing comparison base".into()))?;
+                        diff = self.compare_checkout(client, pinned, &row.head)?;
+                        diff.merge_base.clone().unwrap_or_else(|| pinned.to_owned())
+                    }
+                };
+                let limited = diff.files.len() >= exec_git::vcs::STATUS_FILES_CAP;
+                json!({"base":base,"baseOid":base_oid,"ahead":diff.ahead,"files":diff.files,"limited":limited})
+            }
+            None => Value::Null,
+        };
+        Ok(json!({"head":row.head,"branch":row.branch,"comparison":comparison}))
+    }
+
+    fn compare_checkout(&self, client: &mut Client, base: &str, head: &str) -> Result<exec_git::vcs::CompareResult, AgentError> {
+        let value = Self::call(
+            client,
+            git::COMPARE,
+            json!({"workspace":self.workspace,"base":base,"head":head,"limit":1}),
+        )?;
+        serde_json::from_value(value).map_err(|_| AgentError::Failed("Invalid Git comparison".into()))
+    }
+
+    fn checkout_file(
+        &self,
+        client: &mut Client,
+        checkout: &str,
+        head: &str,
+        base: Option<&str>,
+        path: &str,
+        old_path: Option<&str>,
+    ) -> Result<Value, AgentError> {
+        self.selected_checkout(client, checkout)?;
+        let mut read = |revision: &str, path: &str| -> Result<Option<exec_git::vcs::BlobResult>, AgentError> {
+            let params = json!({"workspace":self.workspace,"rev":revision,"path":path,"max_bytes":8 << 20});
+            match client.call(git::BLOB, params) {
+                Ok(value) => serde_json::from_value(value)
+                    .map(Some)
+                    .map_err(|_| AgentError::Failed("Invalid Git blob".into())),
+                Err(e) if e.from_service() && e.code == "NOT_FOUND" => Ok(None),
+                Err(e) => Err(refused(e)),
+            }
+        };
+        let original = match base {
+            Some(base) => read(base, old_path.unwrap_or(path))?,
+            None => None,
+        };
+        let modified = read(head, path)?;
+        if original.is_none() && modified.is_none() {
+            return Err(AgentError::Refused {
+                code: "FILE_NOT_FOUND".into(),
+                message: "File absent in both revisions".into(),
+            });
+        }
+        let sides = [original.as_ref(), modified.as_ref()];
+        if sides.iter().flatten().any(|blob| blob.truncated) || sides.iter().flatten().map(|blob| blob.size).sum::<u64>() > 4 * 1024 * 1024 {
+            return Ok(json!({"kind":"tooLarge"}));
+        }
+        if sides.iter().flatten().any(|blob| blob.binary) {
+            return Ok(json!({"kind":"binary"}));
+        }
+        let text = |side: Option<exec_git::vcs::BlobResult>| -> Result<Option<String>, AgentError> {
+            side.map(|blob| {
+                let bytes = terminal::b64::decode(&blob.data).ok_or_else(|| AgentError::Failed("Invalid Git blob encoding".into()))?;
+                Ok(String::from_utf8_lossy(&bytes).into_owned())
+            })
+            .transpose()
+        };
+        Ok(json!({"kind":"text","original":text(original)?,"modified":text(modified)?}))
+    }
+
+    fn checkout_commit(&self, client: &mut Client, checkout: &str, sha: &str) -> Result<Value, AgentError> {
+        self.selected_checkout(client, checkout)?;
+        // Linked checkouts share this repository's immutable commits and their first parents.
+        let log = client
+            .call(git::HISTORY, json!({"workspace":self.workspace, "rev":sha, "limit":1}))
+            .map_err(|error| {
+                if error.from_service() && (error.code == "NOT_FOUND" || error.message.ends_with(&format!("bad object {sha}"))) {
+                    return AgentError::Refused {
+                        code: "COMMIT_NOT_FOUND".into(),
+                        message: "Commit not found".into(),
+                    };
+                }
+                refused(error)
+            })?;
+        let log: exec_git::vcs::LogResult = serde_json::from_value(log).map_err(|_| AgentError::Failed("Invalid Git history".into()))?;
+        let commit = log
+            .commits
+            .into_iter()
+            .next()
+            .filter(|c| c.sha == sha)
+            .ok_or_else(|| AgentError::Refused {
+                code: "COMMIT_NOT_FOUND".into(),
+                message: "Commit not found".into(),
+            })?;
+        let Some(parent) = commit.parents.first() else {
+            return Ok(json!({"body":commit.body, "initial":true, "files":[], "limited":false}));
+        };
+        let diff = self.compare_checkout(client, parent, sha)?;
+        let limited = diff.files.len() >= exec_git::vcs::STATUS_FILES_CAP;
+        Ok(json!({"body":commit.body, "initial":false, "files":diff.files, "limited":limited}))
+    }
+
+    fn checkout_history(
+        &self,
+        client: &mut Client,
+        checkout: &str,
+        expected_head: Option<&str>,
+        base: Option<&str>,
+        offset: u32,
+    ) -> Result<Value, AgentError> {
+        const PAGE_SIZE: u32 = 50;
+        let row = self.selected_checkout(client, checkout)?;
+        let head = &row.head;
+        let repo = &self.workspace;
+        if expected_head.is_some_and(|expected| head != expected) {
+            return Err(AgentError::Refused {
+                code: "CHECKOUT_HEAD_CHANGED".into(),
+                message: "Checkout HEAD changed. Reload its history.".into(),
+            });
+        }
+        let branch = row.branch.filter(|name| !name.is_empty());
+        if head.is_empty() || head.bytes().all(|b| b == b'0') {
+            return Ok(json!({"branch": branch, "head": null, "commits": [], "nextOffset": null}));
+        }
+        // Linked worktrees share an object database. A detached checkout is addressable by its own HEAD.
+        let rev = base.map_or_else(|| head.clone(), |base| format!("{base}..{head}"));
+        let log = Self::call(
+            client,
+            git::HISTORY,
+            json!({"workspace": repo, "rev": rev, "skip": offset, "limit": PAGE_SIZE}),
+        )?;
+        let log: exec_git::vcs::LogResult = serde_json::from_value(log).map_err(|_| AgentError::Failed("Invalid Git history".into()))?;
+        let count = log.commits.len();
+        if count > PAGE_SIZE as usize || (log.truncated && count != PAGE_SIZE as usize) {
+            return Err(AgentError::Failed("Invalid Git history page size".into()));
+        }
+        let next = if log.truncated {
+            Some(
+                offset
+                    .checked_add(PAGE_SIZE)
+                    .ok_or_else(|| AgentError::Failed("Git history offset exceeded".into()))?,
+            )
+        } else {
+            None
+        };
+        let items: Vec<_> = log
+            .commits
+            .into_iter()
+            .map(|commit| {
+                json!({
+                    "sha": commit.sha, "shortSha": commit.short, "subject": commit.subject,
+                    "author": commit.author_name, "authoredAtMs": commit.authored_ms, "parent": commit.parents.first()
+                })
+            })
+            .collect();
+        Ok(json!({"branch": branch, "head": head, "commits": items, "nextOffset": next}))
+    }
+
+    fn mobile_placements(&self, client: &mut Client) -> Result<Vec<MobilePlacement>, AgentError> {
+        let listed = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace": self.workspace}))?;
+        let registrations = Self::call(client, REPO_LIST, json!({}))?;
+        let rows = listed["worktrees"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA worktrees.".into()))?;
+        let repos = registrations["repos"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA repositories.".into()))?;
+        let executor = repos.iter().find(|r| r["workspace"] == self.workspace).and_then(|r| r["executor"].as_str());
+        let by_path: std::collections::HashMap<_, _> = repos.iter()
+            .filter(|r| r["kind"] == "worktree" && executor.is_some_and(|owner| r["executor"] == owner))
+            .filter_map(|r| Some((r["path"].as_str()?, r["workspace"].as_str()?)))
+            .collect();
+        rows.iter().map(|row| {
+            let path = row["path"].as_str().ok_or_else(|| AgentError::Failed("Missing checkout path.".into()))?;
+            let main = row["is_main"] == true;
+            let owner = if main { Some(self.workspace.as_str()) } else { by_path.get(path).copied() };
+            Ok(MobilePlacement {
+                missing: row["missing"] == true,
+                path: path.into(), main, owner: owner.map(str::to_owned),
+                branch: row["branch"].as_str().filter(|b| !b.is_empty()).map(str::to_owned),
+            })
+        }).collect()
+    }
+
+    fn mobile_inventory(&self, client: &mut Client) -> Result<MobileInventory, AgentError> {
+        let placements = self.mobile_placements(client)?;
+        let snapshot = Self::call(client, agent_api_state::watch::SUBSCRIBE, json!({"scope":"orca"}))?;
+        let metadata = snapshot["values"].as_object().ok_or_else(|| AgentError::Failed("Missing RCA workspace metadata.".into()))?;
+        let pane_list = Self::call(client, agent_api_service::panes::LIST, json!({}))?;
+        let panes: Vec<PaneView> = serde_json::from_value(pane_list["panes"].clone()).map_err(|_| AgentError::Failed("Invalid RCA pane list.".into()))?;
+        let checkouts = placements.into_iter().map(|p| {
+            let meta = metadata.get(&p.metadata_key(&self.workspace));
+            (p.row(&self.workspace, meta), p.owner)
+        }).collect();
+        Ok(MobileInventory { checkouts, panes })
+    }
+
+    fn thread_checkout(&self, client: &mut Client, thread: &str, path: Option<&str>, selected: Option<&str>) -> Result<Value, AgentError> {
+        let selected_path = selected.map(|id| self.checkout_path(id)).transpose()?;
+        if selected_path.zip(path).is_some_and(|(selected, projected)| selected != projected) { return Err(checkout_missing()); }
+        let found = Self::call(client, agent_api_agent::THREAD_GET, json!({"thread":thread}))?;
+        let workspace = found["thread"]["workspace"].as_str().ok_or_else(checkout_missing)?;
+        let exact = path.or(selected_path);
+        let row = self.mobile_placements(client)?.into_iter().find(|p| {
+            if p.missing { return false; }
+            if let Some(exact) = exact {
+                p.path == exact && (p.owner.as_deref().unwrap_or(&self.workspace) == workspace ||
+                    (path.is_some() && workspace == self.workspace))
+            } else {
+                p.owner.as_deref() == Some(workspace)
+            }
+        }).ok_or_else(checkout_missing)?;
+        let meta = Self::call(client, agent_api_state::GET, json!({"scope":"orca","key":row.metadata_key(&self.workspace)}))?;
+        Ok(row.row(&self.workspace, meta.get("value")))
+    }
+
+    fn mobile_worktrees(&self, client: &mut Client) -> Result<Value, AgentError> {
+        let inventory = self.mobile_inventory(client)?;
+        let mut unread = std::collections::HashMap::<String, Vec<String>>::new();
+        for pane in inventory.panes.into_iter().filter(|p| p.unread && p.listed && p.state != PaneState::Idle) {
+            if let Some(workspace) = pane.workspace { unread.entry(workspace).or_default().push(pane.pane); }
+        }
+        let checkouts = inventory.checkouts.into_iter().map(|(mut row, owner)| {
+            let alerts = owner.as_ref().and_then(|key| unread.get(key)).map(Vec::as_slice).unwrap_or_default();
+            row["unread"] = json!(!alerts.is_empty() || row["unread"] == true);
+            row["unreadPanes"] = json!(alerts);
+            row
+        }).collect::<Vec<_>>();
+        Ok(json!({"repo": self.workspace, "checkouts": checkouts}))
+    }
+
+    fn mobile_agents(&self, client: &mut Client) -> Result<Value, AgentError> {
+        let MobileInventory { checkouts, mut panes } = self.mobile_inventory(client)?;
+        let owned: std::collections::HashMap<_, _> = checkouts.into_iter()
+            .filter_map(|(checkout, owner)| Some((owner?, checkout))).collect();
+        panes.sort_by(|a, b| b.sort_at_ms.cmp(&a.sort_at_ms).then_with(|| a.thread.cmp(&b.thread)));
+        let mut places = serde_json::Map::new();
+        let mut agents = Vec::new();
+        for pane in panes.into_iter().filter(|p| p.listed && p.state != PaneState::Idle) {
+            let Some(workspace) = pane.workspace else { continue };
+            let Some(checkout) = owned.get(&workspace) else { continue };
+            places.entry(workspace.clone()).or_insert_with(|| json!({"id":checkout["id"],"name":checkout["name"]}));
+            agents.push(json!({"threadId":pane.thread,"title":pane.title,"status":pane.state,
+                "updatedAt":pane.sort_at_ms,"unread":pane.unread,"clearable":pane.clearable,"workspace":workspace}));
+        }
+        Ok(json!({"repo": self.workspace, "checkouts":places, "agents":agents}))
     }
 
     /// Use a separate workspace only when RCA registered the Git worktree.
@@ -351,7 +772,20 @@ impl RcaAgent {
         // A path to give the executor only when the directory is below the workspace's own
         let below = |path: String| Some(path).filter(|p| p != ".");
         Ok(Some(match op {
-            Op::ProviderCommands { root, driver } => (catalog::COMMANDS_LIST, json!({"driver": driver, "workspace": self.place(client, root, "")?.0})),
+            Op::StageTerminalImage {root, id} => (attachments::STAGE, json!({"workspace":self.place(client, root, "")?.0,"ids":[id],"temp":true})),
+            Op::OpenServerPreview {root, params} => {
+                let mut params = params.clone();
+                params["workspace"] = json!(self.place(client, root, "")?.0);
+                (preview::sessions::OPEN, params)
+            }
+            Op::ProviderCommands { root, driver } => {
+                let (workspace, path) = self.place(client, root, "")?;
+                let mut params = json!({"workspace": workspace, "driver": driver});
+                if let Some(path) = below(path) {
+                    params["path"] = json!(path);
+                }
+                (catalog::COMMANDS_LIST, params)
+            }
             Op::FileStat { root, path } => {
                 let (workspace, path) = at(client, root, path)?;
                 (edit::FILE_STAT, json!({"workspace": workspace, "path": path}))
@@ -514,6 +948,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
             (lifecycle::THREAD_SETTLE, lifecycle::SettleParams { thread: same(thread), state, until_ms: *until_ms, at_ms: *at_ms }.to_value())
         }
         Op::ThreadSearch { query, limit } => (lifecycle::THREAD_SEARCH, lifecycle::SearchParams { query: same(query), limit: Some(*limit) }.to_value()),
+        Op::ThreadList => (agent_api_agent::THREAD_LIST, agent_api_agent::ListParams::default().to_value()),
         Op::ThreadFamily { thread } => (lifecycle::THREAD_FAMILY, lifecycle::FamilyParams { thread: same(thread) }.to_value()),
         Op::ThreadForceStop { thread, turn } => (lifecycle::THREAD_FORCE_STOP, lifecycle::ForceStopParams { thread: same(thread), turn: turn.clone() }.to_value()),
         Op::ItemGet { thread, seq } => (lifecycle::ITEM_GET, lifecycle::ItemGetParams { thread: same(thread), seq: *seq }.to_value()),
@@ -547,6 +982,10 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
             let found = schedules::METHODS.iter().find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("{method} is no schedules method of the agent API")))?;
             (found, params.clone())
         }
+        Op::PreviewPage {method, params} => {
+            let found = preview::rendering::METHODS.iter().find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("Unknown preview page operation {method}")))?;
+            (found, params.clone())
+        }
         Op::Preview { method, params } => {
             let found = preview::sessions::METHODS.iter().chain(preview::watch::METHODS).find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("{method} is no preview.sessions method of the agent API")))?;
             (found, params.clone())
@@ -566,8 +1005,9 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceCreate { workspace, path } => (WORKSPACE_CREATE, json!({"workspace": workspace, "path": path})),
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
+        Op::StateCompareAndSet { scope, key, expected, value } => (agent_api_state::COMPARE_AND_SET, json!({"scope": scope, "key": key, "expected": expected, "value": value})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::StageTerminalImage { .. } | Op::CheckoutNote { .. } | Op::OpenServerPreview { .. } | Op::CheckoutPullRequest { .. } | Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -579,7 +1019,7 @@ fn is_accounts(op: &Op) -> bool {
 
 /// The requests whose refusals keep the service's own codes (`CLI_NOT_INSTALLED`, `PROVIDER_NOT_SIGNED_IN`, the executor's).
 fn is_hosted(op: &Op) -> bool {
-    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. } | Op::Catalog { .. })
+    matches!(op, Op::PreviewPage { .. } | Op::OpenServerPreview { .. } | Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. } | Op::Catalog { .. })
 }
 
 /// The requests about directories and workspaces whose refusals keep the codes the app tells apart (`ALREADY_EXISTS`, `PATH_OUTSIDE_ROOT`,
@@ -625,6 +1065,45 @@ impl AgentApi for RcaAgent {
 
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
+        if let Op::CheckoutNote { checkout, action } = op {
+            return self.checkout_note(&mut client, checkout, action);
+        }
+        if let Op::CheckoutPullRequest { checkout, link } = op {
+            return self.checkout_pull_request(&mut client, checkout, *link);
+        }
+        if let Op::CheckoutBranches { checkout } = op {
+            let row = self.selected_checkout(&mut client, checkout)?;
+            let value = Self::call(&mut client, git::REFS, json!({"workspace":self.workspace,"kind":"branch","limit":exec_git::vcs::REFS_MAX}))?;
+            let refs: exec_git::vcs::RefsResult = serde_json::from_value(value).map_err(|_| AgentError::Failed("Invalid Git refs".into()))?;
+            return Ok(json!({"current":row.branch,"branches":refs.refs.into_iter().map(|item|item.name).collect::<Vec<_>>(), "truncated":refs.truncated}));
+        }
+        if let Op::SwitchCheckoutBranch { checkout, branch } = op {
+            let path = self.checkout_path(checkout)?;
+            return client.call(git::SWITCH_WORKTREE_BRANCH, json!({"workspace":self.workspace,"path":path,"branch":branch})).map_err(refused);
+        }
+        if let Op::CheckoutChanges { checkout } = op {
+            return self.checkout_changes(&mut client, checkout);
+        }
+        if let Op::CheckoutFile {checkout, head, base, path, old_path} = op {
+            return self.checkout_file(&mut client, checkout, head, base.as_deref(), path, old_path.as_deref());
+        }
+        if let Op::CheckoutCommit { checkout, sha } = op {
+            return self.checkout_commit(&mut client, checkout, sha);
+        }
+        if let Op::CheckoutHistory { checkout, expected_head, base, offset } = op {
+            return self.checkout_history(&mut client, checkout, expected_head.as_deref(), base.as_deref(), *offset);
+        }
+        if let Op::MobileThreadCheckout { thread, path, selected } = op {
+            return self.thread_checkout(&mut client, thread, path.as_deref(), selected.as_deref());
+        }
+        if matches!(op, Op::MobileAgents) { return self.mobile_agents(&mut client); }
+        if matches!(op, Op::MobileWorktrees) { return self.mobile_worktrees(&mut client); }
+        if let Op::ReadPanes { panes } = op {
+            for keys in panes.chunks(agent_api_service::panes::MAX_MARKED) {
+                Self::call(&mut client, agent_api_service::panes::MARK, json!({"panes":keys,"mark":"read"}))?;
+            }
+            return Ok(Value::Null);
+        }
         let (method, params) = match self.placed(&mut client, op)? {
             Some(placed) => placed,
             None => request(op)?,
@@ -687,9 +1166,22 @@ impl AgentApi for RcaAgent {
     }
 
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError> {
-        let mut client = self.connect()?;
-        let params = HistoryParams { thread: thread_id.to_string(), after_seq, limit: Some(limit) };
-        let page: HistoryResult = serde_json::from_value(Self::call(&mut client, THREAD_HISTORY, params.to_value())?).map_err(unreadable("thread.history"))?;
+        let params = HistoryParams { thread: thread_id.to_string(), after_seq, limit: Some(limit) }.to_value();
+        // Take the idle connection before doing I/O so simultaneous readers never wait on each other.
+        let cached = self.idle_history.lock().unwrap_or_else(|e| e.into_inner()).take();
+        let mut client = match cached {
+            Some(client) => client,
+            None => self.connect()?,
+        };
+        let response = match client.call(THREAD_HISTORY, params.clone()) {
+            Err(error) if error.code == agent_api_client::code::DISCONNECTED => {
+                client = self.connect()?;
+                Self::call(&mut client, THREAD_HISTORY, params)?
+            }
+            answer => answer.map_err(failed)?,
+        };
+        *self.idle_history.lock().unwrap_or_else(|e| e.into_inner()) = Some(client);
+        let page: HistoryResult = serde_json::from_value(response).map_err(unreadable("thread.history"))?;
         let events = page.events().map_err(|e| AgentError::Failed(format!("rca answered thread.history with {}", e.0)))?;
         Ok(History { events: events.iter().map(agent_event).collect::<Result<_, _>>()?, last_seq: page.last_seq, more: page.more })
     }
@@ -699,6 +1191,20 @@ impl AgentApi for RcaAgent {
         let mut entries: Vec<DirEntry> = listed.entries.into_iter().map(|e| DirEntry { name: e.name, directory: e.kind == EntryKind::Dir, size: e.size }).collect();
         entries.sort_by(|a, b| b.directory.cmp(&a.directory).then_with(|| a.name.cmp(&b.name)));
         Ok(entries)
+    }
+
+    fn file_preview(&self, root: &str, path: &str) -> Result<t3_core::ports::FilePreview, AgentError> {
+        use t3_core::ports::{FilePreview, FILE_PREVIEW_LIMIT};
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        let mut client = self.connect()?;
+        let (workspace, path) = self.place(&mut client, root, path)?;
+        let result = client.call(edit::FILE_READ_CHUNK, json!({"workspace": workspace, "path": path, "length": FILE_PREVIEW_LIMIT})).map_err(refused)?;
+        let chunk: exec_fs::ChunkResult = serde_json::from_value(result).map_err(unreadable("file.readChunk"))?;
+        let bytes = STANDARD.decode(&chunk.data).map_err(|_| AgentError::Failed("Invalid file preview encoding".into()))?;
+        if chunk.offset != 0 || bytes.len() as u64 != chunk.bytes || bytes.len() > FILE_PREVIEW_LIMIT {
+            return Err(AgentError::Failed("Invalid file preview range".into()));
+        }
+        Ok(FilePreview { bytes, total_bytes: chunk.total_bytes })
     }
 
     fn read_file(&self, root: &str, path: &str) -> Result<String, AgentError> {

@@ -1,0 +1,28 @@
+//! The system implementations of the core's ports.
+mod clock;
+mod command_crawler;
+pub mod conn;
+mod coverage;
+mod fs_checkpoint;
+mod fs_store;
+pub mod forward;
+pub mod http1;
+mod in_process;
+pub mod proxy;
+pub mod replay_server;
+pub mod script_driver;
+mod stdio;
+mod tap;
+pub mod tcp_candidate;
+pub mod tls;
+
+pub use command_crawler::CommandCrawler;
+pub use coverage::{sources_from_env, FsTree, GitHistory, HttpUpstream, MimicEvidence, RunTraces};
+pub use clock::{entropy, SystemClock};
+pub use fs_checkpoint::{FsCheckpoint, CHECKPOINT_DIR};
+pub use fs_store::FsStore;
+pub use in_process::InProcessDriver;
+pub use proxy::{Event as ProxyEvent, Failure as ProxyFailure, Proxy};
+pub use script_driver::open_driver;
+pub use stdio::{serve, StdioDriver, StdioSpec};
+pub use tap::{Carry, Tap};

@@ -4,6 +4,7 @@ severity: error
 message: An application module may not use the infrastructure or api layer; reach it through a port defined in application.
 files:
   # BEGIN generated:ast-grep-files
+  - "**/clis/mimic/proxy-core/src/application/**/*.rs"
   - "**/leetcode-auth-cookie-capture/core/src/application/**/*.rs"
   - "**/leetcode-backend/core/src/application/**/*.rs"
   - "**/remote-chat-agent/cli-driver/src/application/**/*.rs"

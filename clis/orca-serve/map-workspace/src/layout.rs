@@ -3,8 +3,8 @@
 use crate::agent::{ask, refusal};
 use crate::files::{basename, extension, image_mime, is_binary_path, is_safe_path, plain, read_prefix};
 use crate::target::{resolve, selector, text, Target};
-use agent_api_state::SET;
-use agent_api_workspace::edit::{FILE_STAT, FILE_WRITE};
+pub use agent_api_state::SET;
+use agent_api_workspace::edit::{artifact_fingerprint, ARTIFACT_WRITE, FILE_STAT};
 use orca_core::wire::Failure;
 use orca_core::AgentApi;
 use serde_json::{json, Value};
@@ -60,6 +60,29 @@ pub fn close(agent: &dyn AgentApi, workspace: &str, tab: &str) -> Result<bool, F
         keep(agent, &active_key(workspace), Value::Null)?;
     }
     Ok(true)
+}
+
+pub fn open_browser(agent: &dyn AgentApi, workspace: &str, id: &str, page: &Value) -> Result<(), Failure> {
+    let title = page["title"].as_str().filter(|s| !s.is_empty()).unwrap_or("Browser");
+    open(agent, workspace, json!({"id":id,"kind":"browser","title":title,"url":page["url"]}))
+}
+
+pub fn update_browser_location(agent: &dyn AgentApi, workspace: &str, id: &str, page: &Value) -> Result<(), Failure> {
+    let _turn = orca_core::kept_state_turn();
+    let mut tabs = kept(agent, workspace)?;
+    if let Some(tab) = tabs.iter_mut().find(|tab| tab["id"] == id && tab["kind"] == "browser") {
+        let mut changed = false;
+        for field in ["url", "title", "canGoBack", "canGoForward"] {
+            if let Some(value) = page.get(field).filter(|value| tab[field] != **value) {
+                tab[field] = value.clone();
+                changed = true;
+            }
+        }
+        if changed {
+            keep(agent, &extras_key(workspace), Value::Array(tabs))?;
+        }
+    }
+    Ok(())
 }
 
 /// A chat's tab, opened by `agentSession.reveal`: the chat's own id names it.
@@ -137,6 +160,9 @@ fn absolute(target: &Target, relative: &str) -> String {
 pub fn project(target: &Target, record: &Value, active: Option<&str>) -> Value {
     let id = record["id"].as_str().unwrap_or_default();
     let is_active = active == Some(id);
+    if record["kind"] == "browser" {
+        return json!({"type":"browser","id":id,"browserPageId":id,"title":record["title"],"url":record["url"],"canGoBack":record["canGoBack"].as_bool().unwrap_or(false),"canGoForward":record["canGoForward"].as_bool().unwrap_or(false),"isActive":is_active,"isPinned":false,"color":null});
+    }
     if record["kind"] == "agent-session" {
         return json!({"type": "agent-session", "id": id, "title": record["title"], "sessionId": record["sessionId"], "agent": record["agent"], "color": null, "isPinned": false, "isActive": is_active});
     }
@@ -262,7 +288,7 @@ pub(crate) fn read_tab(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fa
     Ok(result)
 }
 
-/// A save against the version the phone read: a changed file answers `conflict`; the file is re-read right before the unconditional write.
+/// A save against the version the phone read: a changed file answers `conflict`; the executor compares the previous text at replacement.
 pub(crate) fn save_tab(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let target = resolve(agent, selector(params)?)?;
     let content = params["content"].as_str().ok_or_else(|| Failure::invalid("Invalid input: content must be a string"))?;
@@ -279,10 +305,11 @@ pub(crate) fn save_tab(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fa
     if content_version(&current) != base {
         return if current == content { Ok(saved) } else { Err(plain("conflict")) };
     }
-    if disk(agent, &target, &relative, EDIT_MAX)?.0 != current {
-        return Err(plain("conflict"));
-    }
-    ask(agent, FILE_WRITE.name(), json!({"workspace": target.workspace, "path": relative, "content": content, "create_dirs": false}))?;
+    agent.request(ARTIFACT_WRITE.name(), json!({"workspace": target.workspace, "path": relative, "content": content, "fingerprint": artifact_fingerprint(current.as_bytes())}))
+        .map_err(|error| match error {
+            orca_core::AgentError::Refused { code, .. } if code == "CHANGED" => plain("conflict"),
+            error => refusal(error),
+        })?;
     Ok(saved)
 }
 

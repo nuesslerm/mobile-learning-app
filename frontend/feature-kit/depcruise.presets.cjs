@@ -15,6 +15,7 @@ const EXTERNAL = [...NON_SOURCE_NPM, 'npm-no-pkg', 'npm-unknown', 'unknown'];
 const RINGS = {
   'hexagonal-feature': { domain: [], data: ['domain'], state: ['domain'], ui: ['domain', 'state'], di: ['domain', 'data', 'state'], routes: ['di', 'ui'] },
   'presentation-feature': { state: [], ui: ['state'], routes: ['ui'] },
+  'component-library': { ports: [], core: ['ports'], adapters: ['core', 'ports'] },
   'hexagonal-library': { ports: [], core: ['ports'], adapters: ['core', 'ports'] },
 };
 // END generated:rings

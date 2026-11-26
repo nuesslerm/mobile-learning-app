@@ -212,6 +212,7 @@ pub enum GitCall {
     Unstage { paths: Vec<String> },
     Discard { paths: Vec<String>, scope: DiscardScope, untracked: bool, source: Option<String> },
     Commit { message: String, amend: bool, all: bool, allow_empty: bool },
+    SwitchWorktreeBranch { path: String, branch: String },
     Checkout { target: String, detach: bool, track: bool, force: bool },
     CreateRef { name: String, kind: RefKind, from: Option<String>, checkout: bool, message: Option<String> },
     Fetch { remote: Option<String>, prune: bool, refspecs: Vec<Refspec> },
@@ -291,6 +292,17 @@ impl GitOp {
                     return Err(ExecError::invalid_args("`message` must not be empty"));
                 }
                 Ok(GitCall::Commit { message, amend: flag(a, "amend"), all: flag(a, "all"), allow_empty: flag(a, "allow_empty") })
+            },
+            crate::GIT_SWITCH_WORKTREE_BRANCH => |a| {
+                let path = string(a, "path")?;
+                let branch = string(a, "branch")?;
+                if !path.starts_with('/') || path.contains('\0') {
+                    return Err(ExecError::invalid_args("`path` must be an absolute checkout path"));
+                }
+                if branch.is_empty() || branch.starts_with('-') || branch.contains('\0') {
+                    return Err(ExecError::invalid_args("`branch` must be a local branch name"));
+                }
+                Ok(GitCall::SwitchWorktreeBranch { path, branch })
             },
             crate::GIT_CHECKOUT => |a| {
                 let (detach, track) = (flag(a, "detach"), flag(a, "track"));
@@ -403,6 +415,7 @@ impl GitOp {
             GitCall::Unstage { .. } => crate::GIT_UNSTAGE,
             GitCall::Discard { .. } => crate::GIT_DISCARD,
             GitCall::Commit { .. } => crate::GIT_COMMIT,
+            GitCall::SwitchWorktreeBranch { .. } => crate::GIT_SWITCH_WORKTREE_BRANCH,
             GitCall::Checkout { .. } => crate::GIT_CHECKOUT,
             GitCall::CreateRef { .. } => crate::GIT_CREATE_REF,
             GitCall::Fetch { .. } => crate::GIT_FETCH,

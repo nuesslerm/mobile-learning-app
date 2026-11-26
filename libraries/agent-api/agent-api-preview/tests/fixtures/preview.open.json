@@ -89,7 +89,7 @@
       }
     },
     {
-      "name": "refuses a field it does not know, such as the runtime of another app",
+      "name": "refuses a server preview on a host without a browser",
       "request": {
         "id": 1,
         "method": "preview.open",
@@ -101,8 +101,8 @@
       "response": {
         "id": 1,
         "error": {
-          "code": "INVALID_PARAMS",
-          "message": "unknown field `runtime`, expected one of `thread`, `url`, `viewport`, `profile`, `reveal`"
+          "code": "BROWSER_DISABLED",
+          "message": "This host cannot stream a browser"
         }
       }
     }

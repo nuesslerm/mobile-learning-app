@@ -1,0 +1,6 @@
+device:tap_on({point=env.agent_point})
+sleep_ms(5000)
+device:take_screenshot(env.out..'/chat.png')
+device:tap_on({point='6.5%,9.3%'})
+sleep_ms(3300)
+device:take_screenshot(env.out..'/returned.png')

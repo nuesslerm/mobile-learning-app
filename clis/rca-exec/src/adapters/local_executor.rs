@@ -44,6 +44,8 @@ const SWEEP_DRAIN: Duration = Duration::from_millis(500);
 const PRUNED: [&str; 2] = [".git", "node_modules"];
 
 pub struct LocalExecutor {
+    configured_root: PathBuf,
+    configured_worktree_base: Option<PathBuf>,
     root: PathBuf,
     worktree_base: Option<PathBuf>,
     browse_allow: Vec<PathBuf>,
@@ -82,12 +84,14 @@ fn outside(path: &str) -> ExecError {
 
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
+        let configured_root = std::path::absolute(root).map_err(|e| e.to_string())?;
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), sessions: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { configured_root, configured_worktree_base: None, root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), sessions: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
     pub fn with_worktree_base(mut self, base: &Path) -> Result<LocalExecutor, String> {
+        let configured_base = std::path::absolute(base).map_err(|e| e.to_string())?;
         let existed = base.exists();
         fs::create_dir_all(base).map_err(|e| format!("worktree base {}: {e}", base.display()))?;
         let base = fs::canonicalize(base).map_err(|e| format!("worktree base {}: {e}", base.display()))?;
@@ -97,6 +101,7 @@ impl LocalExecutor {
             }
             return Err(format!("worktree base {} and root {} must not contain each other", base.display(), self.root.display()));
         }
+        self.configured_worktree_base = Some(configured_base);
         self.worktree_base = Some(base);
         Ok(self)
     }
@@ -230,7 +235,11 @@ impl LocalExecutor {
     fn resolve(&self, path: &str) -> ExecResult<PathBuf> {
         let given = Path::new(path);
         let (jail, rel) = if given.is_absolute() {
-            std::iter::once(&self.root).chain(&self.worktree_base).find_map(|j| given.strip_prefix(j).ok().map(|rel| (j, rel))).ok_or_else(|| outside(path))?
+            let mut roots = std::iter::once((&self.root, &self.configured_root))
+                .chain(self.worktree_base.iter().zip(&self.configured_worktree_base));
+            roots.find_map(|(jail, configured)| {
+                given.strip_prefix(jail).or_else(|_| given.strip_prefix(configured)).ok().map(|rel| (jail, rel))
+            }).ok_or_else(|| outside(path))?
         } else {
             (&self.root, given)
         };
@@ -959,6 +968,15 @@ impl ToolExecutor for LocalExecutor {
                 }
                 dir
             }
+            (GitCall::SwitchWorktreeBranch { path, .. }, scope) => {
+                let dir = self.listed_checkout(path)?;
+                if let Some(name) = scope {
+                    if self.worktree_dir(name)?.canonicalize().ok().as_ref() != Some(&dir) {
+                        return Err(ExecError::invalid_args("checkout is outside this workspace"));
+                    }
+                }
+                dir
+            }
             (_, Some(name)) => self.worktree_dir(name)?,
             (_, None) => self.root.clone(),
         };
@@ -1000,6 +1018,7 @@ impl ToolExecutor for LocalExecutor {
             BrowserOp::Goto { key, url } => exec_proto::to_value(&b.goto(key, url)?),
             BrowserOp::History { key, direction } => exec_proto::to_value(&b.history(key, *direction)?),
             BrowserOp::Eval { key, expression } => exec_proto::to_value(&b.eval(key, expression)?),
+            BrowserOp::Frame { key, viewport, quality } => exec_proto::to_value(&b.frame(key, *viewport, *quality)?),
             BrowserOp::Screenshot { key } => exec_proto::to_value(&b.screenshot(key)?),
             BrowserOp::Input { key, input } => exec_proto::to_value(&b.input(key, input)?),
             BrowserOp::Close { key } => exec_proto::to_value(&b.close(key)),
@@ -1192,12 +1211,42 @@ impl LocalExecutor {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     }
 
+    fn listed_checkout(&self, path: &str) -> ExecResult<PathBuf> {
+        let missing = || ExecError::new(Code::NotFound, "checkout is not a current worktree of this repository");
+        if !self.worktrees()?.iter().any(|row| row.path == path) {
+            return Err(missing());
+        }
+        let dir = Path::new(path).canonicalize().map_err(|_| missing())?;
+        if dir.as_os_str() != std::ffi::OsStr::new(path) {
+            return Err(missing());
+        }
+        let top = self.git(&dir, &["rev-parse", "--show-toplevel"])?;
+        let common = ["rev-parse", "--path-format=absolute", "--git-common-dir"];
+        if top.strip_suffix('\n') != Some(path) || self.git(&dir, &common)? != self.git(&self.root, &common)? {
+            return Err(missing());
+        }
+        // Git discovers a copied .git file even when its administrative directory belongs to another worktree.
+        let admin = self.git(&dir, &["rev-parse", "--absolute-git-dir"])?;
+        let admin = Path::new(admin.strip_suffix('\n').ok_or_else(missing)?);
+        let dot_git = dir.join(".git");
+        if admin != dot_git {
+            let backlink = fs::read_to_string(admin.join("gitdir")).map_err(|_| missing())?;
+            let backlink = backlink.strip_suffix('\n').unwrap_or(&backlink);
+            if admin.join(backlink).canonicalize().ok().as_ref() != Some(&dot_git) {
+                return Err(missing());
+            }
+        }
+        Ok(dir)
+    }
+
     fn worktrees(&self) -> ExecResult<Vec<WorktreeInfo>> {
-        let listing = self.git(&self.root, &["worktree", "list", "--porcelain"])?;
+        let listing = self.git(&self.root, &["worktree", "list", "--porcelain", "-z"])?;
         let mut out: Vec<WorktreeInfo> = Vec::new();
-        for line in listing.lines() {
+        for line in listing.split('\0') {
             match line.split_once(' ') {
-                Some(("worktree", path)) => out.push(WorktreeInfo { path: path.to_string(), head: String::new(), branch: None, is_main: out.is_empty() }),
+                Some(("worktree", path)) => out.push(WorktreeInfo { path: path.to_string(), head: String::new(), branch: None, is_main: out.is_empty(),
+                    missing: fs::metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound),
+                }),
                 Some(("HEAD", head)) => out.last_mut().map(|w| w.head = head.to_string()).unwrap_or_default(),
                 Some(("branch", name)) => out.last_mut().map(|w| w.branch = Some(name.strip_prefix("refs/heads/").unwrap_or(name).to_string())).unwrap_or_default(),
                 _ => {}

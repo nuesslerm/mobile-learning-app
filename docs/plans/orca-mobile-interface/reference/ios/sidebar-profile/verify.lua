@@ -1,0 +1,6 @@
+device:tap_on({point="8.3%,9.6%"})
+sleep_ms(750)
+device:take_screenshot(env.out .. "/drawer.png")
+device:tap_on({point="11.6%,94.2%"})
+sleep_ms(850)
+device:take_screenshot(env.out .. "/account.png")

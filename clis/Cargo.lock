@@ -95,6 +95,7 @@ dependencies = [
 name = "agent-api-preview"
 version = "0.1.0"
 dependencies = [
+ "agent-api-browser",
  "agent-api-proto",
  "exec-preview",
  "serde",
@@ -158,10 +159,15 @@ dependencies = [
 name = "agent-config-sync"
 version = "0.1.0"
 dependencies = [
+ "chacha20poly1305",
  "clap",
+ "getrandom 0.4.3",
+ "hex",
  "nix",
  "regex",
+ "secrets",
  "serde_json",
+ "tempfile",
  "toml",
  "wf-kit",
 ]
@@ -1609,6 +1615,17 @@ name = "mimic-plan-core"
 version = "0.1.0"
 
 [[package]]
+name = "mimic-proxy-core"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "mimic-core",
+ "mimic-proxy-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "mimic-script-core"
 version = "0.1.7"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
@@ -1878,6 +1895,7 @@ version = "0.1.0"
 dependencies = [
  "agent-api-browser",
  "agent-api-proto",
+ "base64 0.22.1",
  "exec-browser",
  "orca-core",
  "orca-map-browser",
@@ -1945,6 +1963,7 @@ name = "orca-map-settings"
 version = "0.1.0"
 dependencies = [
  "orca-core",
+ "orca-map-browser",
  "serde_json",
 ]
 
@@ -1966,6 +1985,7 @@ dependencies = [
  "agent-api-proto",
  "agent-api-terminal",
  "orca-core",
+ "orca-map-browser",
  "orca-map-state",
  "orca-map-terminal",
  "orca-map-workspace",
@@ -2373,7 +2393,9 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "t3-serve",
  "tokio",
+ "tower-http",
  "tungstenite 0.29.0",
  "uuid",
 ]
@@ -2983,6 +3005,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "hex",
+ "serde",
  "serde_json",
  "sha2",
  "t3-contracts",
@@ -2993,6 +3016,7 @@ dependencies = [
 name = "t3-http"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "serde_json",
  "t3-contracts",
  "t3-core",
@@ -3255,6 +3279,20 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "tower-http"
+version = "0.6.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
+dependencies = [
+ "bitflags 2.13.2",
+ "bytes",
+ "http",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
 ]
 
 [[package]]
@@ -3762,20 +3800,27 @@ dependencies = [
  "mimic-core",
  "mimic-coverage-core",
  "mimic-plan-core",
+ "mimic-proxy-core",
  "mimic-script-core",
  "mimic-script-host",
  "mimic-script-orca",
  "rca-exec",
+ "rcgen",
  "regex",
+ "rustls",
  "secrets",
  "serde",
  "serde_json",
+ "sha1 0.10.7",
+ "signal-hook",
  "tempfile",
  "tiny_http",
  "toml",
+ "webpki-roots",
  "wf-bucket",
  "wf-kit",
  "wf-mimic",
+ "wf-testkit",
 ]
 
 [[package]]

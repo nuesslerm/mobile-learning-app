@@ -30,11 +30,15 @@ export function startKeyboardSource(): () => void {
   if (Keyboard.isVisible()) setKeyboardShown(Keyboard.metrics()?.height ?? 0, { duration: 0 });
 
   const show = Keyboard.addListener(showEvent, onShow);
+  const change = Platform.OS === 'ios' ? Keyboard.addListener('keyboardWillChangeFrame', (event) => {
+    if (useKeyboardStore.getState().visible) onShow(event);
+  }) : undefined;
   const hide = Keyboard.addListener(hideEvent, onHide);
   Logger.info('keyboard.source.started', { platform: Platform.OS, showEvent, hideEvent });
 
   return () => {
     show.remove();
     hide.remove();
+    change?.remove();
   };
 }

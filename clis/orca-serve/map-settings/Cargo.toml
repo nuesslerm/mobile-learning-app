@@ -9,6 +9,7 @@ description = "Orca mapping crate for the host's own status: status.get, host.pl
 doctest = false
 
 [dependencies]
+orca-map-browser = { path = "../map-browser" }
 orca-core = { path = "../core" }
 serde_json = { version = "1", features = ["preserve_order"] }
 

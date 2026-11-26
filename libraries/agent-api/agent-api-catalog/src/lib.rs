@@ -268,6 +268,8 @@ pub struct CommandsParams {
     pub driver: String,
     #[serde(default)]
     pub workspace: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
 }
 
 impl CommandsParams {

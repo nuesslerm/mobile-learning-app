@@ -1,0 +1,5 @@
+device:assert_visible("Font, System")
+device:tap_on("Font, System")
+device:tap_on("Monospace")
+device:assert_visible("Font, Monospace")
+device:tap_on("Compact")

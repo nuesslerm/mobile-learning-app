@@ -18,7 +18,7 @@ use std::time::Duration;
 
 const BROWSER: [&str; 4] = ["app-routes", "editor-typing", "tamil-writing", "voice-edit"];
 const ANDROID: [&str; 1] = ["tamil-writing"];
-const HARNESS: [&str; 5] = ["@cli/harness-contracts", "@cli/harness-data", "@cli/harness-use-cases", "@cli/harness-di", "@cli/harness-ui"];
+const HARNESS: [&str; 5] = ["@cli/harness-contracts", "@cli/harness-data", "@cli/harness-use-cases", "@cli/harness-di", "@tooling/device-frame-ui"];
 const SERVICES: [&str; 5] = ["@app/leetcode-auth-cookie-capture", "@app/leetcode-backend", "@app/remote-chat-agent", "@backend/reporting-service", "@infra/watchdog"];
 const CRATES: [&str; 17] = ["agent-config-sync", "cdp", "cli-http", "harness-flow", "knowledge", "rca-core", "rca-ladder", "wf", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"];
 
@@ -425,7 +425,7 @@ fn nx_reruns_a_package_or_crate_task_exactly_when_its_sources_or_a_dependency_s_
 
     let typecheck_cases: Vec<(&str, &str, BTreeSet<String>)> = vec![
         ("a library everything depends on", "tooling/browser-harness/contracts/src/index.ts", pkg(&HARNESS, &["typecheck", "test:unit"]).union(&pkg(&["@cli/harness-contracts"], &["lint"])).cloned().collect()),
-        ("a package nothing depends on", "tooling/browser-harness/ui/src/App.tsx", pkg(&["@cli/harness-ui"], &["typecheck", "lint", "test:unit"])),
+        ("the browser shell frame UI", "clis/harness-browser/plugins/device-frame-ui/src/adapters/App.tsx", pkg(&["@tooling/device-frame-ui"], &["typecheck", "lint", "test:unit"])),
         ("a library's own test", "tooling/browser-harness/contracts/src/added.test.ts", pkg(&["@cli/harness-contracts"], &["typecheck", "lint", "test:unit"])),
         ("an unrelated library", "frontend/libraries/gesture-geometry/src/index.ts", ran(&[])),
         ("a doc", "docs/plans/nx-cache/plan.md", ran(&[])),

@@ -27,6 +27,7 @@ pub const GIT_UNSTAGE: &str = "git_unstage";
 pub const GIT_DISCARD: &str = "git_discard";
 pub const GIT_COMMIT: &str = "git_commit";
 pub const GIT_CHECKOUT: &str = "git_checkout";
+pub const GIT_SWITCH_WORKTREE_BRANCH: &str = "git_switch_worktree_branch";
 pub const GIT_CREATE_REF: &str = "git_create_ref";
 pub const GIT_FETCH: &str = "git_fetch";
 pub const GIT_PULL: &str = "git_pull";
@@ -135,6 +136,12 @@ pub const ACTIONS: &[Action] = &[
         about: "Switch to a branch, create a local branch tracking a remote one (`track`), or detach at a revision (`detach`).",
         properties: &[WORKTREE, Property { name: "ref", kind: "string", about: "A branch, a remote branch with `track`, or any revision with `detach`" }, Property { name: "detach", kind: "boolean", about: "Detach HEAD at the revision" }, Property { name: "track", kind: "boolean", about: "Create a local branch that tracks the remote branch `ref`" }, Property { name: "force", kind: "boolean", about: "Discard local changes that would be overwritten" }],
         required: &["ref"],
+    },
+    Action {
+        name: GIT_SWITCH_WORKTREE_BRANCH,
+        about: "Switch the selected checkout of this repository to an existing local branch.",
+        properties: &[Property { name: "path", kind: "string", about: "The exact checkout path returned by git_worktree_list" }, Property { name: "branch", kind: "string", about: "An existing local branch" }],
+        required: &["path", "branch"],
     },
     Action {
         name: GIT_CREATE_REF,
@@ -362,6 +369,8 @@ pub struct WorktreeInfo {
     pub branch: Option<String>,
     /// True for the repository's own working tree.
     pub is_main: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub missing: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -494,7 +503,7 @@ mod tests {
     fn given_the_worktree_results_and_events_when_encoded_then_they_keep_the_contract_names() {
         // Given one of each
         let added = to_value(&WorktreeAdded { path: "/w/a".into(), branch: "b".into(), head: "abc".into() }).to_string();
-        let listed = to_value(&WorktreeListed { worktrees: vec![WorktreeInfo { path: "/r".into(), head: "abc".into(), branch: None, is_main: true }] }).to_string();
+        let listed = to_value(&WorktreeListed { worktrees: vec![WorktreeInfo { path: "/r".into(), head: "abc".into(), branch: None, is_main: true, missing: false }] }).to_string();
         let event = to_value(&SetupEvent::StepOutput { step: 0, stream: "stdout".into(), data: "x".into() }).to_string();
         let started = to_value(&SetupEvent::Started { steps: 2 }).to_string();
         // Then the keys are the contract's: a detached head has no branch, and an event's kind is its dotted name

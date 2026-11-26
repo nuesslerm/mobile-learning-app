@@ -27,8 +27,12 @@ const USAGE_CONTRACT_VERSION: u64 = 6;
 /// makes a settings update one read and one write.
 #[derive(Default)]
 pub struct Held {
+    pub(super) preview_controllers: Mutex<std::collections::HashSet<String>>,
     sessions: Mutex<HashMap<String, (String, String)>>,
     settings: Mutex<()>,
+    /// Makes a view-preference update one read and one write.
+    pub(super) view_preferences: Mutex<()>,
+    pub(super) workspace_edits: Mutex<()>,
     /// Makes the first signing key of attachment and asset URLs one read and one write.
     pub(super) signing: Mutex<()>,
     /// Makes a project's lookup by its folder and its making one step, so two calls for the same folder make one project.
@@ -231,7 +235,7 @@ fn is_day(day: &str) -> bool {
 }
 
 impl Service {
-    fn held(&self) -> &Held {
+    pub(super) fn held(&self) -> &Held {
         &self.2
     }
 

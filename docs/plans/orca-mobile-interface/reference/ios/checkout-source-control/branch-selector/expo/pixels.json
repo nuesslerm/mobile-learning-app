@@ -1,0 +1,49 @@
+{
+  "width": 1320,
+  "height": 2868,
+  "reference": "installed Orca 0.0.68, detached checkout",
+  "captures": {
+    "initial": {
+      "fullFrame": {
+        "firstRow": 0,
+        "pixels": 3785760,
+        "different": 344618,
+        "percent": 9.103
+      },
+      "sheetBody": {
+        "firstRow": 288,
+        "pixels": 3405600,
+        "different": 187611,
+        "percent": 5.5089
+      }
+    },
+    "rowSpacing": {
+      "fullFrame": {
+        "firstRow": 0,
+        "pixels": 3785760,
+        "different": 194753,
+        "percent": 5.1444
+      },
+      "sheetBody": {
+        "firstRow": 288,
+        "pixels": 3405600,
+        "different": 38627,
+        "percent": 1.1342
+      }
+    },
+    "published": {
+      "fullFrame": {
+        "firstRow": 0,
+        "pixels": 3785760,
+        "different": 163822,
+        "percent": 4.3273
+      },
+      "sheetBody": {
+        "firstRow": 288,
+        "pixels": 3405600,
+        "different": 7427,
+        "percent": 0.2181
+      }
+    }
+  }
+}

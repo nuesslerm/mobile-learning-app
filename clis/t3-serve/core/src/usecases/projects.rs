@@ -42,7 +42,7 @@ fn promotion_failed(message: impl Into<String>) -> QueryFailure {
     QueryFailure::Error(json!({"_tag": "OrchestrationDispatchCommandError", "message": message, "cause": {"message": message, "name": "ScratchThreadPromotionError"}}))
 }
 
-fn failure_text(failure: Failure) -> String {
+pub(super) fn failure_text(failure: Failure) -> String {
     match failure {
         Failure::Defect(message) | Failure::Refused { message, .. } => message,
         Failure::ProjectNotEmpty { project_id, .. } => format!("Project {project_id} is not empty."),

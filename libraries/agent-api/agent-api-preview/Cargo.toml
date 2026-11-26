@@ -12,6 +12,7 @@ doctest = false
 testing = ["agent-api-proto/testing"]
 
 [dependencies]
+agent-api-browser = { path = "../agent-api-browser" }
 agent-api-proto = { path = "../agent-api-proto" }
 exec-preview = { path = "../exec-preview" }
 serde = { version = "1", features = ["derive"] }

@@ -297,3 +297,32 @@ fn a_message_with_attachments_carries_their_ids_into_the_turn_and_shows_them_on_
     assert!(failure(&too_many).to_string().contains("up to 100 files"), "{too_many}");
     assert_eq!(h.agent.turns.lock().unwrap().len(), 1);
 }
+
+#[test]
+fn a_photo_turn_sent_from_another_client_reopens_with_the_same_ordered_assets() {
+    use t3_core::ports::{AgentEventKind, Finish};
+    let (h, mut rpc, kept) = started();
+    // Given photos already kept by RCA and a turn sent from another client
+    let mut refs = Vec::new();
+    let mut expected = Vec::new();
+    for (id, name, bytes) in [("first", "Blue.png", vec![1, 2]), ("second", "Green.png", vec![3, 4, 5])] {
+        let meta = json!({"id": id, "name": name, "kind":"image", "mime_type":"image/png", "size_bytes":bytes.len(), "sha256":id});
+        expected.push(json!({"id":id, "name":name, "type":"image", "mimeType":"image/png", "sizeBytes": bytes.len()}));
+        kept.lock().unwrap().insert(id.into(), (meta, bytes));
+        refs.push((id.into(), name.into()));
+    }
+    h.agent.append("t1", Some("external"), AgentEventKind::UserMessage { text:"Compare both".into(), attachments:refs });
+    h.agent.append("t1", Some("external"), AgentEventKind::TurnFinished(Finish::Completed));
+    let bearer = bearer_of(h.addr, &h.pair(PairingRequest::default()).code);
+    // When the client reads the bounded history and reopens it
+    for _ in 0..2 {
+        let reply = http(h.addr, "GET", "/api/orchestration/threads/t1/bounded", &[("Authorization", &format!("Bearer {bearer}")), ("x-t3-orchestration-protocol", "2")], "");
+        assert_eq!(reply.status, 200);
+        let row = rpc.call("orchestration.getThreadProjection", json!({"threadId":"t1"}));
+        let projection = success(&row);
+        // Then both the message and turn item carry the same ordered metadata
+        assert_eq!(projection["messages"][0]["attachments"], json!(expected));
+        assert_eq!(projection["turnItems"][0]["attachments"], json!(expected));
+    }
+    assert_eq!(asked(&h).len(), 2);
+}

@@ -35,7 +35,7 @@ fn given_a_full_status_request_when_answered_then_it_carries_the_hosts_identity_
         assert_eq!(result["protocolVersion"], constant("RUNTIME_PROTOCOL_VERSION"));
         assert_eq!(result["minCompatibleMobileVersion"], constant("MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION"));
     }
-    assert_eq!(h.agent.calls(), vec!["service.status"], "status asks rca for service.status once");
+    assert_eq!(h.agent.calls(), vec!["repo.list", "service.status"], "full status checks browser availability and host health");
 }
 
 #[test]

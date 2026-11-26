@@ -30,3 +30,9 @@ pub const TURN_DIFF: Method = Method::new(GROUP, "turn.diff");
 pub const THREAD_DIFF: Method = Method::new(GROUP, "thread.diff");
 
 pub const METHODS: &[Method] = &[FILE_READ_CHUNK, FILE_WRITE, FILE_CREATE, FILE_STAT, FILE_SEARCH, FILE_BROWSE, FILE_MKDIR, FILE_PUT_SECRET, PROCESS_SAMPLE, MCP_REQUEST, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, TURN_DIFF, THREAD_DIFF];
+
+/// Matches the executor's artifact.write precondition for editable text files.
+pub fn artifact_fingerprint(bytes: &[u8]) -> String {
+    let hash = bytes.iter().fold(0xcbf29ce484222325u64, |hash, byte| (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3));
+    format!("{hash:016x}")
+}

@@ -284,3 +284,27 @@ fn given_two_phones_changing_settings_at_once_when_both_read_the_kept_settings_f
     let kept = scripted.state_get("orca", "settings").unwrap().unwrap();
     assert_eq!((kept["compactWorktreeCards"].clone(), kept["defaultTaskViewPreset"].clone()), (json!(true), json!("prs")));
 }
+
+#[test]
+fn a_native_ui_edit_reapplies_its_fields_after_another_client_collapses_a_group() {
+    // Given an RCA host on which the Expo client wins the first conditional write
+    let mut rig = Rig::new();
+    let intervening = json!({"collapsedGroups":["pinned"],"sortBy":"recent"});
+    let previous = intervening.clone();
+    let calls = std::sync::atomic::AtomicUsize::new(0);
+    rig.agent.reply("state.compareAndSet", move |p| {
+        if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
+            assert!(p["expected"].is_null());
+            return Ok(json!({"applied":false,"value":previous}));
+        }
+        assert_eq!(p["expected"], previous);
+        assert_eq!(p["value"]["collapsedGroups"], json!(["pinned"]));
+        assert_eq!(p["value"]["sortBy"], "name");
+        Ok(json!({"applied":true}))
+    });
+    // When Orca sorts workspaces by name, then its full UI reply still contains the other client's fold
+    let mut expected = rig.ok("ui.get", json!({}));
+    expected["ui"]["sortBy"] = json!("name");
+    expected["ui"]["collapsedGroups"] = intervening["collapsedGroups"].clone();
+    assert_eq!(rig.ok("ui.set", json!({"sortBy":"name"})), expected);
+}

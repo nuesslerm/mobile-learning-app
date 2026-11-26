@@ -5,7 +5,7 @@ The renderer already lives in a separate package. `DeviceFrame.tsx` renders the 
 ## Proposed structure
 
 ```text
-tooling/browser-harness/ui/src/
+clis/harness-browser/plugins/device-frame-ui/src/
 ├── App.tsx                 public shell state and app iframe reference
 ├── DeviceFrame.tsx         bezel, app viewport and outer iframe
 └── MockKeyboard.tsx        visible keyboard and its geometry

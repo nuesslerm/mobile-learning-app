@@ -1,0 +1,48 @@
+{
+  "dimensions": [
+    1320,
+    2868
+  ],
+  "referenceBeforeEdit": {
+    "id": "in-review",
+    "pixels": 254
+  },
+  "expoBeforeEdit": {
+    "id": "in-review",
+    "pixels": 216
+  },
+  "nativeAfterExpoEdit": {
+    "id": "in-progress",
+    "pixels": 254
+  },
+  "firstSheet": {
+    "bounds": [
+      36,
+      1989,
+      1284,
+      2760
+    ],
+    "pixels": 962208,
+    "changed": 124981
+  },
+  "adjustedSheet": {
+    "bounds": [
+      36,
+      1989,
+      1284,
+      2760
+    ],
+    "pixels": 962208,
+    "changed": 9565
+  },
+  "rows": {
+    "bounds": [
+      38,
+      2140,
+      1282,
+      2717
+    ],
+    "pixels": 717788,
+    "changed": 6475
+  }
+}

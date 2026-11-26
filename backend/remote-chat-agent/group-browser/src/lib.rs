@@ -14,12 +14,13 @@ use std::sync::Arc;
 #[cfg(test)]
 mod tests;
 
-pub const SERVED: [Served; 8] = [
+pub const SERVED: [Served; 9] = [
     Served::service(api::OPEN, &[exec_browser::BROWSER_OPEN]),
     Served::service(api::GOTO, &[exec_browser::BROWSER_GOTO]),
     Served::service(api::HISTORY, &[exec_browser::BROWSER_HISTORY]),
     Served::service(api::EVAL, &[exec_browser::BROWSER_EVAL]),
     Served::service(api::SCREENSHOT, &[exec_browser::BROWSER_SCREENSHOT]),
+    Served::service(api::FRAME, &[exec_browser::BROWSER_FRAME]),
     Served::service(api::INPUT, &[exec_browser::BROWSER_INPUT]),
     Served::service(api::CLOSE, &[exec_browser::BROWSER_CLOSE]),
     Served::service(api::PAGES, &[exec_browser::BROWSER_LIST]),
@@ -42,6 +43,19 @@ impl BrowserGroup {
         let workspace = api::workspace_param(params).map_err(|e| (code::INVALID_PARAMS.to_string(), e.0))?;
         let channel = self.executors.get(&workspace).ok_or_else(|| (Code::NoExecutor.as_str().to_string(), format!("no executor is attached for workspace {workspace}")))?;
         channel.call(spec.action, api::executor_args(spec, params, &workspace)).await.map(|out| out.result).map_err(|e: RemoteError| (e.code().to_string(), e.message().to_string()))
+    }
+}
+
+#[async_trait]
+impl rca_agent_core::BrowserPages for BrowserGroup {
+    async fn open_page(&self, workspace: &str, key: &str, url: Option<&str>) -> Result<(), (String, String)> {
+        let mut params = serde_json::json!({"workspace":workspace,"key":key});
+        if let Some(url) = url { params["url"] = url.into(); }
+        self.relay(api::spec_of(api::OPEN).unwrap(), &params).await.map(|_| ())
+    }
+
+    async fn close_page(&self, workspace: &str, key: &str) -> Result<(), (String, String)> {
+        self.relay(api::spec_of(api::CLOSE).unwrap(), &serde_json::json!({"workspace":workspace,"key":key})).await.map(|_| ())
     }
 }
 

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code block clipboard check</title>
+<button type="button">Check copied code</button>
+<p role="status"></p>
+<script>
+const fixtures = {
+  settings: 'await vi.waitFor(() =>\n  expect(rows).toHaveLength(3))',
+  chat: 'const names = ["a  b", "c"];\n\n  const aVeryLongIdentifierForHorizontalScroll = names.map((name) => name.trim()).join(" and the line continues across the viewport");',
+};
+document.querySelector('button').onclick = async () => {
+  const status = document.querySelector('[role="status"]');
+  const expected = fixtures[location.hash.slice(1)];
+  try {
+    const actual = await navigator.clipboard.readText();
+    status.textContent = expected && actual === expected ? 'Exact code match' : 'Clipboard mismatch';
+  } catch {
+    status.textContent = 'Could not read clipboard';
+  }
+};
+</script>

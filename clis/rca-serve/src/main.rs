@@ -1,6 +1,7 @@
 mod devices;
 mod http;
 mod rca;
+mod t3;
 
 use devices::SqlDevices;
 use rca_mobile_core::Failure;
@@ -30,7 +31,7 @@ async fn run() -> Result<(), Failure> {
     {
         println!(
             "{}",
-            json!({"usage":"wf rca-serve <serve|pair> [--state-dir DIR]","serve":"RCA_MOBILE_UPSTREAM, RCA_MOBILE_BEARER and optional RCA_MOBILE_BIND (default 127.0.0.1:3775)","pair":"Print a one-use pairing code, valid for five minutes"})
+            json!({"usage":"wf rca-serve <serve|pair|serve-t3|pair-t3> [--state-dir DIR]","serve":"RCA_MOBILE_UPSTREAM, RCA_MOBILE_BEARER and optional RCA_MOBILE_BIND (default 127.0.0.1:3775)","pair":"Print a one-use pairing code, valid for five minutes","serve-t3":"T3 HTTP and orchestration WebSocket backed by RCA_MOBILE_UPSTREAM and RCA_MOBILE_BEARER. RCA_MOBILE_WORKSPACE selects the executor workspace. RCA_MOBILE_BIND defaults to 127.0.0.1:3775.","pair-t3":"Mint a T3 pairing link in the same state directory. RCA_MOBILE_PUBLIC_URL is the client-visible base URL."})
         );
         return Ok(());
     }
@@ -44,6 +45,11 @@ async fn run() -> Result<(), Failure> {
         _ => None,
     }
     .ok_or_else(|| Failure::new("USAGE", "Expected --state-dir DIR"))?;
+    match args[0].as_str() {
+        "serve-t3" => return t3::serve(&dir),
+        "pair-t3" => return t3::pair(&dir),
+        _ => {}
+    }
     let devices = Arc::new(rca_mobile_core::pairing::Pairing {
         store: SqlDevices::open(&dir)?,
         secrets: devices::OsSecrets,
@@ -73,6 +79,6 @@ async fn run() -> Result<(), Failure> {
                 .await
                 .map_err(|e| Failure::new("SERVE", e.to_string()))
         }
-        _ => Err(Failure::new("USAGE", "Expected serve or pair")),
+        _ => Err(Failure::new("USAGE", "Expected serve, pair, serve-t3 or pair-t3")),
     }
 }

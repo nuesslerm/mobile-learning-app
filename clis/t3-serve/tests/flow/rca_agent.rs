@@ -170,7 +170,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
         seen[1..],
         [
             on_turn(2, AgentEventKind::TurnStarted),
-            on_turn(3, AgentEventKind::UserText("say hi".into())),
+            on_turn(3, AgentEventKind::UserMessage { text: "say hi".into(), attachments: vec![] }),
             on_turn(4, AgentEventKind::Reasoning("look first".into())),
             on_turn(5, AgentEventKind::ToolStarted { id: "c1".into(), name: "run_command".into(), input: args }),
             on_turn(6, AgentEventKind::ToolOutput { id: "c1".into(), data: "a.txt\n".into() }),
@@ -204,7 +204,7 @@ fn the_events_of_the_contracts_two_recorded_turns_each_read_as_what_t3_shows_and
         assert_eq!(got.kind == AgentEventKind::Other, unshown.contains(&wire.kind.as_str()), "{}", wire.kind);
     }
     // And the user's message and the assistant's are told apart, and each turn's last event says how it ended
-    let texts: BTreeSet<&str> = read.iter().filter_map(|e| if let AgentEventKind::UserText(t) = &e.kind { Some(t.as_str()) } else { None }).collect();
+    let texts: BTreeSet<&str> = read.iter().filter_map(|e| if let AgentEventKind::UserMessage { text, .. } = &e.kind { Some(text.as_str()) } else { None }).collect();
     let user_wire: BTreeSet<&str> = recorded.iter().filter(|e| e.kind == "message.delta" && e.data["role"] == "user").filter_map(|e| e.data["text"].as_str()).collect();
     assert_eq!(texts, user_wire);
     let ends: Vec<(Option<String>, AgentEventKind)> = read.iter().filter(|e| matches!(e.kind, AgentEventKind::TurnFinished(_))).map(|e| (e.turn.clone(), e.kind.clone())).collect();
@@ -255,13 +255,15 @@ fn a_threads_past_is_read_page_by_page_from_the_number_asked_for_in_the_contract
         vec![answer(request, serde_json::to_value(page).unwrap())]
     }));
     // When t3 reads the thread after number 15 with a page of three, then after the page's last number
-    let first = rca.agent().history("t1", 15, 3).unwrap();
-    let second = rca.agent().history("t1", first.events.last().unwrap().seq, 3).unwrap();
+    let agent = rca.agent();
+    let first = agent.history("t1", 15, 3).unwrap();
+    let second = agent.history("t1", first.events.last().unwrap().seq, 3).unwrap();
     // Then the first page is the three events after 15 with more to come, and the second the last two, each as t3 reads it
     let seqs = |h: &t3_core::ports::History| h.events.iter().map(|e| e.seq).collect::<Vec<_>>();
     assert_eq!((seqs(&first), first.more, first.last_seq), ([16, 17, 18].to_vec(), true, recorded.len() as u64));
     assert_eq!((seqs(&second), second.more), ([19, 20].to_vec(), false));
     assert_eq!(first.events[0], agent_event(&recorded[15]).unwrap());
+    assert_eq!(rca.bearers.lock().unwrap().len(), 1, "both pages reuse one authenticated connection");
     // And rca was asked for each page by thread, number and size, and nothing else
     assert_eq!(rca.asked("thread.history"), [json!({"thread": "t1", "after_seq": 15, "limit": 3}), json!({"thread": "t1", "after_seq": 18, "limit": 3})]);
 }
@@ -273,12 +275,15 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     let entries = json!({"entries": []});
     let rca = rca(Box::new(move |request| match request["method"].as_str().unwrap() {
         "service.status" => vec![answer(request, status.clone())],
+        "thread.list" => vec![answer(request, json!({"threads": [view(BEFORE)]}))],
+        "thread.get" => vec![answer(request, view(BEFORE).to_result())],
         "thread.create" => vec![answer(request, view(BEFORE).to_result())],
         "turn.start" => vec![answer(request, json!({"thread": "t1", "turn": TURN})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
         "thread.subscribe" => vec![answer(request, json!({"topic": "thread/t1", "after_seq": BEFORE, "last_seq": BEFORE})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
         "thread.history" => vec![answer(request, json!({"events": [], "last_seq": BEFORE, "more": false}))],
         "turn.interrupt" => vec![answer(request, json!({"thread": "t1", "turn": TURN}))],
         "file.list" => vec![answer(request, entries.clone())],
+        "file.readChunk" => vec![answer(request, json!({"data":"YQ==","offset":0,"bytes":1,"total_bytes":1,"eof":true}))],
         "file.read" => vec![answer(request, json!({"content": "x", "total_lines": 1, "truncated": false}))],
         "agents.detect" => vec![answer(request, json!({"agents": [
             {"driver": "claudeAgent", "installed": true, "signed_in": true},
@@ -288,7 +293,10 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
         "models.list" => vec![answer(request, json!({"models": [
             {"id": "default", "label": "Default", "is_default": true},
         ]}))],
-        "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "is_main": false}]}))],
+        "state.subscribe" => vec![answer(request, json!({"values":{}}))],
+        "pane.list" => vec![answer(request, json!({"panes":[]}))],
+        "repo.list" => vec![answer(request, json!({"repos":[]}))],
+        "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "head":"", "is_main": false}]}))],
         "terminal.list" => vec![answer(request, json!({"workspace": "w1", "terminals": []}))],
         "terminal.attach" => vec![answer(request, json!({"workspace": "w1", "terminal": "t1.a", "after_offset": null, "start_offset": 0, "offset": 0, "reset": false, "cols": 80, "rows": 24, "status": "running", "exit_code": null}))],
         "git.subscribe" => vec![answer(request, json!({"workspace": "w1", "seq": 0})), agent_api_git::status_event(1, "w1", &json!({"branch": "main", "files": []})).to_value()],
@@ -312,6 +320,7 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     agent.interrupt("t1").unwrap();
     agent.list_dir("", "").unwrap();
     agent.read_file("", "a").unwrap();
+    agent.file_preview("", "a").unwrap();
     agent.setup_events("/work/proj", 0, Duration::from_millis(50)).unwrap();
     agent.terminal_events("", "t1.a", None, Duration::from_millis(50)).unwrap();
     agent.terminals().unwrap();
@@ -403,6 +412,7 @@ fn every_op() -> Vec<Op> {
         Op::ThreadSettle { thread: t(), state: "snoozed", until_ms: Some(2), at_ms: None },
         Op::ThreadSearch { query: "needle".into(), limit: 5 },
         Op::ThreadFamily { thread: t() },
+        Op::ThreadList,
         Op::ThreadForceStop { thread: t(), turn: None },
         Op::ItemGet { thread: t(), seq: 3 },
         Op::WorkflowStop { thread: t(), turn: TURN.into(), workflow: None },
@@ -413,6 +423,7 @@ fn every_op() -> Vec<Op> {
         Op::ThreadShelf { shelf: "settled", before: Some((5, Some("x".into()))), limit: 10 },
         Op::StateGet { scope: "t3".into(), key: "k".into() },
         Op::StateSet { scope: "t3".into(), key: "k".into(), value: json!(1) },
+        Op::StateCompareAndSet { scope: "t3".into(), key: "k".into(), expected: json!(1), value: json!(2) },
         Op::FileStat { root: "/work/proj".into(), path: "a.txt".into() },
         Op::FileWrite { root: "/work/proj".into(), path: "a.txt".into(), content: "new\n".into() },
         Op::FileBrowse { root: String::new(), path: "/shared".into(), show_hidden: false },
@@ -436,11 +447,17 @@ fn every_op() -> Vec<Op> {
         Op::GitDiff { root: "/work/proj".into(), base: Some("HEAD".into()), head: None, path: Some("a.txt".into()) },
         Op::GitRefs { root: "/work/proj".into(), kind: Some("branch"), limit: 50 },
         Op::GitHistory { root: "/work/proj".into(), rev: Some("abc".into()), limit: 1 },
+        Op::SwitchCheckoutBranch { checkout: "w1::/linked".into(), branch: "feature".into() },
         Op::GitCheckout { root: "/work/proj".into(), target: "origin/x".into(), track: true },
         Op::GitCreateRef { root: "/work/proj".into(), name: "feature/y".into(), from: None, checkout: true },
         Op::GitCreateRef { root: "/work/proj".into(), name: "t3code/pr-12/x".into(), from: Some("abc1234".into()), checkout: false },
         Op::GitFetch { root: "/work/proj".into(), refspecs: vec!["+refs/pull/12/head:refs/rca/pr/12/head".into()] },
         Op::GitCompare { root: "/work/proj".into(), base: "main".into(), head: "feat".into(), limit: 100 },
+        Op::CheckoutNote { checkout: "w1::/work/proj".into(), action:t3_core::ports::NoteAction::Create },
+        Op::CheckoutNote { checkout: "w1::/work/proj".into(), action:t3_core::ports::NoteAction::Save { path:"note.md".into(), previous:"a".into(), content:"b".into() } },
+        Op::MobileWorktrees,
+        Op::MobileThreadCheckout { thread: "t1".into(), path: Some("/work/proj".into()), selected: None },
+        Op::ReadPanes { panes: vec!["thread:t1".into()] },
         Op::WorktreeList { root: "/work/proj".into() },
         Op::GitPull { root: "/work/proj".into() },
         Op::GitBlob { root: "/work/proj".into(), rev: "HEAD".into(), path: "a.txt".into() },
@@ -465,6 +482,7 @@ fn every_op() -> Vec<Op> {
     // every method of the schedules group the mapper uses: the save in a project's workspace, the rest on a schedule by id
     let by_id = agent_api_schedules::METHODS.iter().filter(|m| **m != agent_api_schedules::UPSERT && USES.contains(m)).map(|m| Op::Schedule { method: m.name(), root: None, params: json!({"id": "s1", "enabled": true}) });
     ops.extend(agent_api_attachments::METHODS.iter().filter(|m| USES.contains(m)).map(|m| Op::Attachment { method: m.name(), params: json!({"id": "att-1"}) }));
+    ops.extend(agent_api_preview::rendering::METHODS.iter().map(|m| Op::PreviewPage { method:m.name(), params:json!({"workspace":"root","key":"tab-1"}) }));
     ops.extend(agent_api_preview::sessions::METHODS.iter().chain(agent_api_preview::watch::METHODS).filter(|m| USES.contains(m)).map(|m| Op::Preview { method: m.name(), params: json!({"thread": "t1", "tab": "tab-1"}) }));
     ops.push(Op::Speech { method: agent_api_catalog::SPEECH_STATUS.name(), params: json!({}) });
     ops.push(Op::Speech { method: agent_api_catalog::SPEECH_TRANSCRIBE.name(), params: json!({"audio": "AAAA", "format": "wav"}) });
@@ -707,7 +725,7 @@ fn a_git_request_for_a_directory_of_a_worktree_is_asked_of_that_worktrees_worksp
     let rca = rca(Box::new(|request| match request["method"].as_str().unwrap() {
         "worktree.list" => vec![answer(request, json!({"worktrees": [
             {"path": "/work/main", "is_main": true},
-            {"path": "/work/proj", "is_main": false},
+            {"path": "/work/proj", "head":"", "is_main": false},
             {"path": "/base/wt", "is_main": false},
         ]}))],
         "repo.list" => vec![answer(request, json!({"repos": [
@@ -728,4 +746,239 @@ fn a_git_request_for_a_directory_of_a_worktree_is_asked_of_that_worktrees_worksp
     assert_eq!(rca.asked("git.status"), [json!({"workspace": "wt"}), json!({"workspace": WORKSPACE})]);
     assert_eq!((blob["text"].clone(), blob["size"].clone()), (json!("hi\n"), json!(3)));
     assert_eq!(pull, AgentError::Refused { code: "INVALID_ARGS".into(), message: "this repository has no remote configured".into() });
+}
+
+#[test]
+fn given_registered_and_unmanaged_checkouts_when_listing_read_state_then_only_the_owner_inherits_pane_attention() {
+    // Given one repository finish, a read pane in a registered worktree, and a manual mark on a separate checkout
+    let rca = rca(Box::new(|request| {
+        let pane = |id: &str, workspace: &str, unread: bool| json!({"pane":format!("thread:{id}"),"thread":id,"title":id,"workspace":workspace,"state":"done","listed":true,"unread":unread,"clearable":true,"sort_at_ms":5,"state_started_at_ms":1});
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/main","is_main":true},{"path":"/wt","is_main":false},{"path":"/other"},{"path":"/flag"}]}),
+            "repo.list" => json!({"repos":[{"workspace":WORKSPACE,"kind":"root","executor":"desk"},{"path":"/wt","kind":"worktree","workspace":"wt","executor":"desk"}]}),
+            "state.subscribe" => json!({"values":{format!("orca.worktree.{WORKSPACE}::/flag"):{"isUnread":true}}}),
+            "pane.list" => json!({"panes":[pane("a",WORKSPACE,true),pane("b","wt",false)]}),
+            _ => json!({}),
+        };
+        vec![answer(request, reply)]
+    }));
+    // When the catalog is read, then a single pane snapshot serves every checkout and unmatched paths keep their own state
+    let catalog = rca.agent().run(&Op::MobileWorktrees).unwrap();
+    let rows = catalog["checkouts"].as_array().unwrap();
+    assert_eq!(rows.iter().map(|r| r["unread"].as_bool().unwrap()).collect::<Vec<_>>(), [true, false, false, true]);
+    assert_eq!(rows[0]["unreadPanes"], json!(["thread:a"]));
+    assert_eq!(rca.asked("pane.list"), [json!({})]);
+}
+
+#[test]
+fn checkout_pull_requests_follow_the_selected_branch_or_link_and_preserve_checkout_metadata() {
+    use std::sync::{Arc, Mutex};
+    // Given a named checkout with a suppressed PR and a separate detached checkout.
+    let meta = Arc::new(Mutex::new(json!({"displayName":"Review checkout","isPinned":true,"suppressedGitHubPR":2})));
+    let stored = meta.clone();
+    let rca = rca(Box::new(move |q| {
+        let params = &q["params"];
+        let value = match q["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/topic","head":"a".repeat(40),"branch":"topic","is_main":false},{"path":"/detached","head":"b".repeat(40),"is_main":false}]}),
+            "state.get" if params["key"] == "orca.worktree.w1::/topic" => json!({"value":stored.lock().unwrap().clone()}),
+            "state.get" => json!({"value":null}),
+            "state.set" => { *stored.lock().unwrap()=params["value"].clone(); json!({"ok":true}) },
+            "pr.list" => {
+                assert_eq!(params["head"],"topic");
+                json!({"prs":[{"number":1,"state":"closed","head_ref":"topic"},{"number":2,"state":"open","head_ref":"topic"},
+                    {"number":3,"state":"open","head_ref":"another"},{"number":4,"state":"open","head_ref":"topic"}]})
+            }
+            "pr.view" => json!({"pr":{"number":params["number"],"title":"Code review","state":"open","head_ref":"topic",
+                "base_ref":"main","url":"https://github.com/org/project/pull/4","author":"reader","body":"Review notes",
+                "mergeable":"mergeable","changed_files":3,"additions":12,"deletions":5}}),
+            "pr.checks" => json!({"pass":10,"pending":2,"fail":1,"checks":[{"name":"internal provider record"}]}),
+            method => panic!("Unexpected call {method}"),
+        }; vec![answer(q,value)]
+    }));
+    let lookup=|id:&str,link| rca.agent().run(&Op::CheckoutPullRequest{checkout:id.into(),link});
+    // When read, the open matching unsuppressed PR wins. Only its aggregate check counts go to the phone.
+    let first=lookup("w1::/topic",None).unwrap();
+    assert_eq!(first["pullRequest"]["number"],4);
+    assert_eq!(first["pullRequest"]["checks"],json!({"passing":10,"pending":2,"failing":1}));
+    assert!(lookup("w1::/detached",None).unwrap()["pullRequest"].is_null());
+    assert!(lookup("other::/topic",None).is_err());
+    // Then a manual link skips branch discovery, clears suppression and survives the next read.
+    assert_eq!(lookup("w1::/topic",Some(7)).unwrap()["pullRequest"]["number"],7);
+    assert_eq!(lookup("w1::/topic",None).unwrap()["pullRequest"]["number"],7);
+    assert_eq!(*meta.lock().unwrap(),json!({"displayName":"Review checkout","isPinned":true,"linkedPR":7}));
+    assert_eq!(rca.asked("pr.list").len(),1);
+    assert_eq!(rca.asked("pr.checks").len(),2);
+}
+
+#[test]
+fn a_chat_resolves_its_exact_checkout_without_reading_other_threads_panes_or_checkout_metadata() {
+    // Given same-named checkouts, an unmanaged path, and another executor registered at the linked path.
+    let rca = rca(Box::new(|q| {
+        let result = match q["method"].as_str().unwrap() {
+            "thread.get" => json!({"thread":{"workspace":if q["params"]["thread"] == "linked" {"linked-owner"} else {WORKSPACE}}}),
+            "worktree.list" => json!({"worktrees":[{"path":"/main","is_main":true,"branch":"base"},
+                {"path":"/one/review","branch":"topic"},{"path":"/two/review"},{"path":"/detached"}]}),
+            "repo.list" => json!({"repos":[{"workspace":WORKSPACE,"executor":"desk","kind":"root"},
+                {"workspace":"linked-owner","kind":"worktree","executor":"desk","path":"/one/review"},
+                {"workspace":"foreign","kind":"worktree","executor":"other","path":"/one/review"}]}),
+            "state.get" => json!({"value":{"displayName":"My review"}}),
+            method => panic!("Unexpected read {method}"),
+        };
+        vec![answer(q, result)]
+    }));
+    let resolve = |thread:&str, path:Option<&str>, checkout:Option<&str>| rca.agent().run(&Op::MobileThreadCheckout {
+        thread:thread.into(), path:path.map(str::to_owned), selected:checkout.map(str::to_owned),
+    });
+    // When an existing link omits the checkout, the server can resolve the owning workspace or projected worktree path.
+    assert_eq!(resolve("linked",None,None).unwrap()["id"], "w1::/one/review");
+    assert_eq!(resolve("root",None,None).unwrap()["path"], "/main");
+    let row = resolve("root", Some("/two/review"), None).unwrap();
+    assert_eq!((row["path"].as_str(),row["name"].as_str()), (Some("/two/review"),Some("My review")));
+    // Then an explicit unmanaged checkout survives navigation and conflicting, missing and foreign targets are refused.
+    assert_eq!(resolve("root",None,Some("w1::/detached")).unwrap()["path"], "/detached");
+    for result in [resolve("linked",None,Some("w1::/two/review")), resolve("root",Some("/two/review"),Some("w1::/main")),
+        resolve("root",Some("/missing"),None), resolve("root",None,Some("foreign::/main"))] {
+        assert!(matches!(result,Err(AgentError::Refused {ref code,..}) if code=="CHECKOUT_NOT_FOUND"));
+    }
+    assert_eq!(rca.asked("state.get").len(), 4);
+}
+
+#[test]
+fn agents_are_scoped_to_registered_checkouts_and_sorted_by_the_last_pane_change() {
+    // Given a renamed linked checkout, an unmanaged path, and cleared, idle and unrelated panes.
+    let rca = rca(Box::new(|request| {
+        let pane = |id: &str, workspace: &str, state: &str, listed: bool, time: u64| {
+            json!({"pane":format!("thread:{id}"),"thread":id,"title":format!("Chat {id}"),"workspace":workspace,
+                "state":state,"listed":listed,"unread":state=="done","clearable":state=="done","sort_at_ms":time,"state_started_at_ms":1})
+        };
+        let result = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/main","branch":"dev","is_main":true},{"path":"/linked","branch":"feature"},{"path":"/unmanaged"}]}),
+            "repo.list" => json!({"repos":[{"workspace":WORKSPACE,"kind":"root","executor":"desk"},
+                {"path":"/linked","kind":"worktree","workspace":"linked","executor":"desk"},
+                {"path":"/linked","kind":"worktree","workspace":"unrelated","executor":"elsewhere"}]}),
+            "state.subscribe" => json!({"values":{format!("orca.worktree.{WORKSPACE}::/linked"):{"displayName":"Review"}}}),
+            "pane.list" => json!({"panes":[pane("main",WORKSPACE,"done",true,5),pane("new","linked","working",true,9),
+                pane("clear","linked","done",false,10),pane("unused",WORKSPACE,"idle",true,11),pane("other","unrelated","done",true,12)]}),
+            other => panic!("Unexpected call: {other}"),
+        };
+        vec![answer(request, result)]
+    }));
+    // When the mobile app requests all agents for its paired desktop.
+    let result = rca.agent().run(&Op::MobileAgents).unwrap();
+    // Then only the two visible agents are exposed, in activity order, without reading any thread histories.
+    assert_eq!(result, json!({"repo":WORKSPACE,"checkouts":{"linked":{"id":format!("{WORKSPACE}::/linked"),"name":"Review"},WORKSPACE:{"id":format!("{WORKSPACE}::/main"),"name":"dev"}},"agents":[
+        {"threadId":"new","title":"Chat new","status":"working","updatedAt":9,"unread":false,"clearable":false,"workspace":"linked"},
+        {"threadId":"main","title":"Chat main","status":"done","updatedAt":5,"unread":true,"clearable":true,"workspace":WORKSPACE}
+    ]}));
+    assert_eq!(rca.asked("pane.list"), [json!({})]);
+}
+
+#[test]
+fn checkout_history_reads_the_selected_head_and_omits_commit_bodies_and_email() {
+    // Given a detached checkout that has never been registered as a separate workspace.
+    let rca = rca(Box::new(|request| {
+        let sha = "a".repeat(40);
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/linked","is_main":false,"head":sha}]}),
+            "git.history" => json!({"truncated":false,"commits":[{"sha":sha,"short":"aaaaaaa","subject":"Selected","author_name":"Dev","author_email":"private@example.org","authored_ms":3,"parents":[],"body":"private body"}]}),
+            _ => json!({}),
+        };
+        vec![answer(request, reply)]
+    }));
+    let sha = "a".repeat(40);
+    let read = |id: &str, head: &str| rca.agent().run(&Op::CheckoutHistory {
+        checkout: id.into(), expected_head: Some(head.into()), base: None, offset: 50
+    });
+    // When the phone continues at the recorded HEAD, then only compact fields of the selected revision are returned.
+    let result = read("w1::/linked", &sha).unwrap();
+    assert_eq!(result, json!({"branch":null,"head":sha,"nextOffset":null,"commits":[{
+        "sha":sha,"shortSha":"aaaaaaa","subject":"Selected","author":"Dev","authoredAtMs":3,"parent":null}]}));
+    // When the checkout has moved, is unknown, or belongs to a different repository, no further history read occurs.
+    for (id, head, reason) in [("w1::/linked", "0".repeat(40), "CHECKOUT_HEAD_CHANGED"),
+        ("w1::/absent", sha.clone(), "CHECKOUT_NOT_FOUND"), ("w2::/linked", sha.clone(), "CHECKOUT_NOT_FOUND")] {
+        assert!(matches!(read(id, &head), Err(AgentError::Refused { code, .. }) if code == reason));
+    }
+    assert_eq!(rca.asked("worktree.list").len(), 3);
+    assert_eq!(rca.asked("git.history"), [json!({"workspace":WORKSPACE,"rev":sha,"skip":50,"limit":50})]);
+    assert!(rca.asked("repo.list").is_empty() && rca.asked("pane.list").is_empty());
+}
+
+#[test]
+fn mobile_changes_use_the_checkouts_pinned_base_and_commit_details_use_the_first_parent() {
+    // Given a detached checkout with a pinned base and a merge commit.
+    let rca = rca(Box::new(|request| {
+        let sha = "a".repeat(40);
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/linked","is_main":false,"head":sha}]}),
+            "state.get" => json!({"value":{"baseRef":"release"}}),
+            "git.history" => json!({"truncated":false,"commits":[{"sha":sha,"short":"aaaaaaa","subject":"Merge","author_name":"Dev","author_email":"dev@example.org","authored_ms":1,"parents":["b".repeat(40),"c".repeat(40)],"body":"Merge details"}]}),
+            "git.compare" => json!({"base":request["params"]["base"],"head":sha,"merge_base":"e".repeat(40),"ahead":2,"behind":1,"files":[{"path":"src/a.rs","status":"modified","additions":3,"deletions":2,"binary":false}],"commits":[],"truncated":true}),
+            _ => json!({}),
+        };
+        vec![answer(request, reply)]
+    }));
+    let checkout = "w1::/linked".to_owned();
+    let sha = "a".repeat(40);
+    // When the phone opens Changes and then the merge commit.
+    let changes = rca.agent().run(&Op::CheckoutChanges { checkout:checkout.clone() }).unwrap();
+    let commit = rca.agent().run(&Op::CheckoutCommit { checkout, sha:sha.clone() }).unwrap();
+    // Then the comparisons use the selected revisions and the phone receives file counts without fetching patches.
+    assert_eq!(changes["head"],sha);
+    assert_eq!(changes["comparison"]["base"],"release");
+    assert_eq!(changes["comparison"]["baseOid"],"e".repeat(40));
+    assert_eq!(changes["comparison"]["ahead"],2);
+    assert_eq!(commit["body"],"Merge details");
+    assert_eq!(commit["files"],changes["comparison"]["files"]);
+    assert_eq!(commit["files"][0]["additions"],3);
+    assert_eq!(rca.asked("git.compare"), [json!({"workspace":WORKSPACE,"base":"release","head":sha,"limit":1}),json!({"workspace":WORKSPACE,"base":"b".repeat(40),"head":sha,"limit":1})]);
+    assert!(rca.asked("git.diff").is_empty() && rca.asked("git.refs").is_empty());
+}
+
+#[test]
+fn a_linked_checkout_reads_both_sides_of_a_rename_by_object_id_and_only_that_file() {
+    // Given two immutable objects and a linked checkout whose current HEAD has advanced.
+    let rca = rca(Box::new(|request| {
+        let p = &request["params"];
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/linked","is_main":false,"head":"f".repeat(40)}]}),
+            "git.blob" => {
+                json!({"data": if p["path"]=="old" {"b2xk"} else {"bmV3"}, "path":p["path"],"rev":p["rev"], "size":3,"truncated":false,"binary":false})
+            }
+            _ => panic!("Unexpected file request"),
+        };
+        vec![answer(request, reply)]
+    }));
+    let base = "b".repeat(40);
+    let head = "a".repeat(40);
+    // When the phone opens the previously selected rename, then each side comes from the requested path and revision.
+    let result = rca
+        .agent()
+        .run(&Op::CheckoutFile {
+            checkout: "w1::/linked".into(),
+            head: head.clone(),
+            base: Some(base.clone()),
+            path: "new".into(),
+            old_path: Some("old".into()),
+        })
+        .unwrap();
+    assert_eq!(result, json!({"kind":"text","original":"old","modified":"new"}));
+    assert_eq!(
+        rca.asked("git.blob"),
+        [
+            json!({"workspace":WORKSPACE,"rev":base,"path":"old","max_bytes":8 << 20}),
+            json!({"workspace":WORKSPACE,"rev":head,"path":"new","max_bytes":8 << 20})
+        ]
+    );
+}
+
+#[test]
+fn mobile_branch_switch_preserves_rca_conflicts_and_never_falls_back_to_the_parent() {
+    // Given a Git rejection from the executor that owns this workspace.
+    let rca = rca(Box::new(|request| vec![refuse(request, "CHANGED", "branch already checked out")]));
+    let switch = |id: &str| rca.agent().run(&Op::SwitchCheckoutBranch {checkout:id.into(),branch:"main".into()});
+    // When switching the selected checkout, then HTTP can distinguish the Git conflict from an unavailable host.
+    assert!(matches!(switch("w1::/linked"), Err(AgentError::Refused {code,message}) if code=="CHANGED" && message=="branch already checked out"));
+    assert!(matches!(switch("w2::/linked"), Err(AgentError::Refused {code,..}) if code=="CHECKOUT_NOT_FOUND"));
+    assert_eq!(rca.asked("git.switchWorktreeBranch"), [json!({"workspace":"w1","path":"/linked","branch":"main"})]);
+    assert!(rca.asked("git.checkout").is_empty());
 }

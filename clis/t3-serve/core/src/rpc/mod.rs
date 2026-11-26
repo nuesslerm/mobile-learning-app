@@ -465,6 +465,14 @@ impl Connection {
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
             "provider.chatgpt.handoff.subscribe" => vec![self.answered(&id, tag, Err(self.svc.chatgpt_refused(payload, "handoff")))],
+            "mobile.session.openTab" => vec![self.answered(&id, tag, self.svc.open_saved_session(payload).map(Some))],
+            "mobile.viewPreferences.get" | "mobile.viewPreferences.set" => {
+                let answer = match tag {
+                    "mobile.viewPreferences.get" => self.svc.view_preferences(),
+                    _ => self.svc.set_view_preferences(payload),
+                };
+                vec![self.answered(&id, tag, answer.map(Some))]
+            }
             "provider.auth.subscribe" => match self.svc.open_auth_stream(payload) {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
@@ -678,9 +686,29 @@ impl Connection {
                 Err(_) if missing() => vec![rpc::exit_failure(&id, wire::workspace_root_missing("ProjectListEntriesError", "list", &root, json!({})))],
                 Err(e) => fail(e),
             },
-            "projects.readFile" => match agent.read_file(&root, path) {
-                Ok(contents) => ok(json!({"relativePath": path, "contents": contents})),
+            "projects.readFile" => match agent.file_preview(&root, path) {
+                Ok(preview) if preview.bytes.contains(&0) => vec![rpc::exit_failure(&id, json!({
+                    "_tag":"ProjectReadFileError", "cwd":root, "relativePath":path, "failure":"binary_file",
+                    "resolvedPath":format!("{}/{path}",root.trim_end_matches('/')),
+                    "message":format!("Failed to read workspace file '{path}' in '{root}'.")
+                }))],
+                Ok(preview) => {
+                    let truncated = preview.total_bytes > preview.bytes.len() as u64;
+                    let bytes = preview.bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(&preview.bytes);
+                    let mut contents = String::with_capacity(bytes.len());
+                    let mut chunks = bytes.utf8_chunks().peekable();
+                    while let Some(chunk) = chunks.next() {
+                        contents.push_str(chunk.valid());
+                        let invalid = chunk.invalid();
+                        if invalid.is_empty() { continue; }
+                        if truncated && chunks.peek().is_none() && std::str::from_utf8(invalid).is_err_and(|e| e.error_len().is_none()) { break; }
+                        contents.push(char::REPLACEMENT_CHARACTER);
+                    }
+                    ok(json!({"relativePath":path, "contents":contents, "byteLength":preview.total_bytes, "truncated":truncated}))
+                },
                 Err(_) if missing() => vec![rpc::exit_failure(&id, wire::read_file_root_missing(&root, path))],
+                Err(AgentError::Refused { code, .. }) if code == "NOT_FOUND" && payload["allowMissing"] == true =>
+                    ok(json!({"relativePath":path, "contents":"", "byteLength":0, "truncated":false, "exists":false})),
                 Err(e) => fail(e),
             },
             _ => fail(AgentError::Failed(format!("{tag} is not a file RPC"))),

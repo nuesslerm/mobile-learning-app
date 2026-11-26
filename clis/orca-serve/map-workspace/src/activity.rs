@@ -575,6 +575,18 @@ pub(crate) fn sleep(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failu
     Ok(json!({"worktreeId": target.id}))
 }
 
+pub(crate) fn unread_panes(agent: &dyn AgentApi, workspace: &str) -> Result<Vec<String>, Failure> {
+    let shown: Vec<panes::PaneView> = serde_json::from_value(ask(agent, panes::LIST.name(), json!({"workspace": workspace}))?["panes"].clone()).map_err(|e| Failure::new(RUNTIME_ERROR, e.to_string()))?;
+    Ok(shown.into_iter().filter(|p| p.unread && p.workspace.as_deref() == Some(workspace)).map(|p| p.pane).collect())
+}
+
+pub(crate) fn mark_read(agent: &dyn AgentApi, unread: &[String]) -> Result<(), Failure> {
+    for keys in unread.chunks(panes::MAX_MARKED) {
+        ask(agent, panes::MARK.name(), json!({"panes": keys, "mark": "read"}))?;
+    }
+    Ok(())
+}
+
 pub(crate) fn activate(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let target = placed_by_selector(agent, params)?;
     optional_bool(params, "notifyClients")?;
@@ -584,11 +596,7 @@ pub(crate) fn activate(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fa
         Some(_) => return Err(Failure::invalid("Invalid option: expected one of \"caller\"|\"host\"|\"clients\"|\"all\"")),
     }
     if let Some(workspace) = &target.workspace {
-        let shown: Vec<panes::PaneView> = serde_json::from_value(ask(agent, panes::LIST.name(), json!({"workspace": workspace}))?["panes"].clone()).map_err(|e| Failure::new(RUNTIME_ERROR, e.to_string()))?;
-        let unread: Vec<String> = shown.into_iter().filter(|p| p.unread).map(|p| p.pane).collect();
-        if !unread.is_empty() {
-            ask(agent, panes::MARK.name(), json!({"panes": unread, "mark": "read"}))?;
-        }
+        mark_read(agent, &unread_panes(agent, workspace)?)?;
         if sleeping(agent)?.contains(workspace) {
             agent.request(WAKE.name(), json!({"workspace": workspace})).map_err(runtime)?;
         }

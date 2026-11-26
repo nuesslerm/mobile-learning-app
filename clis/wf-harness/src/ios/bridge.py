@@ -12,6 +12,8 @@ import subprocess
 import sys
 import tempfile
 import time
+
+import xcui
 from contextlib import contextmanager
 from dataclasses import asdict
 
@@ -134,8 +136,8 @@ def type_with_xctest(udid, value):
     with preserve_accessibility(udid):
         subprocess.run(["xcodebuild", "test-without-building", "-xctestrun", str(runner), "-destination",
                         "id=" + udid, "-parallel-testing-enabled", "NO", "-quiet"],
-                       env={**os.environ, "TEST_RUNNER_WF_TEXT": value}, check=True, stdout=sys.stderr)
-    subprocess.run(["xcrun", "simctl", "launch", udid, "host.exp.Exponent"], check=True, stdout=sys.stderr)
+                       env={**os.environ, "TEST_RUNNER_WF_TEXT": value, "TEST_RUNNER_WF_IOS_APP_ID": xcui.target_app()}, check=True, stdout=sys.stderr)
+    subprocess.run(["xcrun", "simctl", "launch", udid, xcui.target_app()], check=True, stdout=sys.stderr)
 
 
 async def elements_at(client, x, y):
@@ -292,8 +294,10 @@ async def drive(socket, udid, info=None):
         await client.set_hardware_keyboard(False)
         folder = None
         if os.getenv("WF_IOS_XCTEST_DRIVER") == "1":
-            import xcui
-            folder = Path(json.loads(xcui.state_file(udid).read_text())["folder"])
+            session = json.loads(xcui.state_file(udid).read_text())
+            if session.get("app", "host.exp.Exponent") != xcui.target_app():
+                raise RuntimeError("XCTest session belongs to another target app")
+            folder = Path(session["folder"])
 
         async def tree():
             if folder:
@@ -327,7 +331,7 @@ async def drive(socket, udid, info=None):
                     result = dict(width=dims["width_points"], height=dims["height_points"], dpr=dims["density"])
                 elif op == "stop":
                     try:
-                        await client.terminate("host.exp.Exponent")
+                        await client.terminate(xcui.target_app())
                     except Exception as error:
                         if "found nothing to terminate" not in str(error):
                             raise
@@ -338,7 +342,11 @@ async def drive(socket, udid, info=None):
                 elif op == "tap":
                     await client.tap(*args)
                 elif op == "swipe":
-                    await client.swipe(tuple(args[0]), tuple(args[1]), duration=args[2]/1000)
+                    start, end, duration = tuple(args[0]), tuple(args[1]), args[2] / 1000
+                    if start == end:
+                        await client.tap(*start, duration=duration)
+                    else:
+                        await client.swipe(start, end, duration=duration)
                 elif op == "text":
                     if folder:
                         rows = await tree()

@@ -1,0 +1,25 @@
+[package]
+name = "mimic-proxy-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The pure core of `wf mimic proxy record|replay|check`: what crossed a proxy as cassette interactions, the sanitiser that keeps credentials off the disk, request matching, the release order of recorded replies and the mismatch a replay reports"
+
+[lib]
+doctest = false
+
+[features]
+# In-memory doubles of every port.
+testing = []
+
+[dependencies]
+mimic-core = { version = "0.1.2", registry = "mla" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+
+[dev-dependencies]
+mimic-proxy-core = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-core"

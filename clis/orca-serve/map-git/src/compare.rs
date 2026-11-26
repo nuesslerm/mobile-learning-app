@@ -42,10 +42,14 @@ fn commit_of(repo: &Repo, rev: &str) -> Result<Value, AgentError> {
 /// The commits of `head` against `base`: a base git cannot resolve is the summary's `invalid-base`, not a failure of the call.
 pub(crate) fn branch(repo: &Repo, params: &Value) -> Result<Value, Failure> {
     let base = text(params, "baseRef").filter(|b| !b.starts_with('-')).ok_or_else(|| Failure::invalid("Missing base ref"))?;
-    let status = repo.ask(STATUS, json!({}))?;
+    let status = match &repo.linked {
+        Some((head, branch)) => json!({"head":head, "branch":branch}),
+        None => repo.ask(STATUS, json!({}))?,
+    };
     let compare_ref = text(&status, "branch").unwrap_or("HEAD");
     let head_oid = status.get("head").cloned().unwrap_or(Value::Null);
-    let compared = match repo.try_ask(COMPARE, json!({"base": base, "head": "HEAD"})) {
+    let rev = repo.linked.as_ref().map(|(head, _)| head.as_str()).unwrap_or("HEAD");
+    let compared = match repo.try_ask(COMPARE, json!({"base": base, "head": rev})) {
         Ok(compared) => compared,
         Err(AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" => {
             let summary = json!({"baseRef": base, "baseOid": null, "compareRef": compare_ref, "headOid": head_oid, "mergeBase": null, "changedFiles": 0, "status": "invalid-base", "errorMessage": message});

@@ -1,0 +1,12 @@
+{
+  "samplesPerRoute": 1,
+  "checkoutCount": 22,
+  "workspaceCatalog": {
+    "elapsedMs": 1053,
+    "compactJsonBytes": 4761
+  },
+  "selectedCheckout": {
+    "elapsedMs": 1349,
+    "compactJsonBytes": 238
+  }
+}

@@ -45,14 +45,13 @@ function statusColor(
 function DispatchRunRow({ run }: { run: DispatchRunMeta }): React.ReactElement {
   const costLabel =
     run.status === 'finished' && run.cost !== null ? `$${run.cost.toFixed(4)}` : null;
-  const href = `/coding-agent/runs/${run.runId}`;
   return (
     <ListItem
       variant="grouped"
       testID={`DispatchRunRow-${run.runId}`}
       showChevron
       onPress={() => {
-        router.push(href);
+        router.push(`/coding-agent/runs/${run.runId}`);
       }}
     >
       <View flexDirection="row" items="center" gap="$1.5" flexWrap="wrap">

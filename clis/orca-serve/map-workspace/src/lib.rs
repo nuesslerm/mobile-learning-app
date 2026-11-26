@@ -19,13 +19,13 @@ pub mod testing;
 pub use artifacts::{Grants, GRANT_TTL};
 pub use files::{image_mime, previewable_limit};
 pub use target::{resolve, targets, Target};
-pub use worktrees::checkout_of;
+pub use worktrees::{checkout_of, git_checkout, GitCheckout};
 /// `file.read` of the agent API, for a mapping crate that reads a whole small file of a workspace.
 pub use agent_api_workspace::FILE_READ;
 /// `file.stat` and `file.readChunk` of the agent API, for a mapping crate that reads a working file of any size in pieces.
 pub use agent_api_workspace::edit::{FILE_READ_CHUNK, FILE_STAT};
 
-use agent_api_workspace::edit::{ARTIFACT_READ, ARTIFACT_STAT, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE};
+use agent_api_workspace::edit::{ARTIFACT_READ, ARTIFACT_STAT, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH};
 use agent_api_proto::Method as AgentMethod;
 use agent_api_git::{FETCH, REFS};
 use agent_api_state::SET;
@@ -84,7 +84,7 @@ pub const NOTIFICATIONS_SUBSCRIBE: &str = "notifications.subscribe";
 pub const NOTIFICATIONS_UNSUBSCRIBE: &str = "notifications.unsubscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
+pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
 
 const METHODS: &[Method] = &[
     Method { name: FILES_LIST, kind: Kind::Unary },
@@ -166,11 +166,19 @@ impl Area for WorkspaceArea {
 
     fn capabilities(&self) -> &'static [&'static str] {
         // Mobile uses this capability for create-new and checks a separate one for open-existing-v2.
-        &["worktree.open-existing-branch.v2"]
+        &["worktree.open-existing-branch.v2", "files.mutation-ownership.v1"]
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let agent = ctx.agent;
+        if matches!(method, FILES_CREATE_FILE | FILES_WRITE_TERMINAL_ARTIFACT | MARKDOWN_SAVE_TAB) {
+            if params.get("expectedExecutionHostId").is_some_and(|host| host != "local") {
+                return Err(files::plain("Workspace host changed; refresh and try again"));
+            }
+            if params.get("expectedSshTargetId").is_some() || params.get("expectedSshConnectionGeneration").is_some() {
+                return Err(files::plain("SSH connection changed; refresh and try again"));
+            }
+        }
         match method {
             FILES_LIST => files::list(agent, params),
             FILES_SEARCH_PATHS => files::search_paths(agent, params),

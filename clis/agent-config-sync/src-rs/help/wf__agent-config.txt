@@ -8,3 +8,4 @@ Options:
 Commands:
   sync [options]   Render the .agents/ contract into every tool config; --check
                    only reports whether the generated files are current
+  save-memory      Encrypt local Basic Memory notes for Git

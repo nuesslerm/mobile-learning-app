@@ -747,3 +747,102 @@ fn given_a_bad_worktree_or_sha_when_the_commit_url_is_read_then_it_is_the_hosts_
     assert_eq!(rig.raw("git.remoteCommitUrl", json!({"worktree": "nowhere", "sha": SHA}))["error"], json!({"code": "selector_not_found", "message": "selector_not_found"}));
     assert_eq!(remotes_asked(&rig), Vec::<Value>::new());
 }
+
+#[test]
+fn an_unregistered_checkout_reads_its_detached_head_and_cannot_change_the_parent_workspace() {
+    // Given the repository is on main and Git also knows a detached checkout.
+    let mut rig = Rig::new();
+    let sha = "d".repeat(40);
+    let detached = sha.clone();
+    rig.agent.reply("worktree.list", move |_| Ok(json!({"worktrees":[{"path":"/linked","head":detached,"is_main":false}]})));
+    rig.agent.reply("git.history", |_| Ok(json!({"commits":[],"truncated":false})));
+    // When the client requests branch-only history and tries to stage a file in that checkout.
+    let selector = "id:main::/linked";
+    let history = rig.raw("git.history", json!({"worktree":selector,"branchOnly":true,"baseRef":"main","skip":50}));
+    let stage = rig.raw("git.stage", json!({"worktree":selector,"filePath":"tracked.txt"}));
+    let unknown = rig.raw("git.history", json!({"worktree":"id:main::/unknown"}));
+    // Then only the history request reaches Git, with the checkout's own revision and no parent branch flags.
+    assert_eq!(history["ok"], true, "{history}");
+    assert!(history["result"].get("currentRef").is_none());
+    assert_eq!(history["result"]["hasOutgoingChanges"], false);
+    assert_eq!(stage["ok"], false);
+    assert_eq!(unknown["error"]["code"], "selector_not_found");
+    assert_eq!(rig.sent_all(), vec![("git.history".into(), json!({"workspace":"main","limit":50,"skip":50,"rev":format!("main..{sha}")}))]);
+}
+
+#[test]
+fn a_detached_checkout_can_read_immutable_file_diffs_without_reading_the_parent_working_tree() {
+    // Given an unregistered checkout and a file renamed between two commits.
+    let mut rig = Rig::new();
+    let (parent, commit) = (pad('a'), pad('b'));
+    let head = commit.clone();
+    rig.agent.reply("worktree.list", move |_| {
+        Ok(json!({"worktrees":[{"path":"/linked","head":head,"is_main":false}]}))
+    });
+    rig.repo
+        .blob(&parent, "old.txt", b"first")
+        .blob(&commit, "new.txt", b"second");
+    let selector = "id:main::/linked";
+    // When the phone opens that file in the commit view and the branch comparison.
+    let single = rig.raw("git.commitDiff", json!({"worktree":selector,"filePath":"new.txt","oldPath":"old.txt","commitOid":commit,"parentOid":parent}));
+    let branch = rig.raw("git.branchDiff", json!({"worktree":selector,"filePath":"new.txt","oldPath":"old.txt","compare":{"headOid":commit,"mergeBase":parent}}));
+    // Then both views read the immutable blobs, and a working tree diff still requires its own workspace.
+    assert_eq!(single["ok"], true, "{single}");
+    assert_eq!(branch["result"], single["result"]);
+    assert_eq!(single["result"]["originalContent"], "first");
+    assert_eq!(single["result"]["modifiedContent"], "second");
+    assert_eq!(
+        rig.raw(
+            "git.diff",
+            json!({"worktree":selector,"filePath":"new.txt","staged":false})
+        )["ok"],
+        false
+    );
+    assert!(rig
+        .sent_all()
+        .iter()
+        .all(|(method, _)| method == "git.blob"));
+}
+
+#[test]
+fn linked_checkouts_list_shared_branches_and_report_their_own_selection() {
+    // Given a parent on main, a linked checkout on feature and a detached checkout.
+    let mut rig = Rig::new();
+    rig.repo.branch("feature");
+    rig.agent.reply("worktree.list", |_| {
+        Ok(json!({"worktrees":[
+            {"path":"/feature","head":"a".repeat(40),"branch":"feature","is_main":false},
+            {"path":"/detached","head":"b".repeat(40),"is_main":false}
+        ]}))
+    });
+    // When either checkout opens Switch Branch, then both see the same branch names and their own current branch.
+    let attached = rig.raw("git.localBranches", json!({"worktree":"id:main::/feature"}));
+    let detached = rig.raw(
+        "git.localBranches",
+        json!({"worktree":"id:main::/detached"}),
+    );
+    assert_eq!(attached["ok"], true, "{attached}");
+    assert_eq!(detached["ok"], true, "{detached}");
+    let (attached, detached) = (&attached["result"], &detached["result"]);
+    assert_eq!(attached["branches"], detached["branches"]);
+    assert!(attached["branches"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("feature")));
+    assert_eq!(attached["current"], "feature");
+    assert!(detached["current"].is_null());
+    // When an older service lacks the scoped action, the refusal must never trigger a parent checkout.
+    let change = rig.raw(
+        "git.checkout",
+        json!({"worktree":"id:main::/detached","branch":"feature"}),
+    );
+    assert_eq!(change["ok"], false);
+    assert_eq!(rig.repo.current(), "main");
+    rig.agent.reply("git.switchWorktreeBranch", |params| {
+        assert_eq!(params, &json!({"workspace":"main","path":"/detached","branch":"feature"}));
+        Ok(json!({"branch":"feature","detached":false}))
+    });
+    let changed = rig.raw("git.checkout", json!({"worktree":"id:main::/detached","branch":"feature"}));
+    assert_eq!(changed["result"], json!({"ok":true,"branch":"feature"}));
+    assert!(rig.sent_all().iter().all(|(method, _)| method != "git.checkout"));
+}

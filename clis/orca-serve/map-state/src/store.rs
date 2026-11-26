@@ -9,14 +9,14 @@ pub(crate) const SETTINGS: &str = "settings";
 pub(crate) const UI: &str = "ui";
 pub(crate) const QUICK_COMMANDS: &str = "terminalQuickCommands";
 
-fn refusal(error: AgentError) -> Failure {
+pub(crate) fn refusal(error: AgentError) -> Failure {
     match error {
         AgentError::Refused { message, .. } => Failure::new(RUNTIME_ERROR, message),
         AgentError::Failed(_) => Failure::new("runtime_unavailable", "runtime_unavailable"),
     }
 }
 
-fn kept(agent: &dyn AgentApi, key: &str) -> Result<Option<Value>, Failure> {
+pub(crate) fn kept(agent: &dyn AgentApi, key: &str) -> Result<Option<Value>, Failure> {
     Ok(agent.state_get(SCOPE, key).map_err(refusal)?.filter(|v| !v.is_null()))
 }
 

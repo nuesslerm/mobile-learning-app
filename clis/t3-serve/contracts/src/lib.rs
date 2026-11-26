@@ -8,6 +8,7 @@ pub mod runs;
 pub mod rpc;
 pub mod scopes;
 pub mod time;
+pub mod view_preferences;
 pub mod wire;
 
 pub const ORCHESTRATION_PROTOCOL_VERSION: u32 = 2;

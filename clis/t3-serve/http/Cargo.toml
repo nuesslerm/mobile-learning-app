@@ -10,6 +10,7 @@ test = false
 doctest = false
 
 [dependencies]
+flate2 = "1"
 tracing = "0.1"
 t3-core = { path = "../core" }
 t3-contracts = { path = "../contracts" }

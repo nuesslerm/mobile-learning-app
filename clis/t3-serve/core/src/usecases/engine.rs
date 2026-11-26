@@ -115,21 +115,20 @@ impl Engine {
 
     pub fn dispatch(&self, family: Family, raw: &Value) -> Result<Dispatched, Failure> {
         let cmd = Command::parse(raw, family).map_err(Failure::Defect)?;
-        self.run(family, cmd)
+        self.run(&mut self.lock(), family, cmd)
     }
 
     /// A command the server issues itself (`SERVER_ONLY`), which no client can dispatch.
     pub fn dispatch_server(&self, body: Map<String, Value>) -> Result<Dispatched, Failure> {
         let cmd = Command::server(body).map_err(Failure::Defect)?;
-        self.run(Family::Thread, cmd)
+        self.run(&mut self.lock(), Family::Thread, cmd)
     }
 
-    fn run(&self, family: Family, cmd: Command) -> Result<Dispatched, Failure> {
-        let mut inner = self.lock();
+    fn run(&self, inner: &mut Inner, family: Family, cmd: Command) -> Result<Dispatched, Failure> {
         let refuse = |m: String| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message: m };
         let project_row = |inner: &Inner| (family == Family::Project).then(|| cmd.str("projectId").and_then(|id| inner.state.project_row(id))).flatten();
         if let Some(receipt) = self.store.receipt(&cmd.command_id).map_err(|e| refuse(e.0))? {
-            return Ok(Dispatched { sequence: receipt.sequence, row: project_row(&inner), effect: None, replayed: true });
+            return Ok(Dispatched { sequence: receipt.sequence, row: project_row(inner), effect: None, replayed: true });
         }
         if let Some(reason) = inner.rejected.get(&cmd.command_id).filter(|_| family == Family::Thread) {
             return Err(Failure::PreviouslyRejected { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), reason: reason.clone() });
@@ -147,9 +146,27 @@ impl Engine {
                 Failure::ThreadMissing { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), thread_id }
             }
         })?;
-        let stored = self.commit(&mut inner, decision.drafts, &cmd.command_id, Some((&cmd.command_id, &cmd.kind))).map_err(|e| refuse(e.0))?;
+        let stored = self.commit(inner, decision.drafts, &cmd.command_id, Some((&cmd.command_id, &cmd.kind))).map_err(|e| refuse(e.0))?;
         let sequence = stored.last().map_or(inner.state.last_sequence, |e| e.sequence);
-        Ok(Dispatched { sequence, row: project_row(&inner), effect: decision.effect, replayed: false })
+        Ok(Dispatched { sequence, row: project_row(inner), effect: decision.effect, replayed: false })
+    }
+
+    /// Projects a pre-existing RCA chat once, without creating a second agent thread or reopening a removed T3 row.
+    pub(super) fn open_mobile_tab(&self, source: &str, target: &str, title: &str, selection: Value) -> Result<(), String> {
+        let mut inner = self.lock();
+        let current = inner.state.threads.get(source).filter(|t| !crate::domain::state::is_archived(t)).ok_or("The source chat is no longer open.")?;
+        let project = current.get("projectId").and_then(Value::as_str).ok_or("Missing source project.")?;
+        if let Some(known) = inner.state.threads.get(target) {
+            return (known.get("projectId") == current.get("projectId") && !crate::domain::state::is_archived(known))
+                .then_some(()).ok_or_else(|| "This tab is unavailable in the current project.".into());
+        }
+        if inner.state.deleted.contains_key(target) { return Err("This tab was deleted.".into()); }
+        let body = json!({"type":"thread.create", "commandId":uuid(self.ids.as_ref()), "threadId":target, "projectId":project,
+            "title":title, "modelSelection":selection, "createdBy":"user", "creationSource":"mobile",
+            "runtimeMode":current.get("runtimeMode"), "interactionMode":current.get("interactionMode"),
+            "branch":current.get("branch"), "worktreePath":current.get("worktreePath")});
+        let cmd = Command::parse(&body, Family::Thread)?;
+        self.run(&mut inner, Family::Thread, cmd).map(|_| ()).map_err(super::projects::failure_text)
     }
 
     /// Moves a thread into a project (the folder it works in became one), once per `command_id`.
@@ -184,10 +201,10 @@ impl Engine {
         self.record_as(thread_id, run_id, step, &format!("agent:{thread_id}:{seq}"), true)
     }
 
-    pub fn observe_agent_run(&self, thread: &str, run: &str, text: &str) -> Result<bool, StoreError> {
+    pub fn observe_agent_run(&self, thread: &str, run: &str, text: &str, attachments: &[Value]) -> Result<bool, StoreError> {
         let mut inner = self.lock();
         let new_id = || uuid(self.ids.as_ref());
-        let drafts = observe_run(&inner.state, thread, run, text, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
+        let drafts = observe_run(&inner.state, thread, run, text, attachments, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
         if drafts.is_empty() {
             return Ok(false);
         }

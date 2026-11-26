@@ -8,6 +8,8 @@
 #[path = "flow/support/mod.rs"]
 mod support;
 
+#[path = "integration/workspace_tabs.rs"]
+mod workspace_tabs;
 #[path = "integration/attachments.rs"]
 mod attachments;
 #[path = "integration/chain.rs"]

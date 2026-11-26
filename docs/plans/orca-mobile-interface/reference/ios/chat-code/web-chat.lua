@@ -1,0 +1,8 @@
+device:assert_visible("Wrap lines")
+device:take_screenshot(env.out.."/chat.png")
+device:tap_on("Wrap lines")
+device:assert_visible("Disable line wrap")
+device:take_screenshot(env.out.."/wrapped.png")
+device:tap_on("Copy code")
+device:tap_on("Disable line wrap")
+device:assert_visible("Wrap lines")

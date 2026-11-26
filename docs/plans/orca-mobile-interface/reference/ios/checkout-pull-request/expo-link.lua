@@ -1,0 +1,7 @@
+device:take_screenshot(env.out..'/verified-empty.png')
+device:tap_on({point='37%,36.6%'})
+sleep_ms(400)
+device:take_screenshot(env.out..'/verified-link.png')
+device:tap_on({point='91%,20.6%'})
+sleep_ms(400)
+device:take_screenshot(env.out..'/verified-cancel.png')

@@ -1,0 +1,30 @@
+[
+  {
+    "journey": "history-second",
+    "verdict": "pass",
+    "platform": "ios",
+    "started": "2026-11-26T20:36:51.188Z",
+    "durationS": 1.5
+  },
+  {
+    "journey": "history-back",
+    "verdict": "pass",
+    "platform": "ios",
+    "started": "2026-11-26T20:36:53.882Z",
+    "durationS": 1.6
+  },
+  {
+    "journey": "history-forward",
+    "verdict": "pass",
+    "platform": "ios",
+    "started": "2026-11-26T20:36:56.653Z",
+    "durationS": 1.8
+  },
+  {
+    "journey": "disabled-browser-state",
+    "verdict": "pass",
+    "platform": "ios",
+    "started": "2026-11-26T20:37:12.651Z",
+    "durationS": 11.4
+  }
+]

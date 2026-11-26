@@ -1,0 +1,6 @@
+device:tap_on({point="24%,58%"})
+sleep_ms(650)
+device:take_screenshot(env.out .. "/orca-viewer.png")
+device:tap_on({point="79%,9.6%"})
+sleep_ms(750)
+device:take_screenshot(env.out .. "/orca-actions.png")

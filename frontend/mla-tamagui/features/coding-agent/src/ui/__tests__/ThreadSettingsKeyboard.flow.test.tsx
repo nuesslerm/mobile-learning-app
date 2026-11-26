@@ -2,7 +2,7 @@ import { createFixturePorts } from '@feature/coding-agent/testing';
 import { act, screen, userEvent, waitFor } from '@lib/flow-test-harness';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { app } from '../../__tests__/flowApp';
+import { app } from '../../__tests__/legacyFlowApp';
 
 const KEYBOARD_HEIGHT = 300;
 const FX_THREAD_BASIC = 'fx-thread-fx-basic';

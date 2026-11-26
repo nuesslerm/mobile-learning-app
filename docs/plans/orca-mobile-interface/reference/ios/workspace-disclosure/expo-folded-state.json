@@ -1,0 +1,15 @@
+{
+  "native": {
+    "groupBy": "repo",
+    "collapsedGroups": [
+      "repo:mac-mobile-learning"
+    ],
+    "workspaceViewKeys": [
+      "collapsedGroups",
+      "groupBy"
+    ]
+  },
+  "gateway": [
+    "repo:mac-mobile-learning"
+  ]
+}

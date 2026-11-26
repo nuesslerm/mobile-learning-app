@@ -1,0 +1,8 @@
+device:tap_on({point='83%,9.2%'})
+sleep_ms(2000)
+device:take_screenshot(env.out..'/reference-changes.png')
+device:tap_on({point='73%,15%'})
+sleep_ms(6000)
+device:take_screenshot(env.out..'/reference-pr.png')
+sleep_ms(8000)
+device:take_screenshot(env.out..'/reference-pr-ready.png')

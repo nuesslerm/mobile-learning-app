@@ -140,7 +140,7 @@ jobs:
           persist-credentials: false
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 1
-      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf ci plan mimic` emits each as a matrix key.
+      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/cli/src/provision.rs); `wf ci plan mimic` emits each as a matrix key.
       - name: Node of the set's provision block
         if: ${{ matrix.node != '' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

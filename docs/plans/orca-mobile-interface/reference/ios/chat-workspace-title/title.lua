@@ -1,0 +1,6 @@
+device:tap_on({point='50%,8.5%'})
+sleep_ms(1300)
+device:take_screenshot(env.out..'/spacing-details.png')
+device:tap_on({point='20%,49%'})
+sleep_ms(1000)
+device:take_screenshot(env.out..'/spacing-returned.png')

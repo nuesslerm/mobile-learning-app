@@ -208,6 +208,12 @@ ls:
   clis/mimic/plan/src/*:
     .dir: snake_case
     .rs: snake_case
+  clis/mimic/proxy-core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  clis/mimic/proxy-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
   clis/mimic/script/core/src:
     .dir: snake_case
     .rs: snake_case
@@ -445,6 +451,11 @@ ls:
     .mjs: kebab-case
     .sh: kebab-case
   tooling/browser-harness/*/src:
+    .dir: kebab-case
+    .ts: camelCase | PascalCase
+    .tsx: camelCase | PascalCase
+
+  clis/harness-browser/plugins/device-frame-ui/src:
     .dir: kebab-case
     .ts: camelCase | PascalCase
     .tsx: camelCase | PascalCase

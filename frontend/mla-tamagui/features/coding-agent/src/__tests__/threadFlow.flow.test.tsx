@@ -14,7 +14,7 @@ import { ThreadId } from '@app/remote-chat-agent-contracts/orchestration';
 import { act, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { app } from './flowApp';
+import { app } from './legacyFlowApp';
 import {
   createFixtureGateway,
   type FixtureGateway,

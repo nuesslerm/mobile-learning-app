@@ -1,0 +1,13 @@
+device:assert_visible("Send message")
+device:tap_on(env.modelButton)
+device:assert_visible("MiniMax-M3")
+device:assert_visible("MiniMax-M3.1-Flash")
+sleep_ms(500) -- Capture the fully presented sheet.
+device:take_screenshot(env.out .. "/expo-model.png")
+device:tap_on("Permissions")
+device:assert_visible("Full access")
+device:take_screenshot(env.out .. "/expo-permissions.png")
+device:tap_on("Back to models")
+device:assert_visible("MiniMax-M3")
+device:tap_on("Done")
+device:assert_visible("Send message")

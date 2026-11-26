@@ -11,9 +11,9 @@ const WS: &str = "w1";
 const WAIT: Duration = Duration::from_secs(25);
 
 /// What the shell has printed, read from a fresh attach to the service's stream for two seconds.
-fn screen(direct: &mut Direct) -> String {
+fn screen(direct: &mut Direct, terminal: &str) -> String {
     let client = direct.client();
-    client.call(ATTACH, json!({"workspace": WS, "terminal": "t1"})).expect("the service attaches");
+    client.call(ATTACH, json!({"workspace": WS, "terminal": terminal})).expect("the service attaches");
     let mut text = Vec::new();
     let until = Instant::now() + Duration::from_secs(2);
     while Instant::now() < until {
@@ -27,10 +27,10 @@ fn screen(direct: &mut Direct) -> String {
 }
 
 /// What the shell has printed once `needle` shows in it.
-fn screen_until(direct: &mut Direct, needle: &str) -> String {
+fn screen_until(direct: &mut Direct, terminal: &str, needle: &str) -> String {
     let deadline = Instant::now() + WAIT;
     loop {
-        let text = screen(direct);
+        let text = screen(direct, terminal);
         if text.contains(needle) {
             return text;
         }
@@ -44,18 +44,21 @@ fn a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes
         // Given a shell on the executor that has printed a computed answer, and a paired phone
         let chain = Chain::start(None);
         let mut direct = chain.direct();
-        direct.call("terminal", "terminal.open", json!({"workspace": WS, "terminal": "t1"})).expect("the service opens the shell");
         let mut phone = Phone::connect(case, &chain);
-        let handle = format!("{WS}:t1");
+        let created = phone.call(case, &chain, &["rpc:session.tabs.createTerminal"], "session.tabs.createTerminal", json!({"worktree": "id:w1::"}));
+        let tab = &created["result"]["tab"];
+        assert_eq!(tab["status"], "ready", "{created}");
+        let terminal = tab["id"].as_str().unwrap();
+        let handle = tab["terminal"].as_str().expect("the new tab exposes its live handle");
         let client = json!({"id": "chain-phone", "type": "mobile"});
         phone.call(case, &chain, &["rpc:terminal.send"], "terminal.send", json!({"terminal": handle, "text": "echo before-$((40+2))", "enter": true}));
-        screen_until(&mut direct, "before-42");
+        screen_until(&mut direct, terminal, "before-42");
         // When the phone opens an input session, fits the terminal to its viewport and subscribes to the stream
         let session = phone.call(case, &chain, &["rpc:terminal.openInputSession"], "terminal.openInputSession", json!({"terminal": handle, "client": client}));
         assert_eq!(session["result"]["inputSessionId"], Value::Null);
         phone.call(case, &chain, &["rpc:terminal.updateViewport"], "terminal.updateViewport", json!({"terminal": handle, "client": client, "viewport": {"cols": 64, "rows": 20}}));
         answered(case, "terminal.resize", true);
-        let first = phone.subscribe_terminal(case, &chain, &handle, None);
+        let first = phone.subscribe_terminal(case, &chain, handle, None);
         // Then rca was read and attached, and the snapshot replays what the shell printed
         answered(case, "terminal.read", true);
         answered(case, "terminal.attach", true);
@@ -79,8 +82,8 @@ fn a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes
         assert_eq!(spent["result"]["credited"], json!(false));
         // When the shell prints more while nobody watches, and the phone subscribes again with its token and the units it heard
         phone.call(case, &chain, &["rpc:terminal.send"], "terminal.send", json!({"terminal": handle, "text": "echo away-$((60+6))", "enter": true}));
-        screen_until(&mut direct, "away-66");
-        let second = phone.subscribe_terminal(case, &chain, &handle, Some((&first.token, live.units)));
+        screen_until(&mut direct, terminal, "away-66");
+        let second = phone.subscribe_terminal(case, &chain, handle, Some((&first.token, live.units)));
         // Then the stream is a resumed one that carries the missed output and not what the phone already had
         assert_eq!(second.opened["result"]["resumed"], json!(true), "{}", second.opened);
         assert_ne!(second.token, first.token);
@@ -101,7 +104,7 @@ fn a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes
         assert_eq!(phone.end_of(&second)["result"], json!({"type": "end"}));
         // When it closes the terminal and subscribes again
         phone.call(case, &chain, &["rpc:terminal.close"], "terminal.close", json!({"terminal": handle}));
-        let stale = phone.refused(case, &chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(&handle, None));
+        let stale = phone.refused(case, &chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(handle, None));
         // Then the handle is refused as stale
         assert_eq!(stale["error"]["code"], json!("terminal_handle_stale"));
     });

@@ -1,0 +1,27 @@
+{
+  "action": "browser_frame",
+  "exchanges": [
+    {
+      "name": "finds no page under a key that was never opened",
+      "request": {
+        "id": "b1",
+        "tool": "browser_frame",
+        "args": {
+          "key": "t1",
+          "width": 390,
+          "height": 680,
+          "mobile": true,
+          "quality": 72
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no page is open for key t1"
+        }
+      }
+    }
+  ]
+}

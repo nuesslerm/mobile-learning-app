@@ -31,9 +31,10 @@ fn project_root() -> String {
 enum Mode {
     Sync { check: bool },
     McpGuard,
+    SaveMemory,
 }
 
-/// `[sync] [--check]` or `mcp-guard`; anything else is clap's error.
+/// Parse the configuration, memory and hook commands.
 fn parse(args: &[String]) -> Result<Mode, String> {
     let matches = clap::Command::new("wf agent-config sync")
         .no_binary_name(true)
@@ -45,10 +46,12 @@ fn parse(args: &[String]) -> Result<Mode, String> {
         .arg(Arg::new("json").long("json").hide(true).global(true).action(ArgAction::SetTrue))
         .arg(Arg::new("app").long("app").hide(true).global(true).num_args(1).allow_hyphen_values(true).action(ArgAction::Append))
         .subcommand(clap::Command::new("sync").arg(Arg::new("check").long("check").action(ArgAction::SetTrue)))
+        .subcommand(clap::Command::new("save-memory"))
         .subcommand(clap::Command::new("mcp-guard"))
         .try_get_matches_from(args)
         .map_err(|e| e.render().to_string())?;
     Ok(match matches.subcommand() {
+        Some(("save-memory", _)) => Mode::SaveMemory,
         Some(("mcp-guard", _)) => Mode::McpGuard,
         Some(("sync", sub)) => Mode::Sync { check: sub.get_flag("check") || matches.get_flag("check") },
         _ => Mode::Sync { check: matches.get_flag("check") },
@@ -70,6 +73,11 @@ fn run_inner(
         }
     };
     let root = project_root();
+    if mode == Mode::SaveMemory {
+        let count = crate::memory::save(std::path::Path::new(&root))?;
+        out.push_str(&format!("{{\"ok\":true,\"notes\":{count}}}\n"));
+        return Ok(0);
+    }
     if mode == Mode::McpGuard {
         let mut input = String::new();
         stdin
@@ -97,6 +105,7 @@ fn run_inner(
     for r in sync::sync(&root)? {
         out.push_str(&format!("synced: {}\n", r.path));
     }
+    crate::memory::restore(std::path::Path::new(&root), err)?;
     Ok(0)
 }
 

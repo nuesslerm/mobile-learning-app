@@ -52,7 +52,7 @@ pub const GIT_BRANCH_DIFF: &str = "git.branchDiff";
 pub const GIT_COMMIT_DIFF: &str = "git.commitDiff";
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE, GENERATE_PULL_REQUEST_FIELDS, BLOB, FILE_STAT, FILE_READ_CHUNK, orca_map_hosted::PR_REMOTES];
+pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, agent_api_git::SWITCH_WORKTREE_BRANCH, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE, GENERATE_PULL_REQUEST_FIELDS, BLOB, FILE_STAT, FILE_READ_CHUNK, orca_map_hosted::PR_REMOTES];
 
 const METHODS: &[Method] = &[
     Method { name: GIT_STATUS, kind: Kind::Unary },
@@ -107,7 +107,12 @@ impl Area for GitArea {
         if method == GIT_GENERATE_PULL_REQUEST_FIELDS {
             ai::check_pull_request_fields(params)?;
         }
-        let repo = Repo::of(ctx.agent, params)?;
+        if method == GIT_CHECKOUT {
+            if let Some((workspace, path)) = write::checkout_path(params) {
+                return write::switch_worktree_branch(ctx.agent, workspace, path, params);
+            }
+        }
+        let repo = Repo::of(ctx.agent, method, params)?;
         if let Some(p) = working {
             return diff::working(&repo, &p, ctx.request_id);
         }
@@ -150,6 +155,7 @@ impl Area for GitArea {
 pub(crate) struct Repo<'a> {
     agent: &'a dyn AgentApi,
     workspace: String,
+    linked: Option<(String, String)>,
 }
 
 pub(crate) fn refusal(error: AgentError) -> Failure {
@@ -164,9 +170,21 @@ pub(crate) fn refusal(error: AgentError) -> Failure {
 }
 
 impl<'a> Repo<'a> {
-    fn of(agent: &'a dyn AgentApi, params: &Value) -> Result<Repo<'a>, Failure> {
+    fn of(agent: &'a dyn AgentApi, method: &str, params: &Value) -> Result<Repo<'a>, Failure> {
         let selector = params.get("worktree").and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing worktree selector"))?;
-        Ok(Repo { agent, workspace: orca_map_workspace::resolve(agent, selector)?.workspace })
+        match orca_map_workspace::git_checkout(agent, selector)? {
+            orca_map_workspace::GitCheckout::Workspace(workspace) => Ok(Repo { agent, workspace, linked: None }),
+            orca_map_workspace::GitCheckout::Linked { repo, head, branch } => match method {
+                GIT_HISTORY | GIT_LOCAL_BRANCHES | GIT_BRANCH_COMPARE | GIT_COMMIT_COMPARE | GIT_BRANCH_DIFF
+                | GIT_COMMIT_DIFF | GIT_REMOTE_COMMIT_URL => {
+                    if !matches!(head.len(), 40 | 64) || !head.bytes().all(|b| b.is_ascii_hexdigit()) {
+                        return Err(Failure::new(RUNTIME_ERROR, "Missing checkout HEAD"));
+                    }
+                    Ok(Repo { agent, workspace: repo, linked: Some((head, branch)) })
+                }
+                _ => Err(Failure::new(RUNTIME_ERROR, "This operation requires an RCA workspace for the selected checkout")),
+            },
+        }
     }
 
     /// The group's answer, with a refusal kept as the executor words it.

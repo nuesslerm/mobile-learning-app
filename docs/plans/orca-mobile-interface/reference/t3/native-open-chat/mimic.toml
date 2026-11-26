@@ -1,0 +1,12 @@
+# T3 Code (iOS) against the pinned T3 server, observed through `wf mimic proxy record`.
+rules = "rules.json"
+
+[reference]
+name = "t3"
+driver = "wire"
+pin = "../../../../../../tooling/t3-conformance/t3-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+
+[proxy.replay]
+ignore_keys = ["httpSnapshotFallback", "afterSequence"]

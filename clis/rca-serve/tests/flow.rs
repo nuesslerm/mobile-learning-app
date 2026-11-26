@@ -31,12 +31,16 @@ fn cli() -> Command {
     }
 }
 fn start(dir: &Path) -> Gateway {
+    start_mode(dir, "serve", "ws://127.0.0.1:1")
+}
+fn start_mode(dir: &Path, mode: &str, upstream: &str) -> Gateway {
     let mut child = cli()
-        .args(["serve", "--state-dir"])
+        .args([mode, "--state-dir"])
         .arg(dir)
-        .env("RCA_MOBILE_UPSTREAM", "ws://127.0.0.1:1")
+        .env("RCA_MOBILE_UPSTREAM", upstream)
         .env("RCA_MOBILE_BEARER", "test")
         .env("RCA_MOBILE_BIND", "127.0.0.1:0")
+        .env("RCA_MOBILE_WORKSPACE", "fixture")
         .stdout(Stdio::piped())
         .spawn()
         .unwrap();
@@ -142,4 +146,66 @@ fn given_a_real_executor_when_a_client_loses_its_receipt_then_its_turn_resumes_o
         .unwrap();
     let frame: Value = serde_json::from_str(socket.read().unwrap().to_text().unwrap()).unwrap();
     assert_eq!(frame["event"], events[1]);
+}
+
+#[test]
+fn given_an_rca_t3_invite_when_redeemed_then_the_session_can_get_an_rpc_ticket() {
+    let state = State(std::env::temp_dir().join(Uuid::new_v4().to_string()));
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let upstream = format!("ws://{}", listener.local_addr().unwrap());
+    let health = std::thread::spawn(move || {
+        let mut socket = tungstenite::accept(listener.accept().unwrap().0).unwrap();
+        let request: Value =
+            serde_json::from_str(socket.read().unwrap().to_text().unwrap()).unwrap();
+        assert_eq!(request["method"], "service.status");
+        let groups: Vec<_> = t3_serve::adapters::rca::needed_groups()
+            .into_iter()
+            .map(|group| group.as_str())
+            .collect();
+        let status = json!({"protocol":1,"version":"test","commit":"fixture","groups":groups});
+        socket
+            .send(tungstenite::Message::Text(
+                json!({"id":request["id"], "result":status})
+                    .to_string()
+                    .into(),
+            ))
+            .unwrap();
+    });
+    let gateway = start_mode(&state.0, "serve-t3", &upstream);
+    health.join().unwrap();
+    let invite = cli()
+        .args(["pair-t3", "--state-dir"])
+        .arg(&state.0)
+        .env("RCA_MOBILE_PUBLIC_URL", format!("http://{}", gateway.1))
+        .output()
+        .unwrap();
+    assert!(invite.status.success());
+    let offer: Value = serde_json::from_slice(&invite.stdout).unwrap();
+    assert!(offer["scopes"].as_array().unwrap().iter().any(|scope| scope == "preview:operate"));
+    let code = offer["code"].as_str().unwrap();
+    let form = format!(
+        "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token={code}"
+    );
+    let mut socket = TcpStream::connect(&gateway.1).unwrap();
+    socket
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    write!(socket, "POST /oauth/token HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n{form}", form.len()).unwrap();
+    let mut response = String::new();
+    socket.read_to_string(&mut response).unwrap();
+    let (headers, body) = response.split_once("\r\n\r\n").unwrap();
+    assert!(headers.starts_with("HTTP/1.1 200"));
+    let auth: Value = serde_json::from_str(body).unwrap();
+    let bearer = auth["access_token"].as_str().unwrap();
+    let (status, _) = call(&gateway.1, "GET", "/api/auth/session", bearer, Value::Null);
+    assert_eq!(status, 200);
+    let (status, ticket) = call(
+        &gateway.1,
+        "POST",
+        "/api/auth/websocket-ticket/rpc",
+        bearer,
+        json!({}),
+    );
+    assert_eq!(status, 200);
+    assert!(ticket["ticket"].as_str().is_some_and(|s| !s.is_empty()));
 }

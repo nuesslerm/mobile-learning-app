@@ -1,0 +1,27 @@
+local function waitInk(point)
+  for attempt=1,80 do
+    local c=device:get_pixel(point)
+    if c.r<80 and c.g<80 and c.b<80 then return end
+    sleep_ms(200)
+  end
+  error("File explorer did not display the expected row at "..point)
+end
+device:tap_on({point="27%,79.3%"})
+waitInk("10%,92%")
+device:tap_on({point="94%,9.2%"})
+sleep_ms(550)
+device:tap_on({point="57%,14.2%"})
+waitInk("100,139")
+device:take_screenshot(env.out .. "/root.png")
+device:tap_on({point="28%,15%"})
+waitInk("79,227")
+device:take_screenshot(env.out .. "/tree.png")
+device:tap_on({point="28%,24.5%"})
+sleep_ms(6800)
+device:take_screenshot(env.out .. "/preview.png")
+device:tap_on({point="6%,9.2%"})
+waitInk("79,227")
+device:take_screenshot(env.out .. "/tree-return.png")
+device:tap_on({point="6%,9.2%"})
+waitInk("10%,92%")
+device:take_screenshot(env.out .. "/chat.png")

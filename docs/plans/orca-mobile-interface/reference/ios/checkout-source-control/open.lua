@@ -1,0 +1,6 @@
+device:swipe('25%,81.8%', '25%,81.8%', {duration=800})
+sleep_ms(700)
+device:take_screenshot(env.out..'/actions.png')
+device:tap_on({point='23%,62%'})
+sleep_ms(2400)
+device:take_screenshot(env.out..'/source.png')

@@ -136,7 +136,7 @@ fn the_recorded_turns_of_the_contract_become_the_threads_rows_a_failing_tool_a_l
     // And an agent API that replays the first turn: the double starts a turn and records the user's message itself, so those are left out of the script
     let (h, mut rpc) = seeded();
     let (first, second) = (turn_of("u1"), turn_of("u2"));
-    let AgentEventKind::UserText(question) = first[1].clone() else { panic!("the first turn opens with the user's message") };
+    let AgentEventKind::UserMessage { text: question, .. } = first[1].clone() else { panic!("the first turn opens with the user's message") };
     *h.agent.script.lock().unwrap() = first[2..].to_vec();
     // When the user's message is dispatched and the turn has ended
     dispatch_message(&mut rpc, "c-1", &question);
@@ -412,4 +412,35 @@ fn a_history_read_serves_the_rows_it_has_when_the_agent_api_cannot_be_reached_or
     let failures: Vec<String> = h.log.lines().into_iter().filter(|l| l.starts_with("run.sync.failed")).collect();
     assert_eq!(failures.len(), 1, "{failures:?}");
     assert!(failures[0].contains("error=rca is down"), "{failures:?}");
+}
+
+#[test]
+fn an_orca_bounded_snapshot_places_tools_between_the_original_assistant_fragments() {
+    // Given assistant prose containing a surrogate pair, a tool call, and more prose
+    let (h, mut rpc) = seeded();
+    *h.agent.script.lock().unwrap() = vec![
+        AgentEventKind::Text("Hi 👋".into()),
+        AgentEventKind::ToolStarted { id: "check".into(), name: "read".into(), input: json!({"filePath":"notes.md"}) },
+        AgentEventKind::ToolFinished { id: "check".into(), ok: true },
+        AgentEventKind::Text("All done".into()),
+        AgentEventKind::TurnFinished(Finish::Completed),
+    ];
+    dispatch_message(&mut rpc, "cmd", "Read the notes");
+    let p = settled(&mut rpc, "t1");
+    let tool = p["turnItems"].as_array().unwrap().iter().find(|i| i["name"] == "read").unwrap()["id"].as_str().unwrap();
+    let bearer = bearer_of(h.addr, &h.pair(PairingRequest::default()).code);
+    let headers = [("Authorization", format!("Bearer {bearer}")), ("x-t3-orchestration-protocol", "2".into())];
+    let headers = headers.each_ref().map(|(k, v)| (*k, v.as_str()));
+    // When the client reopens both representations after a server restart
+    let restarted = h.restart();
+    let fetch = |query: &str| http(restarted.addr, "GET", &format!("/api/orchestration/threads/t1/bounded{query}"), &headers, "");
+    let ordinary = fetch("");
+    let orca = fetch("?rcaChatLayout=1");
+    // Then only the opt-in representation carries the UTF-16 offset, and both return the same transcript
+    assert_eq!((ordinary.status, orca.status), (200, 200));
+    assert!(ordinary.body.get("rcaProjectRoot").is_none());
+    assert_eq!(orca.body["rcaProjectRoot"], "/workspace/demo");
+    assert!(ordinary.body.get("rcaToolTextOffsets").is_none());
+    assert_eq!(orca.body["rcaToolTextOffsets"][tool], "Hi 👋".encode_utf16().count());
+    assert_eq!(ordinary.body["projection"], orca.body["projection"]);
 }

@@ -47,6 +47,33 @@ pub fn checkout_of(agent: &dyn AgentApi, repo: &str, found: &Target) -> Result<b
     Ok(found.workspace == repo || (found.kind == "worktree" && !found.root_path.is_empty() && checkouts(agent, repo)?.iter().any(|c| c.path == found.root_path)))
 }
 
+pub enum GitCheckout {
+    Workspace(String),
+    Linked { repo: String, head: String, branch: String },
+}
+
+/// Composite selectors identify a checkout within one repository, including checkouts with no RCA workspace.
+pub fn git_checkout(agent: &dyn AgentApi, selector: &str) -> Result<GitCheckout, Failure> {
+    let id = selector.trim().strip_prefix("id:").unwrap_or(selector.trim());
+    let Some((repo, path)) = id.split_once("::") else {
+        return crate::resolve(agent, selector).map(|target| GitCheckout::Workspace(target.workspace));
+    };
+    let missing = || Failure::new("selector_not_found", "selector_not_found");
+    let all = targets(agent)?;
+    let owner = all.iter().find(|t| t.workspace == repo).ok_or_else(missing)?;
+    if owner.root_path == path {
+        return Ok(GitCheckout::Workspace(owner.workspace.clone()));
+    }
+    let checkout = checkouts(agent, repo)?.into_iter().find(|c| c.path == path).ok_or_else(missing)?;
+    if checkout.is_main {
+        return Ok(GitCheckout::Workspace(repo.to_owned()));
+    }
+    if let Some(target) = all.iter().find(|t| t.kind == "worktree" && t.root_path == path) {
+        return Ok(GitCheckout::Workspace(target.workspace.clone()));
+    }
+    Ok(GitCheckout::Linked { repo: repo.to_owned(), head: checkout.head, branch: checkout.branch })
+}
+
 fn basename(path: &str) -> &str {
     path.trim_end_matches('/').rsplit('/').next().unwrap_or(path)
 }
@@ -71,6 +98,7 @@ pub(crate) fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Resul
         row.insert(k.into(), v);
     }
     row.extend(object(agent, &meta_key(&id))?);
+    row.remove("acknowledgeAttention");
     row.insert("id".into(), id.into());
     row.insert("repoId".into(), repo.workspace.clone().into());
     row.insert("path".into(), c.path.clone().into());
@@ -177,14 +205,28 @@ pub(crate) fn remove(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
 
 pub(crate) fn set(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let (repo, c) = find(agent, selector(params)?)?;
+    if params.get("isUnread").is_some_and(|v| !v.is_boolean()) {
+        return Err(Failure::invalid("isUnread must be a boolean"));
+    }
+    let acknowledge = match params.get("acknowledgeAttention") {
+        None => false,
+        Some(Value::Bool(value)) => *value && params["isUnread"] == false,
+        Some(_) => return Err(Failure::invalid("acknowledgeAttention must be a boolean")),
+    };
+    let unread = if acknowledge {
+        let workspace = if c.is_main { Some(repo.workspace.clone()) } else { targets(agent)?.into_iter().find(|t| t.kind == "worktree" && t.root_path == c.path).map(|t| t.workspace) };
+        match workspace { Some(w) => crate::activity::unread_panes(agent, &w)?, None => Vec::new() }
+    } else { Vec::new() };
     let key = meta_key(&id_of(&repo.workspace, &c.path));
     let turn = orca_core::kept_state_turn();
     let mut meta = object(agent, &key)?;
-    for (k, v) in params.as_object().into_iter().flatten().filter(|(k, _)| k.as_str() != "worktree") {
+    meta.remove("acknowledgeAttention");
+    for (k, v) in params.as_object().into_iter().flatten().filter(|(k, _)| !matches!(k.as_str(), "worktree" | "acknowledgeAttention")) {
         meta.insert(k.clone(), v.clone());
     }
     put(agent, &key, Value::Object(meta))?;
     drop(turn);
+    crate::activity::mark_read(agent, &unread)?;
     Ok(json!({"worktree": record(agent, &repo, &c)?}))
 }
 

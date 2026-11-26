@@ -4,6 +4,7 @@
 use super::engine::Engine;
 use crate::domain::decider::{Launch, Outcome, RunStep};
 use crate::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, Follow, Log, MetaStore, Op, StoreError};
+use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -343,16 +344,23 @@ impl Runner {
 
     fn observe(&self, thread: &str, turn: &str, event: &AgentEvent) -> Result<(), StoreError> {
         let run = observed_run(thread, turn);
-        match &event.kind {
-            AgentEventKind::UserText(text) if self.engine.observe_agent_run(thread, &run, text)? => {
+        if let AgentEventKind::UserMessage { text, attachments } = &event.kind {
+            let mut rows = Vec::with_capacity(attachments.len());
+            for (id, name) in attachments {
+                let result = match self.agent.run(&Op::Attachment { method: "attachment.get", params: json!({"id": id, "offset": 0, "length": 1}) }) {
+                    Ok(result) => result,
+                    Err(AgentError::Refused { code, .. }) if code == "ATTACHMENT_NOT_FOUND" => continue,
+                    Err(error) => return Err(StoreError(error.message())),
+                };
+                let meta = &result["attachment"];
+                rows.push(json!({"id": id, "name": name, "type": meta["kind"], "mimeType": meta["mime_type"], "sizeBytes": meta["size_bytes"]}));
+            }
+            if self.engine.observe_agent_run(thread, &run, text, &rows)? {
                 self.remember(&turn_key(thread, turn), &run);
                 self.remember(&run_key(&run), turn);
             }
-            _ => {
-                if let Some(step) = RunStep::of(&event.kind) {
-                    self.engine.record_agent(thread, &run, event.seq, &step)?;
-                }
-            }
+        } else if let Some(step) = RunStep::of(&event.kind) {
+            self.engine.record_agent(thread, &run, event.seq, &step)?;
         }
         Ok(())
     }
@@ -362,7 +370,12 @@ impl Runner {
         if !self.engine.thread_exists(thread) {
             return;
         }
-        let mut after = self.cursor(thread);
+        let cursor = self.cursor(thread);
+        let migration = format!("agent-observed-attachments-v1:{thread}");
+        let migrated = self.recall(&migration).is_some();
+        let needs_replay = !migrated && cursor > 0 && self.engine.read(|state| state.entities.get(thread).is_some_and(|e|
+            e.messages.iter().any(|m| m["role"] == "user" && m["creationSource"] == "server" && m["attachments"].as_array().is_some_and(Vec::is_empty))));
+        let mut after = if needs_replay { 0 } else { cursor };
         loop {
             let page = match self.agent.history(thread, after, PAGE) {
                 Ok(page) => page,
@@ -371,17 +384,25 @@ impl Runner {
             };
             for event in &page.events {
                 if let Some(turn) = event.turn.as_deref() {
-                    if let Some(run) = self.run_of(thread, turn) {
+                    if event.seq <= cursor {
+                        if needs_replay && matches!(&event.kind, AgentEventKind::UserMessage { attachments, .. } if !attachments.is_empty()) && self.engine.knows_run(thread, &observed_run(thread, turn)) {
+                            if let Err(error) = self.observe(thread, turn, event) {
+                                return self.log.event("run.attachments.restore.failed", &[("thread", thread.to_string()), ("error", error.0)]);
+                            }
+                        }
+                    } else if let Some(run) = self.run_of(thread, turn) {
                         self.fold(thread, &run, event);
                     } else if let Err(error) = self.observe(thread, turn, event) {
                         return self.log.event("run.observe.failed", &[("thread", thread.to_string()), ("error", error.0)]);
                     }
                 }
             }
-            let Some(last) = page.events.last() else { return };
-            after = last.seq;
-            self.advance(thread, after);
-            if !page.more {
+            if let Some(last) = page.events.last() {
+                after = last.seq;
+                self.advance(thread, after);
+            }
+            if !page.more || page.events.is_empty() {
+                if !migrated { self.remember(&migration, "1"); }
                 return;
             }
         }

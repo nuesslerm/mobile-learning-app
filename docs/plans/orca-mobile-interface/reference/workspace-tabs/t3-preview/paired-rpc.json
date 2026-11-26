@@ -1,0 +1,262 @@
+[
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "2",
+    "payload": {
+      "runtime": "server",
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+      "url": "http://127.0.0.1:18632"
+    },
+    "tag": "preview.open"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": {
+        "canGoBack": false,
+        "canGoForward": false,
+        "navStatus": {
+          "_tag": "Loading",
+          "title": "",
+          "url": "http://127.0.0.1:18632/"
+        },
+        "runtime": "server",
+        "tabId": "tab_1_df5887d4-b940-4503-b596-57974e07a32e",
+        "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+        "updatedAt": "2026-11-26T18:15:43.157Z",
+        "viewport": {
+          "_tag": "fill"
+        }
+      }
+    },
+    "requestId": "2"
+  },
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "3",
+    "payload": {
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74"
+    },
+    "tag": "preview.list"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": {
+        "revision": 1,
+        "serverEpoch": "df5887d4-b940-4503-b596-57974e07a32e",
+        "sessions": [
+          {
+            "canGoBack": false,
+            "canGoForward": false,
+            "navStatus": {
+              "_tag": "Loading",
+              "title": "",
+              "url": "http://127.0.0.1:18632/"
+            },
+            "runtime": "server",
+            "tabId": "tab_1_df5887d4-b940-4503-b596-57974e07a32e",
+            "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+            "updatedAt": "2026-11-26T18:15:43.157Z",
+            "viewport": {
+              "_tag": "fill"
+            }
+          }
+        ]
+      }
+    },
+    "requestId": "3"
+  },
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "4",
+    "payload": {
+      "tabId": "tab_1_df5887d4-b940-4503-b596-57974e07a32e",
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+      "viewport": {
+        "_tag": "freeform",
+        "height": 680,
+        "width": 390
+      }
+    },
+    "tag": "preview.resize"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": {
+        "canGoBack": false,
+        "canGoForward": false,
+        "navStatus": {
+          "_tag": "Loading",
+          "title": "",
+          "url": "http://127.0.0.1:18632/"
+        },
+        "runtime": "server",
+        "tabId": "tab_1_df5887d4-b940-4503-b596-57974e07a32e",
+        "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+        "updatedAt": "2026-11-26T18:15:43.160Z",
+        "viewport": {
+          "_tag": "freeform",
+          "height": 680,
+          "width": 390
+        }
+      }
+    },
+    "requestId": "4"
+  },
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "5",
+    "payload": {
+      "tabId": "tab_1_df5887d4-b940-4503-b596-57974e07a32e",
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74"
+    },
+    "tag": "preview.close"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": null
+    },
+    "requestId": "5"
+  },
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "6",
+    "payload": {
+      "runtime": "desktop",
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+      "url": "http://127.0.0.1:18632"
+    },
+    "tag": "preview.open"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": {
+        "canGoBack": false,
+        "canGoForward": false,
+        "navStatus": {
+          "_tag": "Loading",
+          "title": "",
+          "url": "http://127.0.0.1:18632/"
+        },
+        "runtime": "desktop",
+        "tabId": "tab_2",
+        "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+        "updatedAt": "2026-11-26T18:15:43.161Z",
+        "viewport": {
+          "_tag": "fill"
+        }
+      }
+    },
+    "requestId": "6"
+  },
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "7",
+    "payload": {
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74"
+    },
+    "tag": "preview.list"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": {
+        "revision": 4,
+        "serverEpoch": "df5887d4-b940-4503-b596-57974e07a32e",
+        "sessions": [
+          {
+            "canGoBack": false,
+            "canGoForward": false,
+            "navStatus": {
+              "_tag": "Loading",
+              "title": "",
+              "url": "http://127.0.0.1:18632/"
+            },
+            "runtime": "desktop",
+            "tabId": "tab_2",
+            "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+            "updatedAt": "2026-11-26T18:15:43.161Z",
+            "viewport": {
+              "_tag": "fill"
+            }
+          }
+        ]
+      }
+    },
+    "requestId": "7"
+  },
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "8",
+    "payload": {
+      "tabId": "tab_2",
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+      "viewport": {
+        "_tag": "freeform",
+        "height": 680,
+        "width": 390
+      }
+    },
+    "tag": "preview.resize"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": {
+        "canGoBack": false,
+        "canGoForward": false,
+        "navStatus": {
+          "_tag": "Loading",
+          "title": "",
+          "url": "http://127.0.0.1:18632/"
+        },
+        "runtime": "desktop",
+        "tabId": "tab_2",
+        "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74",
+        "updatedAt": "2026-11-26T18:15:43.162Z",
+        "viewport": {
+          "_tag": "freeform",
+          "height": 680,
+          "width": 390
+        }
+      }
+    },
+    "requestId": "8"
+  },
+  {
+    "_tag": "Request",
+    "headers": [],
+    "id": "9",
+    "payload": {
+      "tabId": "tab_2",
+      "threadId": "466045e1-504e-47e4-98a6-e788bcccfd74"
+    },
+    "tag": "preview.close"
+  },
+  {
+    "_tag": "Exit",
+    "exit": {
+      "_tag": "Success",
+      "value": null
+    },
+    "requestId": "9"
+  }
+]

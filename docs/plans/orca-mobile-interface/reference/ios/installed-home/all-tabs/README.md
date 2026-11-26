@@ -1,0 +1,7 @@
+# Five bottom tabs on the paired rca simulator
+
+Installed Orca 0.0.68 and the [Expo Go update](https://expo.dev/accounts/nuesslerm/projects/mla-tamagui/updates/6a4a1f11-8c8f-46bc-8665-e9f87fe03a63) opened Feed, Bots, Agents, Usage and Automations in order and returned to Feed. All five selected states produced distinct tab bars. At each step the full-width bottom bar matched exactly, including the separator, icons, labels and bottom inset. The comparison covers 333,960 pixels per state, starting at y=2615 on the 1320 × 2868 light iPhone capture. [Pixel counts](comparison.json) · [Orca recording](orca.mp4) · [Expo recording](expo.mp4)
+
+The [screen overview](overview.png) shows installed Orca across the top and Expo across the bottom. Orca had two paired desktops and Expo had one. Expo showed a pairing prompt in Agents, Usage and Automations even with a connected desktop. The reference offered a desktop selector in each, displayed agent history and usage data, and provided a create button for automations. Full screenshots are under [Orca](orca) and [Expo](expo).
+
+Start each app on its paired Feed in light appearance on the rca iPhone 18 Pro Max. Run [capture.lua](capture.lua) with `wf ios test`, setting `--env out=<absolute-output-directory>` and a separate `--test-output-dir` for each run. Compare the original PNGs in RGBA from the first full-width navigation separator to the bottom without masking.

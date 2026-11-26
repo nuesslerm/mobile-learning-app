@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { CodingAgentThread } from '../ui/MobileThreadScreen';
+import { T3MobileScreen } from '../ui/T3MobileScreen';
 
 export default function CodingAgentThreadRoute() {
-  const { threadId, paired } = useLocalSearchParams<{ threadId: string; paired?: string }>();
-  return <CodingAgentThread key={(threadId ?? '') + (paired ?? '')} id={threadId} />;
+  const { threadId } = useLocalSearchParams<{ threadId: string }>();
+  return <T3MobileScreen threadId={threadId} />;
 }

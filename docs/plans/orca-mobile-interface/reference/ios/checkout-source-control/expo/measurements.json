@@ -1,0 +1,208 @@
+{
+  "pairedGateway": {
+    "head": "f5b0c4439500250318e6dc7ff4835baba0462711",
+    "ahead": 104,
+    "base": "origin/main",
+    "changedFilesReturned": 1497,
+    "summaryBytes": 195165,
+    "summaryMs": 732.4,
+    "gzipBytes": 23886,
+    "commitFilesChecked": 8,
+    "added": 171,
+    "removed": 137,
+    "commitBytes": 1166,
+    "commitMs": 413.9
+  },
+  "simulator": "rca, iPhone 18 Pro Max, iOS 27",
+  "historyPixels": {
+    "dimensions": {
+      "width": 1320,
+      "height": 2868
+    },
+    "range": [
+      350,
+      2750
+    ],
+    "markerX": 63,
+    "native": [
+      [
+        412,
+        442
+      ],
+      [
+        580,
+        610
+      ],
+      [
+        748,
+        778
+      ],
+      [
+        916,
+        946
+      ],
+      [
+        1084,
+        1114
+      ],
+      [
+        1252,
+        1282
+      ],
+      [
+        1420,
+        1450
+      ],
+      [
+        1588,
+        1618
+      ],
+      [
+        1756,
+        1786
+      ],
+      [
+        1924,
+        1954
+      ],
+      [
+        2092,
+        2122
+      ],
+      [
+        2260,
+        2290
+      ],
+      [
+        2428,
+        2458
+      ],
+      [
+        2596,
+        2626
+      ]
+    ],
+    "replacement": [
+      [
+        411,
+        441
+      ],
+      [
+        579,
+        609
+      ],
+      [
+        747,
+        777
+      ],
+      [
+        915,
+        945
+      ],
+      [
+        1083,
+        1113
+      ],
+      [
+        1251,
+        1281
+      ],
+      [
+        1419,
+        1449
+      ],
+      [
+        1587,
+        1617
+      ],
+      [
+        1755,
+        1785
+      ],
+      [
+        1923,
+        1953
+      ],
+      [
+        2091,
+        2121
+      ],
+      [
+        2259,
+        2289
+      ],
+      [
+        2427,
+        2457
+      ],
+      [
+        2595,
+        2625
+      ]
+    ],
+    "comparedPixels": 3168000,
+    "different": 190008
+  },
+  "visibleCommitsAfterScrolling": [
+    {
+      "sha": "d36635b",
+      "position": 146
+    },
+    {
+      "sha": "2215ea3",
+      "position": 147
+    },
+    {
+      "sha": "c794249",
+      "position": 148
+    },
+    {
+      "sha": "465cc1a",
+      "position": 149
+    },
+    {
+      "sha": "ad7d068",
+      "position": 150
+    },
+    {
+      "sha": "dcee995",
+      "position": 151
+    },
+    {
+      "sha": "b76cd7a",
+      "position": 152
+    },
+    {
+      "sha": "bb3c3d0",
+      "position": 153
+    },
+    {
+      "sha": "fdd836a",
+      "position": 154
+    },
+    {
+      "sha": "759ec3c",
+      "position": 155
+    },
+    {
+      "sha": "ae2b90a",
+      "position": 156
+    },
+    {
+      "sha": "5b03212",
+      "position": 157
+    },
+    {
+      "sha": "0a76f56",
+      "position": 158
+    },
+    {
+      "sha": "87bbbf8",
+      "position": 159
+    },
+    {
+      "sha": "734ae0c",
+      "position": 160
+    }
+  ]
+}

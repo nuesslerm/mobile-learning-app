@@ -1,0 +1,28 @@
+{
+  "simulator": "rca",
+  "client": "stock Orca",
+  "journeys": [
+    {
+      "action": "link",
+      "verdict": "pass",
+      "started": "2026-11-26T20:51:33.916Z",
+      "durationS": 0.9
+    },
+    {
+      "action": "back",
+      "verdict": "pass",
+      "started": "2026-11-26T20:51:35.368Z",
+      "durationS": 0.8
+    },
+    {
+      "action": "forward",
+      "verdict": "pass",
+      "started": "2026-11-26T20:51:36.746Z",
+      "durationS": 0.9
+    }
+  ],
+  "landscapePoints": [
+    956,
+    440
+  ]
+}
