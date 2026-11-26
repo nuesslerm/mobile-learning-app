@@ -1,5 +1,5 @@
-import { createContext, useContext } from 'react';
-import { useColorScheme } from 'react-native';
+import { createContext, useContext, useSyncExternalStore } from 'react';
+import { Appearance, Platform, useColorScheme } from 'react-native';
 
 export const homePalettes = {
   dark: {
@@ -74,9 +74,23 @@ export function useAppearancePreference(): AppearancePreferenceValue {
   return useContext(AppearancePreferenceContext);
 }
 
+function subscribeToSystemAppearance(changed: () => void) {
+  const subscription = Appearance.addChangeListener(changed);
+  return () => subscription.remove();
+}
+
+// The static export renders light. Hydrate those same colors before applying the browser preference.
+const exportedScheme = () => 'light' as const;
+
+function useHydratedColorScheme() {
+  return useSyncExternalStore(subscribeToSystemAppearance, Appearance.getColorScheme, exportedScheme);
+}
+
+const useSystemScheme = Platform.OS === 'web' ? useHydratedColorScheme : useColorScheme;
+
 export function useOrcaScheme(): 'light' | 'dark' {
   const { preference } = useAppearancePreference();
-  const system = useColorScheme();
+  const system = useSystemScheme();
   if (preference === 'light') return 'light';
   if (preference === 'dark') return 'dark';
   return system === 'light' ? 'light' : 'dark';

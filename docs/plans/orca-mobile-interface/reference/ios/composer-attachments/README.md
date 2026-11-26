@@ -22,3 +22,14 @@ The fixture checkout contained a temporary file named Composer demo.md. Tapping 
 To repeat the [iOS file selection](pick-expo-file.lua), open the fixture chat from the paired host, with the keyboard closed and Composer demo.md available at the checkout root. The [web runbook](pick-web-file.lua) uses accessible labels. The [browser recording](web-file.mp4) shows the same file selection through the exported app and the local T3 gateway. The browser captured a light transcript surface with low-contrast text while its composer used dark colors. The iOS capture uses the light palette throughout.
 
 The gateway integration test creates two sibling projects under one isolated executor, each with a distinct README and skill. Both T3 operations returned the entries for the requested subdirectory. The installed reference also offers client commands such as /model and /effort. Matching those commands and Orca’s leading skill chip remains open.
+
+## Browser appearance after cold load
+
+The [earlier draft](web-draft.png) showed a light header and transcript with a dark composer. The static export renders the light palette. The web client now hydrates that palette and then applies the browser preference across the screen.
+
+Both checks opened the saved photo chat directly in paired Chromium at the iPhone viewport. The [runbook](check-web-theme.lua) checked the top header, transcript margin and composer after the transcript appeared. The samples use viewport percentages (48, 2), (97, 47) and (70, 93), respectively.
+
+| Browser preference | Header | Transcript | Composer | Evidence |
+| --- | --- | --- | --- | --- |
+| Dark | #171717 | #0a0a0a | #1f1f1f | [Screenshot](web-dark.png) · [Recording](web-dark.mp4) |
+| Light | #fafafa | #ffffff | #ffffff | [Screenshot](web-light.png) · [Recording](web-light.mp4) |
