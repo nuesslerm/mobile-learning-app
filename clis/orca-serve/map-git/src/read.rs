@@ -122,6 +122,24 @@ fn commit_row(c: &Value) -> Result<Value, Failure> {
     Ok(json!({"id": field("sha")?, "parentIds": c["parents"], "subject": subject, "message": message, "displayId": c["short"], "author": c["author_name"], "authorEmail": c["author_email"], "timestamp": c["authored_ms"]}))
 }
 
+fn history_status(repo: &Repo) -> Result<Value, Failure> {
+    let Some((head, branch)) = &repo.linked else { return repo.ask(STATUS, json!({})); };
+    let mut status = json!({"head": head, "branch": branch});
+    if branch.is_empty() {
+        return Ok(status);
+    }
+    let listed = repo.ask(REFS, json!({"kind":"branch","query":branch}))?;
+    let rows = listed["refs"].as_array().ok_or_else(|| incomplete("git.refs", "no refs list"))?;
+    let selected = rows.iter().find(|row| row["name"] == branch.as_str()).ok_or_else(|| incomplete("git.refs", "no selected branch"))?;
+    if let Some(upstream) = text(selected, "upstream") {
+        let compared = repo.ask(agent_api_git::COMPARE, json!({"base":upstream,"head":head,"limit":1}))?;
+        status["upstream"] = json!(upstream);
+        status["ahead"] = compared["ahead"].clone();
+        status["behind"] = compared["behind"].clone();
+    }
+    Ok(status)
+}
+
 pub(crate) fn history(repo: &Repo, params: &Value) -> Result<Value, Failure> {
     let limit = params.get("limit").and_then(Value::as_u64).unwrap_or(HISTORY_LIMIT);
     let skip = params.get("skip").and_then(Value::as_u64);
@@ -130,11 +148,15 @@ pub(crate) fn history(repo: &Repo, params: &Value) -> Result<Value, Failure> {
     if let Some(skip) = skip {
         request["skip"] = json!(skip);
     }
+    let head = repo.linked.as_ref().map(|(head, _)| head.as_str()).unwrap_or("HEAD");
+    if repo.linked.is_some() {
+        request["rev"] = json!(head);
+    }
     if let (Some(base), true) = (text(params, "baseRef"), branch_only) {
-        request["rev"] = json!(format!("{base}..HEAD"));
+        request["rev"] = json!(format!("{base}..{head}"));
     }
     let log = repo.ask(HISTORY, request)?;
-    let status = repo.ask(STATUS, json!({}))?;
+    let status = history_status(repo)?;
     let items = log["commits"].as_array().ok_or_else(|| incomplete("git.history", "no commits list"))?.iter().map(commit_row).collect::<Result<Vec<_>, _>>()?;
     let (ahead, behind) = (status["ahead"].as_u64().unwrap_or(0), status["behind"].as_u64().unwrap_or(0));
     let mut result = json!({"items": items, "hasIncomingChanges": behind > 0, "hasOutgoingChanges": ahead > 0, "hasMore": log["truncated"] == true, "limit": limit});

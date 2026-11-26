@@ -19,7 +19,7 @@ pub mod testing;
 pub use artifacts::{Grants, GRANT_TTL};
 pub use files::{image_mime, previewable_limit};
 pub use target::{resolve, targets, Target};
-pub use worktrees::checkout_of;
+pub use worktrees::{checkout_of, git_checkout, GitCheckout};
 /// `file.read` of the agent API, for a mapping crate that reads a whole small file of a workspace.
 pub use agent_api_workspace::FILE_READ;
 /// `file.stat` and `file.readChunk` of the agent API, for a mapping crate that reads a working file of any size in pieces.

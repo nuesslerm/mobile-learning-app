@@ -47,6 +47,33 @@ pub fn checkout_of(agent: &dyn AgentApi, repo: &str, found: &Target) -> Result<b
     Ok(found.workspace == repo || (found.kind == "worktree" && !found.root_path.is_empty() && checkouts(agent, repo)?.iter().any(|c| c.path == found.root_path)))
 }
 
+pub enum GitCheckout {
+    Workspace(String),
+    Linked { repo: String, head: String, branch: String },
+}
+
+/// Composite selectors identify a checkout within one repository, including checkouts with no RCA workspace.
+pub fn git_checkout(agent: &dyn AgentApi, selector: &str) -> Result<GitCheckout, Failure> {
+    let id = selector.trim().strip_prefix("id:").unwrap_or(selector.trim());
+    let Some((repo, path)) = id.split_once("::") else {
+        return crate::resolve(agent, selector).map(|target| GitCheckout::Workspace(target.workspace));
+    };
+    let missing = || Failure::new("selector_not_found", "selector_not_found");
+    let all = targets(agent)?;
+    let owner = all.iter().find(|t| t.workspace == repo).ok_or_else(missing)?;
+    if owner.root_path == path {
+        return Ok(GitCheckout::Workspace(owner.workspace.clone()));
+    }
+    let checkout = checkouts(agent, repo)?.into_iter().find(|c| c.path == path).ok_or_else(missing)?;
+    if checkout.is_main {
+        return Ok(GitCheckout::Workspace(repo.to_owned()));
+    }
+    if let Some(target) = all.iter().find(|t| t.kind == "worktree" && t.root_path == path) {
+        return Ok(GitCheckout::Workspace(target.workspace.clone()));
+    }
+    Ok(GitCheckout::Linked { repo: repo.to_owned(), head: checkout.head, branch: checkout.branch })
+}
+
 fn basename(path: &str) -> &str {
     path.trim_end_matches('/').rsplit('/').next().unwrap_or(path)
 }

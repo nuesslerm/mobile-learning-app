@@ -747,3 +747,25 @@ fn given_a_bad_worktree_or_sha_when_the_commit_url_is_read_then_it_is_the_hosts_
     assert_eq!(rig.raw("git.remoteCommitUrl", json!({"worktree": "nowhere", "sha": SHA}))["error"], json!({"code": "selector_not_found", "message": "selector_not_found"}));
     assert_eq!(remotes_asked(&rig), Vec::<Value>::new());
 }
+
+#[test]
+fn an_unregistered_checkout_reads_its_detached_head_and_cannot_change_the_parent_workspace() {
+    // Given the repository is on main and Git also knows a detached checkout.
+    let mut rig = Rig::new();
+    let sha = "d".repeat(40);
+    let detached = sha.clone();
+    rig.agent.reply("worktree.list", move |_| Ok(json!({"worktrees":[{"path":"/linked","head":detached,"is_main":false}]})));
+    rig.agent.reply("git.history", |_| Ok(json!({"commits":[],"truncated":false})));
+    // When the client requests branch-only history and tries to stage a file in that checkout.
+    let selector = "id:main::/linked";
+    let history = rig.raw("git.history", json!({"worktree":selector,"branchOnly":true,"baseRef":"main","skip":50}));
+    let stage = rig.raw("git.stage", json!({"worktree":selector,"filePath":"tracked.txt"}));
+    let unknown = rig.raw("git.history", json!({"worktree":"id:main::/unknown"}));
+    // Then only the history request reaches Git, with the checkout's own revision and no parent branch flags.
+    assert_eq!(history["ok"], true, "{history}");
+    assert!(history["result"].get("currentRef").is_none());
+    assert_eq!(history["result"]["hasOutgoingChanges"], false);
+    assert_eq!(stage["ok"], false);
+    assert_eq!(unknown["error"]["code"], "selector_not_found");
+    assert_eq!(rig.sent_all(), vec![("git.history".into(), json!({"workspace":"main","limit":50,"skip":50,"rev":format!("main..{sha}")}))]);
+}

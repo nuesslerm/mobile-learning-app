@@ -260,7 +260,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspaces" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspaces" | "/api/mobile/source-control/history" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -358,6 +358,13 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
             Err(r) => refused(&mut stream, r, NO_STORE),
         },
+        ("GET", "/api/mobile/source-control/history") => {
+            let param = |key: &str| request.query.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str());
+            match svc.checkout_history_http(auth, param("checkout"), param("head"), param("base"), param("offset")) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
         ("POST", "/api/mobile/workspaces") => {
             let Some(body) = json_object(&mut stream, &request) else { return };
             match svc.edit_mobile_workspace(auth, body) {

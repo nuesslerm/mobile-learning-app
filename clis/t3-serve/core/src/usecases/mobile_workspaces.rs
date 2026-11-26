@@ -27,6 +27,35 @@ struct CheckoutEdit {
 }
 
 impl Service {
+    pub fn checkout_history_http(
+        &self,
+        auth: Option<&str>,
+        checkout: Option<&str>,
+        head: Option<&str>,
+        base: Option<&str>,
+        offset: Option<&str>,
+    ) -> Result<Value, Refusal> {
+        self.read_gate("mobile.checkoutHistory", auth)?;
+        let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;
+        let offset = offset.unwrap_or("0").parse::<u32>().map_err(|_| Refusal::bare(422))?;
+        let oid = |value: &str| matches!(value.len(), 40 | 64) && value.bytes().all(|b| b.is_ascii_hexdigit());
+        if (offset > 0 && head.is_none()) || head.is_some_and(|s| !oid(s)) || base.is_some_and(|s| !oid(s)) {
+            return Err(Refusal::bare(422));
+        }
+        self.agent()
+            .run(&Op::CheckoutHistory {
+                checkout: checkout.into(),
+                expected_head: head.map(str::to_ascii_lowercase),
+                base: base.map(str::to_ascii_lowercase),
+                offset,
+            })
+            .map_err(|error| match &error {
+                AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" => Refusal::bare(404),
+                AgentError::Refused { code, .. } if code == "CHECKOUT_HEAD_CHANGED" => Refusal::bare(409),
+                _ => upstream(error),
+            })
+    }
+
     pub fn edit_mobile_workspace(&self, auth: Option<&str>, body: Value) -> Result<Value, Refusal> {
         self.scope_gate("mobile.workspaces.edit", auth, "orchestration:operate")?;
         let edit: CheckoutEdit = serde_json::from_value(body).map_err(|_| Refusal::bare(422))?;

@@ -330,3 +330,35 @@ fn mobile_workspace_edits_preserve_other_metadata_and_require_operate_scope() {
     assert_eq!(edit(&writer, json!({"checkout":"desk::/one", "isUnread":true})).body["unread"], true);
     assert_eq!(edit(&reader, json!({"checkout":"desk::/one", "isUnread":false})).status, 403);
 }
+
+#[test]
+fn mobile_checkout_history_enforces_scope_and_requires_immutable_paging_anchors() {
+    use t3_core::ports::{AgentError, Op};
+    // Given a paired reader and a checkout that has moved since the phone's last page.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutHistory { checkout, .. } if checkout != "desk::/linked" => Some(Err(AgentError::Refused {
+            code: "CHECKOUT_NOT_FOUND".into(), message: "unknown".into()
+        })),
+        Op::CheckoutHistory { expected_head: Some(_), .. } => Some(Err(AgentError::Refused {
+            code: "CHECKOUT_HEAD_CHANGED".into(), message: "moved".into()
+        })),
+        Op::CheckoutHistory { .. } => Some(Ok(json!({"branch":null,"head":null,"commits":[],"nextOffset":null}))),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let get = |query: &str, auth: &str| http(h.addr, "GET", &format!("/api/mobile/source-control/history?{query}"), &[("Authorization", auth)], "");
+    let checkout = "checkout=desk%3A%3A%2Flinked";
+    // When the first page is read, then the server enforces the read grant and returns an empty page for an unborn checkout.
+    assert_eq!(get(checkout, "").status, 401);
+    assert_eq!(get(checkout, &scoped(&h, &["relay:read"])).status, 403);
+    let page = get(checkout, &reader);
+    assert_eq!(page.status, 200);
+    assert_eq!(page.body, json!({"branch":null,"head":null,"commits":[],"nextOffset":null}));
+    // When the client uses a moving ref, an unanchored offset, a stale head or an unknown checkout, then it receives a specific refusal.
+    for invalid in ["offset=50", "offset=-1", "base=main", "head=HEAD"] {
+        assert_eq!(get(&format!("{checkout}&{invalid}"), &reader).status, 422);
+    }
+    assert_eq!(get(&format!("{checkout}&head={}&offset=50", "a".repeat(40)), &reader).status, 409);
+    assert_eq!(get("checkout=absent", &reader).status, 404);
+}

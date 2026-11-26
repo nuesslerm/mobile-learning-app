@@ -762,3 +762,33 @@ fn given_registered_and_unmanaged_checkouts_when_listing_read_state_then_only_th
     assert_eq!(rows[0]["unreadPanes"], json!(["thread:a"]));
     assert_eq!(rca.asked("pane.list"), [json!({})]);
 }
+
+#[test]
+fn checkout_history_reads_the_selected_head_and_omits_commit_bodies_and_email() {
+    // Given a detached checkout that has never been registered as a separate workspace.
+    let rca = rca(Box::new(|request| {
+        let sha = "a".repeat(40);
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/linked","is_main":false,"head":sha}]}),
+            "git.history" => json!({"truncated":false,"commits":[{"sha":sha,"short":"aaaaaaa","subject":"Selected","author_name":"Dev","author_email":"private@example.org","authored_ms":3,"parents":[],"body":"private body"}]}),
+            _ => json!({}),
+        };
+        vec![answer(request, reply)]
+    }));
+    let sha = "a".repeat(40);
+    let read = |id: &str, head: &str| rca.agent().run(&Op::CheckoutHistory {
+        checkout: id.into(), expected_head: Some(head.into()), base: None, offset: 50
+    });
+    // When the phone continues at the recorded HEAD, then only compact fields of the selected revision are returned.
+    let result = read("w1::/linked", &sha).unwrap();
+    assert_eq!(result, json!({"branch":null,"head":sha,"nextOffset":null,"commits":[{
+        "sha":sha,"shortSha":"aaaaaaa","subject":"Selected","author":"Dev","authoredAtMs":3,"parent":null}]}));
+    // When the checkout has moved, is unknown, or belongs to a different repository, no further history read occurs.
+    for (id, head, reason) in [("w1::/linked", "0".repeat(40), "CHECKOUT_HEAD_CHANGED"),
+        ("w1::/absent", sha.clone(), "CHECKOUT_NOT_FOUND"), ("w2::/linked", sha.clone(), "CHECKOUT_NOT_FOUND")] {
+        assert!(matches!(read(id, &head), Err(AgentError::Refused { code, .. }) if code == reason));
+    }
+    assert_eq!(rca.asked("worktree.list").len(), 3);
+    assert_eq!(rca.asked("git.history"), [json!({"workspace":WORKSPACE,"rev":sha,"skip":50,"limit":50})]);
+    assert!(rca.asked("repo.list").is_empty() && rca.asked("pane.list").is_empty());
+}

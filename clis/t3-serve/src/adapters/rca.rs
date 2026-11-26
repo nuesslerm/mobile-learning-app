@@ -310,6 +310,75 @@ impl RcaAgent {
         client.call(method, params).map_err(failed)
     }
 
+    fn checkout_history(
+        &self,
+        client: &mut Client,
+        checkout: &str,
+        expected_head: Option<&str>,
+        base: Option<&str>,
+        offset: u32,
+    ) -> Result<Value, AgentError> {
+        const PAGE_SIZE: u32 = 50;
+        let missing = || AgentError::Refused {
+            code: "CHECKOUT_NOT_FOUND".into(),
+            message: "Checkout not found".into(),
+        };
+        let (repo, path) = checkout
+            .split_once("::")
+            .filter(|(repo, path)| *repo == self.workspace && !path.is_empty())
+            .ok_or_else(missing)?;
+        let catalog = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace":repo}))?;
+        let catalog: exec_git::WorktreeListed =
+            serde_json::from_value(catalog).map_err(|_| AgentError::Failed("Invalid RCA worktree list".into()))?;
+        let row = catalog.worktrees.into_iter().find(|row| row.path == path).ok_or_else(missing)?;
+        let head = &row.head;
+        if !head.is_empty() && (!matches!(head.len(), 40 | 64) || !head.bytes().all(|b| b.is_ascii_hexdigit())) {
+            return Err(AgentError::Failed("Invalid checkout HEAD".into()));
+        }
+        if expected_head.is_some_and(|expected| head != expected) {
+            return Err(AgentError::Refused {
+                code: "CHECKOUT_HEAD_CHANGED".into(),
+                message: "Checkout HEAD changed. Reload its history.".into(),
+            });
+        }
+        let branch = row.branch.filter(|name| !name.is_empty());
+        if head.is_empty() || head.bytes().all(|b| b == b'0') {
+            return Ok(json!({"branch": branch, "head": null, "commits": [], "nextOffset": null}));
+        }
+        // Linked worktrees share an object database. A detached checkout is addressable by its own HEAD.
+        let rev = base.map_or_else(|| head.clone(), |base| format!("{base}..{head}"));
+        let log = Self::call(
+            client,
+            git::HISTORY,
+            json!({"workspace": repo, "rev": rev, "skip": offset, "limit": PAGE_SIZE}),
+        )?;
+        let log: exec_git::vcs::LogResult = serde_json::from_value(log).map_err(|_| AgentError::Failed("Invalid Git history".into()))?;
+        let count = log.commits.len();
+        if count > PAGE_SIZE as usize || (log.truncated && count != PAGE_SIZE as usize) {
+            return Err(AgentError::Failed("Invalid Git history page size".into()));
+        }
+        let next = if log.truncated {
+            Some(
+                offset
+                    .checked_add(PAGE_SIZE)
+                    .ok_or_else(|| AgentError::Failed("Git history offset exceeded".into()))?,
+            )
+        } else {
+            None
+        };
+        let items: Vec<_> = log
+            .commits
+            .into_iter()
+            .map(|commit| {
+                json!({
+                    "sha": commit.sha, "shortSha": commit.short, "subject": commit.subject,
+                    "author": commit.author_name, "authoredAtMs": commit.authored_ms, "parent": commit.parents.first()
+                })
+            })
+            .collect();
+        Ok(json!({"branch": branch, "head": head, "commits": items, "nextOffset": next}))
+    }
+
     fn mobile_worktrees(&self, client: &mut Client) -> Result<Value, AgentError> {
         let listed = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace": self.workspace}))?;
         let registrations = Self::call(client, REPO_LIST, json!({}))?;
@@ -616,7 +685,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -674,6 +743,9 @@ impl AgentApi for RcaAgent {
 
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
+        if let Op::CheckoutHistory { checkout, expected_head, base, offset } = op {
+            return self.checkout_history(&mut client, checkout, expected_head.as_deref(), base.as_deref(), *offset);
+        }
         if matches!(op, Op::MobileWorktrees) { return self.mobile_worktrees(&mut client); }
         if let Op::ReadPanes { panes } = op {
             for keys in panes.chunks(agent_api_service::panes::MAX_MARKED) {
