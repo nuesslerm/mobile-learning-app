@@ -1,0 +1,245 @@
+[
+  {
+    "method": "status.get",
+    "params": {},
+    "observed": {
+      "capabilities": [
+        "browser.expect-url.v1",
+        "browser.google-cookie-clear.v1",
+        "browser.screencast.v1",
+        "browser.tab-create-known-id.v1",
+        "browser.clientHost.v1",
+        "browser.clientHost.pageMetadata.v1",
+        "browser.clientHost.automation.v1",
+        "browser.clientHost.fileChannel.v1",
+        "browser.headless.v1",
+        "browser.identity.v1",
+        "browser.certificate-trust.v1"
+      ]
+    }
+  },
+  {
+    "method": "browser.tabCreate",
+    "params": {
+      "worktree": "<worktree>",
+      "url": "http://127.0.0.1:18632",
+      "activate": true
+    },
+    "observed": {
+      "browserPageId": "<page>"
+    }
+  },
+  {
+    "method": "browser.screencast",
+    "params": {
+      "page": "<page>",
+      "worktree": "<worktree>",
+      "format": "jpeg",
+      "quality": 72,
+      "maxWidth": 390,
+      "maxHeight": 680,
+      "viewportWidth": 390,
+      "viewportHeight": 680,
+      "deviceScaleFactor": 1,
+      "mobile": true,
+      "everyNthFrame": 1,
+      "minFrameIntervalMs": 100,
+      "frameAck": 1
+    },
+    "observed": {
+      "type": "ready",
+      "subscriptionId": "browser-screencast:<page>:65a51cf3-c08e-49fc-a12e-493668e1cdf0",
+      "browserPageId": "<page>",
+      "format": "jpeg",
+      "frameAck": true
+    }
+  },
+  {
+    "method": "frame",
+    "params": {},
+    "observed": {
+      "seq": 0,
+      "metadata": {
+        "deviceWidth": 390,
+        "deviceHeight": 680,
+        "imageWidth": 390,
+        "imageHeight": 680
+      },
+      "format": "jpeg",
+      "bytes": 3410,
+      "sha256": "015949f525e7cc7a570f49b190f2d3488e7e71541099889a541a01a23a46115b"
+    }
+  },
+  {
+    "method": "browser.screencast.ack",
+    "params": {
+      "worktree": "<worktree>",
+      "subscriptionId": "browser-screencast:<page>:65a51cf3-c08e-49fc-a12e-493668e1cdf0",
+      "seq": 0
+    },
+    "observed": {}
+  },
+  {
+    "method": "browser.keyboardInsertText",
+    "params": {
+      "worktree": "<worktree>",
+      "page": "<page>",
+      "text": "fixture"
+    },
+    "observed": {
+      "inserted": true
+    }
+  },
+  {
+    "method": "client.unsubscribe",
+    "params": {},
+    "observed": {
+      "disposed": true
+    }
+  },
+  {
+    "method": "browser.screencast",
+    "params": {
+      "page": "<page>",
+      "worktree": "<worktree>",
+      "format": "jpeg",
+      "quality": 72,
+      "maxWidth": 520,
+      "maxHeight": 680,
+      "viewportWidth": 520,
+      "viewportHeight": 680,
+      "deviceScaleFactor": 1,
+      "mobile": true,
+      "everyNthFrame": 1,
+      "minFrameIntervalMs": 100,
+      "frameAck": 1
+    },
+    "observed": {
+      "type": "ready",
+      "subscriptionId": "browser-screencast:<page>:3375cb2b-93d2-4bbb-a118-3fc818cd180e",
+      "browserPageId": "<page>",
+      "format": "jpeg",
+      "frameAck": true
+    }
+  },
+  {
+    "method": "frame",
+    "params": {},
+    "observed": {
+      "seq": 0,
+      "metadata": {
+        "deviceWidth": 520,
+        "deviceHeight": 680,
+        "imageWidth": 520,
+        "imageHeight": 680
+      },
+      "format": "jpeg",
+      "bytes": 4921,
+      "sha256": "82c5b40a210b88ceb0c4aa253a352610dfb82e8b23c82112506d88e417b8d67d"
+    }
+  },
+  {
+    "method": "browser.screencast.ack",
+    "params": {
+      "worktree": "<worktree>",
+      "subscriptionId": "browser-screencast:<page>:3375cb2b-93d2-4bbb-a118-3fc818cd180e",
+      "seq": 0
+    },
+    "observed": {}
+  },
+  {
+    "method": "client.unsubscribe",
+    "params": {},
+    "observed": {
+      "disposed": true
+    }
+  },
+  {
+    "method": "client.reconnect",
+    "params": {},
+    "observed": {
+      "state": "connected"
+    }
+  },
+  {
+    "method": "browser.screencast",
+    "params": {
+      "page": "<page>",
+      "worktree": "<worktree>",
+      "format": "jpeg",
+      "quality": 72,
+      "maxWidth": 390,
+      "maxHeight": 680,
+      "viewportWidth": 390,
+      "viewportHeight": 680,
+      "deviceScaleFactor": 1,
+      "mobile": true,
+      "everyNthFrame": 1,
+      "minFrameIntervalMs": 100,
+      "frameAck": 1
+    },
+    "observed": {
+      "type": "ready",
+      "subscriptionId": "browser-screencast:<page>:7fd3bfc7-c913-415a-9d7c-f6ca3aed0f50",
+      "browserPageId": "<page>",
+      "format": "jpeg",
+      "frameAck": true
+    }
+  },
+  {
+    "method": "frame",
+    "params": {},
+    "observed": {
+      "seq": 0,
+      "metadata": {
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "deviceWidth": 390,
+        "deviceHeight": 680,
+        "imageWidth": 390,
+        "imageHeight": 680,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0
+      },
+      "format": "jpeg",
+      "bytes": 3779,
+      "sha256": "85577ba8d33c812f0987b93dead361f74d73f8825e0dec6db70d6af3e5b4555b"
+    }
+  },
+  {
+    "method": "browser.screencast.ack",
+    "params": {
+      "worktree": "<worktree>",
+      "subscriptionId": "browser-screencast:<page>:7fd3bfc7-c913-415a-9d7c-f6ca3aed0f50",
+      "seq": 0
+    },
+    "observed": {}
+  },
+  {
+    "method": "client.unsubscribe",
+    "params": {},
+    "observed": {
+      "disposed": true
+    }
+  },
+  {
+    "method": "session.tabs.close",
+    "params": {
+      "worktree": "<worktree>",
+      "tabId": "<tab>",
+      "reason": "user"
+    },
+    "observed": {
+      "closed": true
+    }
+  },
+  {
+    "method": "session.tabs.list",
+    "params": {
+      "worktree": "<worktree>"
+    },
+    "observed": {
+      "closedTabPresent": false
+    }
+  }
+]
