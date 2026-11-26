@@ -225,18 +225,16 @@ export function BrowserTab({
             ref={keyboard}
             accessible={false}
             tabIndex={-1}
-            defaultValue=" "
+            value=""
             autoCorrect={false}
             autoCapitalize="none"
             caretHidden
             style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
-            onChangeText={(value) => {
-              if (!value) stream.current?.key('Backspace');
-              else
-                stream.current?.text(
-                  value.startsWith(' ') ? value.slice(1) : value
-                );
-              keyboard.current?.setNativeProps({ text: ' ' });
+            onChangeText={(text) => {
+              if (text) stream.current?.text(text);
+            }}
+            onKeyPress={({ nativeEvent }) => {
+              if (nativeEvent.key === 'Backspace') stream.current?.key('Backspace');
             }}
             onSubmitEditing={() => stream.current?.key('Enter')}
             submitBehavior="submit"
