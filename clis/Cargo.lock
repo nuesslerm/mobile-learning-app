@@ -1614,6 +1614,17 @@ name = "mimic-plan-core"
 version = "0.1.0"
 
 [[package]]
+name = "mimic-proxy-core"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "mimic-core",
+ "mimic-proxy-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "mimic-script-core"
 version = "0.1.7"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
@@ -3784,6 +3795,7 @@ dependencies = [
  "mimic-core",
  "mimic-coverage-core",
  "mimic-plan-core",
+ "mimic-proxy-core",
  "mimic-script-core",
  "mimic-script-host",
  "mimic-script-orca",
@@ -3792,6 +3804,7 @@ dependencies = [
  "secrets",
  "serde",
  "serde_json",
+ "sha1 0.10.7",
  "signal-hook",
  "tempfile",
  "tiny_http",

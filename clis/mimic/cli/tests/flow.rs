@@ -4,6 +4,8 @@
 mod support;
 #[path = "flow/coverage_support/mod.rs"]
 mod coverage_support;
+#[path = "flow/proxy_support/mod.rs"]
+mod proxy_support;
 
 #[path = "flow/child_env.rs"]
 mod child_env;
@@ -31,6 +33,10 @@ mod import;
 mod real_clis;
 #[path = "flow/proxy.rs"]
 mod proxy;
+#[path = "flow/proxy_canary.rs"]
+mod proxy_canary;
+#[path = "flow/proxy_record.rs"]
+mod proxy_record;
 #[path = "flow/proxy_shape.rs"]
 mod proxy_shape;
 #[path = "flow/proxy_vocabulary.rs"]

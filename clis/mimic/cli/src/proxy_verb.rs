@@ -30,7 +30,7 @@ const WRITE_FAILED: &str = "the file could not be written";
 
 /// The upstream as a socket address of the local machine: nothing else is accepted, so the proxy is never a way into another host. The
 /// userinfo, the path and the query of the URL are ignored, and no refusal names the URL: it may carry a credential of its own.
-fn upstream_addr(url: &str) -> Result<SocketAddr, Fail> {
+pub(super) fn upstream_addr(url: &str) -> Result<SocketAddr, Fail> {
     let Some(rest) = url.strip_prefix("http://") else {
         return Err(fail("the upstream is not an http:// address", UPSTREAM_NEXT));
     };
@@ -51,7 +51,7 @@ fn upstream_addr(url: &str) -> Result<SocketAddr, Fail> {
 
 /// The address the proxy listens on: a loopback address, so no other machine can use it. No refusal names the address: it is a value
 /// the caller chose.
-fn listen_addr(text: &str) -> Result<SocketAddr, Fail> {
+pub(super) fn listen_addr(text: &str) -> Result<SocketAddr, Fail> {
     let Some((host, port)) = text.rsplit_once(':') else {
         return Err(fail("the address to listen on names no port", LISTEN_NEXT));
     };
@@ -75,7 +75,7 @@ fn host_ip(host: &str) -> Option<IpAddr> {
 }
 
 /// The upstream as it is written down: the scheme, the host and the port, never the path, the query or the credentials it may carry.
-fn upstream_public(addr: SocketAddr) -> String {
+pub(super) fn upstream_public(addr: SocketAddr) -> String {
     format!("http://{addr}")
 }
 
@@ -85,7 +85,7 @@ fn header_value(headers: &[(String, String)], name: &str) -> String {
 }
 
 /// What the file holds: the lines, the counts and the labels that correlate a request with its answer.
-struct Recorder {
+pub(super) struct Recorder {
     out: BufWriter<File>,
     seq: u64,
     http_requests: u64,
@@ -104,7 +104,7 @@ struct Recorder {
 }
 
 impl Recorder {
-    fn new(out: File, max_events: u64, stop: Arc<AtomicBool>) -> Recorder {
+    pub(super) fn new(out: File, max_events: u64, stop: Arc<AtomicBool>) -> Recorder {
         Recorder {
             out: BufWriter::new(out),
             seq: 0,
@@ -161,7 +161,7 @@ impl Recorder {
         label
     }
 
-    fn record(&mut self, event: Event) {
+    pub(super) fn record(&mut self, event: Event) {
         match event {
             Event::HttpRequest { exchange, method, target, headers, body } => {
                 self.http_requests += 1;
@@ -249,7 +249,7 @@ impl Recorder {
     }
 
     /// The header of the file: what the run was and where it went.
-    fn header(&mut self, upstream: &str, listen: SocketAddr) {
+    pub(super) fn header(&mut self, upstream: &str, listen: SocketAddr) {
         let mut line = Map::new();
         line.insert("schema".into(), json!(SCHEMA));
         line.insert("kind".into(), json!("header"));
@@ -263,7 +263,7 @@ impl Recorder {
     }
 
     /// The footer of the file: what the run saw.
-    fn footer(&mut self) {
+    pub(super) fn footer(&mut self) {
         self.finished = true;
         let mut line = Map::new();
         line.insert("schema".into(), json!(SCHEMA));
@@ -301,6 +301,22 @@ fn direction_name(direction: Dir) -> &'static str {
         Dir::C2s => "c2s",
         Dir::S2c => "s2c",
         _ => "other",
+    }
+}
+
+/// Waits until the run is stopped or its duration is spent, then up to three seconds for the connections still open.
+pub(super) fn serve_until(stop: &AtomicBool, duration: Option<u64>, live: &dyn Fn() -> u32) {
+    let started = Instant::now();
+    while !stop.load(Ordering::SeqCst) {
+        if duration.is_some_and(|limit| started.elapsed() >= Duration::from_secs(limit)) {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    stop.store(true, Ordering::SeqCst);
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while live() > 0 && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(20));
     }
 }
 
@@ -356,18 +372,7 @@ pub fn proxy_verb(p: &Parsed) -> Done {
         std::fs::write(ready, format!("{note}\n")).map_err(|e| fail(format!("{ready}: {e}"), "name a writable --ready file"))?;
     }
     eprintln!("mimic proxy: listening on {bound}, forwarding to {public}, writing {out}");
-    let started = Instant::now();
-    while !stop.load(Ordering::SeqCst) {
-        if duration.is_some_and(|limit| started.elapsed() >= Duration::from_secs(limit)) {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(20));
-    }
-    stop.store(true, Ordering::SeqCst);
-    let deadline = Instant::now() + Duration::from_secs(3);
-    while proxy.live() > 0 && Instant::now() < deadline {
-        std::thread::sleep(Duration::from_millis(20));
-    }
+    serve_until(&stop, duration, &|| proxy.live());
     drop(proxy);
     let mut recorder = recorder.lock().unwrap_or_else(|e| e.into_inner());
     recorder.footer();

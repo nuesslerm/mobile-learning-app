@@ -14,7 +14,9 @@ convert legacy CLI fixtures into an imported set and prove the conversion lossle
 section 5) and follow the pins of the real servers the sets are recorded from.
 `proxy` observes the native T3 mobile app against the server it is configured
 for: a loopback proxy that forwards every byte and writes the shape of what
-crossed as an ordered, correlated JSONL.
+crossed as an ordered, correlated JSONL. `proxy record` keeps what a replay needs
+(credentials replaced by fixture values) as a cassette set, and `proxy replay`
+answers an unmodified client from that set with the server stopped.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -77,4 +79,6 @@ Commands:
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
   proxy [options] --upstream <url> --out <file>  Observe the native T3 mobile app against its own server
+  proxy record [options] --set <dir> --upstream <url>  Record a client against its server as a replayable cassette set
+  proxy replay [options] <set>  Answer an unmodified client from a cassette set, with no server
   help [command]              display help for command

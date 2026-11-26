@@ -208,6 +208,12 @@ ls:
   clis/mimic/plan/src/*:
     .dir: snake_case
     .rs: snake_case
+  clis/mimic/proxy-core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  clis/mimic/proxy-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
   clis/mimic/script/core/src:
     .dir: snake_case
     .rs: snake_case

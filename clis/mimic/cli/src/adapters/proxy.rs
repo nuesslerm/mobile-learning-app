@@ -1,9 +1,12 @@
 //! `Proxy`: the loopback adapter that stands between the phone and the T3 server it is configured for. It forwards every byte of an
 //! HTTP exchange and of an orchestration socket (the credentials the app sends go on untouched, so the app keeps working) and reports
 //! what crossed, so the recorder can export its shape.
+use super::conn::dial;
+use super::http1::{bodiless, body, read_head, start_line, status_of, Body, Head};
 use mimic_core::cassette::Dir;
 use mimic_core::wire::{close_info, FrameParser, OP_CLOSE, OP_TEXT};
-use std::io::{self, BufRead, BufReader, Cursor, Read, Write};
+pub use mimic_proxy_core::domain::traffic::{Event, Failure};
+use std::io::{self, Read, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
@@ -14,52 +17,16 @@ const POLL: Duration = Duration::from_millis(5);
 /// The control frames of the protocol: they are relayed, not reported.
 const OP_PING: u8 = 9;
 const OP_PONG: u8 = 10;
-const MAX_HEAD: usize = 64 * 1024;
 /// How long a read of an ordinary exchange waits for the other side. A slow client is a broken one.
 const READ_TIMEOUT: Duration = Duration::from_secs(5);
 /// How long a socket's read waits before the pump looks at the stop flag.
 const PUMP_TIMEOUT: Duration = Duration::from_millis(100);
 
-/// Why an exchange failed: a word of the proxy's own, never a value of the traffic.
-#[derive(Clone, Copy, Debug)]
-pub enum Failure {
-    /// The head of the request could not be read.
-    RequestHead,
-    Incomplete,
-    /// The server did not answer.
-    NoAnswer,
-    /// The answer of the server could not be read.
-    NoAnswerRead,
-    /// The server did not answer the socket.
-    NoSocketAnswer,
-    /// The handshake of the socket could not be read.
-    NoHandshake,
-}
-
-impl Failure {
-    /// What the file says: a fixed word, so no value of the traffic can ride on an error.
-    pub fn label(self) -> &'static str {
-        match self {
-            Failure::Incomplete => "an exchange ended before the complete message",
-            Failure::RequestHead => "the request head could not be read",
-            Failure::NoAnswer => "the server did not answer",
-            Failure::NoAnswerRead => "the server's answer could not be read",
-            Failure::NoSocketAnswer => "the server did not answer the socket",
-            Failure::NoHandshake => "the server's handshake could not be read",
-        }
-    }
-}
-
-/// What crossed the proxy.
-#[derive(Clone, Debug)]
-pub enum Event {
-    HttpRequest { exchange: u32, method: String, target: String, headers: Vec<(String, String)>, body: Vec<u8> },
-    HttpResponse { exchange: u32, status: u16, headers: Vec<(String, String)>, body: Vec<u8> },
-    WsOpen { connection: u32, target: String, status: u16 },
-    WsRefused { connection: u32, target: String, status: u16, body: Vec<u8> },
-    WsFrame { connection: u32, direction: Dir, opcode: u8, data: Vec<u8> },
-    WsClose { connection: u32, direction: Option<Dir>, code: Option<u16> },
-    Failed { failure: Failure },
+/// How a proxy forwards. The shape trace forwards every header as it came; a recording asks for bodies it can read.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Options {
+    /// Drop the client's `accept-encoding`, so the server answers uncompressed and the sanitiser can read every body.
+    pub readable_bodies: bool,
 }
 
 /// Where the proxy reports what crossed.
@@ -85,6 +52,10 @@ impl Drop for Live {
 impl Proxy {
     /// Listens on `addr` and forwards every connection to `upstream`.
     pub fn listen(addr: SocketAddr, upstream: SocketAddr, sink: Sink, stop: Arc<AtomicBool>) -> std::io::Result<Proxy> {
+        Proxy::listen_with(addr, upstream, sink, stop, Options::default())
+    }
+
+    pub fn listen_with(addr: SocketAddr, upstream: SocketAddr, sink: Sink, stop: Arc<AtomicBool>, options: Options) -> std::io::Result<Proxy> {
         let listener = TcpListener::bind(addr)?;
         listener.set_nonblocking(true)?;
         let bound = listener.local_addr()?;
@@ -103,7 +74,7 @@ impl Proxy {
                             let guard = Live(live.clone());
                             std::thread::spawn(move || {
                                 let _ = guard;
-                                if serve(client, upstream, sink.clone(), stop, exchanges, connections).is_err() {
+                                if serve(client, upstream, sink.clone(), stop, exchanges, connections, options).is_err() {
                                     sink(Event::Failed { failure: Failure::Incomplete });
                                 }
                             });
@@ -137,110 +108,6 @@ impl Drop for Proxy {
     }
 }
 
-/// The head of a message: its start line and its header lines.
-struct Head {
-    start: String,
-    headers: Vec<(String, String)>,
-}
-
-impl Head {
-    fn get(&self, name: &str) -> Option<&str> {
-        self.headers.iter().find(|(k, _)| k.eq_ignore_ascii_case(name)).map(|(_, v)| v.as_str())
-    }
-
-    /// The head as it goes on the wire, without the blank line that ends it.
-    fn text(&self, skip: &dyn Fn(&str) -> bool) -> String {
-        let mut out = format!("{}\r\n", self.start);
-        for (name, value) in &self.headers {
-            if !skip(&name.to_lowercase()) {
-                out.push_str(&format!("{name}: {value}\r\n"));
-            }
-        }
-        out
-    }
-}
-
-/// The start line's method and target.
-fn start_line(start: &str) -> (String, String) {
-    let mut parts = start.split_whitespace();
-    (parts.next().unwrap_or("GET").to_string(), parts.next().unwrap_or("/").to_string())
-}
-
-/// The status code of a start line.
-fn status_of(start: &str) -> u16 {
-    start.split_whitespace().nth(1).and_then(|s| s.parse().ok()).unwrap_or(0)
-}
-
-/// Reads the head of a message; what came after it is returned beside it.
-fn read_head(stream: &mut TcpStream) -> std::io::Result<(Head, Vec<u8>)> {
-    let (mut buf, mut chunk) = (Vec::new(), [0u8; 4096]);
-    loop {
-        if let Some(end) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
-            let text = String::from_utf8_lossy(&buf[..end]).into_owned();
-            let mut lines = text.split("\r\n");
-            let start = lines.next().unwrap_or_default().to_string();
-            let headers = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_string(), v.trim().to_string())).collect();
-            return Ok((Head { start, headers }, buf[end + 4..].to_vec()));
-        }
-        if buf.len() > MAX_HEAD {
-            return Err(std::io::ErrorKind::InvalidData.into());
-        }
-        match stream.read(&mut chunk)? {
-            0 => return Err(std::io::ErrorKind::UnexpectedEof.into()),
-            n => buf.extend_from_slice(&chunk[..n]),
-        }
-    }
-}
-
-// Preserve chunk framing and trailers on the wire. Only the decoded entity goes to the recorder.
-struct Body {
-    wire: Vec<u8>,
-    decoded: Option<Vec<u8>>,
-}
-
-impl Body {
-    fn observed(&self) -> &[u8] { self.decoded.as_deref().unwrap_or(&self.wire) }
-}
-
-fn body(stream: &mut TcpStream, head: &Head, initial: Vec<u8>, to_eof: bool) -> io::Result<Body> {
-    let mut reader = BufReader::new(Cursor::new(initial).chain(stream));
-    let mut wire = Vec::new();
-    if head.get("transfer-encoding").is_some_and(|v| v.split(',').any(|part| part.trim().eq_ignore_ascii_case("chunked"))) {
-        let mut decoded = Vec::new();
-        loop {
-            let start = wire.len();
-            reader.by_ref().take(MAX_HEAD as u64).read_until(b'\n', &mut wire)?;
-            let line = wire[start..].strip_suffix(b"\r\n").ok_or(io::ErrorKind::InvalidData)?;
-            let size = std::str::from_utf8(line.split(|c| *c == b';').next().unwrap_or_default())
-                .ok().and_then(|s| u64::from_str_radix(s.trim(), 16).ok()).ok_or(io::ErrorKind::InvalidData)?;
-            if size == 0 {
-                loop {
-                    let start = wire.len();
-                    reader.by_ref().take(MAX_HEAD as u64).read_until(b'\n', &mut wire)?;
-                    let trailer = wire[start..].strip_suffix(b"\r\n").ok_or(io::ErrorKind::InvalidData)?;
-                    if trailer.is_empty() { return Ok(Body { wire, decoded: Some(decoded) }); }
-                }
-            }
-            let start = wire.len();
-            if reader.by_ref().take(size).read_to_end(&mut wire)? as u64 != size {
-                return Err(io::ErrorKind::UnexpectedEof.into());
-            }
-            decoded.extend_from_slice(&wire[start..]);
-            let mut crlf = [0; 2];
-            reader.read_exact(&mut crlf)?;
-            if crlf != *b"\r\n" { return Err(io::ErrorKind::InvalidData.into()); }
-            wire.extend_from_slice(&crlf);
-        }
-    }
-    if let Some(length) = head.get("content-length") {
-        let length: u64 = length.parse().map_err(|_| io::ErrorKind::InvalidData)?;
-        if reader.take(length).read_to_end(&mut wire)? as u64 != length {
-            return Err(io::ErrorKind::UnexpectedEof.into());
-        }
-    } else if to_eof { reader.read_to_end(&mut wire)?; }
-    Ok(Body { wire, decoded: None })
-}
-
 /// One connection: an HTTP exchange, or an orchestration socket.
 fn serve(
     mut client: TcpStream,
@@ -249,6 +116,7 @@ fn serve(
     stop: Arc<AtomicBool>,
     exchanges: Arc<AtomicU32>,
     connections: Arc<AtomicU32>,
+    options: Options,
 ) -> std::io::Result<()> {
     client.set_nonblocking(false)?;
     client.set_read_timeout(Some(READ_TIMEOUT))?;
@@ -260,13 +128,12 @@ fn serve(
             return Ok(());
         }
     };
-    let upgrade = head.get("upgrade").is_some_and(|v| v.eq_ignore_ascii_case("websocket"));
-    if upgrade {
+    if head.upgrades() {
         let connection = connections.fetch_add(1, Ordering::SeqCst) + 1;
         socket(head, rest, client, upstream, sink, stop, connection)
     } else {
         let exchange = exchanges.fetch_add(1, Ordering::SeqCst) + 1;
-        exchange_http(head, rest, client, upstream, sink, exchange)
+        exchange_http(head, rest, client, upstream, sink, exchange, options)
     }
 }
 
@@ -278,11 +145,12 @@ fn exchange_http(
     upstream: SocketAddr,
     sink: Sink,
     exchange: u32,
+    options: Options,
 ) -> std::io::Result<()> {
     let (method, target) = start_line(&head.start);
     let request_body = body(&mut client, &head, rest, false)?;
     sink(Event::HttpRequest { exchange, method: method.clone(), target: target.clone(), headers: head.headers.clone(), body: request_body.observed().to_vec() });
-    let mut up = match TcpStream::connect(upstream) {
+    let mut up = match dial(upstream) {
         Ok(up) => up,
         Err(_) => {
             sink(Event::Failed { failure: Failure::NoAnswer });
@@ -292,7 +160,7 @@ fn exchange_http(
     };
     up.set_read_timeout(Some(READ_TIMEOUT))?;
     up.set_write_timeout(Some(READ_TIMEOUT))?;
-    let skip = |k: &str| matches!(k, "host" | "connection" | "proxy-connection");
+    let skip = |k: &str| matches!(k, "host" | "connection" | "proxy-connection") || (options.readable_bodies && k == "accept-encoding");
     write!(up, "{}Host: {upstream}\r\nConnection: close\r\n\r\n", head.text(&skip))?;
     up.write_all(&request_body.wire)?;
     let (answer, early) = match read_head(&mut up) {
@@ -304,8 +172,7 @@ fn exchange_http(
         }
     };
     let status = status_of(&answer.start);
-    let bodiless = status == 204 || status == 304 || (100..200).contains(&status) || method == "HEAD";
-    let res_body = if bodiless { Body { wire: Vec::new(), decoded: None } } else { body(&mut up, &answer, early, true)? };
+    let res_body = if bodiless(status, &method) { Body::empty() } else { body(&mut up, &answer, early, true)? };
     sink(Event::HttpResponse { exchange, status, headers: answer.headers.clone(), body: res_body.observed().to_vec() });
     let skip = |k: &str| matches!(k, "connection" | "keep-alive");
     write!(client, "{}Connection: close\r\n\r\n", answer.text(&skip))?;
@@ -325,7 +192,7 @@ fn socket(
     connection: u32,
 ) -> std::io::Result<()> {
     let (_, target) = start_line(&head.start);
-    let mut up = match TcpStream::connect(upstream) {
+    let mut up = match dial(upstream) {
         Ok(up) => up,
         Err(_) => {
             sink(Event::Failed { failure: Failure::NoSocketAnswer });

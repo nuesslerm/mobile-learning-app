@@ -4,6 +4,8 @@ severity: error
 message: The domain and application layers do no file, socket, process or environment access; an adapter in infrastructure implements the port they declare.
 files:
   # BEGIN generated:ast-grep-files
+  - "**/clis/mimic/proxy-core/src/application/**/*.rs"
+  - "**/clis/mimic/proxy-core/src/domain/**/*.rs"
   - "**/clis/rca-exec/src/domain.rs"
   - "**/clis/t3-serve/core/src/domain/**/*.rs"
   - "**/leetcode-auth-cookie-capture/core/src/application/**/*.rs"

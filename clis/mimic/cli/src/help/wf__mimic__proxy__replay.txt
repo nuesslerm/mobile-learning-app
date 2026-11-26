@@ -1,0 +1,48 @@
+Usage: wf mimic proxy replay [options] <set>
+
+Answer an unmodified client from a cassette set, with the server it was
+recorded against stopped. Point the app at the address the verb listens on,
+exactly as it was pointed at `wf mimic proxy record`:
+
+  wf mimic proxy replay /tmp/t3-open-chat --listen 127.0.0.1:18499 --duration 120
+  WF_TEST_OUTPUT_DIR=/tmp/out wf mimic proxy replay /tmp/t3-open-chat --suite wf-mimic-proxy-t3 --fail-fast
+
+The verb opens no connection of its own: there is no upstream to name, and
+"upstream_connections" in the output is the count of connections this process
+tried to open, which is 0.
+
+An HTTP request is answered by the recording with the same verb, route, query
+and body. Credentials are compared by name, not by value, so a client that
+holds its own token is served. A request is first compared as it is, then
+with the rules of the set's rules.json applied (ids a client makes up,
+timestamps). The nth equal request gets the nth recording; once every equal
+recording has answered, the first answers again ("reused").
+
+A socket whose replies name the request they answer (the T3 orchestration
+socket, JSON-RPC) is replayed by request: a request takes the recorded request
+of the same method and payload, and gets that one's recorded replies, in
+recorded order, under the id the live client chose. A reply the recording
+shows after other requests waits until the client has made those too, or has
+been quiet for --settle-ms. A Ping is answered with a Pong. Any other socket
+is a strict script: the recorded frames, in their order.
+
+A request the recording does not have is a mismatch: the client gets a 502
+(header x-mimic-mismatch) or its socket is closed with code 1011, the run
+exits 1, and "mismatches" names the route or method, why, the request as
+received (credentials masked) and the nearest recording with its place in the
+cassette (interactions.jsonl:<line>, step <n>) and the fields that differ.
+
+Options:
+  --listen <addr>         where to listen (default 127.0.0.1:0)
+  --duration <seconds>    stop after this long
+  --settle-ms <ms>        how long a client is quiet before held replies go out (default 300)
+  --fail-fast             stop at the first mismatch
+  --suite <name>          write $WF_TEST_OUTPUT_DIR/<name>/report.json
+  --ready <file>          write the listening address here once the replay is up
+  -h, --help              display help for command
+
+Output (schema mimic-proxy-replay/1):
+  {schema, ok, set, kind, listen, upstream_connections, http: {matched, reused}, ws: {connections, matched, reused},
+  mismatch_count, mismatches: [{protocol, what, connection?, reason, received, nearest?: {interaction, cassette, step?, diff}}],
+  unused, evidence: {report}, warnings, next}
+Exit 0 every request had a recording, 1 a mismatch, 2 a usage or environment error.

@@ -5,6 +5,8 @@ message: "A module of a layer names what it imports. A glob import (`use x::*`),
 note: "The globs are generated from package-types.json (`wf check --layout --write`): every ring directory of every typed Rust package. A glob inside a test module is allowed."
 files:
   # BEGIN generated:ast-grep-files
+  - "**/clis/mimic/proxy-core/src/application/**/*.rs"
+  - "**/clis/mimic/proxy-core/src/domain/**/*.rs"
   - "**/clis/rca-exec/src/adapters/**/*.rs"
   - "**/clis/rca-exec/src/bin/**/*.rs"
   - "**/clis/t3-serve/core/src/domain/**/*.rs"

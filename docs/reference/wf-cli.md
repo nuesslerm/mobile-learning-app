@@ -4356,7 +4356,9 @@ convert legacy CLI fixtures into an imported set and prove the conversion lossle
 section 5) and follow the pins of the real servers the sets are recorded from.
 `proxy` observes the native T3 mobile app against the server it is configured
 for: a loopback proxy that forwards every byte and writes the shape of what
-crossed as an ordered, correlated JSONL.
+crossed as an ordered, correlated JSONL. `proxy record` keeps what a replay needs
+(credentials replaced by fixture values) as a cassette set, and `proxy replay`
+answers an unmodified client from that set with the server stopped.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -4419,6 +4421,8 @@ Commands:
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
   proxy [options] --upstream <url> --out <file>  Observe the native T3 mobile app against its own server
+  proxy record [options] --set <dir> --upstream <url>  Record a client against its server as a replayable cassette set
+  proxy replay [options] <set>  Answer an unmodified client from a cassette set, with no server
   help [command]              display help for command
 ```
 
@@ -5338,7 +5342,9 @@ Usage: wf mimic proxy [options] --upstream <url> --out <file>
 
 Observe the native T3 mobile app against the server it is configured for: a
 reverse proxy on the loopback that forwards every byte and writes what crossed
-as an ordered, correlated JSONL.
+as an ordered, correlated JSONL. This verb writes shapes for a person to read;
+`wf mimic proxy record` writes a cassette set `wf mimic proxy replay` can answer
+a client from.
 
 The upstream is one local T3 server: only a loopback address is accepted
 (127.0.0.0/8, ::1 or localhost), and the proxy listens on a loopback address
@@ -5408,6 +5414,159 @@ Options:
 Output (schema mimic-proxy/1):
   {schema, ok, upstream, listen, out, lines, http: {requests, responses, methods, routes}, ws: {connections, frames, methods}, errors, warnings, next}
 Exit 0 clean, 1 a connection failed, 2 a usage or environment error.
+```
+
+</details>
+
+### `wf mimic proxy record`
+
+Record a client against its server as a replayable cassette set
+
+Usage: `wf mimic proxy record [options] --set <dir> --upstream <url>`
+
+Examples:
+
+```sh
+wf mimic proxy record --set /tmp/t3-open-chat --upstream http://127.0.0.1:18498 --listen 127.0.0.1:18499 --preset t3 --duration 300
+wf mimic proxy record --set /tmp/t3-open-chat --upstream http://127.0.0.1:18498 --trace /tmp/t3-open-chat.shape.jsonl --secret-env T3_PAIRING_TOKEN
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic proxy record [options] --set <dir> --upstream <url>
+
+Record a client against the server it is configured for, as a cassette set a
+replay can answer from. The proxy is the same loopback reverse proxy as
+`wf mimic proxy`: point the app at the address it listens on, and every
+request goes on to the one upstream untouched. Where `wf mimic proxy` writes
+the shape of what crossed and no value, this verb keeps the values a replay
+needs, and nothing else:
+
+  wf mimic proxy record --set /tmp/t3-open-chat --upstream http://127.0.0.1:18498 \
+    --listen 127.0.0.1:18499 --preset t3 --duration 300
+  wf mimic proxy replay /tmp/t3-open-chat --listen 127.0.0.1:18499
+
+Nothing is written while the run lasts. When it ends (--duration, --max-events
+or Ctrl-C), what crossed is sanitised in memory and only then written:
+
+  - a credential becomes a fixture value (fx-access-token-1), the same one
+    wherever that credential appears, so a replay keeps the relationship
+    between a pairing grant, the token it bought, the ticket that token
+    bought and the request that carries it. A credential is the value of an
+    Authorization header, a cookie, a JSON key, form key or query parameter
+    the rules name (the secret-key rule of rules.json, plus access_token,
+    refresh_token, subject_token, credential, token, ticket, wsTicket,
+    password and their kin), a Bearer token or a JWT anywhere, and every
+    value --secret-env names;
+  - the home and the temp directory of this machine become /fixture/home and
+    /fixture/tmp; --mask adds more;
+  - a run that cannot be made safe is not written at all (exit 1): a body the
+    proxy could not read (compressed), or a token-shaped value that is still
+    there after sanitising. The verb asks the server for uncompressed bodies.
+
+Ids, timestamps and the text of the fixture stay as they were: the recording
+is of synthetic accounts, repositories and messages, and a client replayed
+against it needs them whole. The rules of rules.json mask what varies between
+runs only when a replay matches a request and when a check diffs an answer.
+
+The set is <dir>/cassette.json, interactions.jsonl, rules.json and mimic.toml
+(schema mimic-cassette/1): one interaction per HTTP exchange (row
+`http:GET /path`) and one per socket (row `ws:/path`) with every frame in wire
+order. A set whose mimic.toml has a [reference] with a pin is stamped
+`recorded` with that pin's hash; any other is `authored`: a fixture, not
+evidence of a reference. A set that holds a recording is never written over.
+
+Options:
+  --set <dir>             the cassette set to write
+  --upstream <url>        the server to record (http://127.0.0.1:<port>)
+  --listen <addr>         where to listen (default 127.0.0.1:0)
+  --preset default|t3     the rules a new set gets (default: ids and times;
+                          t3: the rules of the T3 conformance sets). A
+                          rules.json already in <dir> is used as it is
+  --secret-env <NAME,...> variables whose values must never be written
+  --mask <value>=<stand-in>,...  more values of this machine to replace
+  --trace <file>          also write the shape trace of `wf mimic proxy`
+  --source <text>         what was recorded (client build, journey)
+  --recorded-on <text>    where it was recorded
+  --duration <seconds>    stop after this long
+  --max-events <n>        stop after this many events
+  --ready <file>          write the listening address here once the proxy is up
+  -h, --help              display help for command
+
+Output (schema mimic-proxy-record/1):
+  {schema, ok, set, kind: recorded|authored, upstream, listen, interactions, http, ws, upstream_connections,
+  fixtures: {<kind>: count}, failures, gaps, wrote, warnings, next}
+Exit 0 written and clean, 1 a connection failed or the run could not be made
+safe (then "error" says where, never the value), 2 a usage or environment error.
+```
+
+</details>
+
+### `wf mimic proxy replay`
+
+Answer an unmodified client from a cassette set, with no server
+
+Usage: `wf mimic proxy replay [options] <set>`
+
+Examples:
+
+```sh
+wf mimic proxy replay /tmp/t3-open-chat --listen 127.0.0.1:18499 --duration 120
+WF_TEST_OUTPUT_DIR=/tmp/out wf mimic proxy replay /tmp/t3-open-chat --suite wf-mimic-proxy-t3 --fail-fast
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic proxy replay [options] <set>
+
+Answer an unmodified client from a cassette set, with the server it was
+recorded against stopped. Point the app at the address the verb listens on,
+exactly as it was pointed at `wf mimic proxy record`:
+
+  wf mimic proxy replay /tmp/t3-open-chat --listen 127.0.0.1:18499 --duration 120
+  WF_TEST_OUTPUT_DIR=/tmp/out wf mimic proxy replay /tmp/t3-open-chat --suite wf-mimic-proxy-t3 --fail-fast
+
+The verb opens no connection of its own: there is no upstream to name, and
+"upstream_connections" in the output is the count of connections this process
+tried to open, which is 0.
+
+An HTTP request is answered by the recording with the same verb, route, query
+and body. Credentials are compared by name, not by value, so a client that
+holds its own token is served. A request is first compared as it is, then
+with the rules of the set's rules.json applied (ids a client makes up,
+timestamps). The nth equal request gets the nth recording; once every equal
+recording has answered, the first answers again ("reused").
+
+A socket whose replies name the request they answer (the T3 orchestration
+socket, JSON-RPC) is replayed by request: a request takes the recorded request
+of the same method and payload, and gets that one's recorded replies, in
+recorded order, under the id the live client chose. A reply the recording
+shows after other requests waits until the client has made those too, or has
+been quiet for --settle-ms. A Ping is answered with a Pong. Any other socket
+is a strict script: the recorded frames, in their order.
+
+A request the recording does not have is a mismatch: the client gets a 502
+(header x-mimic-mismatch) or its socket is closed with code 1011, the run
+exits 1, and "mismatches" names the route or method, why, the request as
+received (credentials masked) and the nearest recording with its place in the
+cassette (interactions.jsonl:<line>, step <n>) and the fields that differ.
+
+Options:
+  --listen <addr>         where to listen (default 127.0.0.1:0)
+  --duration <seconds>    stop after this long
+  --settle-ms <ms>        how long a client is quiet before held replies go out (default 300)
+  --fail-fast             stop at the first mismatch
+  --suite <name>          write $WF_TEST_OUTPUT_DIR/<name>/report.json
+  --ready <file>          write the listening address here once the replay is up
+  -h, --help              display help for command
+
+Output (schema mimic-proxy-replay/1):
+  {schema, ok, set, kind, listen, upstream_connections, http: {matched, reused}, ws: {connections, matched, reused},
+  mismatch_count, mismatches: [{protocol, what, connection?, reason, received, nearest?: {interaction, cassette, step?, diff}}],
+  unused, evidence: {report}, warnings, next}
+Exit 0 every request had a recording, 1 a mismatch, 2 a usage or environment error.
 ```
 
 </details>

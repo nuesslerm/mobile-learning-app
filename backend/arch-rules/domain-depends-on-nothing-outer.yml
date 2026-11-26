@@ -5,6 +5,7 @@ message: A domain module may not use the application, infrastructure, api or ada
 note: Dependencies point inward only (api -> application -> domain; infrastructure -> application). See docs/plans/rust-services/standard-crates.md.
 files:
   # BEGIN generated:ast-grep-files
+  - "**/clis/mimic/proxy-core/src/domain/**/*.rs"
   - "**/clis/rca-exec/src/domain.rs"
   - "**/clis/t3-serve/core/src/domain/**/*.rs"
   - "**/leetcode-auth-cookie-capture/core/src/domain/**/*.rs"

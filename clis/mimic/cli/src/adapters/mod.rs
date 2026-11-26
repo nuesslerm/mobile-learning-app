@@ -1,11 +1,14 @@
 //! The system implementations of the core's ports.
 mod clock;
 mod command_crawler;
+pub mod conn;
 mod coverage;
 mod fs_checkpoint;
 mod fs_store;
+pub mod http1;
 mod in_process;
 pub mod proxy;
+pub mod replay_server;
 pub mod script_driver;
 mod stdio;
 mod tap;

@@ -2,7 +2,9 @@ Usage: wf mimic proxy [options] --upstream <url> --out <file>
 
 Observe the native T3 mobile app against the server it is configured for: a
 reverse proxy on the loopback that forwards every byte and writes what crossed
-as an ordered, correlated JSONL.
+as an ordered, correlated JSONL. This verb writes shapes for a person to read;
+`wf mimic proxy record` writes a cassette set `wf mimic proxy replay` can answer
+a client from.
 
 The upstream is one local T3 server: only a loopback address is accepted
 (127.0.0.0/8, ::1 or localhost), and the proxy listens on a loopback address

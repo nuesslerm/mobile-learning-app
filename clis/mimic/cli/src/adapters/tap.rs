@@ -175,7 +175,7 @@ fn connection(mut client: TcpStream, upstream: SocketAddr, carry: Carry, log: &L
     if (upgrade && carry == Carry::Http) || (!upgrade && carry == Carry::Ws) {
         return client.write_all(b"HTTP/1.1 501 Not Implemented\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
     }
-    let mut up = match TcpStream::connect(upstream) {
+    let mut up = match super::conn::dial(upstream) {
         Ok(up) => up,
         Err(_) => return client.write_all(b"HTTP/1.1 502 Bad Gateway\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"),
     };

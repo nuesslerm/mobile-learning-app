@@ -5,6 +5,7 @@ message: "A core crate (a package of type rust-core, or one that declares `pure 
 note: "The globs are generated from package-types.json (`wf check --layout --write`). `wf check --budget` reads them to check these crates' manifests too (core_purity, `backend-core-io-violations`), so keep one glob per line."
 files:
   # BEGIN generated:ast-grep-files
+  - "**/clis/mimic/proxy-core/src/**/*.rs"
   - "**/leetcode-auth-cookie-capture/core/src/**/*.rs"
   - "**/leetcode-backend/core/src/**/*.rs"
   - "**/remote-chat-agent/cli-driver/src/**/*.rs"
