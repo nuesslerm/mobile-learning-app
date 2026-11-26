@@ -4,7 +4,7 @@ export interface HostWorkspaceListProps {
   title: string;
   platform?: string;
   group?: string;
-  rows: { id: string; name: string; detail?: string; pinned?: boolean }[];
+  rows: { id: string; name: string; detail?: string; pinned?: boolean; unread?: boolean }[];
   search?: { value: string; onChange: (value: string) => void };
   options?: ReactNode;
   notice?: string;
@@ -19,9 +19,11 @@ export interface WorkspaceActionsProps {
   automaticName: string;
   branch: string | null;
   pinned: boolean;
+  unread: boolean;
   saving: boolean;
   error?: string;
   onClose: () => void;
   onRename: (name: string) => void;
   onPin: () => void;
+  onToggleRead: () => void;
 }

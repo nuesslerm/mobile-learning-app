@@ -38,7 +38,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 147] = [
+pub const USES: [Method; 149] = [
     STATUS,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
@@ -73,6 +73,8 @@ pub const USES: [Method; 147] = [
     lifecycle::THREAD_SHELF,
     agent_api_state::GET,
     agent_api_state::watch::SUBSCRIBE,
+    agent_api_service::panes::LIST,
+    agent_api_service::panes::MARK,
     agent_api_state::SET,
     CLIENT_ACTIVITY,
     edit::FILE_STAT,
@@ -320,17 +322,25 @@ impl RcaAgent {
             .filter(|r| r["kind"] == "worktree")
             .filter_map(|r| Some((r["path"].as_str()?, r["workspace"].as_str()?)))
             .collect();
+        let pane_list = Self::call(client, agent_api_service::panes::LIST, json!({}))?;
+        let panes: Vec<agent_api_service::panes::PaneView> = serde_json::from_value(pane_list["panes"].clone()).map_err(|_| AgentError::Failed("Invalid RCA pane list.".into()))?;
+        let mut unread_panes = std::collections::HashMap::<String, Vec<String>>::new();
+        for pane in panes.into_iter().filter(|p| p.unread && p.listed && p.state != agent_api_service::panes::PaneState::Idle) {
+            if let Some(workspace) = pane.workspace { unread_panes.entry(workspace).or_default().push(pane.pane); }
+        }
         let mut checkouts = Vec::with_capacity(rows.len());
         for row in rows {
             let path = row["path"].as_str().ok_or_else(|| AgentError::Failed("Missing checkout path.".into()))?;
             let branch = row["branch"].as_str().filter(|b| !b.is_empty());
             let title = branch.unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
             let workspace = by_path.get(path).copied().unwrap_or(&self.workspace);
+            let owner = if row["is_main"] == true { Some(self.workspace.as_str()) } else { by_path.get(path).copied() };
+            let alerts = owner.and_then(|w| unread_panes.get(w)).map(Vec::as_slice).unwrap_or_default();
             let id = format!("{}::{path}", self.workspace);
             let meta = metadata.get(&format!("orca.worktree.{id}"));
             let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
             checkouts.push(json!({"id": id, "name": name, "automaticName": title, "pinned": meta.is_some_and(|m| m["isPinned"] == true), "branch": branch,
-                "main": row["is_main"] == true, "workspace": workspace, "path": path}));
+                "main": row["is_main"] == true, "workspace": workspace, "path": path, "unreadPanes": alerts, "unread": !alerts.is_empty() || meta.is_some_and(|m| m["isUnread"] == true)}));
         }
         Ok(json!({"repo": self.workspace, "checkouts": checkouts}))
     }
@@ -606,7 +616,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -665,6 +675,12 @@ impl AgentApi for RcaAgent {
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
         if matches!(op, Op::MobileWorktrees) { return self.mobile_worktrees(&mut client); }
+        if let Op::ReadPanes { panes } = op {
+            for keys in panes.chunks(agent_api_service::panes::MAX_MARKED) {
+                Self::call(&mut client, agent_api_service::panes::MARK, json!({"panes":keys,"mark":"read"}))?;
+            }
+            return Ok(Value::Null);
+        }
         let (method, params) = match self.placed(&mut client, op)? {
             Some(placed) => placed,
             None => request(op)?,

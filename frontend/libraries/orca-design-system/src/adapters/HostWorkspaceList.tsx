@@ -1,4 +1,5 @@
 import type { HostWorkspaceListProps } from '@lib/agent-ui-contracts';
+import Bell from 'lucide-react-native/dist/esm/icons/bell.mjs';
 import Pin from 'lucide-react-native/dist/esm/icons/pin.mjs';
 import Folder from 'lucide-react-native/dist/esm/icons/folder.mjs';
 import ChevronDown from 'lucide-react-native/dist/esm/icons/chevron-down.mjs';
@@ -111,13 +112,23 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
                     : {})}
                   style={styles.row}
                 >
-                  <View
-                    style={[
-                      styles.dot,
-                      styles.rowDot,
-                      { backgroundColor: c.textMuted },
-                    ]}
-                  />
+                  <View style={styles.indicators}>
+                    <View
+                      style={[
+                        styles.dot,
+                        styles.rowDot,
+                        { backgroundColor: c.textMuted },
+                      ]}
+                    />
+                    {row.unread && (
+                      <Bell
+                        size={10}
+                        color={c.statusAmber}
+                        fill={c.statusAmber}
+                        style={styles.bell}
+                      />
+                    )}
+                  </View>
                   <View style={[styles.body, { borderColor: c.borderSubtle }]}>
                     <Text numberOfLines={1} style={[styles.name, ink]}>
                       {row.name}
@@ -207,7 +218,9 @@ const styles = StyleSheet.create({
   },
   groupText: { fontSize: 13, fontWeight: '500' },
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingLeft: 24 },
-  rowDot: { marginTop: 19, opacity: 0.4 },
+  indicators: { marginTop: 19, width: 8, alignItems: 'center' },
+  rowDot: { opacity: 0.4 },
+  bell: { marginTop: 6, marginBottom: 12 },
   body: {
     flex: 1,
     marginLeft: 14,

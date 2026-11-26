@@ -13,6 +13,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Bell from 'lucide-react-native/dist/esm/icons/bell.mjs';
+import BellOff from 'lucide-react-native/dist/esm/icons/bell-off.mjs';
 import Pencil from 'lucide-react-native/dist/esm/icons/pencil.mjs';
 import Pin from 'lucide-react-native/dist/esm/icons/pin.mjs';
 import PinOff from 'lucide-react-native/dist/esm/icons/pin-off.mjs';
@@ -21,6 +23,7 @@ import { useReducedMotionEnabled } from './useReducedMotion';
 
 export function WorkspaceActions(props: WorkspaceActionsProps) {
   const colors = useChatPalette();
+  const ReadIcon = props.unread ? BellOff : Bell;
   const { bottom } = useSafeAreaInsets();
   const reduced = useReducedMotionEnabled();
   const [renaming, setRenaming] = useState(false);
@@ -178,6 +181,23 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
                 >
                   <Pencil size={16} color={colors.textSecondary} />
                   <Text style={[styles.rowLabel, ink]}>Rename</Text>
+                </Pressable>
+                <View
+                  style={[
+                    styles.rule,
+                    { backgroundColor: colors.borderSubtle },
+                  ]}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={props.saving}
+                  style={styles.row}
+                  onPress={props.onToggleRead}
+                >
+                  <ReadIcon size={16} color={colors.textSecondary} />
+                  <Text style={[styles.rowLabel, ink]}>
+                    {props.unread ? 'Mark Read' : 'Mark Unread'}
+                  </Text>
                 </Pressable>
                 <View
                   style={[

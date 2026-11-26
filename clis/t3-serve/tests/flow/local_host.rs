@@ -282,7 +282,7 @@ fn mobile_checkouts_open_the_saved_projected_chat_only_inside_the_selected_works
     // When the phone reads the catalog and opens the checkout, then only its projected chat is eligible
     let list = get("/api/mobile/workspaces", &reader);
     assert_eq!(list.status, 200);
-    assert_eq!(list.body["checkouts"], json!([{"id":"desk::/fixture","name":"fixture","automaticName":"fixture","pinned":false,"branch":null,"main":false}]));
+    assert_eq!(list.body["checkouts"], json!([{"id":"desk::/fixture","name":"fixture","automaticName":"fixture","pinned":false,"unread":false,"branch":null,"main":false}]));
     let result = get("/api/mobile/workspaces?checkout=desk%3A%3A%2Ffixture", &reader);
     assert_eq!(result.body["active"], "t1");
     assert_eq!(result.body["sessions"].as_array().unwrap().len(), 1);
@@ -300,12 +300,13 @@ fn mobile_workspace_edits_preserve_other_metadata_and_require_operate_scope() {
     let saved = state.clone();
     *h.agent.responder.lock().unwrap() = Some(Box::new(move |op| match op {
         Op::MobileWorktrees => Some(Ok(json!({"repo":"desk","checkouts":[
-            {"id":"desk::/one","name":"main","automaticName":"main","branch":"main","main":true}
+            {"id":"desk::/one","name":"main","automaticName":"main","branch":"main","main":true,"unreadPanes":["thread:done"]}
         ]}))),
         Op::StateGet {scope,key} if scope == "orca" && key == "orca.worktree.desk::/one" => Some(Ok(json!({"value":saved.lock().unwrap().clone()}))),
         Op::StateSet {scope,key,value} if scope == "orca" && key == "orca.worktree.desk::/one" => {
             *saved.lock().unwrap() = value.clone(); Some(Ok(json!({})))
         }
+        Op::ReadPanes { panes } => { assert_eq!(panes, &["thread:done"]); Some(Ok(Value::Null)) }
         _ => None,
     }));
     let writer = scoped(&h, &["orchestration:operate"]);
@@ -323,4 +324,9 @@ fn mobile_workspace_edits_preserve_other_metadata_and_require_operate_scope() {
     assert_eq!(edit(&writer,json!({"checkout":"other::/one","displayName":"wrong"})).status,404);
     assert_eq!(edit(&writer,json!({"checkout":"desk::/one","isPinned":"yes"})).status,422);
     assert_eq!(*state.lock().unwrap(),json!({"comment":"kept","isPinned":true}));
+    // When the checkout is read, then pending pane attention is acknowledged and its read flag persists with other metadata.
+    assert_eq!(edit(&writer, json!({"checkout":"desk::/one", "isUnread":false})).body["unread"], false);
+    assert_eq!(*state.lock().unwrap(), json!({"comment":"kept", "isPinned":true, "isUnread":false}));
+    assert_eq!(edit(&writer, json!({"checkout":"desk::/one", "isUnread":true})).body["unread"], true);
+    assert_eq!(edit(&reader, json!({"checkout":"desk::/one", "isUnread":false})).status, 403);
 }

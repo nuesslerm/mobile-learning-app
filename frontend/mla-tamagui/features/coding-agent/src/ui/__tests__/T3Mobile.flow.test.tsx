@@ -45,7 +45,7 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     workspaces: async () => ({host:{name:'Fixture Mac',os:'darwin'}, repo:'Fixture repository',
       checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
-      automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned}),
+      automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned, unread:'isUnread' in edit && edit.isUnread}),
     checkoutSessions: async () => ({active:thread.id, sessions:[thread]}),
     shell: async () => ({
       projects: [{ id: 'project', title: 'Fixture repository' }],
@@ -262,6 +262,18 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('button',{name:'Workspace options'}));
     await userEvent.click(await screen.findByRole('button',{name:'Card layout, Compact'}));
     expect(await screen.findByRole('radio',{name:'Compact',checked:true})).toBeTruthy();
+  });
+
+  it('Given a checkout, when the reader marks it unread and then read, then the reopened menu offers the reverse action', async () => {
+    const port = backend();
+    await app.render('/coding-agent', {search:{host:'1'}, overrides:{'coding-agent':{t3Mobile:port}}});
+    const openMenu = async () => userEvent.pointer({keys:'[MouseRight]', target:await screen.findByRole('button', {name:'Mobile checkout'})});
+    await openMenu();
+    await userEvent.click(await screen.findByRole('button',{name:'Mark Unread'}));
+    await openMenu();
+    await userEvent.click(await screen.findByRole('button',{name:'Mark Read'}));
+    await openMenu();
+    expect(await screen.findByRole('button',{name:'Mark Unread'})).toBeTruthy();
   });
 
   it('Given a checkout, when the reader renames it from its context menu, then the host list shows the saved label', async () => {

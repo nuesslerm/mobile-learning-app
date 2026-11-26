@@ -2,10 +2,10 @@ import { z } from 'zod';
 
 export const checkoutRow = z.object({
   id: z.string(), name: z.string(), branch: z.string().nullable(), main: z.boolean(),
-  automaticName: z.string().optional(), pinned: z.boolean().optional(),
+  automaticName: z.string().optional(), pinned: z.boolean().optional(), unread: z.boolean().optional(),
 });
 export type CheckoutRow = z.infer<typeof checkoutRow>;
-export type CheckoutEdit = { displayName: string } | { isPinned: boolean };
+export type CheckoutEdit = { displayName: string } | { isPinned: boolean } | { isUnread: boolean };
 
 const desktopHost = z.object({ name: z.string(), os: z.string() });
 export const homeSummary = z.object({

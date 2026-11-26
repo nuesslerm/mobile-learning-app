@@ -293,6 +293,7 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
             {"id": "default", "label": "Default", "is_default": true},
         ]}))],
         "state.subscribe" => vec![answer(request, json!({"values":{}}))],
+        "pane.list" => vec![answer(request, json!({"panes":[]}))],
         "repo.list" => vec![answer(request, json!({"repos":[]}))],
         "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "is_main": false}]}))],
         "terminal.list" => vec![answer(request, json!({"workspace": "w1", "terminals": []}))],
@@ -450,6 +451,7 @@ fn every_op() -> Vec<Op> {
         Op::GitFetch { root: "/work/proj".into(), refspecs: vec!["+refs/pull/12/head:refs/rca/pr/12/head".into()] },
         Op::GitCompare { root: "/work/proj".into(), base: "main".into(), head: "feat".into(), limit: 100 },
         Op::MobileWorktrees,
+        Op::ReadPanes { panes: vec!["thread:t1".into()] },
         Op::WorktreeList { root: "/work/proj".into() },
         Op::GitPull { root: "/work/proj".into() },
         Op::GitBlob { root: "/work/proj".into(), rev: "HEAD".into(), path: "a.txt".into() },
@@ -737,4 +739,26 @@ fn a_git_request_for_a_directory_of_a_worktree_is_asked_of_that_worktrees_worksp
     assert_eq!(rca.asked("git.status"), [json!({"workspace": "wt"}), json!({"workspace": WORKSPACE})]);
     assert_eq!((blob["text"].clone(), blob["size"].clone()), (json!("hi\n"), json!(3)));
     assert_eq!(pull, AgentError::Refused { code: "INVALID_ARGS".into(), message: "this repository has no remote configured".into() });
+}
+
+#[test]
+fn given_registered_and_unmanaged_checkouts_when_listing_read_state_then_only_the_owner_inherits_pane_attention() {
+    // Given one repository finish, a read pane in a registered worktree, and a manual mark on a separate checkout
+    let rca = rca(Box::new(|request| {
+        let pane = |id: &str, workspace: &str, unread: bool| json!({"pane":format!("thread:{id}"),"thread":id,"title":id,"workspace":workspace,"state":"done","listed":true,"unread":unread,"clearable":true,"sort_at_ms":5,"state_started_at_ms":1});
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/main","is_main":true},{"path":"/wt","is_main":false},{"path":"/other"},{"path":"/flag"}]}),
+            "repo.list" => json!({"repos":[{"path":"/wt","kind":"worktree","workspace":"wt"}]}),
+            "state.subscribe" => json!({"values":{format!("orca.worktree.{WORKSPACE}::/flag"):{"isUnread":true}}}),
+            "pane.list" => json!({"panes":[pane("a",WORKSPACE,true),pane("b","wt",false)]}),
+            _ => json!({}),
+        };
+        vec![answer(request, reply)]
+    }));
+    // When the catalog is read, then a single pane snapshot serves every checkout and unmatched paths keep their own state
+    let catalog = rca.agent().run(&Op::MobileWorktrees).unwrap();
+    let rows = catalog["checkouts"].as_array().unwrap();
+    assert_eq!(rows.iter().map(|r| r["unread"].as_bool().unwrap()).collect::<Vec<_>>(), [true, false, false, true]);
+    assert_eq!(rows[0]["unreadPanes"], json!(["thread:a"]));
+    assert_eq!(rca.asked("pane.list"), [json!({})]);
 }

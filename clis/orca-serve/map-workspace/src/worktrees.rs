@@ -71,6 +71,7 @@ pub(crate) fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Resul
         row.insert(k.into(), v);
     }
     row.extend(object(agent, &meta_key(&id))?);
+    row.remove("acknowledgeAttention");
     row.insert("id".into(), id.into());
     row.insert("repoId".into(), repo.workspace.clone().into());
     row.insert("path".into(), c.path.clone().into());
@@ -177,14 +178,28 @@ pub(crate) fn remove(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
 
 pub(crate) fn set(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let (repo, c) = find(agent, selector(params)?)?;
+    if params.get("isUnread").is_some_and(|v| !v.is_boolean()) {
+        return Err(Failure::invalid("isUnread must be a boolean"));
+    }
+    let acknowledge = match params.get("acknowledgeAttention") {
+        None => false,
+        Some(Value::Bool(value)) => *value && params["isUnread"] == false,
+        Some(_) => return Err(Failure::invalid("acknowledgeAttention must be a boolean")),
+    };
+    let unread = if acknowledge {
+        let workspace = if c.is_main { Some(repo.workspace.clone()) } else { targets(agent)?.into_iter().find(|t| t.kind == "worktree" && t.root_path == c.path).map(|t| t.workspace) };
+        match workspace { Some(w) => crate::activity::unread_panes(agent, &w)?, None => Vec::new() }
+    } else { Vec::new() };
     let key = meta_key(&id_of(&repo.workspace, &c.path));
     let turn = orca_core::kept_state_turn();
     let mut meta = object(agent, &key)?;
-    for (k, v) in params.as_object().into_iter().flatten().filter(|(k, _)| k.as_str() != "worktree") {
+    meta.remove("acknowledgeAttention");
+    for (k, v) in params.as_object().into_iter().flatten().filter(|(k, _)| !matches!(k.as_str(), "worktree" | "acknowledgeAttention")) {
         meta.insert(k.clone(), v.clone());
     }
     put(agent, &key, Value::Object(meta))?;
     drop(turn);
+    crate::activity::mark_read(agent, &unread)?;
     Ok(json!({"worktree": record(agent, &repo, &c)?}))
 }
 

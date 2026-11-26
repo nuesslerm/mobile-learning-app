@@ -132,6 +132,7 @@ export function T3HostWorkspaces({
           id: r.id,
           name: r.name,
           pinned: r.pinned,
+          unread: r.unread,
           detail:
             preferences?.cardLayout === 'compact'
               ? undefined
@@ -167,6 +168,8 @@ export function T3HostWorkspaces({
           branch={actionRow.branch}
           automaticName={actionRow.automaticName ?? actionRow.name}
           pinned={!!actionRow.pinned}
+          unread={!!actionRow.unread}
+          onToggleRead={() => void edit({ isUnread: !actionRow.unread })}
           saving={saving}
           error={mutationError}
           onClose={() => {

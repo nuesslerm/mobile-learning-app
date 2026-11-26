@@ -14,7 +14,7 @@ fn upstream(error: AgentError) -> Refusal {
 
 fn public_row(row: &Value) -> Value {
     json!({"id": row["id"], "name": row["name"], "branch": row["branch"], "main": row["main"],
-        "automaticName": row["automaticName"], "pinned": row["pinned"] == true})
+        "automaticName": row["automaticName"], "pinned": row["pinned"] == true, "unread": row["unread"] == true})
 }
 
 #[derive(Deserialize)]
@@ -23,15 +23,21 @@ struct CheckoutEdit {
     checkout: String,
     display_name: Option<String>,
     is_pinned: Option<bool>,
+    is_unread: Option<bool>,
 }
 
 impl Service {
     pub fn edit_mobile_workspace(&self, auth: Option<&str>, body: Value) -> Result<Value, Refusal> {
         self.scope_gate("mobile.workspaces.edit", auth, "orchestration:operate")?;
         let edit: CheckoutEdit = serde_json::from_value(body).map_err(|_| Refusal::bare(422))?;
-        if edit.display_name.is_none() && edit.is_pinned.is_none() {
+        if edit.display_name.is_none() && edit.is_pinned.is_none() && edit.is_unread.is_none() {
             return Err(Refusal::bare(422));
         }
+        let _guard = self
+            .held()
+            .workspace_edits
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
         let catalog = self.agent().run(&Op::MobileWorktrees).map_err(upstream)?;
         let rows = catalog["checkouts"]
             .as_array()
@@ -40,11 +46,6 @@ impl Service {
             .iter()
             .find(|r| r["id"] == edit.checkout)
             .ok_or_else(|| Refusal::bare(404))?;
-        let _guard = self
-            .held()
-            .workspace_edits
-            .lock()
-            .unwrap_or_else(|p| p.into_inner());
         let key = format!("orca.worktree.{}", edit.checkout);
         let stored = self
             .agent()
@@ -69,7 +70,12 @@ impl Service {
         if let Some(pinned) = edit.is_pinned {
             meta.insert("isPinned".into(), json!(pinned));
         }
+        let pending = row["unreadPanes"].as_array().map(Vec::as_slice).unwrap_or_default();
+        if let Some(unread) = edit.is_unread {
+            meta.insert("isUnread".into(), json!(unread));
+        }
         let mut result = public_row(row);
+        result["unread"] = json!(meta.get("isUnread") == Some(&Value::Bool(true)) || (edit.is_unread != Some(false) && !pending.is_empty()));
         result["name"] = meta
             .get("displayName")
             .filter(|v| v.as_str().is_some_and(|s| !s.is_empty()))
@@ -86,6 +92,10 @@ impl Service {
                 value: Value::Object(meta),
             })
             .map_err(upstream)?;
+        if edit.is_unread == Some(false) && !pending.is_empty() {
+            let panes = pending.iter().map(|k| k.as_str().map(str::to_owned).ok_or_else(|| Refusal::bare(502))).collect::<Result<Vec<_>, _>>()?;
+            self.agent().run(&Op::ReadPanes { panes }).map_err(upstream)?;
+        }
         Ok(result)
     }
 
