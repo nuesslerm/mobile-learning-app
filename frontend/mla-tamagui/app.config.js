@@ -38,6 +38,7 @@ function expoConfig(_config) {
       newArchEnabled: true,
       ios: {
         supportsTablet: true,
+        infoPlist: { NSPhotoLibraryAddUsageDescription: 'Save chat images you choose to your photo library.' },
         bundleIdentifier: BUNDLE_ID,
       },
       android: {

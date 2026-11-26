@@ -34,6 +34,8 @@ export interface ChatImageProps {
   onOpen: () => void;
 }
 export interface ChatImageViewerProps {
+  actions?: Partial<Record<'copy' | 'save' | 'share', () => Promise<void>>>;
+  bottomInset?: number;
   label: string;
   uri: string;
   topInset: number;

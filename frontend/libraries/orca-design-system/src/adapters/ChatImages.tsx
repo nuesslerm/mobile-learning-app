@@ -1,9 +1,10 @@
+import { ViewerActions } from './image/ViewerActions';
 import type {
   ChatImageProps,
   ChatImageViewerProps,
 } from '@lib/agent-ui-contracts';
 import { X } from 'lucide-react-native';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
@@ -51,12 +52,15 @@ export function ChatImageViewer({
   label,
   topInset,
   rightInset,
+  bottomInset,
+  actions,
   onClose,
 }: ChatImageViewerProps) {
   const colors = useChatPalette();
   const reduced = useReducedMotionEnabled() === true;
   const shown = useRef(new Animated.Value(0)).current;
   const closing = useRef(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const easing = Easing.bezier(0.32, 0.72, 0, 1);
   useEffect(() => {
     if (closing.current) return;
@@ -82,7 +86,7 @@ export function ChatImageViewer({
     });
   }
   return (
-    <Modal visible transparent animationType="none" onRequestClose={close}>
+    <Modal visible transparent animationType="none" onRequestClose={() => menuOpen ? setMenuOpen(false) : close()}>
       <Animated.View
         style={{ flex: 1, backgroundColor: colors.bgBase, opacity: shown }}
       >
@@ -106,6 +110,8 @@ export function ChatImageViewer({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close image"
+          accessibilityElementsHidden={menuOpen}
+          importantForAccessibility={menuOpen ? 'no-hide-descendants' : 'auto'}
           onPress={close}
           style={({ pressed }) => [
             styles.close,
@@ -119,6 +125,7 @@ export function ChatImageViewer({
         >
           <X size={22} color={colors.textPrimary} strokeWidth={2} />
         </Pressable>
+        <ViewerActions actions={actions} topInset={topInset} rightInset={rightInset} bottomInset={bottomInset} open={menuOpen} setOpen={setMenuOpen} />
       </Animated.View>
     </Modal>
   );

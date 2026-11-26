@@ -1,3 +1,6 @@
+import { Logger } from '@lib/logging';
+import type { ImageActions } from '../domain/imageActions';
+import { useCodingAgentPorts } from '../state/ports';
 import { useEffect, useState } from 'react';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { Text, View } from 'react-native';
@@ -17,10 +20,23 @@ function ImageAttachment({
 }) {
   const { ChatImage, ChatImageViewer } = useAgentComponents();
   const insets = useSafeAreaInsets();
+  const { imageActionsFor } = useCodingAgentPorts();
   const [source, setSource] = useState<T3ImageSource>();
   const [failed, setFailed] = useState(false);
   const [viewing, setViewing] = useState(false);
   const { id, name, mimeType } = attachment;
+  const [actions, setActions] = useState<ImageActions>();
+  const uri = source?.uri;
+  useEffect(() => {
+    setActions(undefined);
+    if (!viewing || !uri) return;
+    const controller = new AbortController();
+    Promise.resolve(imageActionsFor({uri, name, mimeType}, controller.signal)).then(
+      result => { if (!controller.signal.aborted) setActions(result); },
+      () => { if (!controller.signal.aborted) Logger.warn('coding_agent.chat.image_actions_unavailable'); },
+    );
+    return () => controller.abort();
+  }, [viewing, uri, name, mimeType, imageActionsFor]);
   useEffect(() => {
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
@@ -59,6 +75,8 @@ function ImageAttachment({
       {source && viewing ? (
         <ChatImageViewer
           label={name}
+          actions={actions}
+          bottomInset={insets.bottom}
           uri={source.uri}
           topInset={insets.top}
           rightInset={insets.right}

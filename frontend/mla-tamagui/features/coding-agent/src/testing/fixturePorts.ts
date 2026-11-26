@@ -11,6 +11,7 @@ export function createFixturePorts(): CodingAgentPorts {
   let notificationsEnabled = false;
   let lastUpdateCheckAt: number | null = null;
   return {
+    imageActionsFor: () => ({}),
     copyMessage: async () => true,
     pairingCamera: {
       get: async () => ({ granted: false, canAskAgain: true }),

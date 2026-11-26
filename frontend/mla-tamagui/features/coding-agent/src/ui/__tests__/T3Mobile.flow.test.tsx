@@ -129,6 +129,40 @@ describe('Orca chat with the T3 transport', () => {
     expect(copied).toEqual([progress]);
   });
 
+  it('Given an opened attachment, when a reader copies the image and retries a failed save, then the viewer stays on that image', async () => {
+    const port = backend();
+    const open = port.open;
+    const attachment = {id: 'blue-orange', name: 'swatch.png', mimeType: 'image/png', type: 'image' as const};
+    const uri = 'https://fixture.invalid/assets/swatch';
+    port.open = async (pairing, id, update, disconnected) => {
+      const session = await open(pairing, id, () => update({
+        thread, messages: [{id: 'photo', role: 'user', text: 'Swatch', attachments: [attachment]}],
+      }), disconnected);
+      return {...session, resolveImage: async () => ({uri, expiresAt: Date.now() + 60000})};
+    };
+    const copied: string[] = [];
+    let saves = 0;
+    await app.render('/coding-agent/thread-42', {overrides: {'coding-agent': {
+      t3Mobile: port,
+      imageActionsFor: (image: {uri: string}) => ({
+        copy: async () => { copied.push(image.uri); },
+        save: async () => { if (++saves === 1) throw new Error('Photos access denied'); },
+      }),
+    }}});
+    await userEvent.click(await screen.findByLabelText('swatch.png'));
+    await userEvent.click(await screen.findByRole('button', {name:'Image actions'}));
+    expect(screen.queryByRole('button', {name:'Share…'})).toBeNull();
+    await userEvent.click(screen.getByRole('button', {name:'Copy image'}));
+    expect(await screen.findByText('Image copied')).toBeTruthy();
+    expect(copied).toEqual([uri]);
+    await userEvent.click(screen.getByRole('button', {name:'Image actions'}));
+    await userEvent.click(screen.getByRole('button', {name:'Save image'}));
+    expect(await screen.findByText("Couldn't save image")).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', {name:'Image actions'}));
+    await userEvent.click(screen.getByRole('button', {name:'Save image'}));
+    expect(await screen.findByText('Image saved')).toBeTruthy();
+  });
+
   it('Given a paired workspace, when the reader changes card layout, then reopening options restores it', async () => {
     const port = backend();
     await app.render('/coding-agent', {search:{host:'1'}, overrides: { 'coding-agent': { t3Mobile: port } } });

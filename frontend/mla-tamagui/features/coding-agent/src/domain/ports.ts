@@ -1,3 +1,4 @@
+import type { ChatImageFile, ImageActions } from './imageActions';
 import type { T3MobilePort } from './t3Mobile';
 import type { MobilePort } from './mobile';
 import type {
@@ -133,6 +134,7 @@ export interface PairingCameraPort {
 }
 
 export type CodingAgentPorts = {
+  imageActionsFor(image: ChatImageFile, signal: AbortSignal): ImageActions | Promise<ImageActions>;
   copyMessage(text: string): Promise<boolean>;
   pairingCamera: PairingCameraPort;
   t3Mobile?: T3MobilePort;

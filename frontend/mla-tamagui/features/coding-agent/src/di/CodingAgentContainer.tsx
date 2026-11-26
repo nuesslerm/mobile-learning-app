@@ -1,3 +1,4 @@
+import { imageActionsFor } from '../data/imageActions';
 import { copyMessage } from '../data/copyMessage';
 import { pairingCamera } from '../data/pairingCamera';
 import { createT3MobileApi } from '../data/t3/mobileApi';
@@ -36,6 +37,7 @@ export function createDefaultPorts(
   const tokenStore = overrides.tokenStore ?? createAsyncStorageTokenStore();
   return {
     tokenStore,
+    imageActionsFor: overrides.imageActionsFor ?? imageActionsFor,
     copyMessage: overrides.copyMessage ?? copyMessage,
     pairingCamera: overrides.pairingCamera ?? pairingCamera,
     t3Mobile: overrides.t3Mobile ?? createT3MobileApi(),
