@@ -242,6 +242,30 @@ fn session_context_opens_a_saved_chat_once_and_rejects_another_workspace() {
 }
 
 #[test]
+fn source_control_resolves_a_projected_chat_only_for_an_orchestration_reader() {
+    use t3_core::ports::Op;
+    // Given a projected chat and a desktop with a differently named linked checkout.
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileThreadCheckout { thread, selected, .. } if thread == "t1" && selected.as_deref() == Some("desk::/linked") =>
+            Some(Ok(json!({"id":"desk::/linked","name":"Review","branch":"feature","main":false,"workspace":"internal"}))),
+        _ => None,
+    }));
+    // When the chat opens its checkout then the screen receives only the public checkout record.
+    let get = |thread:&str,token:&str| http(h.addr,"GET",&format!("/api/mobile/source-control/checkout?thread={thread}&checkout=desk%3A%3A%2Flinked"),&[("Authorization",token)],"");
+    let reader = scoped(&h, &["orchestration:read"]);
+    let resolved = get("t1",&reader);
+    assert_eq!(resolved.status, 200);
+    assert_eq!(resolved.body["name"], "Review");
+    assert!(resolved.body.get("workspace").is_none());
+    assert_eq!(get("unknown",&reader).status,404);
+    assert_eq!(get("t1","").status,401);
+    assert_eq!(get("t1",&scoped(&h,&["relay:read"])).status,403);
+}
+
+#[test]
 fn paired_agents_require_an_orchestration_reader_and_forward_host_failure() {
     use t3_core::ports::{AgentError, Op};
     // Given a desktop with no activities.

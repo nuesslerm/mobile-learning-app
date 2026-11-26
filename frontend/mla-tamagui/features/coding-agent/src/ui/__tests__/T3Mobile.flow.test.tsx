@@ -47,6 +47,7 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
       automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned, unread:'isUnread' in edit && edit.isUnread}),
     agents: async () => ({repo:'Fixture repository', checkouts:{}, agents:[]}),
+    threadCheckout: async () => ({ id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false }),
     checkoutBranches: async () => ({ current: null, branches: [], truncated: false }),
     switchCheckoutBranch: async (_pair, _id, branch) => ({ branch, head: 'a'.repeat(40) }),
     checkoutChanges: async () => ({branch:null,head:null,comparison:null}),
@@ -189,7 +190,7 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.type(screen.getByPlaceholderText('Search agents'),'sync');
     expect(screen.queryByText('Build docs')).toBeNull();
     await userEvent.click(screen.getByRole('button',{name:'Investigate sync, Mobile checkout'}));
-    await waitFor(() => expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Mobile%20checkout'));
+    await waitFor(() => expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Mobile%20checkout&checkoutId=repo%3A%3A%2Fmain'));
   });
 
   it('Given an agent pane without a projected chat, when selected, then its own checkout opens the saved session', async () => {
@@ -203,7 +204,7 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('tab',{name:'Agents'}));
     await userEvent.click(await screen.findByRole('button',{name:'Native pane, Linked review'}));
     expect(lookup.mock.calls[0]?.[1]).toBe('demo::/linked');
-    await waitFor(() => expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Linked%20review'));
+    await waitFor(() => expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Linked%20review&checkoutId=demo%3A%3A%2Flinked'));
   });
 
   it('Given an unpaired desktop, when retrying a bad invite and pasting the T3 link, then only the valid grant is exchanged and its project appears', async () => {
@@ -306,6 +307,26 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('button',{name:'Workspace options'}));
     await userEvent.click(await screen.findByRole('button',{name:'Card layout, Compact'}));
     expect(await screen.findByRole('radio',{name:'Compact',checked:true})).toBeTruthy();
+  });
+
+  it('Given an open chat, when its source control button is pressed, then navigation carries the thread and exact checkout', async () => {
+    await app.render('/coding-agent/thread-42', {search:{checkout:'Mobile checkout', checkoutId:'repo::/linked #2'}, overrides:{'coding-agent':{t3Mobile:backend()}}});
+    await userEvent.click(await screen.findByRole('button',{name:'Open source control'}));
+    expect(routerHarness().lastPush()).toBe('/coding-agent/source-control?thread=thread-42&checkoutId=repo%3A%3A%2Flinked%20%232');
+  });
+
+  it('Given a direct chat source control link, when lookup is retried, then changes load only for the resolved checkout', async () => {
+    const port = backend();
+    const lookup = vi.fn(port.threadCheckout).mockRejectedValueOnce(new Error('offline'));
+    const changes = vi.fn(port.checkoutChanges);
+    await app.render('/coding-agent/source-control', {search:{thread:'thread-42'}, overrides:{'coding-agent':{t3Mobile:{...port, threadCheckout:lookup, checkoutChanges:changes}}}});
+    expect((await screen.findByRole('alert')).textContent).toBe('Could not load this chat’s checkout.');
+    expect(changes).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button',{name:'Try again'}));
+    await screen.findByRole('button',{name:'Switch Branch'});
+    expect(screen.getByRole('button',{name:'Back to chat'})).toBeTruthy();
+    expect(lookup).toHaveBeenLastCalledWith(pair,'thread-42',undefined,expect.anything());
+    expect(changes).toHaveBeenCalledWith(pair,'repo::/fixture',expect.anything());
   });
 
   it('Given a detached checkout, when a branch is selected, then the Changes page refreshes against that checkout', async () => {
@@ -656,7 +677,7 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(await screen.findByRole('button',{name:'Mobile checkout'}));
     expect(readCatalog).toHaveBeenCalledTimes(1);
     await waitFor(() =>
-      expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Mobile%20checkout')
+      expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Mobile%20checkout&checkoutId=repo%3A%3A%2Ffixture')
     );
     await app.render('/coding-agent/thread-42', {
       overrides: { 'coding-agent': { t3Mobile: port } },

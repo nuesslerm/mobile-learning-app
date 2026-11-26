@@ -98,7 +98,7 @@ export function T3HostWorkspaces({
       if (controller.signal.aborted) return;
       if (found.active) {
         setSelected(undefined);
-        router.push(chatRoute(found.active, row.name));
+        router.push(chatRoute(found.active, row.name, row.id));
       } else setSessions(found);
     } catch {
       if (controller.signal.aborted) return;
@@ -129,7 +129,7 @@ export function T3HostWorkspaces({
           request.current?.abort();
           setSelected(undefined);
         }}
-        onSelect={(id) => router.push(chatRoute(id, selected.name))}
+        onSelect={(id) => router.push(chatRoute(id, selected.name, selected.id))}
       />
     );
   const filters = preferences?.filters;

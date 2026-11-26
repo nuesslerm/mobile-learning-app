@@ -38,9 +38,12 @@ export const checkoutSessions = z.object({
 export type WorkspaceCatalog = z.infer<typeof workspaceCatalog>;
 export type CheckoutSessions = z.infer<typeof checkoutSessions>;
 
-export function chatRoute(thread: string, checkout?: string) {
+export function chatRoute(thread: string, checkout?: string, checkoutId?: string) {
   const route = '/coding-agent/' + encodeURIComponent(thread);
-  return checkout ? route + '?checkout=' + encodeURIComponent(checkout) : route;
+  const params = [];
+  if (checkout) params.push('checkout=' + encodeURIComponent(checkout));
+  if (checkoutId) params.push('checkoutId=' + encodeURIComponent(checkoutId));
+  return params.length ? route + '?' + params.join('&') : route;
 }
 
 const platformNames: Record<string, string> = {

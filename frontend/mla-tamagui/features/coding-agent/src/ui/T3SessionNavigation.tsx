@@ -14,6 +14,7 @@ export function T3SessionNavigation({
   id,
   title,
   checkout,
+  checkoutId,
   connected,
   onBack,
   onReconnect,
@@ -23,6 +24,7 @@ export function T3SessionNavigation({
   pair?: Pairing | null;
   id: string;
   checkout?: string;
+  checkoutId?: string;
   title: string;
   connected: boolean;
   onBack: () => void;
@@ -82,7 +84,7 @@ export function T3SessionNavigation({
     if (request !== selection.current) return;
     dismiss();
     if (next !== id)
-      router.replace(chatRoute(next, checkout));
+      router.replace(chatRoute(next, checkout, checkoutId));
   }
 
   return (
@@ -97,6 +99,8 @@ export function T3SessionNavigation({
         tabCount={sessions.length}
         onBack={onBack}
         onReconnect={onReconnect}
+        onOpenSourceControl={pair ? () => router.push('/coding-agent/source-control?thread=' + encodeURIComponent(id) +
+          (checkoutId ? '&checkoutId=' + encodeURIComponent(checkoutId) : '')) : undefined}
         onShowTabs={() => {
           setOpen(true);
           refresh();

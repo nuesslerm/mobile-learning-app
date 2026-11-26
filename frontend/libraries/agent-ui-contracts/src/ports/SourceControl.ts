@@ -8,6 +8,7 @@ export interface SourceCommit {
 }
 
 export interface SourceControlProps {
+  backLabel?: string;
   page: 'changes' | 'commits' | 'detail';
   comparison?: {
     base: string;

@@ -1,0 +1,7 @@
+device:take_screenshot(env.out..'/chat.png')
+device:tap_on({point='83%,9.2%'})
+device:assert_visible('Source Control')
+device:take_screenshot(env.out..'/source.png')
+device:tap_on({point='6.5%,9.2%'})
+device:assert_visible('RCA_ORCA_COLD_FOLLOW_FINAL')
+device:take_screenshot(env.out..'/returned.png')

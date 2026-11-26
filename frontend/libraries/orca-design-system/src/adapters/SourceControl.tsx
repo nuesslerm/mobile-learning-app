@@ -154,7 +154,7 @@ export function SourceControl(props: SourceControlProps) {
       ? 'Back to commits'
       : page === 'commits'
         ? 'Back to source control'
-        : 'Back to workspaces';
+        : props.backLabel ?? 'Back to workspaces';
   const notice = props.error ? (
     <View style={s.notice}>
       <Text style={muted}>{props.error}</Text>

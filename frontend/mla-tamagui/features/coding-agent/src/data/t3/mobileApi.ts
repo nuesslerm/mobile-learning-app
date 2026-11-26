@@ -112,6 +112,11 @@ export function createT3MobileApi(): T3MobilePort {
     async workspaces(pair, signal) {
       return workspaceCatalog.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspaces', { headers: authorization(pair), signal }));
     },
+    async threadCheckout(pair, thread, selected, signal) {
+      const path = '/api/mobile/source-control/checkout?thread=' + encodeURIComponent(thread) +
+        (selected ? '&checkout=' + encodeURIComponent(selected) : '');
+      return checkoutRow.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+    },
     async checkoutBranches(pair, id, signal) {
       const path = '/api/mobile/source-control/branches?checkout=' + encodeURIComponent(id);
       return checkoutBranches.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));

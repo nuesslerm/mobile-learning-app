@@ -1,4 +1,4 @@
-import { ChevronLeft, SquareTerminal } from 'lucide-react-native';
+import { ChevronLeft, GitBranch, SquareTerminal } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SessionHeaderProps } from '@lib/agent-ui-contracts';
 import { SessionFiles } from './SessionFiles';
@@ -58,6 +58,17 @@ export function SessionHeader(props: SessionHeaderProps) {
         >
           <ChevronLeft size={18} strokeWidth={2.1} color={colors.textPrimary} />
         </Pressable>
+        {props.onOpenSourceControl && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open source control"
+            onPress={props.onOpenSourceControl}
+            hitSlop={4}
+            style={({pressed}) => [styles.back, styles.source, { backgroundColor: colors.bgRaised, opacity: pressed ? 0.7 : 1 }]}
+          >
+            <GitBranch size={18} strokeWidth={2.1} color={colors.textPrimary} />
+          </Pressable>
+        )}
         <SessionFiles onOpenTextSettings={props.onOpenTextSettings} files={props.files} workspace={props.workspace} topInset={props.topInset}/>
       </View>
       <View style={[styles.tabs, border]}>
@@ -117,6 +128,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 18,
   },
+  source: { position: 'absolute', right: 56 },
   tabs: { height: 44, flexDirection: 'row', borderTopWidth: 1 },
   activeTab: {
     flex: 1,

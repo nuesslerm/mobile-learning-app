@@ -98,7 +98,7 @@ export function PairedAgents({
       const target =
         sessions.sessions.find((session) => session.id === id)?.id ??
         sessions.active;
-      if (target) router.push(chatRoute(target, place.name));
+      if (target) router.push(chatRoute(target, place.name, place.id));
       else setError('No saved chat is available in this checkout.');
     } catch {
       if (!controller.signal.aborted) {

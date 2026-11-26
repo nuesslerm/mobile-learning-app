@@ -27,9 +27,10 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const { ChatSurface, Composer, PairedDesktops, HostWorkspaceList } = useAgentComponents();
-  const { host, checkout } = useLocalSearchParams<{
+  const { host, checkout, checkoutId } = useLocalSearchParams<{
     host?: string;
     checkout?: string;
+    checkoutId?: string;
   }>();
   const hostOpen = host === '1' && !threadId;
   const state = useT3Mobile(api, hostOpen, threadId);
@@ -117,6 +118,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           pair={state.pair}
           id={threadId}
           checkout={checkout}
+          checkoutId={checkoutId}
           title={
             state.snapshot?.thread.id === threadId
               ? state.snapshot.thread.title

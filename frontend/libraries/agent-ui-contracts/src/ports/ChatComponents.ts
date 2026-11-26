@@ -99,6 +99,7 @@ export interface ChatMessageMetaProps {
 }
 
 export interface SessionHeaderProps {
+  onOpenSourceControl?: () => void;
   onOpenTextSettings?: () => void;
   files?: {
     listDirectory(path: string): Promise<{ entries: {path: string; kind: 'file' | 'directory'}[]; truncated: boolean }>;

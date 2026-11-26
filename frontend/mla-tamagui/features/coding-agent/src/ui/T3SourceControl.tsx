@@ -20,11 +20,13 @@ export function T3SourceControl({
   api,
   pair,
   checkout,
+  backLabel,
   onBack,
 }: {
   api: T3MobilePort;
   pair: Pairing;
   checkout: CheckoutRow;
+  backLabel?: string;
   onBack: (branchMayHaveChanged: boolean) => void;
 }) {
   const { SourceControl } = useAgentComponents();
@@ -290,6 +292,7 @@ export function T3SourceControl({
       : null;
   return (
     <SourceControl
+      backLabel={backLabel}
       openFile={openFile}
       openBranches={() => void openBranches()}
       switchingBranch={switching}

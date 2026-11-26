@@ -39,10 +39,11 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 150] = [
+pub const USES: [Method; 151] = [
     STATUS,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
+    agent_api_agent::THREAD_GET,
     THREAD_SUBSCRIBE,
     THREAD_HISTORY,
     TURN_START,
@@ -209,6 +210,26 @@ pub fn needed_groups() -> Vec<GroupName> {
 
 /// How long a followed thread waits for its next event before it looks again; a silent CLI is not an error.
 const QUIET: Duration = Duration::from_secs(1);
+
+struct MobilePlacement {
+    path: String,
+    branch: Option<String>,
+    main: bool,
+    owner: Option<String>,
+}
+
+impl MobilePlacement {
+    fn metadata_key(&self, repo: &str) -> String { format!("orca.worktree.{repo}::{}", self.path) }
+
+    fn row(&self, repo: &str, meta: Option<&Value>) -> Value {
+        let path = self.path.as_str();
+        let title = self.branch.as_deref().unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
+        let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
+        json!({"id":format!("{repo}::{path}"),"name":name,"automaticName":title,
+            "pinned":meta.is_some_and(|m| m["isPinned"] == true),"branch":self.branch,"main":self.main,
+            "workspace":self.owner.as_deref().unwrap_or(repo),"path":path,"unread":meta.is_some_and(|m| m["isUnread"] == true)})
+    }
+}
 
 struct MobileInventory {
     checkouts: Vec<(Value, Option<String>)>,
@@ -531,12 +552,9 @@ impl RcaAgent {
         Ok(json!({"branch": branch, "head": head, "commits": items, "nextOffset": next}))
     }
 
-    fn mobile_inventory(&self, client: &mut Client) -> Result<MobileInventory, AgentError> {
+    fn mobile_placements(&self, client: &mut Client) -> Result<Vec<MobilePlacement>, AgentError> {
         let listed = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace": self.workspace}))?;
         let registrations = Self::call(client, REPO_LIST, json!({}))?;
-        // One scope snapshot supplies the saved labels and pins for every checkout on this short-lived connection.
-        let snapshot = Self::call(client, agent_api_state::watch::SUBSCRIBE, json!({"scope":"orca"}))?;
-        let metadata = snapshot["values"].as_object().ok_or_else(|| AgentError::Failed("Missing RCA workspace metadata.".into()))?;
         let rows = listed["worktrees"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA worktrees.".into()))?;
         let repos = registrations["repos"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA repositories.".into()))?;
         let executor = repos.iter().find(|r| r["workspace"] == self.workspace).and_then(|r| r["executor"].as_str());
@@ -544,22 +562,46 @@ impl RcaAgent {
             .filter(|r| r["kind"] == "worktree" && executor.is_some_and(|owner| r["executor"] == owner))
             .filter_map(|r| Some((r["path"].as_str()?, r["workspace"].as_str()?)))
             .collect();
+        rows.iter().map(|row| {
+            let path = row["path"].as_str().ok_or_else(|| AgentError::Failed("Missing checkout path.".into()))?;
+            let main = row["is_main"] == true;
+            let owner = if main { Some(self.workspace.as_str()) } else { by_path.get(path).copied() };
+            Ok(MobilePlacement {
+                path: path.into(), main, owner: owner.map(str::to_owned),
+                branch: row["branch"].as_str().filter(|b| !b.is_empty()).map(str::to_owned),
+            })
+        }).collect()
+    }
+
+    fn mobile_inventory(&self, client: &mut Client) -> Result<MobileInventory, AgentError> {
+        let placements = self.mobile_placements(client)?;
+        let snapshot = Self::call(client, agent_api_state::watch::SUBSCRIBE, json!({"scope":"orca"}))?;
+        let metadata = snapshot["values"].as_object().ok_or_else(|| AgentError::Failed("Missing RCA workspace metadata.".into()))?;
         let pane_list = Self::call(client, agent_api_service::panes::LIST, json!({}))?;
         let panes: Vec<PaneView> = serde_json::from_value(pane_list["panes"].clone()).map_err(|_| AgentError::Failed("Invalid RCA pane list.".into()))?;
-        let mut checkouts = Vec::with_capacity(rows.len());
-        for row in rows {
-            let path = row["path"].as_str().ok_or_else(|| AgentError::Failed("Missing checkout path.".into()))?;
-            let branch = row["branch"].as_str().filter(|b| !b.is_empty());
-            let title = branch.unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
-            let workspace = by_path.get(path).copied().unwrap_or(&self.workspace);
-            let owner = if row["is_main"] == true { Some(self.workspace.as_str()) } else { by_path.get(path).copied() };
-            let id = format!("{}::{path}", self.workspace);
-            let meta = metadata.get(&format!("orca.worktree.{id}"));
-            let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
-            checkouts.push((json!({"id": id, "name": name, "automaticName": title, "pinned": meta.is_some_and(|m| m["isPinned"] == true), "branch": branch,
-                "main": row["is_main"] == true, "workspace": workspace, "path": path, "unread": meta.is_some_and(|m| m["isUnread"] == true)}), owner.map(str::to_owned)));
-        }
+        let checkouts = placements.into_iter().map(|p| {
+            let meta = metadata.get(&p.metadata_key(&self.workspace));
+            (p.row(&self.workspace, meta), p.owner)
+        }).collect();
         Ok(MobileInventory { checkouts, panes })
+    }
+
+    fn thread_checkout(&self, client: &mut Client, thread: &str, path: Option<&str>, selected: Option<&str>) -> Result<Value, AgentError> {
+        let selected_path = selected.map(|id| self.checkout_path(id)).transpose()?;
+        if selected_path.zip(path).is_some_and(|(selected, projected)| selected != projected) { return Err(checkout_missing()); }
+        let found = Self::call(client, agent_api_agent::THREAD_GET, json!({"thread":thread}))?;
+        let workspace = found["thread"]["workspace"].as_str().ok_or_else(checkout_missing)?;
+        let exact = path.or(selected_path);
+        let row = self.mobile_placements(client)?.into_iter().find(|p| {
+            if let Some(exact) = exact {
+                p.path == exact && (p.owner.as_deref().unwrap_or(&self.workspace) == workspace ||
+                    (path.is_some() && workspace == self.workspace))
+            } else {
+                p.owner.as_deref() == Some(workspace)
+            }
+        }).ok_or_else(checkout_missing)?;
+        let meta = Self::call(client, agent_api_state::GET, json!({"scope":"orca","key":row.metadata_key(&self.workspace)}))?;
+        Ok(row.row(&self.workspace, meta.get("value")))
     }
 
     fn mobile_worktrees(&self, client: &mut Client) -> Result<Value, AgentError> {
@@ -865,7 +907,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -944,6 +986,9 @@ impl AgentApi for RcaAgent {
         }
         if let Op::CheckoutHistory { checkout, expected_head, base, offset } = op {
             return self.checkout_history(&mut client, checkout, expected_head.as_deref(), base.as_deref(), *offset);
+        }
+        if let Op::MobileThreadCheckout { thread, path, selected } = op {
+            return self.thread_checkout(&mut client, thread, path.as_deref(), selected.as_deref());
         }
         if matches!(op, Op::MobileAgents) { return self.mobile_agents(&mut client); }
         if matches!(op, Op::MobileWorktrees) { return self.mobile_worktrees(&mut client); }

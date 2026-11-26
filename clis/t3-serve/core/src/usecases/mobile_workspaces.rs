@@ -219,6 +219,21 @@ impl Service {
         Ok(result)
     }
 
+    pub fn thread_checkout_http(&self, auth: Option<&str>, thread: &str, selected: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.threadCheckout", auth)?;
+        let path = self.engine().read(|state| {
+            state.threads.get(thread).filter(|shell| !is_archived(shell))
+                .map(|shell| shell.get("worktreePath").and_then(Value::as_str).map(str::to_owned))
+        }).ok_or_else(|| Refusal::bare(404))?;
+        let result = self.agent().run(&Op::MobileThreadCheckout { thread: thread.into(), path, selected: selected.map(str::to_owned) })
+            .map_err(|e| match &e {
+                AgentError::NoThread => Refusal::bare(404),
+                AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" => Refusal::bare(404),
+                _ => upstream(e),
+            })?;
+        Ok(public_row(&result))
+    }
+
     pub fn mobile_agents_http(&self, auth: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("mobile.agents", auth)?;
         self.agent().run(&Op::MobileAgents).map_err(upstream)

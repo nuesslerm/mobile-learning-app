@@ -276,6 +276,7 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     let rca = rca(Box::new(move |request| match request["method"].as_str().unwrap() {
         "service.status" => vec![answer(request, status.clone())],
         "thread.list" => vec![answer(request, json!({"threads": [view(BEFORE)]}))],
+        "thread.get" => vec![answer(request, view(BEFORE).to_result())],
         "thread.create" => vec![answer(request, view(BEFORE).to_result())],
         "turn.start" => vec![answer(request, json!({"thread": "t1", "turn": TURN})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
         "thread.subscribe" => vec![answer(request, json!({"topic": "thread/t1", "after_seq": BEFORE, "last_seq": BEFORE})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
@@ -452,6 +453,7 @@ fn every_op() -> Vec<Op> {
         Op::GitFetch { root: "/work/proj".into(), refspecs: vec!["+refs/pull/12/head:refs/rca/pr/12/head".into()] },
         Op::GitCompare { root: "/work/proj".into(), base: "main".into(), head: "feat".into(), limit: 100 },
         Op::MobileWorktrees,
+        Op::MobileThreadCheckout { thread: "t1".into(), path: Some("/work/proj".into()), selected: None },
         Op::ReadPanes { panes: vec!["thread:t1".into()] },
         Op::WorktreeList { root: "/work/proj".into() },
         Op::GitPull { root: "/work/proj".into() },
@@ -762,6 +764,39 @@ fn given_registered_and_unmanaged_checkouts_when_listing_read_state_then_only_th
     assert_eq!(rows.iter().map(|r| r["unread"].as_bool().unwrap()).collect::<Vec<_>>(), [true, false, false, true]);
     assert_eq!(rows[0]["unreadPanes"], json!(["thread:a"]));
     assert_eq!(rca.asked("pane.list"), [json!({})]);
+}
+
+#[test]
+fn a_chat_resolves_its_exact_checkout_without_reading_other_threads_panes_or_checkout_metadata() {
+    // Given same-named checkouts, an unmanaged path, and another executor registered at the linked path.
+    let rca = rca(Box::new(|q| {
+        let result = match q["method"].as_str().unwrap() {
+            "thread.get" => json!({"thread":{"workspace":if q["params"]["thread"] == "linked" {"linked-owner"} else {WORKSPACE}}}),
+            "worktree.list" => json!({"worktrees":[{"path":"/main","is_main":true,"branch":"base"},
+                {"path":"/one/review","branch":"topic"},{"path":"/two/review"},{"path":"/detached"}]}),
+            "repo.list" => json!({"repos":[{"workspace":WORKSPACE,"executor":"desk","kind":"root"},
+                {"workspace":"linked-owner","kind":"worktree","executor":"desk","path":"/one/review"},
+                {"workspace":"foreign","kind":"worktree","executor":"other","path":"/one/review"}]}),
+            "state.get" => json!({"value":{"displayName":"My review"}}),
+            method => panic!("Unexpected read {method}"),
+        };
+        vec![answer(q, result)]
+    }));
+    let resolve = |thread:&str, path:Option<&str>, checkout:Option<&str>| rca.agent().run(&Op::MobileThreadCheckout {
+        thread:thread.into(), path:path.map(str::to_owned), selected:checkout.map(str::to_owned),
+    });
+    // When an existing link omits the checkout, the server can resolve the owning workspace or projected worktree path.
+    assert_eq!(resolve("linked",None,None).unwrap()["id"], "w1::/one/review");
+    assert_eq!(resolve("root",None,None).unwrap()["path"], "/main");
+    let row = resolve("root", Some("/two/review"), None).unwrap();
+    assert_eq!((row["path"].as_str(),row["name"].as_str()), (Some("/two/review"),Some("My review")));
+    // Then an explicit unmanaged checkout survives navigation and conflicting, missing and foreign targets are refused.
+    assert_eq!(resolve("root",None,Some("w1::/detached")).unwrap()["path"], "/detached");
+    for result in [resolve("linked",None,Some("w1::/two/review")), resolve("root",Some("/two/review"),Some("w1::/main")),
+        resolve("root",Some("/missing"),None), resolve("root",None,Some("foreign::/main"))] {
+        assert!(matches!(result,Err(AgentError::Refused {ref code,..}) if code=="CHECKOUT_NOT_FOUND"));
+    }
+    assert_eq!(rca.asked("state.get").len(), 4);
 }
 
 #[test]

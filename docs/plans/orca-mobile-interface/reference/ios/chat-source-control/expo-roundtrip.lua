@@ -1,0 +1,6 @@
+device:tap_on({point='83%,9.2%'})
+sleep_ms(12500)
+device:take_screenshot(env.out..'/release-source.png')
+device:tap_on({point='6.5%,9.2%'})
+sleep_ms(3800)
+device:take_screenshot(env.out..'/release-returned.png')
