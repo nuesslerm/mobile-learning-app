@@ -1,0 +1,1 @@
+{"checkout":"native-fixture","head":"f5b0c4439500250318e6dc7ff4835baba0462711","parent":"d18f390aa207e4131c11dcbfe93e55a9ffc7388d","base":"6c1f7bb1f88a99ee017ae14fe3768636d704f972","filePath":"clis/anki-content/import_tamil.py","results":[{"method":"git.commitDiff","beforeBytes":8255,"afterBytes":8726},{"method":"git.branchDiff","beforeBytes":0,"afterBytes":8726}]}

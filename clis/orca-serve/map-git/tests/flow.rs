@@ -769,3 +769,37 @@ fn an_unregistered_checkout_reads_its_detached_head_and_cannot_change_the_parent
     assert_eq!(unknown["error"]["code"], "selector_not_found");
     assert_eq!(rig.sent_all(), vec![("git.history".into(), json!({"workspace":"main","limit":50,"skip":50,"rev":format!("main..{sha}")}))]);
 }
+
+#[test]
+fn a_detached_checkout_can_read_immutable_file_diffs_without_reading_the_parent_working_tree() {
+    // Given an unregistered checkout and a file renamed between two commits.
+    let mut rig = Rig::new();
+    let (parent, commit) = (pad('a'), pad('b'));
+    let head = commit.clone();
+    rig.agent.reply("worktree.list", move |_| {
+        Ok(json!({"worktrees":[{"path":"/linked","head":head,"is_main":false}]}))
+    });
+    rig.repo
+        .blob(&parent, "old.txt", b"first")
+        .blob(&commit, "new.txt", b"second");
+    let selector = "id:main::/linked";
+    // When the phone opens that file in the commit view and the branch comparison.
+    let single = rig.raw("git.commitDiff", json!({"worktree":selector,"filePath":"new.txt","oldPath":"old.txt","commitOid":commit,"parentOid":parent}));
+    let branch = rig.raw("git.branchDiff", json!({"worktree":selector,"filePath":"new.txt","oldPath":"old.txt","compare":{"headOid":commit,"mergeBase":parent}}));
+    // Then both views read the immutable blobs, and a working tree diff still requires its own workspace.
+    assert_eq!(single["ok"], true, "{single}");
+    assert_eq!(branch["result"], single["result"]);
+    assert_eq!(single["result"]["originalContent"], "first");
+    assert_eq!(single["result"]["modifiedContent"], "second");
+    assert_eq!(
+        rig.raw(
+            "git.diff",
+            json!({"worktree":selector,"filePath":"new.txt","staged":false})
+        )["ok"],
+        false
+    );
+    assert!(rig
+        .sent_all()
+        .iter()
+        .all(|(method, _)| method == "git.blob"));
+}
