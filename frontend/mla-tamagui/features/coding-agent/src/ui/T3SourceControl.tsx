@@ -25,7 +25,7 @@ export function T3SourceControl({
   api: T3MobilePort;
   pair: Pairing;
   checkout: CheckoutRow;
-  onBack: () => void;
+  onBack: (branchMayHaveChanged: boolean) => void;
 }) {
   const { SourceControl } = useAgentComponents();
   const [page, setPage] = useState<'changes' | 'commits' | 'detail'>('changes');
@@ -99,11 +99,15 @@ export function T3SourceControl({
       return next;
     });
   }
+  const refreshCatalogOnExit = useRef(false);
+  const switchPending = useRef(false);
+  const exitAfterSwitch = useRef(false);
   const back = useCallback(() => {
     if (fileIndex !== undefined) selectFile(undefined);
     else if (page === 'detail') setPage('commits');
     else if (page === 'commits') setPage('changes');
-    else onBack();
+    else if (switchPending.current) exitAfterSwitch.current = true;
+    else onBack(refreshCatalogOnExit.current);
   }, [fileIndex, page, onBack]);
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -249,10 +253,12 @@ export function T3SourceControl({
     }
   }
   async function selectBranch(branch: string) {
+    if (switchPending.current) return;
     closeBranches();
     if (branch === branches?.current) return;
     const controller = new AbortController();
     branchRequest.current = controller;
+    switchPending.current = true;
     setSwitching(true);
     try {
       const moved = await api.switchCheckoutBranch(pair, checkout.id, branch, controller.signal);
@@ -264,11 +270,17 @@ export function T3SourceControl({
       }
     } finally {
       if (!controller.signal.aborted) {
-        setSwitching(false);
-        request.current?.abort();
-        request.current = undefined;
-        setHistory(undefined);
-        refresh((n) => n + 1);
+        switchPending.current = false;
+        refreshCatalogOnExit.current = true;
+        if (exitAfterSwitch.current) {
+          onBack(true);
+        } else {
+          setSwitching(false);
+          request.current?.abort();
+          request.current = undefined;
+          setHistory(undefined);
+          refresh((n) => n + 1);
+        }
       }
     }
   }

@@ -274,6 +274,10 @@ describe('Orca chat with the T3 transport', () => {
     const port = backend();
     let branch: string | null = null;
     const switches: string[] = [];
+    port.workspaces = async () => ({
+      host:{name:'Fixture Mac', os:'darwin'}, repo:'Fixture repository',
+      checkouts:[{id:'repo::/fixture', name:'Mobile checkout', automaticName:branch ?? 'fixture', branch, main:false}],
+    });
     port.checkoutChanges = async () => ({ branch, head: 'a'.repeat(40), comparison: null });
     port.checkoutBranches = async (_pair, id) => {
       expect(id).toBe('repo::/fixture');
@@ -300,6 +304,38 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(await screen.findByRole('button',{name:'main'}));
     expect(await screen.findByText('Branch is already checked out.')).toBeTruthy();
     expect(switches).toEqual(['feature','main']);
+    await userEvent.click(screen.getByRole('button',{name:'Back to workspaces'}));
+    expect(await screen.findByRole('button',{name:'Mobile checkout'})).toBeTruthy();
+    expect(await screen.findByText('feature')).toBeTruthy();
+  });
+
+  it('Given a branch switch in progress, when the reader goes back, then the catalog uses the confirmed automatic name', async () => {
+    const port = backend();
+    let finish!: () => void;
+    let current: string | null = null;
+    let reads = 0;
+    port.workspaces = async () => {
+      reads++;
+      return { host:{name:'Fixture Mac',os:'darwin'},repo:'Repository',
+        checkouts:[{id:'r::/proof',name:current ?? 'proof',branch:current,main:false,pinned:true}] };
+    };
+    port.checkoutBranches = async () => ({current,branches:['topic'],truncated:false});
+    port.switchCheckoutBranch = async () => {
+      await new Promise<void>((resolve) => { finish = resolve; });
+      current = 'topic';
+      return { branch:current, head:'b'.repeat(40) };
+    };
+    await app.render('/coding-agent',{search:{host:'1'},overrides:{'coding-agent':{t3Mobile:port}}});
+    await userEvent.pointer({keys:'[MouseRight]',target:await screen.findByRole('button',{name:'proof'})});
+    await userEvent.click(await screen.findByRole('button',{name:'Source Control'}));
+    await userEvent.click(await screen.findByRole('button',{name:'Switch Branch'}));
+    await userEvent.click(await screen.findByRole('button',{name:'topic'}));
+    await userEvent.click(screen.getByRole('button',{name:'Back to workspaces'}));
+    expect(reads).toBe(1);
+    finish();
+    expect(await screen.findByRole('button',{name:'topic'})).toBeTruthy();
+    expect(screen.queryByRole('button',{name:'proof'})).toBeNull();
+    expect(reads).toBe(2);
   });
 
   it('Given a detached checkout, when the reader opens Source Control and selects a commit, then they see its first-parent file changes and can navigate back', async () => {

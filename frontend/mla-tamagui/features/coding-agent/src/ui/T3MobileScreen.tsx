@@ -76,6 +76,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           pair={state.pair}
           catalog={state.catalog}
           onUpdated={state.updateCheckout}
+          onCatalogUpdated={state.replaceCatalog}
           onBack={goBack}
         />
       );

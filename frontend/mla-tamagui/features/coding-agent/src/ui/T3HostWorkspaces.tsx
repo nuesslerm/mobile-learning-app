@@ -22,12 +22,14 @@ export function T3HostWorkspaces({
   pair,
   catalog,
   onUpdated,
+  onCatalogUpdated,
   onBack,
 }: {
   api: T3MobilePort;
   pair: Pairing;
   catalog: WorkspaceCatalog;
   onUpdated: (row: CheckoutRow) => void;
+  onCatalogUpdated: (next: WorkspaceCatalog) => void;
   onBack: () => void;
 }) {
   const { HostWorkspaceList, WorkspaceActions } = useAgentComponents();
@@ -38,10 +40,31 @@ export function T3HostWorkspaces({
   const [actionRow, setActionRow] = useState<CheckoutRow>();
   const [sourceCheckout, setSourceCheckout] = useState<CheckoutRow>();
   const [mutationError, setMutationError] = useState('');
+  const [catalogError, setCatalogError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const pending = useRef(false);
+  const catalogRead = useRef<AbortController | undefined>(undefined);
+  useEffect(() => () => catalogRead.current?.abort(), []);
+  async function returnFromSource(changed: boolean) {
+    setSourceCheckout(undefined);
+    if (!changed) return;
+    setCatalogError(undefined);
+    catalogRead.current?.abort();
+    const controller = new AbortController();
+    catalogRead.current = controller;
+    try {
+      const result = await api.workspaces(pair, controller.signal);
+      if (!controller.signal.aborted) onCatalogUpdated(result);
+    } catch {
+      if (!controller.signal.aborted) {
+        Logger.warn('coding_agent.t3.checkout_refresh_failed');
+        setCatalogError('Could not refresh the checkout.');
+      }
+    }
+  }
   async function edit(patch: CheckoutEdit) {
     if (!actionRow || pending.current) return;
+    catalogRead.current?.abort();
     pending.current = true;
     setSaving(true);
     setMutationError('');
@@ -83,7 +106,7 @@ export function T3HostWorkspaces({
       setError('Could not load workspace chats.');
     }
   };
-  if (sourceCheckout) return <T3SourceControl api={api} pair={pair} checkout={sourceCheckout} onBack={() => setSourceCheckout(undefined)} />;
+  if (sourceCheckout) return <T3SourceControl api={api} pair={pair} checkout={sourceCheckout} onBack={(changed) => void returnFromSource(changed)} />;
   if (selected)
     return (
       <HostWorkspaceList
@@ -148,11 +171,11 @@ export function T3HostWorkspaces({
         }}
         onSelect={(id) => void open(id)}
         notice={
-          rows.length
+          catalogError ?? (rows.length
             ? undefined
             : query
               ? 'No matching workspaces.'
-              : 'No workspaces.'
+              : 'No workspaces.')
         }
         search={{ value: search, onChange: setSearch }}
         onBack={onBack}

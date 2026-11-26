@@ -227,6 +227,7 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
     snapshot,
     imageSession: connected ? imageSession : undefined,
     catalog,
+    replaceCatalog: setCatalog,
     home,
     updateCheckout(row: CheckoutRow) {
       setCatalog(current => current && {...current, checkouts:current.checkouts.map(r => r.id === row.id ? row : r)});

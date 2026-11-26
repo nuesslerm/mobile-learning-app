@@ -18,3 +18,9 @@ Both captures use light appearance at 1320 × 2868. The [installed Orca referenc
 | First Expo run | 9.10% | 5.51% |
 | Adjusted row spacing | 5.14% | 1.13% |
 | Published run | 4.33% | 0.22% |
+
+### Returning to Workspaces
+
+On the [iOS update](https://expo.dev/accounts/nuesslerm/projects/mla-tamagui/updates/6a4a1f11-8c8f-46bc-8665-e9f87fe03a63), Back from Changes refreshed the pinned checkout in the open desktop. The [automatically named checkout](catalog-after-switch.png) immediately showed its new branch, `expo-mobile-1125`. Repeating the switch with the manual name [Branch review](named-after-switch.png) kept that title and updated the branch subtitle. Git confirmed both switches in the disposable checkout.
+
+Repeat steps 1 and 2 above, pin the disposable checkout so it is easy to find, then run [return-to-workspaces.lua](return-to-workspaces.lua) with the same output directory and branch-point arguments as step 3. The [recording](catalog-return.mp4) covers branch selection through returning to the pinned row.
