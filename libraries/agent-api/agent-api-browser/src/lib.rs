@@ -50,7 +50,7 @@ pub const SPECS: [Spec; 9] = [
     Spec { method: EVAL, action: exec_browser::BROWSER_EVAL, keys: &["key", "expression"] },
     Spec { method: SCREENSHOT, action: exec_browser::BROWSER_SCREENSHOT, keys: &["key"] },
     Spec { method: FRAME, action: exec_browser::BROWSER_FRAME, keys: &["key", "width", "height", "quality", "mobile"] },
-    Spec { method: INPUT, action: exec_browser::BROWSER_INPUT, keys: &["key", "kind", "x", "y", "button", "modifiers", "dx", "dy", "text"] },
+    Spec { method: INPUT, action: exec_browser::BROWSER_INPUT, keys: &["key", "kind", "x", "y", "button", "modifiers", "report_focus", "dx", "dy", "text"] },
     Spec { method: CLOSE, action: exec_browser::BROWSER_CLOSE, keys: &["key"] },
     Spec { method: PAGES, action: exec_browser::BROWSER_LIST, keys: &[] },
 ];

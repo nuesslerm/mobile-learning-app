@@ -94,6 +94,7 @@ pub const ACTIONS: &[Action] = &[
             Property { name: "y", kind: "number", about: "Pointer y in CSS pixels (mouse_move, mouse_click)" },
             Property { name: "button", kind: "string", about: "left, middle or right (the mouse kinds; default left)" },
             Property { name: "modifiers", kind: "array", about: "cmd, ctrl, alt or shift held for a mouse_click" },
+            Property { name: "report_focus", kind: "boolean", about: "Include text-entry focus after releasing the pointer" },
             Property { name: "dx", kind: "number", about: "Horizontal wheel delta (mouse_wheel, default 0)" },
             Property { name: "dy", kind: "number", about: "Vertical wheel delta, positive scrolls down (mouse_wheel)" },
             Property { name: "text", kind: "string", about: "The key to press or the text to insert, at most 4096 bytes" },
@@ -227,7 +228,7 @@ pub enum Direction {
 pub enum Input {
     MouseMove { x: f64, y: f64 },
     MouseDown { button: String },
-    MouseUp { button: Option<String> },
+    MouseUp { button: Option<String>, report_focus: bool },
     MouseClick { x: f64, y: f64, button: String, modifiers: Vec<String> },
     MouseWheel { dx: f64, dy: f64 },
     KeyPress { key: String },
@@ -261,7 +262,7 @@ impl Input {
         match string(args, "kind")?.as_str() {
             "mouse_move" => Ok(Input::MouseMove { x: number(args, "x")?, y: number(args, "y")? }),
             "mouse_down" => Ok(Input::MouseDown { button: button(args)?.unwrap_or_else(|| "left".into()) }),
-            "mouse_up" => Ok(Input::MouseUp { button: button(args)? }),
+            "mouse_up" => Ok(Input::MouseUp { button: button(args)?, report_focus: args["report_focus"] == true }),
             "mouse_click" => {
                 let modifiers = match &args["modifiers"] {
                     Value::Null => Vec::new(),
@@ -398,6 +399,8 @@ pub struct Inputted {
     pub x: f64,
     pub y: f64,
     pub buttons: u8,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub editable: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
