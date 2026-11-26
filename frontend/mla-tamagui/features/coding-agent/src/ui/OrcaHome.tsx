@@ -1,4 +1,4 @@
-// The staged Orca home: the five tabs of the original, in its order, each with
+// The Orca home: the five tabs of the original, in its order, each with
 // its own screen, and the bar that switches between them.
 //
 // Ported from `references/orca/mobile/src/home/MobileHomeScreen.tsx` at
@@ -12,11 +12,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useHomeNavigation } from '../state/useHomeNavigation';
 import { OrcaAgentsTab } from './home/OrcaAgentsTab';
 import { OrcaAutomationsTab } from './home/OrcaAutomationsTab';
-import { OrcaFeedTab } from './home/OrcaFeedTab';
 import { OrcaSettingsTab } from './home/OrcaSettingsTab';
 import { OrcaUsageTab } from './home/OrcaUsageTab';
 
-export function OrcaHome({ feed }: { feed?: ReactNode }) {
+export function OrcaHome({ feed }: { feed: ReactNode }) {
   const { HomeSurface, HomeTabBar } = useAgentComponents();
   const { bottom } = useSafeAreaInsets();
   const { entries, active, visited, select } = useHomeNavigation();
@@ -40,7 +39,7 @@ export function OrcaHome({ feed }: { feed?: ReactNode }) {
             style={entry.id === active ? styles.fill : styles.hidden}
           >
             {entry.id === 'feed' ? (
-              feed ?? <OrcaFeedTab />
+              feed
             ) : entry.id === 'agents' ? (
               <OrcaAgentsTab />
             ) : entry.id === 'usage' ? (

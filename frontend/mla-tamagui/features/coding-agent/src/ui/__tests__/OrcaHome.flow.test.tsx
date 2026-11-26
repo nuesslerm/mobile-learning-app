@@ -2,26 +2,18 @@ import {
   routerHarness,
   screen,
   userEvent,
-  waitFor,
 } from '@lib/flow-test-harness';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { app } from '../../__tests__/flowApp';
-import { createMobileDouble } from '../../testing/mobilePort';
 
-const STAGED = { search: { presentation: 'orca' } };
-// A fresh double per test: pairing one of them pairs that device only.
-const mobile = () => ({ mobile: createMobileDouble() });
-
-describe('The staged Orca home', () => {
+describe('The default Orca home', () => {
   beforeEach(() => {
     routerHarness().reset();
   });
 
-  it('Given the staged presentation, when the home renders, then the five Orca tabs show in order with the feed active', async () => {
-    await app.render('/coding-agent', {
-      ...STAGED,
-      overrides: { 'coding-agent': mobile() },
-    });
+  it('Given the default presentation, when the home renders, then the five Orca tabs show in order with the feed active', async () => {
+    await app.render('/coding-agent');
+    await screen.findByRole('tab', { name: 'Feed' });
 
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((tab) => tab.getAttribute('aria-label'))).toEqual([
@@ -41,11 +33,9 @@ describe('The staged Orca home', () => {
     expect(screen.getByRole('heading', { name: 'Connect your desktop' })).toBeTruthy();
   });
 
-  it('Given the staged home, when the user opens the agents tab, then it shows the agents empty state, its search and its options', async () => {
-    await app.render('/coding-agent', {
-      ...STAGED,
-      overrides: { 'coding-agent': mobile() },
-    });
+  it('Given the default home, when the user opens the agents tab, then it shows the agents empty state, its search and its options', async () => {
+    await app.render('/coding-agent');
+    await screen.findByRole('tab', { name: 'Feed' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Agents' }));
 
@@ -66,11 +56,9 @@ describe('The staged Orca home', () => {
     expect(screen.getByText('Mark all read')).toBeTruthy();
   });
 
-  it('Given the staged home, when the user opens the usage tab, then it shows the usage empty state', async () => {
-    await app.render('/coding-agent', {
-      ...STAGED,
-      overrides: { 'coding-agent': mobile() },
-    });
+  it('Given the default home, when the user opens the usage tab, then it shows the usage empty state', async () => {
+    await app.render('/coding-agent');
+    await screen.findByRole('tab', { name: 'Feed' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Usage' }));
 
@@ -80,11 +68,9 @@ describe('The staged Orca home', () => {
     ).toBeTruthy();
   });
 
-  it('Given the staged home, when the user opens the automations tab, then it shows the automations empty state', async () => {
-    await app.render('/coding-agent', {
-      ...STAGED,
-      overrides: { 'coding-agent': mobile() },
-    });
+  it('Given the default home, when the user opens the automations tab, then it shows the automations empty state', async () => {
+    await app.render('/coding-agent');
+    await screen.findByRole('tab', { name: 'Feed' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Automations' }));
 
@@ -94,11 +80,9 @@ describe('The staged Orca home', () => {
     ).toBeTruthy();
   });
 
-  it('Given the staged home, when the user opens the settings tab, then it carries the original\'s menu', async () => {
-    await app.render('/coding-agent', {
-      ...STAGED,
-      overrides: { 'coding-agent': mobile() },
-    });
+  it('Given the default home, when the user opens the settings tab, then it carries the original\'s menu', async () => {
+    await app.render('/coding-agent');
+    await screen.findByRole('tab', { name: 'Feed' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
 
@@ -114,48 +98,10 @@ describe('The staged Orca home', () => {
     expect(screen.getByText('Support')).toBeTruthy();
   });
 
-  it('Given the staged home, when the user pairs a desktop, then the pairing runs and the coding agent takes over', async () => {
-    await app.render('/coding-agent', {
-      ...STAGED,
-      overrides: { 'coding-agent': mobile() },
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Pair desktop' }));
-    expect(screen.getByTestId('MobilePairEndpoint')).toBeTruthy();
-
-    await userEvent.type(
-      screen.getByTestId('MobilePairEndpoint'),
-      'https://host.example'
-    );
-    await userEvent.type(screen.getByTestId('MobilePairCode'), 'issued-code');
-    await userEvent.click(screen.getByRole('button', { name: 'Pair device' }));
-
-    await waitFor(() =>
-      expect(routerHarness().calls()).toContainEqual(['replace', '/coding-agent'])
-    );
-  });
-
-  it('Given the staged home, when the user leaves the pairing, then the unpaired feed is back', async () => {
-    await app.render('/coding-agent', {
-      ...STAGED,
-      overrides: { 'coding-agent': mobile() },
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Pair desktop' }));
-    expect(screen.getByTestId('MobilePairEndpoint')).toBeTruthy();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Back to feed' }));
-    expect(
-      screen.getByRole('heading', { name: 'Connect your desktop' })
-    ).toBeTruthy();
-  });
-
-  it('Given the coding agent home without the staged presentation, then it keeps the home it had', async () => {
-    await app.render('/coding-agent', {
-      overrides: { 'coding-agent': mobile() },
-    });
-
-    expect(screen.queryByRole('tab')).toBeNull();
-    expect(await screen.findByTestId('MobilePairEndpoint')).toBeTruthy();
+  it('Given the default home, when pairing is opened and dismissed, then the unpaired feed returns', async () => {
+    await app.render('/coding-agent');
+    await userEvent.click(await screen.findByRole('button', { name: 'Pair desktop' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('heading', { name: 'Connect your desktop' })).toBeTruthy();
   });
 });

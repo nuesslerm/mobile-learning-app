@@ -1,6 +1,6 @@
 import { routerHarness, screen, userEvent, waitFor } from '@lib/flow-test-harness';
 import { describe, expect, it } from 'vitest';
-import { app } from '../../__tests__/flowApp';
+import { app } from '../../__tests__/legacyFlowApp';
 import { createMobileDouble } from '../../testing/mobilePort';
 
 describe('RCA mobile routes', () => {

@@ -2,7 +2,7 @@ import type { ComposerSendButtonProps } from '@lib/agent-ui-contracts';
 import { screen, userEvent, waitFor } from '@lib/flow-test-harness';
 import { Pressable, Text } from 'react-native';
 import { describe, expect, it } from 'vitest';
-import { app } from '../../__tests__/flowApp';
+import { app } from '../../__tests__/legacyFlowApp';
 import { CODING_AGENT_UI_OVERRIDES } from '../../di/CodingAgentContainer';
 import { createMobileDouble } from '../../testing/mobilePort';
 

@@ -5,7 +5,7 @@ import { app } from '../../__tests__/flowApp';
 import { createMobileDouble } from '../../testing/mobilePort';
 import { createSettingsPortDoubles } from '../../testing/settingsPorts';
 
-const STAGED = { search: { presentation: 'orca' } };
+
 
 /** The staged home with the settings ports as doubles. */
 const settings = (options: Parameters<typeof createSettingsPortDoubles>[0] = {}) => {
@@ -31,7 +31,8 @@ describe("The Orca home's settings tab", () => {
 
   it('Given the staged home, when the user opens the settings tab, then it carries the original menu in order', async () => {
     const { overrides } = settings();
-    await app.render('/coding-agent', { ...STAGED, overrides });
+    await app.render('/coding-agent', { overrides });
+    await screen.findByRole('tab', { name: 'Settings' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
 
@@ -54,7 +55,8 @@ describe("The Orca home's settings tab", () => {
 
   it('Given the settings tab, when the user picks a screen row, then it opens the screen the original names', async () => {
     const { overrides } = settings();
-    await app.render('/coding-agent', { ...STAGED, overrides });
+    await app.render('/coding-agent', { overrides });
+    await screen.findByRole('tab', { name: 'Settings' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
     await userEvent.click(screen.getByRole('button', { name: 'Terminal' }));
@@ -64,7 +66,8 @@ describe("The Orca home's settings tab", () => {
 
   it('Given the settings tab, when the user picks a link row, then it opens the original address', async () => {
     const { doubles, overrides } = settings();
-    await app.render('/coding-agent', { ...STAGED, overrides });
+    await app.render('/coding-agent', { overrides });
+    await screen.findByRole('tab', { name: 'Settings' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
     await userEvent.click(screen.getByRole('button', { name: 'Privacy Policy' }));
@@ -78,7 +81,8 @@ describe("The Orca home's settings tab", () => {
 
   it('Given the settings tab, then it never claims an update that does not exist', async () => {
     const { overrides } = settings();
-    await app.render('/coding-agent', { ...STAGED, overrides });
+    await app.render('/coding-agent', { overrides });
+    await screen.findByRole('tab', { name: 'Settings' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
 
@@ -88,7 +92,8 @@ describe("The Orca home's settings tab", () => {
 
   it('Given the settings tab, when the user asks for a check, then the check runs and the row reports it', async () => {
     const { doubles, overrides } = settings();
-    await app.render('/coding-agent', { ...STAGED, overrides });
+    await app.render('/coding-agent', { overrides });
+    await screen.findByRole('tab', { name: 'Settings' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
     expect(doubles.recorded.checks).toBe(0);
@@ -105,7 +110,8 @@ describe("The Orca home's settings tab", () => {
     const { doubles, overrides } = settings({
       update: { status: 'available', updateId: 'update-7' },
     });
-    await app.render('/coding-agent', { ...STAGED, overrides });
+    await app.render('/coding-agent', { overrides });
+    await screen.findByRole('tab', { name: 'Settings' });
 
     await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
     await userEvent.click(screen.getByRole('button', { name: 'Check for updates, Never' }));

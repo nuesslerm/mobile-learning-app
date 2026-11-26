@@ -33,7 +33,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const goBack = () =>
     router.canGoBack()
       ? router.back()
-      : router.replace('/coding-agent?presentation=orca&transport=t3');
+      : router.replace('/coding-agent');
   if (pairing) return <T3PairingScreen onBack={() => setPairing(false)} onPair={async (endpoint, code, signal) => {
     await state.connect(endpoint, code, signal);
     if (!signal.aborted) setPairing(false);
@@ -76,8 +76,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
                             onPress={() =>
                               router.push(
                                 '/coding-agent/' +
-                                  encodeURIComponent(thread.id) +
-                                  '?presentation=orca&transport=t3'
+                                  encodeURIComponent(thread.id)
                               )
                             }
                           >

@@ -1,6 +1,6 @@
 # Pairing on the RCA simulator
 
-The pinned Orca client opened its pairing route with the existing host still paired. On the iPhone 17 Pro Max in light appearance, **Paste code instead** opened a drawer, focused the empty field, showed the iOS keyboard and disabled Save. Submitting an invalid invite dismissed the drawer. **Try Again** returned to the scanner introduction. The [RCA runbook](paste-and-retry.lua) and [recording](paste-and-retry.mp4) cover that round trip. See the [focused drawer](paste.png) and [invalid code](invalid.png).
+The pinned Orca client opened its pairing route with the existing host still paired. On the iPhone 18 Pro Max in light appearance, **Paste code instead** opened a drawer, focused the empty field, showed the iOS keyboard and disabled Save. Submitting an invalid invite dismissed the drawer. **Try Again** returned to the scanner introduction. The [RCA runbook](paste-and-retry.lua) and [recording](paste-and-retry.mp4) cover that round trip. See the [focused drawer](paste.png) and [invalid code](invalid.png).
 
 Tapping **Continue** on a fresh permission state showed the [system camera prompt](permission.png). Denying access showed the [recovery screen](denied.png) with Open Settings and Paste code instead. The camera hardware path still needs verification on a phone.
 

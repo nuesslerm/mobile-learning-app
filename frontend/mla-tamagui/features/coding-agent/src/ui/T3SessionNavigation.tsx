@@ -79,11 +79,7 @@ export function T3SessionNavigation({
     if (request !== selection.current) return;
     dismiss();
     if (next !== id)
-      router.replace(
-        '/coding-agent/' +
-          encodeURIComponent(next) +
-          '?presentation=orca&transport=t3'
-      );
+      router.replace('/coding-agent/' + encodeURIComponent(next));
   }
 
   return (

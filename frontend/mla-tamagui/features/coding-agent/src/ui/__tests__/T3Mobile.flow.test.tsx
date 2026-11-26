@@ -62,7 +62,6 @@ describe('Orca chat with the T3 transport', () => {
     };
     const camera = { get: async () => ({granted: false, canAskAgain: true}), request: async () => ({granted: true, canAskAgain: true}) };
     await app.render('/coding-agent', {
-      search: { presentation: 'orca', transport: 't3' },
       overrides: { 'coding-agent': { t3Mobile: port, pairingCamera: camera } },
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Pair desktop' }));
@@ -94,7 +93,6 @@ describe('Orca chat with the T3 transport', () => {
       }), disconnected);
     const copied: string[] = [];
     await app.render('/coding-agent/thread-42', {
-      search: { presentation: 'orca', transport: 't3' },
       overrides: { 'coding-agent': {
         t3Mobile: port,
         copyMessage: async (text: string) => { copied.push(text); return true; },
@@ -113,20 +111,18 @@ describe('Orca chat with the T3 transport', () => {
     const opened: string[] = [];
     const port = backend(async (id) => { opened.push(id); });
     await app.render('/coding-agent/thread-42', {
-      search: {presentation: 'orca', transport: 't3'},
       overrides: {'coding-agent': {t3Mobile: port}},
     });
     expect(await screen.findByText('Mobile checkout')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', {name: '2 tabs'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Fix the parser'}));
     expect(opened).toEqual(['thread-43']);
-    await waitFor(() => expect(routerHarness().calls()).toContainEqual(['replace', '/coding-agent/thread-43?presentation=orca&transport=t3']));
+    await waitFor(() => expect(routerHarness().calls()).toContainEqual(['replace', '/coding-agent/thread-43']));
   });
 
   it('Given a paired project, when opening a thread from its shell and sending, then the reply and cleared composer are visible', async () => {
     const port = backend();
     const home = await app.render('/coding-agent', {
-      search: { presentation: 'orca', transport: 't3' },
       overrides: { 'coding-agent': { t3Mobile: port } },
     });
     await screen.findByText(thread.title);
@@ -135,7 +131,6 @@ describe('Orca chat with the T3 transport', () => {
       expect(routerHarness().lastPush()).toContain(thread.id)
     );
     await app.render('/coding-agent/thread-42', {
-      search: { presentation: 'orca', transport: 't3' },
       overrides: { 'coding-agent': { t3Mobile: port } },
     });
     await screen.findByRole('button', { name: 'Send message' });

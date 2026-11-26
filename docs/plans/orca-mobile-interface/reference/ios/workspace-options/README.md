@@ -10,7 +10,7 @@ In the pinned Orca mobile app, open the connected host and tap the lower-left sl
 | Card layout | [Card layouts](card-layout.png) | [Open layouts](card-layout.mp4) |
 | Show properties and agent activity layout | [Property choices](properties.png) | [Open properties](properties.mp4) |
 
-Run `wf ios test options.lua --device <rca-udid> --env out=<absolute-capture-directory> --test-output-dir <recording-directory>` from this directory with the connected host's workspace list open. The [journey](options.lua) uses the same iPhone 17 Pro Max viewport and light theme as the [chat reference](../paired-chat/README.md). Source implementations live in [workspace-options](../../../../../../references/orca/mobile/src/host-screen/workspace-options) and [view-settings](../../../../../../references/orca/mobile/src/host-screen/view-settings).
+Run `wf ios test options.lua --device <rca-udid> --env out=<absolute-capture-directory> --test-output-dir <recording-directory>` from this directory with the connected host's workspace list open. The [journey](options.lua) uses the same iPhone 18 Pro Max viewport and light theme as the [chat reference](../paired-chat/README.md). Source implementations live in [workspace-options](../../../../../../references/orca/mobile/src/host-screen/workspace-options) and [view-settings](../../../../../../references/orca/mobile/src/host-screen/view-settings).
 
 These are reference captures. Matching candidate frames, setting changes on a second client and persistence after reconnect remain open.
 

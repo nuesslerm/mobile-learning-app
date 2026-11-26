@@ -14,7 +14,7 @@ import { useGatewayStore } from '../state/gatewayStore';
 import { useThreadDetailStore } from '../state/threadDetailStore';
 import { FakeGateway } from '../state/__tests__/fakeGateway';
 import { captureLogs } from './captureLogs';
-import { app } from './flowApp';
+import { app } from './legacyFlowApp';
 import {
   THREAD_ID,
   makeThread,
