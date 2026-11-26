@@ -22,6 +22,7 @@ pub const UNSTAGE: Method = Method::new(GROUP, "git.unstage");
 pub const DISCARD: Method = Method::new(GROUP, "git.discard");
 pub const COMMIT: Method = Method::new(GROUP, "git.commit");
 pub const CHECKOUT: Method = Method::new(GROUP, "git.checkout");
+pub const SWITCH_WORKTREE_BRANCH: Method = Method::new(GROUP, "git.switchWorktreeBranch");
 pub const CREATE_REF: Method = Method::new(GROUP, "git.createRef");
 pub const FETCH: Method = Method::new(GROUP, "git.fetch");
 pub const PULL: Method = Method::new(GROUP, "git.pull");
@@ -38,7 +39,7 @@ pub const INIT: Method = Method::new(GROUP, "git.init");
 pub const IGNORED: Method = Method::new(GROUP, "git.ignored");
 pub const SUBSCRIBE: Method = Method::new(GROUP, "git.subscribe");
 
-pub const METHODS: &[Method] = &[STATUS, REFS, HISTORY, DIFF, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, CREATE_REF, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, BLOB, INIT, IGNORED, SUBSCRIBE];
+pub const METHODS: &[Method] = &[STATUS, REFS, HISTORY, DIFF, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, SWITCH_WORKTREE_BRANCH, CREATE_REF, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, BLOB, INIT, IGNORED, SUBSCRIBE];
 
 /// The kind of the event of `git.subscribe`.
 pub mod kind {
@@ -58,7 +59,7 @@ const fn spec(method: Method, action: &'static str, keys: &'static [&'static str
 }
 
 /// Every method but `git.subscribe`, in the contract's order.
-pub const SPECS: [Spec; 22] = [
+pub const SPECS: [Spec; 23] = [
     spec(STATUS, exec_git::GIT_STATUS, &[]),
     spec(REFS, exec_git::GIT_REFS, &["kind", "query", "limit"]),
     spec(HISTORY, exec_git::GIT_LOG, &["rev", "path", "limit", "skip"]),
@@ -69,6 +70,7 @@ pub const SPECS: [Spec; 22] = [
     spec(DISCARD, exec_git::GIT_DISCARD, &["paths", "scope", "untracked", "source"]),
     spec(COMMIT, exec_git::GIT_COMMIT, &["message", "amend", "all", "allow_empty"]),
     spec(CHECKOUT, exec_git::GIT_CHECKOUT, &["ref", "detach", "track", "force"]),
+    spec(SWITCH_WORKTREE_BRANCH, exec_git::GIT_SWITCH_WORKTREE_BRANCH, &["path", "branch"]),
     spec(CREATE_REF, exec_git::GIT_CREATE_REF, &["name", "kind", "from", "checkout", "message"]),
     spec(FETCH, exec_git::GIT_FETCH, &["remote", "prune", "refspecs"]),
     spec(PULL, exec_git::GIT_PULL, &["remote", "branch", "strategy"]),

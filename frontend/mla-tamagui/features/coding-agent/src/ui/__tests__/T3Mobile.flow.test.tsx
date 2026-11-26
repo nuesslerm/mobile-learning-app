@@ -46,6 +46,8 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
       checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
       automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned, unread:'isUnread' in edit && edit.isUnread}),
+    checkoutBranches: async () => ({ current: null, branches: [], truncated: false }),
+    switchCheckoutBranch: async (_pair, _id, branch) => ({ branch, head: 'a'.repeat(40) }),
     checkoutChanges: async () => ({branch:null,head:null,comparison:null}),
     checkoutFile: async () => ({kind:'text',original:null,modified:'created'}),
     checkoutCommit: async () => ({body:'', initial:true, files:[], limited:false}),
@@ -266,6 +268,38 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('button',{name:'Workspace options'}));
     await userEvent.click(await screen.findByRole('button',{name:'Card layout, Compact'}));
     expect(await screen.findByRole('radio',{name:'Compact',checked:true})).toBeTruthy();
+  });
+
+  it('Given a detached checkout, when a branch is selected, then the Changes page refreshes against that checkout', async () => {
+    const port = backend();
+    let branch: string | null = null;
+    const switches: string[] = [];
+    port.checkoutChanges = async () => ({ branch, head: 'a'.repeat(40), comparison: null });
+    port.checkoutBranches = async (_pair, id) => {
+      expect(id).toBe('repo::/fixture');
+      return { current: branch, branches: ['main','feature'], truncated: false };
+    };
+    port.switchCheckoutBranch = async (_pair, id, name) => {
+      expect(id).toBe('repo::/fixture');
+      switches.push(name);
+      if (name === 'main') throw new Error('Branch is already checked out.');
+      branch = name;
+      return { branch: name, head: 'a'.repeat(40) };
+    };
+    await app.render('/coding-agent',{search:{host:'1'},overrides:{'coding-agent':{t3Mobile:port}}});
+    await userEvent.pointer({keys:'[MouseRight]',target:await screen.findByRole('button',{name:'Mobile checkout'})});
+    await userEvent.click(await screen.findByRole('button',{name:'Source Control'}));
+    const open = async () => userEvent.click(await screen.findByRole('button',{name:'Switch Branch'}));
+    await open();
+    await userEvent.click(await screen.findByRole('button',{name:'feature'}));
+    expect((await screen.findAllByText('feature')).length).toBeGreaterThan(0);
+    await open();
+    expect(await screen.findByText('current')).toBeTruthy();
+    await userEvent.click(await screen.findByRole('button',{name:'feature'}));
+    await open();
+    await userEvent.click(await screen.findByRole('button',{name:'main'}));
+    expect(await screen.findByText('Branch is already checked out.')).toBeTruthy();
+    expect(switches).toEqual(['feature','main']);
   });
 
   it('Given a detached checkout, when the reader opens Source Control and selects a commit, then they see its first-parent file changes and can navigate back', async () => {

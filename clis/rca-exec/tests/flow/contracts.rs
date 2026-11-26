@@ -181,7 +181,11 @@ fn every_recorded_exchange_is_answered_over_the_channel_with_its_recorded_output
             for exchange in recorded.iter().flat_map(|f| &f.exchanges) {
                 // When rca sends the request into the directory the exchange sets up
                 prepare(&root, &base, (&bin, &home), &exchange.setup);
-                send(&mut ws, exchange.request.clone());
+                let mut request = exchange.request.clone();
+                if request["args"]["path"] == "$REPO_ROOT" {
+                    request["args"]["path"] = json!(root.canonicalize().unwrap());
+                }
+                send(&mut ws, request);
                 let (stream, events, frame) = until_result_events(&mut ws, exchange.id());
                 answers.push((stream, events, frame));
             }

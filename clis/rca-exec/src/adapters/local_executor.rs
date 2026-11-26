@@ -959,6 +959,15 @@ impl ToolExecutor for LocalExecutor {
                 }
                 dir
             }
+            (GitCall::SwitchWorktreeBranch { path, .. }, scope) => {
+                let dir = self.listed_checkout(path)?;
+                if let Some(name) = scope {
+                    if self.worktree_dir(name)?.canonicalize().ok().as_ref() != Some(&dir) {
+                        return Err(ExecError::invalid_args("checkout is outside this workspace"));
+                    }
+                }
+                dir
+            }
             (_, Some(name)) => self.worktree_dir(name)?,
             (_, None) => self.root.clone(),
         };
@@ -1192,10 +1201,38 @@ impl LocalExecutor {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     }
 
+    fn listed_checkout(&self, path: &str) -> ExecResult<PathBuf> {
+        let missing = || ExecError::new(Code::NotFound, "checkout is not a current worktree of this repository");
+        if !self.worktrees()?.iter().any(|row| row.path == path) {
+            return Err(missing());
+        }
+        let dir = Path::new(path).canonicalize().map_err(|_| missing())?;
+        if dir.as_os_str() != std::ffi::OsStr::new(path) {
+            return Err(missing());
+        }
+        let top = self.git(&dir, &["rev-parse", "--show-toplevel"])?;
+        let common = ["rev-parse", "--path-format=absolute", "--git-common-dir"];
+        if top.strip_suffix('\n') != Some(path) || self.git(&dir, &common)? != self.git(&self.root, &common)? {
+            return Err(missing());
+        }
+        // Git discovers a copied .git file even when its administrative directory belongs to another worktree.
+        let admin = self.git(&dir, &["rev-parse", "--absolute-git-dir"])?;
+        let admin = Path::new(admin.strip_suffix('\n').ok_or_else(missing)?);
+        let dot_git = dir.join(".git");
+        if admin != dot_git {
+            let backlink = fs::read_to_string(admin.join("gitdir")).map_err(|_| missing())?;
+            let backlink = backlink.strip_suffix('\n').unwrap_or(&backlink);
+            if admin.join(backlink).canonicalize().ok().as_ref() != Some(&dot_git) {
+                return Err(missing());
+            }
+        }
+        Ok(dir)
+    }
+
     fn worktrees(&self) -> ExecResult<Vec<WorktreeInfo>> {
-        let listing = self.git(&self.root, &["worktree", "list", "--porcelain"])?;
+        let listing = self.git(&self.root, &["worktree", "list", "--porcelain", "-z"])?;
         let mut out: Vec<WorktreeInfo> = Vec::new();
-        for line in listing.lines() {
+        for line in listing.split('\0') {
             match line.split_once(' ') {
                 Some(("worktree", path)) => out.push(WorktreeInfo { path: path.to_string(), head: String::new(), branch: None, is_main: out.is_empty() }),
                 Some(("HEAD", head)) => out.last_mut().map(|w| w.head = head.to_string()).unwrap_or_default(),

@@ -445,6 +445,7 @@ fn every_op() -> Vec<Op> {
         Op::GitDiff { root: "/work/proj".into(), base: Some("HEAD".into()), head: None, path: Some("a.txt".into()) },
         Op::GitRefs { root: "/work/proj".into(), kind: Some("branch"), limit: 50 },
         Op::GitHistory { root: "/work/proj".into(), rev: Some("abc".into()), limit: 1 },
+        Op::SwitchCheckoutBranch { checkout: "w1::/linked".into(), branch: "feature".into() },
         Op::GitCheckout { root: "/work/proj".into(), target: "origin/x".into(), track: true },
         Op::GitCreateRef { root: "/work/proj".into(), name: "feature/y".into(), from: None, checkout: true },
         Op::GitCreateRef { root: "/work/proj".into(), name: "t3code/pr-12/x".into(), from: Some("abc1234".into()), checkout: false },
@@ -859,4 +860,16 @@ fn a_linked_checkout_reads_both_sides_of_a_rename_by_object_id_and_only_that_fil
             json!({"workspace":WORKSPACE,"rev":head,"path":"new","max_bytes":8 << 20})
         ]
     );
+}
+
+#[test]
+fn mobile_branch_switch_preserves_rca_conflicts_and_never_falls_back_to_the_parent() {
+    // Given a Git rejection from the executor that owns this workspace.
+    let rca = rca(Box::new(|request| vec![refuse(request, "CHANGED", "branch already checked out")]));
+    let switch = |id: &str| rca.agent().run(&Op::SwitchCheckoutBranch {checkout:id.into(),branch:"main".into()});
+    // When switching the selected checkout, then HTTP can distinguish the Git conflict from an unavailable host.
+    assert!(matches!(switch("w1::/linked"), Err(AgentError::Refused {code,message}) if code=="CHANGED" && message=="branch already checked out"));
+    assert!(matches!(switch("w2::/linked"), Err(AgentError::Refused {code,..}) if code=="CHECKOUT_NOT_FOUND"));
+    assert_eq!(rca.asked("git.switchWorktreeBranch"), [json!({"workspace":"w1","path":"/linked","branch":"main"})]);
+    assert!(rca.asked("git.checkout").is_empty());
 }

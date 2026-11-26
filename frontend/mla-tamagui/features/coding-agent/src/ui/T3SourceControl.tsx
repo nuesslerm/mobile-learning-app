@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckoutHeadChanged,
   type CheckoutFile,
+  type CheckoutBranches,
   type CheckoutChanges,
   type CheckoutCommit,
   type CheckoutHistory,
@@ -218,6 +219,59 @@ export function T3SourceControl({
       request.current = undefined;
     };
   }, []);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [branches, setBranches] = useState<CheckoutBranches>();
+  const [branchError, setBranchError] = useState<string>();
+  const [switchError, setSwitchError] = useState<string>();
+  const [switching, setSwitching] = useState(false);
+  const branchRequest = useRef<AbortController | undefined>(undefined);
+  useEffect(() => () => branchRequest.current?.abort(), [checkout.id]);
+  function closeBranches() {
+    branchRequest.current?.abort();
+    setPickerOpen(false);
+  }
+  async function openBranches() {
+    branchRequest.current?.abort();
+    const controller = new AbortController();
+    branchRequest.current = controller;
+    setSwitchError(undefined);
+    setBranchError(undefined);
+    setBranches(undefined);
+    setPickerOpen(true);
+    try {
+      const result = await api.checkoutBranches(pair, checkout.id, controller.signal);
+      if (!controller.signal.aborted) setBranches(result);
+    } catch {
+      if (!controller.signal.aborted) {
+        Logger.warn('coding_agent.checkout_branches_failed');
+        setBranchError('Could not load branches.');
+      }
+    }
+  }
+  async function selectBranch(branch: string) {
+    closeBranches();
+    if (branch === branches?.current) return;
+    const controller = new AbortController();
+    branchRequest.current = controller;
+    setSwitching(true);
+    try {
+      const moved = await api.switchCheckoutBranch(pair, checkout.id, branch, controller.signal);
+      if (!controller.signal.aborted) setChanges({ ...moved, comparison: null });
+    } catch (cause) {
+      if (!controller.signal.aborted) {
+        Logger.warn('coding_agent.switch_checkout_branch_failed');
+        setSwitchError(cause instanceof Error ? cause.message : 'Could not switch branch.');
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setSwitching(false);
+        request.current?.abort();
+        request.current = undefined;
+        setHistory(undefined);
+        refresh((n) => n + 1);
+      }
+    }
+  }
   const cursor =
     history?.head && history.nextOffset !== null
       ? { head: history.head, offset: history.nextOffset }
@@ -225,6 +279,17 @@ export function T3SourceControl({
   return (
     <SourceControl
       openFile={openFile}
+      openBranches={() => void openBranches()}
+      switchingBranch={switching}
+      picker={pickerOpen ? {
+        branches: branches?.branches,
+        current: branches?.current,
+        truncated: branches?.truncated,
+        error: branchError,
+        retry: () => void openBranches(),
+        close: closeBranches,
+        select: (name) => void selectBranch(name),
+      } : undefined}
       review={
         file && files && fileIndex !== undefined
           ? {
@@ -290,11 +355,13 @@ export function T3SourceControl({
       commits={history?.commits ?? []}
       loading={page === 'commits' ? loading : busy}
       loadingMore={loadingMore}
-      error={page === 'commits' ? error : notice}
+      error={page === 'commits' ? error : switchError ?? notice}
       onBack={back}
-      onRefresh={() =>
-        page === 'commits' ? void load(null) : refresh((n) => n + 1)
-      }
+      onRefresh={() => {
+        setSwitchError(undefined);
+        if (page === 'commits') void load(null);
+        else refresh((n) => n + 1);
+      }}
       onLoadMore={cursor ? () => void load(cursor) : undefined}
     />
   );

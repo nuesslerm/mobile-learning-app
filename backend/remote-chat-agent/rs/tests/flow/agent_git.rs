@@ -242,7 +242,11 @@ async fn replay(fixture: &agent_api_proto::testing::Fixture) {
             let answered = agent.ask(before["method"].as_str().unwrap(), before["params"].clone()).await;
             assert!(answered.get("result").is_some(), "{}: the setup {before} failed: {answered}", exchange.name);
         }
-        let mut answer = agent.ask(exchange.request["method"].as_str().unwrap(), exchange.request["params"].clone()).await;
+        let mut params = exchange.request["params"].clone();
+        if params["path"] == "$REPO_ROOT" {
+            params["path"] = json!(rig.repo.path().canonicalize().unwrap());
+        }
+        let mut answer = agent.ask(exchange.request["method"].as_str().unwrap(), params).await;
         answer["id"] = exchange.response["id"].clone();
         assert_eq!(exchange.masked(answer), exchange.masked(exchange.response.clone()), "{}: {}", fixture.method, exchange.name);
         let declared: Vec<&str> = rca_group_git::SERVED.iter().find(|s| s.method.name() == fixture.method).map(|s| s.actions.to_vec()).unwrap();

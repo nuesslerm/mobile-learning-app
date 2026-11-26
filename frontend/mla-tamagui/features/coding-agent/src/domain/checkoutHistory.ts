@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+export const checkoutBranches = z.object({
+  branches: z.array(z.string()),
+  current: z.string().nullable(),
+  truncated: z.boolean(),
+});
+export type CheckoutBranches = z.infer<typeof checkoutBranches>;
+
 export const checkoutHistory = z.object({
   branch: z.string().nullable(),
   head: z.string().nullable(),

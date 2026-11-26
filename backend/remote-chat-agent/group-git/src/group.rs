@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-pub const SERVED: [Served; 23] = [
+pub const SERVED: [Served; 24] = [
     Served::service(api::STATUS, &[exec_git::GIT_STATUS]),
     Served::service(api::REFS, &[exec_git::GIT_REFS]),
     Served::service(api::HISTORY, &[exec_git::GIT_LOG]),
@@ -20,6 +20,7 @@ pub const SERVED: [Served; 23] = [
     Served::service(api::DISCARD, &[exec_git::GIT_DISCARD]),
     Served::service(api::COMMIT, &[exec_git::GIT_COMMIT]),
     Served::service(api::CHECKOUT, &[exec_git::GIT_CHECKOUT]),
+    Served::service(api::SWITCH_WORKTREE_BRANCH, &[exec_git::GIT_SWITCH_WORKTREE_BRANCH]),
     Served::service(api::CREATE_REF, &[exec_git::GIT_CREATE_REF]),
     Served::service(api::FETCH, &[exec_git::GIT_FETCH]),
     Served::service(api::PULL, &[exec_git::GIT_PULL]),

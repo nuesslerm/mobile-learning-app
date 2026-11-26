@@ -52,7 +52,7 @@ pub const GIT_BRANCH_DIFF: &str = "git.branchDiff";
 pub const GIT_COMMIT_DIFF: &str = "git.commitDiff";
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE, GENERATE_PULL_REQUEST_FIELDS, BLOB, FILE_STAT, FILE_READ_CHUNK, orca_map_hosted::PR_REMOTES];
+pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, agent_api_git::SWITCH_WORKTREE_BRANCH, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE, GENERATE_PULL_REQUEST_FIELDS, BLOB, FILE_STAT, FILE_READ_CHUNK, orca_map_hosted::PR_REMOTES];
 
 const METHODS: &[Method] = &[
     Method { name: GIT_STATUS, kind: Kind::Unary },
@@ -106,6 +106,11 @@ impl Area for GitArea {
         }
         if method == GIT_GENERATE_PULL_REQUEST_FIELDS {
             ai::check_pull_request_fields(params)?;
+        }
+        if method == GIT_CHECKOUT {
+            if let Some((workspace, path)) = write::checkout_path(params) {
+                return write::switch_worktree_branch(ctx.agent, workspace, path, params);
+            }
         }
         let repo = Repo::of(ctx.agent, method, params)?;
         if let Some(p) = working {

@@ -432,3 +432,31 @@ fn mobile_file_comparisons_require_paired_read_access_and_immutable_revisions() 
         assert_eq!(get(&invalid, &reader).status, 422);
     }
 }
+
+#[test]
+fn mobile_branch_picker_lists_for_readers_and_switches_only_for_operators() {
+    use t3_core::ports::{AgentError, Op};
+    // Given a detached checkout, an available local branch and a branch used by another checkout.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutBranches { checkout } if checkout == "r::/wt" => Some(Ok(json!({"current":null,"branches":["feature","main"],"truncated":false}))),
+        Op::SwitchCheckoutBranch { checkout, branch } if checkout == "r::/wt" => Some(if branch == "feature" {
+            Ok(json!({"branch":"feature","detached":false}))
+        } else { Err(AgentError::Refused { code:"CHANGED".into(), message:"already checked out".into() }) }),
+        _ => None,
+    }));
+    let reader = scoped(&h, &["orchestration:read"]);
+    let writer = scoped(&h, &["orchestration:operate"]);
+    let route = "/api/mobile/source-control/branches";
+    let switch = |token: &str, branch: &str| http(h.addr, "POST", route, &[("Authorization",token),("Content-Type","application/json")], &json!({"checkout":"r::/wt","branch":branch}).to_string());
+    // When the paired reader opens the list, then the selected checkout has no current branch.
+    let list = http(h.addr,"GET",&format!("{route}?checkout=r%3A%3A%2Fwt"), &[("Authorization",&reader)], "");
+    assert_eq!(list.status,200);
+    assert_eq!(list.body,json!({"current":null,"branches":["feature","main"],"truncated":false}));
+    // Switching enforces the write grant and surfaces conflicts to the caller.
+    assert_eq!(switch("", "feature").status,401);
+    assert_eq!(switch(&reader, "feature").status,403);
+    assert_eq!(switch(&writer, "feature").status,200);
+    assert_eq!(switch(&writer, "main").status,409);
+    assert_eq!(switch(&writer, "").status,422);
+}

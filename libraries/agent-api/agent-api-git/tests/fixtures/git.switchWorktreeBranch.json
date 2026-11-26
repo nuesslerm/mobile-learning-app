@@ -1,0 +1,63 @@
+{
+  "method": "git.switchWorktreeBranch",
+  "exchanges": [
+    {
+      "name": "switches to another branch",
+      "before": [
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.switchWorktreeBranch",
+        "params": {
+          "workspace": "w1",
+          "path": "$REPO_ROOT",
+          "branch": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "branch": "topic",
+          "head": "ec8af9cbb2cc8765b5f7ff0b1cfb4fd4be865f02",
+          "detached": false
+        }
+      },
+      "actions": [
+        "git_switch_worktree_branch"
+      ],
+      "volatile": [
+        "/result/head"
+      ]
+    },
+    {
+      "name": "forwards both checkout and branch to the scoped action",
+      "request": {
+        "id": 1,
+        "method": "git.switchWorktreeBranch",
+        "params": {
+          "workspace": "w1",
+          "path": "relative",
+          "branch": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be an absolute checkout path"
+        }
+      },
+      "actions": [
+        "git_switch_worktree_branch"
+      ]
+    }
+  ]
+}

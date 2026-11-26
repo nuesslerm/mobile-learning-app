@@ -30,7 +30,38 @@ struct CheckoutEdit {
     is_unread: Option<bool>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BranchSwitch {
+    checkout: String,
+    branch: String,
+}
+
+fn branch_error(error: AgentError) -> Refusal {
+    match &error {
+        AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" || code == "NOT_FOUND" => Refusal::bare(404),
+        AgentError::Refused { code, .. } if code == "INVALID_ARGS" => Refusal::bare(422),
+        AgentError::Refused { code, message } if code == "CHANGED" => Refusal { status: 409, body: wire::host_error(message) },
+        _ => upstream(error),
+    }
+}
+
 impl Service {
+    pub fn checkout_branches_http(&self, auth: Option<&str>, checkout: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.checkoutBranches", auth)?;
+        let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;
+        self.agent().run(&Op::CheckoutBranches { checkout: checkout.to_owned() }).map_err(branch_error)
+    }
+
+    pub fn switch_checkout_branch_http(&self, auth: Option<&str>, body: Value) -> Result<Value, Refusal> {
+        self.scope_gate("mobile.switchCheckoutBranch", auth, "orchestration:operate")?;
+        let BranchSwitch { checkout, branch } = serde_json::from_value(body).map_err(|_| Refusal::bare(422))?;
+        if branch.is_empty() || checkout.is_empty() {
+            return Err(Refusal::bare(422));
+        }
+        self.agent().run(&Op::SwitchCheckoutBranch { checkout, branch }).map_err(branch_error)
+    }
+
     pub fn checkout_changes_http(&self, auth: Option<&str>, checkout: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("mobile.checkoutChanges", auth)?;
         let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;

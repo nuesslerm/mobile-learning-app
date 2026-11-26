@@ -38,7 +38,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 149] = [
+pub const USES: [Method; 150] = [
     STATUS,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
@@ -104,6 +104,7 @@ pub const USES: [Method; 149] = [
     git::REFS,
     git::HISTORY,
     git::CHECKOUT,
+    git::SWITCH_WORKTREE_BRANCH,
     git::CREATE_REF,
     git::FETCH,
     git::COMPARE,
@@ -208,6 +209,10 @@ pub fn needed_groups() -> Vec<GroupName> {
 /// How long a followed thread waits for its next event before it looks again; a silent CLI is not an error.
 const QUIET: Duration = Duration::from_secs(1);
 
+fn checkout_missing() -> AgentError {
+    AgentError::Refused { code: "CHECKOUT_NOT_FOUND".into(), message: "Checkout not found".into() }
+}
+
 fn failed(e: Error) -> AgentError {
     if e.code == thread_code::THREAD_NOT_FOUND {
         return AgentError::NoThread;
@@ -310,19 +315,19 @@ impl RcaAgent {
         client.call(method, params).map_err(failed)
     }
 
-    fn selected_checkout(&self, client: &mut Client, checkout: &str) -> Result<exec_git::WorktreeInfo, AgentError> {
-        let missing = || AgentError::Refused {
-            code: "CHECKOUT_NOT_FOUND".into(),
-            message: "Checkout not found".into(),
-        };
-        let (repo, path) = checkout
-            .split_once("::")
+    fn checkout_path<'a>(&self, checkout: &'a str) -> Result<&'a str, AgentError> {
+        checkout.split_once("::")
             .filter(|(repo, path)| *repo == self.workspace && !path.is_empty())
-            .ok_or_else(missing)?;
-        let catalog = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace":repo}))?;
+            .map(|(_, path)| path)
+            .ok_or_else(checkout_missing)
+    }
+
+    fn selected_checkout(&self, client: &mut Client, checkout: &str) -> Result<exec_git::WorktreeInfo, AgentError> {
+        let path = self.checkout_path(checkout)?;
+        let catalog = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace":self.workspace}))?;
         let catalog: exec_git::WorktreeListed =
             serde_json::from_value(catalog).map_err(|_| AgentError::Failed("Invalid RCA worktree list".into()))?;
-        let row = catalog.worktrees.into_iter().find(|row| row.path == path).ok_or_else(missing)?;
+        let row = catalog.worktrees.into_iter().find(|row| row.path == path).ok_or_else(checkout_missing)?;
         let head = &row.head;
         if !head.is_empty() && (!matches!(head.len(), 40 | 64) || !head.bytes().all(|b| b.is_ascii_hexdigit())) {
             return Err(AgentError::Failed("Invalid checkout HEAD".into()));
@@ -826,7 +831,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -884,6 +889,16 @@ impl AgentApi for RcaAgent {
 
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
+        if let Op::CheckoutBranches { checkout } = op {
+            let row = self.selected_checkout(&mut client, checkout)?;
+            let value = Self::call(&mut client, git::REFS, json!({"workspace":self.workspace,"kind":"branch","limit":exec_git::vcs::REFS_MAX}))?;
+            let refs: exec_git::vcs::RefsResult = serde_json::from_value(value).map_err(|_| AgentError::Failed("Invalid Git refs".into()))?;
+            return Ok(json!({"current":row.branch,"branches":refs.refs.into_iter().map(|item|item.name).collect::<Vec<_>>(), "truncated":refs.truncated}));
+        }
+        if let Op::SwitchCheckoutBranch { checkout, branch } = op {
+            let path = self.checkout_path(checkout)?;
+            return client.call(git::SWITCH_WORKTREE_BRANCH, json!({"workspace":self.workspace,"path":path,"branch":branch})).map_err(refused);
+        }
         if let Op::CheckoutChanges { checkout } = op {
             return self.checkout_changes(&mut client, checkout);
         }

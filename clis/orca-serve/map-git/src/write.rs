@@ -2,8 +2,19 @@
 use crate::{paths_of, text, Repo};
 use agent_api_git::{CHECKOUT, COMMIT, CONFLICT_RESOLVE, DISCARD, STAGE, STATUS, UNSTAGE};
 use orca_core::wire::Failure;
-use orca_core::AgentError;
+use orca_core::{AgentApi, AgentError};
 use serde_json::{json, Value};
+
+pub(crate) fn checkout_path(params: &Value) -> Option<(&str, &str)> {
+    let selector = text(params, "worktree")?.trim();
+    selector.strip_prefix("id:").unwrap_or(selector).split_once("::").filter(|(_, path)| !path.is_empty())
+}
+
+pub(crate) fn switch_worktree_branch(agent: &dyn AgentApi, workspace: &str, path: &str, params: &Value) -> Result<Value, Failure> {
+    let branch = text(params, "branch").ok_or_else(|| Failure::invalid("Missing branch"))?;
+    agent.request(agent_api_git::SWITCH_WORKTREE_BRANCH.name(), json!({"workspace":workspace,"path":path,"branch":branch})).map_err(crate::refusal)?;
+    Ok(json!({"ok":true,"branch":branch}))
+}
 
 pub(crate) fn checkout(repo: &Repo, params: &Value) -> Result<Value, Failure> {
     let branch = text(params, "branch").ok_or_else(|| Failure::invalid("Missing branch"))?;

@@ -1,4 +1,4 @@
-import { checkoutFile, checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
+import { checkoutBranches, checkoutFile, checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
 import { checkoutRow, checkoutSessions, homeSummary, workspaceCatalog } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
@@ -108,6 +108,26 @@ export function createT3MobileApi(): T3MobilePort {
     },
     async workspaces(pair, signal) {
       return workspaceCatalog.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspaces', { headers: authorization(pair), signal }));
+    },
+    async checkoutBranches(pair, id, signal) {
+      const path = '/api/mobile/source-control/branches?checkout=' + encodeURIComponent(id);
+      return checkoutBranches.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+    },
+    async switchCheckoutBranch(pair, id, branch, signal) {
+      const response = await fetch(endpoint(pair.endpoint) + '/api/mobile/source-control/branches', {
+        method: 'POST',
+        headers: { ...authorization(pair), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkout: id, branch }),
+        signal,
+      });
+      if (!response.ok) {
+        if (response.status === 409) {
+          const conflict = z.object({ message: z.string() }).safeParse(await response.json());
+          if (conflict.success) throw new Error(conflict.data.message);
+        }
+        throw new HttpError(response.status);
+      }
+      return z.object({ branch: z.string(), head: z.string() }).parse(await response.json());
     },
     async checkoutChanges(pair, id, signal) {
       const path = '/api/mobile/source-control/changes?' + new URLSearchParams({ checkout: id });

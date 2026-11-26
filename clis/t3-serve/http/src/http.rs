@@ -278,7 +278,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspaces" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspaces" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -376,9 +376,11 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
             Err(r) => refused(&mut stream, r, NO_STORE),
         },
-        ("GET", path @ ("/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file")) => {
+        ("GET", path @ ("/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches")) => {
             let param = |key: &str| request.query.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str());
-            let result = if path.ends_with("/file") {
+            let result = if path.ends_with("/branches") {
+                svc.checkout_branches_http(auth, param("checkout"))
+            } else if path.ends_with("/file") {
                 svc.checkout_file_http(auth, param("checkout"), param("head"), param("base"), param("path"), param("oldPath"))
             } else if path.ends_with("/commit") {
                 svc.checkout_commit_http(auth, param("checkout"), param("sha"))
@@ -389,6 +391,13 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             };
             match result {
                 Ok(body) => source_control_response(&mut stream, &request, body),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("POST", "/api/mobile/source-control/branches") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            match svc.switch_checkout_branch_http(auth, body) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
                 Err(r) => refused(&mut stream, r, NO_STORE),
             }
         }

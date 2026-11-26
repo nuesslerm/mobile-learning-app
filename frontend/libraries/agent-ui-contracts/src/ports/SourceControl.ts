@@ -24,6 +24,17 @@ export interface SourceControlProps {
   };
   openFile: (index: number) => void;
   review?: SourceFileReview;
+  openBranches: () => void;
+  switchingBranch: boolean;
+  picker?: {
+    branches?: readonly string[];
+    current?: string | null;
+    truncated?: boolean;
+    error?: string;
+    retry: () => void;
+    close: () => void;
+    select: (branch: string) => void;
+  };
   openHistory: () => void;
   openCommit: (commit: SourceCommit) => void;
   branch: string | null;

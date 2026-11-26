@@ -1,0 +1,13 @@
+{
+  "localBranches": 31,
+  "checkout": "branch-picker-proof",
+  "detached": true,
+  "selectedBranch": "expo-mobile-1125",
+  "checkedOutBranchConflict": 409,
+  "primaryUnchanged": true,
+  "simulator": "rca",
+  "app": "Expo Go",
+  "selectedBranchInExpo": "expo-mobile-1125",
+  "selectedBranchInGit": "expo-mobile-1125",
+  "parentBranchInGit": "dev"
+}

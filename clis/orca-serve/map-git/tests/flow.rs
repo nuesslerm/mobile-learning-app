@@ -831,11 +831,18 @@ fn linked_checkouts_list_shared_branches_and_report_their_own_selection() {
         .contains(&json!("feature")));
     assert_eq!(attached["current"], "feature");
     assert!(detached["current"].is_null());
-    // A checkout mutation still needs a workspace targeting that worktree.
+    // When an older service lacks the scoped action, the refusal must never trigger a parent checkout.
     let change = rig.raw(
         "git.checkout",
         json!({"worktree":"id:main::/detached","branch":"feature"}),
     );
     assert_eq!(change["ok"], false);
     assert_eq!(rig.repo.current(), "main");
+    rig.agent.reply("git.switchWorktreeBranch", |params| {
+        assert_eq!(params, &json!({"workspace":"main","path":"/detached","branch":"feature"}));
+        Ok(json!({"branch":"feature","detached":false}))
+    });
+    let changed = rig.raw("git.checkout", json!({"worktree":"id:main::/detached","branch":"feature"}));
+    assert_eq!(changed["result"], json!({"ok":true,"branch":"feature"}));
+    assert!(rig.sent_all().iter().all(|(method, _)| method != "git.checkout"));
 }

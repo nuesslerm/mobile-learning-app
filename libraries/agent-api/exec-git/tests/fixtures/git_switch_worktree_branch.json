@@ -1,0 +1,53 @@
+{
+  "action": "git_switch_worktree_branch",
+  "exchanges": [
+    {
+      "name": "switches the selected primary checkout to its local branch",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "chec33",
+        "tool": "git_switch_worktree_branch",
+        "args": {
+          "path": "$REPO_ROOT",
+          "branch": "main"
+        }
+      },
+      "response": {
+        "id": "chec33",
+        "ok": true,
+        "result": {
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "detached": false,
+          "branch": "main"
+        }
+      },
+      "volatile": [
+        "/result/head"
+      ]
+    },
+    {
+      "name": "requires the full path from the worktree list",
+      "request": {
+        "id": "sw1",
+        "tool": "git_switch_worktree_branch",
+        "args": {
+          "path": "relative",
+          "branch": "topic"
+        }
+      },
+      "response": {
+        "id": "sw1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be an absolute checkout path"
+        }
+      }
+    }
+  ]
+}

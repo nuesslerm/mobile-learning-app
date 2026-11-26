@@ -4,6 +4,7 @@ import type {
   SourceFile,
 } from '@lib/agent-ui-contracts';
 import GitBranch from 'lucide-react-native/dist/esm/icons/git-branch.mjs';
+import ChevronDown from 'lucide-react-native/dist/esm/icons/chevron-down.mjs';
 import GitCommit from 'lucide-react-native/dist/esm/icons/git-commit-horizontal.mjs';
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackIcon, ChevronRightIcon } from './homeIcons';
+import { BranchSheet } from './BranchSheet';
 import { FileReview } from './FileReview';
 import { useChatPalette } from './chatPalette';
 
@@ -175,9 +177,12 @@ export function SourceControl(props: SourceControlProps) {
   const header =
     page === 'changes' ? (
       <>
-        <View style={s.summaryRow}>
-          <GitBranch size={16} color={c.textSecondary} />
-          <Text style={text}>{branch ?? 'No branch'}</Text>
+        <View style={s.branchRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Switch Branch" disabled={props.switchingBranch} onPress={props.openBranches} style={s.branchButton}>
+            <GitBranch size={15} strokeWidth={2.1} color={c.textSecondary} />
+            <Text style={[s.branchLabel, text]} numberOfLines={1}>{branch ?? 'No branch'}</Text>
+            <ChevronDown size={14} strokeWidth={2.2} color={c.textMuted} />
+          </Pressable>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -323,12 +328,16 @@ export function SourceControl(props: SourceControlProps) {
         )}
       </View>
       {props.review && <FileReview review={props.review} />}
+      {props.picker && <BranchSheet {...props.picker} />}
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   screen: { flex: 1 },
+  branchRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, alignItems: 'flex-start' },
+  branchButton: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' },
+  branchLabel: { flexShrink: 1, fontSize: 15, fontWeight: '600' },
   flex: { flex: 1, minWidth: 0 },
   nav: {
     height: 52,

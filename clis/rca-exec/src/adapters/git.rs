@@ -901,6 +901,22 @@ impl Repo {
             GitCall::Unstage { paths } => to_value(&self.unstage(paths)?),
             GitCall::Discard { paths, scope, untracked, source } => to_value(&self.discard(paths, *scope, *untracked, source.as_deref())?),
             GitCall::Commit { message, amend, all, allow_empty } => to_value(&self.commit(message, *amend, *all, *allow_empty)?),
+            GitCall::SwitchWorktreeBranch { branch, .. } => {
+                let reference = self.run(&["show-ref", "--quiet", "--verify", "--", &format!("refs/heads/{branch}")])?;
+                if !reference.ok() {
+                    return Err(ExecError::new(if reference.code == 1 { Code::NotFound } else { Code::Io }, "Git could not resolve the local branch"));
+                }
+                let args = ["switch", "--no-guess", "--", branch];
+                let result = self.run(&args)?;
+                if !result.ok() {
+                    let message = result.said();
+                    if message.contains("would be overwritten") || message.contains("already used by worktree") || message.contains("already checked out") {
+                        return Err(ExecError::new(Code::Changed, message));
+                    }
+                    return Err(fail(&args, &result));
+                }
+                to_value(&self.head_moved()?)
+            }
             GitCall::Checkout { target, detach, track, force } => to_value(&self.checkout(target, *detach, *track, *force)?),
             GitCall::CreateRef { name, kind, from, checkout, message } => to_value(&self.create_ref(name, *kind, from.as_deref(), *checkout, message.as_deref())?),
             GitCall::Fetch { remote, prune, refspecs } => to_value(&self.fetch(remote.as_deref(), *prune, refspecs)?),

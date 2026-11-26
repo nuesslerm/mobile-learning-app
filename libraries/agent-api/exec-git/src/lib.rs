@@ -27,6 +27,7 @@ pub const GIT_UNSTAGE: &str = "git_unstage";
 pub const GIT_DISCARD: &str = "git_discard";
 pub const GIT_COMMIT: &str = "git_commit";
 pub const GIT_CHECKOUT: &str = "git_checkout";
+pub const GIT_SWITCH_WORKTREE_BRANCH: &str = "git_switch_worktree_branch";
 pub const GIT_CREATE_REF: &str = "git_create_ref";
 pub const GIT_FETCH: &str = "git_fetch";
 pub const GIT_PULL: &str = "git_pull";
@@ -135,6 +136,12 @@ pub const ACTIONS: &[Action] = &[
         about: "Switch to a branch, create a local branch tracking a remote one (`track`), or detach at a revision (`detach`).",
         properties: &[WORKTREE, Property { name: "ref", kind: "string", about: "A branch, a remote branch with `track`, or any revision with `detach`" }, Property { name: "detach", kind: "boolean", about: "Detach HEAD at the revision" }, Property { name: "track", kind: "boolean", about: "Create a local branch that tracks the remote branch `ref`" }, Property { name: "force", kind: "boolean", about: "Discard local changes that would be overwritten" }],
         required: &["ref"],
+    },
+    Action {
+        name: GIT_SWITCH_WORKTREE_BRANCH,
+        about: "Switch the selected checkout of this repository to an existing local branch.",
+        properties: &[Property { name: "path", kind: "string", about: "The exact checkout path returned by git_worktree_list" }, Property { name: "branch", kind: "string", about: "An existing local branch" }],
+        required: &["path", "branch"],
     },
     Action {
         name: GIT_CREATE_REF,
