@@ -167,7 +167,7 @@ impl Service {
             }
         }
         let answer = if payload["runtime"] == "server" {
-            let root = self.thread_dir(thread);
+            let root = self.resource_root(thread)?;
             if root.is_empty() || self.root_missing(&root) {
                 return Err(QueryFailure::Error(json!({"_tag":"UnsupportedOperationError","method":"preview.open","message":"The checkout is unavailable. Reopen an existing checkout."})));
             }

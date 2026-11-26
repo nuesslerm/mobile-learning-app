@@ -278,7 +278,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/mobile/notes" | "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspace-disclosure" | "/api/mobile/workspace-statuses" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/checkout" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/mobile/workspace-tabs" | "/api/mobile/notes" | "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspace-disclosure" | "/api/mobile/workspace-statuses" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/checkout" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -377,6 +377,17 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             let Some(thread) = param("thread").filter(|id| !id.is_empty()) else { return respond(&mut stream, 400, &json!({})); };
             match svc.thread_checkout_http(auth, thread, param("checkout")) {
                 Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET" | "POST", "/api/mobile/workspace-tabs") => {
+            let checkout = request.query.iter().find(|(k, _)| k == "checkout").map(|(_,v)| v.as_str()).unwrap_or("");
+            let mutation = if request.method == "POST" {
+                let Some(body) = json_object(&mut stream, &request) else { return };
+                Some(body)
+            } else { None };
+            match svc.workspace_tabs_http(auth, checkout, mutation) {
+                Ok(layout) => respond_with(&mut stream, 200, &layout, NO_STORE),
                 Err(r) => refused(&mut stream, r, NO_STORE),
             }
         }

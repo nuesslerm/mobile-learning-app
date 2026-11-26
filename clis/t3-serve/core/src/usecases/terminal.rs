@@ -135,7 +135,7 @@ impl Service {
     fn terminal_target(&self, payload: &Value, root: Option<&str>) -> Result<Target, QueryFailure> {
         let (thread, terminal) = (field(payload, "threadId")?, field(payload, "terminalId")?);
         let name = terminal_name(thread, terminal).ok_or_else(|| QueryFailure::Defect(format!("A terminal id is letters, digits, `_` and `-`, and together with its thread at most {NAME_MAX} long\n  at [\"terminalId\"]")))?;
-        let root = root.map(str::to_string).unwrap_or_else(|| self.thread_dir(thread));
+        let root = match root { Some(root) => root.to_owned(), None => self.resource_root(thread)? };
         Ok(Target { thread: thread.into(), terminal: terminal.into(), name, root })
     }
 
@@ -214,7 +214,7 @@ impl Service {
     pub fn terminal_close(&self, payload: &Value) -> Result<(), QueryFailure> {
         let thread = field(payload, "threadId")?;
         let named = payload.get("terminalId").and_then(Value::as_str).filter(|t| !t.is_empty());
-        let root = self.thread_dir(thread);
+        let root = self.resource_root(thread)?;
         let names: Vec<String> = match named {
             Some(terminal) => vec![terminal_name(thread, terminal).ok_or_else(|| lookup(thread, terminal))?],
             None => {

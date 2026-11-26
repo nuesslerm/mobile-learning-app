@@ -32,3 +32,4 @@ pub mod view_preferences;
 pub mod voice;
 pub mod workspace;
 pub mod attachments;
+mod workspace_tabs;

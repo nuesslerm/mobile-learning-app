@@ -55,9 +55,9 @@ fn branch_error(error: AgentError) -> Refusal {
 impl Service {
     pub fn checkout_note_http(&self, auth: Option<&str>, checkout: &str, action: NoteAction) -> Result<Value, Refusal> {
         if matches!(action, NoteAction::Read { .. }) {
-            self.read_gate("mobile.checkoutNote", auth)?;
+            self.scope_gate("mobile.checkoutNote", auth, "filesystem:read")?;
         } else {
-            self.scope_gate("mobile.checkoutNote", auth, "orchestration:operate")?;
+            self.scope_gate("mobile.checkoutNote", auth, "filesystem:write")?;
         }
         if checkout.is_empty() {
             return Err(Refusal::bare(422));

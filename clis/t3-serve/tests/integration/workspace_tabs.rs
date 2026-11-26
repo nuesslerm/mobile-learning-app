@@ -152,3 +152,48 @@ fn checkout_note_creation_skips_collisions_and_a_stale_writer_keeps_the_desktop_
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("untitled.md")).unwrap(), "existing");
     });
 }
+
+#[test]
+fn a_checkout_without_chat_restores_its_active_tab_and_retries_creation_without_duplicates() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given the paired T3 API and an empty checkout
+        let browsers = std::env::var("PLAYWRIGHT_BROWSERS_PATH").unwrap_or_else(|_| format!("{}/.cache/ms-playwright", std::env::var("HOME").unwrap()));
+        let chain = Chain::start_with_env(&[("RCA_BROWSER", "1"), ("RCA_EXEC_BROWSER_NO_SANDBOX","1"), ("PLAYWRIGHT_BROWSERS_PATH", &browsers)]);
+        let scopes: Vec<_> = t3_contracts::scopes::ALL_SCOPES.iter().map(|s| s.to_string()).collect();
+        let phone = Phone::connect_with(case, &chain, &scopes);
+        let headers = [("Authorization", phone.bearer.as_str()), ("Content-Type", "application/json")];
+        let root = std::fs::canonicalize(chain.repo.path()).unwrap();
+        let route = format!("/api/mobile/workspace-tabs?checkout=w1::{}", root.display());
+        let mut request = |action: Option<Value>| {
+            let body = action.as_ref().map(Value::to_string).unwrap_or_default();
+            let method = if action.is_some() { "POST" } else { "GET" };
+            let reply = http_call(case, &chain, &[], (method, &route, &headers, &body), 200);
+            assert_eq!(reply.status, 200, "{:?}", reply.body);
+            reply.body
+        };
+        assert_eq!(request(None)["tabs"], json!([]));
+        // When creation is retried and another tab takes focus
+        let create = json!({"action":"create","kind":"markdown","id":"note1"});
+        request(Some(create.clone()));
+        let note = request(Some(create));
+        assert_eq!(note["tabs"].as_array().unwrap().len(), 1);
+        assert!(!root.join("untitled-2.md").exists());
+        let terminal = request(Some(json!({"action":"create","kind":"terminal","id":"pty1"})));
+        assert_eq!(terminal["active"], "pty1");
+        let thread = terminal["threadId"].as_str().unwrap().to_owned();
+        // Then a fresh read restores selection, and closing the note keeps its real file
+        request(Some(json!({"action":"select","id":"note1"})));
+        assert_eq!(request(None)["active"], "note1");
+        assert_eq!(request(Some(json!({"action":"close","id":"note1"})))["active"], "pty1");
+        assert!(root.join("untitled.md").is_file());
+        let mut desktop = chain.direct();
+        let listed = desktop.call("terminal","terminal.list",json!({"workspace":"w1"})).unwrap();
+        assert!(listed["terminals"].as_array().unwrap().iter().any(|t| t["terminal"] == format!("{thread}.pty1")));
+        let browser = request(Some(json!({"action":"create","kind":"browser","id":"web1"})));
+        assert_eq!(browser["active"], "web1");
+        assert_eq!(desktop.call("browser","browser.pages",json!({"workspace":"w1"})).unwrap()["pages"].as_array().unwrap().len(), 1);
+        request(Some(json!({"action":"close","id":"web1"})));
+        assert_eq!(desktop.call("browser","browser.pages",json!({"workspace":"w1"})).unwrap()["pages"], json!([]));
+        assert_eq!(request(Some(json!({"action":"close","id":"pty1"})))["tabs"], json!([]));
+    });
+}
