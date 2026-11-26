@@ -109,7 +109,7 @@ impl Drop for Proxy {
 }
 
 /// A head and what follows it as one write: a peer that reads once and answers must not be left with half a message unread.
-fn whole(head: String, rest: &[u8]) -> Vec<u8> {
+pub(super) fn whole(head: String, rest: &[u8]) -> Vec<u8> {
     let mut out = head.into_bytes();
     out.extend_from_slice(rest);
     out
@@ -242,6 +242,46 @@ fn socket(
     Ok(())
 }
 
+/// Reports the messages of one direction of a socket as their bytes pass. A reply the server split into parts is reported whole.
+pub(super) struct Frames {
+    parser: FrameParser,
+    text_parts: Vec<u8>,
+    direction: Dir,
+    connection: u32,
+}
+
+impl Frames {
+    pub(super) fn new(direction: Dir, connection: u32) -> Frames {
+        Frames { parser: FrameParser::default(), text_parts: Vec::new(), direction, connection }
+    }
+
+    pub(super) fn feed(&mut self, bytes: &[u8], sink: &Sink) {
+        let (connection, direction) = (self.connection, self.direction);
+        for message in self.parser.push(bytes) {
+            match message.opcode {
+                OP_CLOSE => {
+                    let (code, _) = close_info(&message.payload);
+                    sink(Event::WsClose { connection, direction: Some(direction), code });
+                }
+                OP_PING | OP_PONG => {}
+                OP_TEXT if message.payload.first() == Some(&0x1e) && direction == Dir::S2c => {
+                    self.text_parts.extend_from_slice(&message.payload[1..]);
+                }
+                OP_TEXT if !self.text_parts.is_empty() => {
+                    self.text_parts.extend_from_slice(&message.payload);
+                    sink(Event::WsFrame { connection, direction, opcode: OP_TEXT, data: std::mem::take(&mut self.text_parts) });
+                }
+                _ => sink(Event::WsFrame { connection, direction, opcode: message.opcode, data: message.payload }),
+            }
+        }
+    }
+
+    /// Whether the stream ended in the middle of a split reply.
+    pub(super) fn cut_short(&self) -> bool {
+        !self.text_parts.is_empty()
+    }
+}
+
 /// Copies `from` to `to` until `from` ends, reporting the frames that pass; `first` is what was read past the handshake.
 #[allow(clippy::too_many_arguments)]
 fn pump(
@@ -253,28 +293,11 @@ fn pump(
     stop: Arc<AtomicBool>,
     connection: u32,
 ) -> std::io::Result<()> {
-    let mut parser = FrameParser::default();
-    let mut text_parts = Vec::new();
+    let mut frames = Frames::new(direction, connection);
     let (mut chunk, mut pending) = ([0u8; 8192], first);
     loop {
         if !pending.is_empty() {
-            for message in parser.push(&pending) {
-                match message.opcode {
-                    OP_CLOSE => {
-                        let (code, _) = close_info(&message.payload);
-                        sink(Event::WsClose { connection, direction: Some(direction), code });
-                    }
-                    OP_PING | OP_PONG => {}
-                    OP_TEXT if message.payload.first() == Some(&0x1e) && direction == Dir::S2c => {
-                        text_parts.extend_from_slice(&message.payload[1..]);
-                    }
-                    OP_TEXT if !text_parts.is_empty() => {
-                        text_parts.extend_from_slice(&message.payload);
-                        sink(Event::WsFrame { connection, direction, opcode: OP_TEXT, data: std::mem::take(&mut text_parts) });
-                    }
-                    _ => sink(Event::WsFrame { connection, direction, opcode: message.opcode, data: message.payload }),
-                }
-            }
+            frames.feed(&pending, &sink);
             to.write_all(&pending)?;
             pending.clear();
         }
@@ -282,7 +305,7 @@ fn pump(
             return Ok(());
         }
         match from.read(&mut chunk) {
-            Ok(0) if !text_parts.is_empty() => return Err(io::ErrorKind::UnexpectedEof.into()),
+            Ok(0) if frames.cut_short() => return Err(io::ErrorKind::UnexpectedEof.into()),
             Ok(0) => return Ok(()),
             Ok(n) => pending.extend_from_slice(&chunk[..n]),
             Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {}

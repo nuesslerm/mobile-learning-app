@@ -2,23 +2,28 @@
 //! run ends, writes what crossed as a replayable cassette set. Nothing is written before the sanitiser has seen all of it.
 use super::proxy_verb::{listen_addr, serve_until, upstream_addr, upstream_public, Recorder};
 use super::{fail, load_config, read_json, set_ref, tool, Done, Fail};
+use crate::adapters::forward::{Forward, Setup};
 use crate::adapters::proxy::{Options, Proxy, Sink};
+use crate::adapters::tls::{upstream_config, Authority};
 use crate::adapters::{conn, FsStore};
 use mimic_core::cassette::Kind;
 use mimic_core::ports::Store;
 use mimic_core::rules::RuleSet;
 use mimic_proxy_core::application::record::{default_rules, policy_for, record, Meta, RULES_FILE};
+use mimic_proxy_core::domain::host_policy::{gaps, HostPolicy};
 use mimic_proxy_core::domain::sanitize::Policy;
 use mimic_proxy_core::domain::traffic::Event;
 use serde_json::json;
 use std::fs::OpenOptions;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::net::SocketAddr;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use wf_kit::args::Parsed;
 
 const NEXT: &str = "wf mimic proxy record --set <dir> --upstream http://127.0.0.1:<port>";
+const EXPLICIT_NEXT: &str = "wf mimic proxy record --set <dir> --allow-host <host[:port]>,... --ca-out <file>";
 const SET_TOML: &str = "# Recorded through `wf mimic proxy record`. Add a [reference] with its pin to stamp a recording of a pinned server as recorded.\nrules = \"rules.json\"\n";
 /// What the T3 app sends on some runs and not on others: a subscription names where it resumes from, and its fallback, only when the app holds a snapshot.
 const T3_REPLAY_TOML: &str = "\n[proxy.replay]\nignore_keys = [\"httpSnapshotFallback\", \"afterSequence\"]\n";
@@ -93,14 +98,57 @@ fn meta(p: &Parsed, set_dir: &Path) -> Result<Meta, Fail> {
     })
 }
 
+/// The proxy a recording listens with: in front of one server, or as the explicit proxy of the approved hosts.
+enum Listening {
+    Reverse(Proxy, String),
+    Explicit(Forward, Arc<Setup>),
+}
+
+impl Listening {
+    fn addr(&self) -> SocketAddr {
+        match self {
+            Listening::Reverse(proxy, _) => proxy.addr(),
+            Listening::Explicit(forward, _) => forward.addr(),
+        }
+    }
+
+    fn live(&self) -> u32 {
+        match self {
+            Listening::Reverse(proxy, _) => proxy.live(),
+            Listening::Explicit(forward, _) => forward.live(),
+        }
+    }
+
+    /// What the proxy forwards to, as it is written down: a server, or the approved hosts.
+    fn public(&self) -> String {
+        match self {
+            Listening::Reverse(_, public) => public.clone(),
+            Listening::Explicit(_, setup) => setup.policy.approved.join(","),
+        }
+    }
+}
+
+/// The explicit proxy of `--allow-host`: a CA of its own, whose certificate (never a key) goes to `--ca-out` for the test
+/// environment to trust.
+fn explicit(p: &Parsed, hosts: &str, listen: SocketAddr, sink: Sink, stop: Arc<AtomicBool>) -> Result<Listening, Fail> {
+    let Some(ca_out) = p.val("ca-out") else {
+        return Err(fail("--allow-host needs --ca-out <file>: where the test CA's certificate is written for the client to trust", EXPLICIT_NEXT));
+    };
+    let authority = Authority::new().map_err(|e| fail(format!("the test CA could not be made: {e}"), EXPLICIT_NEXT))?;
+    std::fs::write(ca_out, authority.certificate_pem()).map_err(|e| fail(format!("{ca_out}: {e}"), "name a writable --ca-out file"))?;
+    let upstream = upstream_config(p.val("upstream-ca").map(Path::new)).map_err(|e| fail(e, "name the PEM of the fixture server's CA with --upstream-ca"))?;
+    let policy = HostPolicy { approved: hosts.split(',').filter(|h| !h.is_empty()).map(String::from).collect(), offline: false };
+    let setup = Arc::new(Setup { policy, authority, upstream, sink, seen: Mutex::default(), options: Options { readable_bodies: true }, exchanges: AtomicU32::new(0), connections: AtomicU32::new(0) });
+    let forward = Forward::listen(listen, setup.clone(), stop).map_err(|e| fail(format!("the proxy did not listen on {listen}: {e}"), EXPLICIT_NEXT))?;
+    Ok(Listening::Explicit(forward, setup))
+}
+
 pub fn record_verb(p: &Parsed) -> Done {
     let Some(set_arg) = p.val("set") else { return Err(fail("--set <dir> is required", NEXT)) };
-    let Some(upstream) = p.val("upstream") else { return Err(fail("--upstream <url> is required", NEXT)) };
     let set = set_ref(set_arg);
     if set.dir.join("cassette.json").exists() {
         return Err(fail(format!("{} holds a recording of its own", set.dir.display()), "name another --set directory: a recording is never written over"));
     }
-    let upstream = upstream_addr(upstream)?;
     let listen = listen_addr(p.val("listen").unwrap_or("127.0.0.1:0"))?;
     let number = |name: &str| p.val(name).map(|v| v.parse::<u64>().map_err(|_| fail(format!("--{name} is not a number"), "wf mimic proxy record --help"))).transpose();
     let (duration, max_events) = (number("duration")?.filter(|d| *d > 0), number("max-events")?.unwrap_or(0));
@@ -132,8 +180,16 @@ pub fn record_verb(p: &Parsed) -> Done {
             }
         })
     };
-    let proxy = Proxy::listen_with(listen, upstream, sink, stop.clone(), Options { readable_bodies: true }).map_err(|e| fail(format!("the proxy did not listen on {listen}: {e}"), NEXT))?;
-    let (bound, public) = (proxy.addr(), upstream_public(upstream));
+    let proxy = match (p.val("upstream"), p.val("allow-host")) {
+        (Some(upstream), None) => {
+            let upstream = upstream_addr(upstream)?;
+            let proxy = Proxy::listen_with(listen, upstream, sink, stop.clone(), Options { readable_bodies: true }).map_err(|e| fail(format!("the proxy did not listen on {listen}: {e}"), NEXT))?;
+            Listening::Reverse(proxy, upstream_public(upstream))
+        }
+        (None, Some(hosts)) => explicit(p, hosts, listen, sink, stop.clone())?,
+        _ => return Err(fail("name the server with --upstream <url>, or the hosts an explicit proxy may read with --allow-host <host,...>: one of the two", NEXT)),
+    };
+    let (bound, public) = (proxy.addr(), proxy.public());
     if let Some(trace) = &trace {
         trace.lock().unwrap_or_else(|e| e.into_inner()).header(&public, bound);
     }
@@ -143,6 +199,10 @@ pub fn record_verb(p: &Parsed) -> Done {
     }
     eprintln!("mimic proxy record: listening on {bound}, forwarding to {public}, recording into {}", set.dir.display());
     serve_until(&stop, duration, &|| proxy.live());
+    let gaps = match &proxy {
+        Listening::Explicit(_, setup) => json!(gaps(&setup.policy, &setup.seen.lock().unwrap_or_else(|e| e.into_inner()))),
+        Listening::Reverse(..) => json!({}),
+    };
     drop(proxy);
     if let Some(trace) = &trace {
         trace.lock().unwrap_or_else(|e| e.into_inner()).footer();
@@ -176,7 +236,7 @@ pub fn record_verb(p: &Parsed) -> Done {
     let out = json!({
         "ok": ok, "set": set.name, "kind": cassette.header.provenance.kind, "upstream": public, "listen": bound.to_string(),
         "interactions": cassette.interactions.len(), "http": count("http"), "ws": count("ws"), "upstream_connections": conn::dials(),
-        "fixtures": recorded.sanitised.fixtures, "failures": recorded.failures, "gaps": [], "wrote": wrote, "warnings": [],
+        "fixtures": recorded.sanitised.fixtures, "failures": recorded.failures, "gaps": gaps, "wrote": wrote, "warnings": [],
         "next": format!("wf mimic proxy replay {}", set.dir.display()),
     });
     Ok((out, i32::from(!ok)))

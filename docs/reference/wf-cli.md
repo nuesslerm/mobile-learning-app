@@ -5427,7 +5427,7 @@ Exit 0 clean, 1 a connection failed, 2 a usage or environment error.
 
 Record a client against its server as a replayable cassette set
 
-Usage: `wf mimic proxy record [options] --set <dir> --upstream <url>`
+Usage: `wf mimic proxy record [options] --set <dir> (--upstream <url> | --allow-host <host,...> --ca-out <file>)`
 
 Examples:
 
@@ -5439,7 +5439,7 @@ wf mimic proxy record --set /tmp/t3-open-chat --upstream http://127.0.0.1:18498 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf mimic proxy record [options] --set <dir> --upstream <url>
+Usage: wf mimic proxy record [options] --set <dir> (--upstream <url> | --allow-host <host,...> --ca-out <file>)
 
 Record a client against the server it is configured for, as a cassette set a
 replay can answer from. The proxy is the same loopback reverse proxy as
@@ -5451,6 +5451,27 @@ needs, and nothing else:
   wf mimic proxy record --set /tmp/t3-open-chat --upstream http://127.0.0.1:18498 \
     --listen 127.0.0.1:18499 --preset t3 --duration 300
   wf mimic proxy replay /tmp/t3-open-chat --listen 127.0.0.1:18499
+
+With --allow-host the verb is an explicit proxy instead: the client is told to
+use the address it listens on as its HTTP and HTTPS proxy, and asks for hosts
+by name.
+
+  wf mimic proxy record --set /tmp/api-run --allow-host api.fixture.test,127.0.0.1:8443 \
+    --ca-out /tmp/mimic-ca.pem --listen 127.0.0.1:18700 --duration 300
+
+A host on the list is intercepted: the client meets a certificate of a test CA
+made for this run, and the real server's certificate is validated against the
+public roots and --upstream-ca before anything is sent to it. The CA's
+certificate is written to --ca-out for the test environment to trust; its key
+exists only in the memory of the verb and is never written. Every other host
+is tunnelled unread, so the other apps of the device keep working. HTTP/1.1
+and WebSocket are read, and the proxy offers nothing else to an intercepted
+client. "gaps" says what the recording does not cover: hosts whose client
+rejected the test CA (rejected_ca), hosts whose certificate did not validate
+(untrusted_upstream), hosts that passed through unread (tunnelled), and
+approved hosts no connection asked for (never_seen: a client that bypassed the
+proxy, or never used them). An exchange is written with its full address
+(row `http:GET https://host/path`).
 
 Nothing is written while the run lasts. When it ends (--duration, --max-events
 or Ctrl-C), what crossed is sanitised in memory and only then written:
@@ -5490,6 +5511,9 @@ A new set recorded with --preset t3 gets [proxy.replay] ignore_keys =
 Options:
   --set <dir>             the cassette set to write
   --upstream <url>        the server to record (http://127.0.0.1:<port>)
+  --allow-host <host[:port]>,...  be an explicit proxy, and read these hosts only
+  --ca-out <file>         with --allow-host: where the test CA's certificate is written
+  --upstream-ca <pem>     with --allow-host: one more CA a real server's certificate may chain to
   --listen <addr>         where to listen (default 127.0.0.1:0)
   --preset default|t3     the rules a new set gets (default: ids and times;
                           t3: the rules of the T3 conformance sets). A
@@ -5506,7 +5530,7 @@ Options:
 
 Output (schema mimic-proxy-record/1):
   {schema, ok, set, kind: recorded|authored, upstream, listen, interactions, http, ws, upstream_connections,
-  fixtures: {<kind>: count}, failures, gaps, wrote, warnings, next}
+  fixtures: {<kind>: count}, failures, gaps: {tunnelled, refused, rejected_ca, untrusted_upstream, never_seen}, wrote, warnings, next}
 Exit 0 written and clean, 1 a connection failed or the run could not be made
 safe (then "error" says where, never the value), 2 a usage or environment error.
 ```

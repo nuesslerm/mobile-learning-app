@@ -1,4 +1,5 @@
 pub mod bindings;
+pub mod host_policy;
 pub mod interactions;
 pub mod matching;
 pub mod mismatch;

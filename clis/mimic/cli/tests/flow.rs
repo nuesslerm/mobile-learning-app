@@ -41,6 +41,8 @@ mod proxy_check;
 mod proxy_record;
 #[path = "flow/proxy_shape.rs"]
 mod proxy_shape;
+#[path = "flow/proxy_tls.rs"]
+mod proxy_tls;
 #[path = "flow/proxy_vocabulary.rs"]
 mod proxy_vocabulary;
 #[path = "flow/record.rs"]

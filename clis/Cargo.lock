@@ -3801,7 +3801,9 @@ dependencies = [
  "mimic-script-host",
  "mimic-script-orca",
  "rca-exec",
+ "rcgen",
  "regex",
+ "rustls",
  "secrets",
  "serde",
  "serde_json",
@@ -3810,9 +3812,11 @@ dependencies = [
  "tempfile",
  "tiny_http",
  "toml",
+ "webpki-roots",
  "wf-bucket",
  "wf-kit",
  "wf-mimic",
+ "wf-testkit",
 ]
 
 [[package]]
