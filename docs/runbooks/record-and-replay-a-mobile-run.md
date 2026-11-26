@@ -66,7 +66,23 @@ Open the chat again. The same messages appear and the header shows no reconnect.
 
 When the app asks for something the set does not have, the replay closes that socket with code 1011 (or answers 502), exits 1 and names the route or RPC method, the nearest recording (`interactions.jsonl:<line>`, step) and the fields that differ. Two kinds of difference are normal for an unmodified client and are settled in the set, not in the client: a key it sends only on some runs goes into `[proxy.replay] ignore_keys`, and an id or time it makes up is masked by a rule in `rules.json`.
 
+## 5. A client that takes no server address: the explicit proxy
+
+When the app cannot be pointed at a server address, record with `--allow-host` instead of `--upstream`, and tell the client to use the address the verb listens on as its HTTP and HTTPS proxy.
+
+```sh
+wf mimic proxy record --set <set-dir> --allow-host api.fixture.test --ca-out /tmp/mimic-ca.pem \
+  --listen 127.0.0.1:18700 --duration 300
+wf mimic proxy replay <set-dir> --allow-host api.fixture.test --ca-out /tmp/mimic-ca.pem --listen 127.0.0.1:18700
+```
+
+The test environment must trust `/tmp/mimic-ca.pem`, the certificate of a CA made for that run; its key is never written. Approved hosts are intercepted and their own certificates validated; every other host is tunnelled unread while recording and refused while replaying. Read `gaps` in the output before trusting a recording: `rejected_ca` is a client that pins or distrusts the CA, `never_seen` is an approved host the client reached some other way or not at all, `tunnelled` is traffic nobody read.
+
+This mode is verified against a local HTTPS server with a test client, not yet on a device: nothing sets a simulator's or an emulator's proxy and trust store for you, and nothing restores them.
+
 ## What this covers
 
 - Client: T3 Code 2.3.0 (iOS simulator). Journey: launch already paired, reconnect, open one chat.
-- Protocols: HTTP/1.1 and WebSocket to a server address the app is configured with. No TLS interception and no system proxy are involved, so a client that takes no server address of its own is not covered yet.
+- Protocols on the device: HTTP/1.1 and WebSocket to a server address the app is configured with.
+- The explicit HTTPS proxy: record and replay of an HTTPS exchange against a local server (flow tests), with the gaps named. No device journey has run through it.
+- `wf mimic proxy check`: the recorded set against a replay of itself, and a candidate with one changed reply. Not yet against `rca-serve`.
