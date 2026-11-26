@@ -376,7 +376,17 @@ pub struct Evaluated {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Navigation {
+    pub url: String,
+    pub title: String,
+    pub can_go_back: bool,
+    pub can_go_forward: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Shot {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub navigation: Option<Navigation>,
     pub mime: String,
     pub data: String,
     pub bytes: usize,

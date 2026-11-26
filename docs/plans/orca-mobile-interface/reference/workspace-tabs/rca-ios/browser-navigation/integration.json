@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "verdict": "pass",
+  "expectedCases": 1,
+  "started": "2026-11-26T20:52:29.537Z",
+  "finished": "2026-11-26T20:52:38.834Z",
+  "durationS": 9.3,
+  "cases": [
+    {
+      "name": "browser::the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_in_the_executors_chromium",
+      "verdict": "pass"
+    }
+  ]
+}

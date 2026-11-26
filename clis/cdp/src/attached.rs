@@ -306,9 +306,13 @@ impl Attached {
         Ok(())
     }
 
+    pub fn navigation_history(&mut self) -> Result<Value, String> {
+        self.page_call("Page.getNavigationHistory", json!({}))
+    }
+
     /// One step through the page's history (`-1` back, `1` forward), waiting for the new document; an error when there is no such entry.
     pub fn history_step(&mut self, delta: i64) -> Result<(), String> {
-        let history = self.page_call("Page.getNavigationHistory", json!({}))?;
+        let history = self.navigation_history()?;
         let at = history["currentIndex"].as_i64().unwrap_or(0) + delta;
         let entry = usize::try_from(at).ok().and_then(|i| history["entries"].get(i)).and_then(|e| e["id"].as_i64()).ok_or_else(|| format!("the page has no {} entry in its history", if delta < 0 { "earlier" } else { "later" }))?;
         let _ = self.eval_page("window.__wfLeaving = true");

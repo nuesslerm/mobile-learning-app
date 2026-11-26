@@ -16,6 +16,8 @@ use std::time::{Duration, Instant};
 const CHROMIUM_ARGS: [&str; 9] = ["--disable-gpu", "--disable-dev-shm-usage", "--disable-extensions", "--mute-audio", "--window-size=1280,800", "--disable-features=OverscrollHistoryNavigation,BackForwardCache", "--proxy-bypass-list=<-loopback>", "--disable-quic", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"];
 
 struct Drive {
+    next_navigation_sample: Instant,
+    navigation: Option<exec_browser::Navigation>,
     viewport: Option<exec_browser::FrameViewport>,
     page: Attached,
     x: f64,
@@ -189,7 +191,7 @@ impl BrowserTable {
             if png.len() > SCREENSHOT_MAX {
                 return Err(ExecError::new(Code::Io, format!("the picture is larger than {SCREENSHOT_MAX} bytes")));
             }
-            Ok(Shot { mime: "image/png".into(), bytes: png.len(), data: base64::engine::general_purpose::STANDARD.encode(png) })
+            Ok(Shot { navigation: None, mime: "image/png".into(), bytes: png.len(), data: base64::engine::general_purpose::STANDARD.encode(png) })
         })
     }
 
@@ -203,7 +205,22 @@ impl BrowserTable {
             if jpeg.len() > SCREENSHOT_MAX {
                 return Err(ExecError::new(Code::Io, format!("the picture is larger than {SCREENSHOT_MAX} bytes")));
             }
-            Ok(Shot { mime: "image/jpeg".into(), bytes: jpeg.len(), data: base64::engine::general_purpose::STANDARD.encode(jpeg) })
+            if Instant::now() >= d.next_navigation_sample {
+                d.next_navigation_sample = Instant::now() + Duration::from_millis(400);
+                let history = d.page.navigation_history().map_err(io)?;
+                let index = history["currentIndex"].as_u64().map(|i| i as usize);
+                d.navigation = index.and_then(|i| {
+                    let entries = history["entries"].as_array()?;
+                    let entry = entries.get(i)?;
+                    Some(exec_browser::Navigation {
+                        url: entry["url"].as_str()?.to_owned(),
+                        title: entry["title"].as_str().unwrap_or_default().to_owned(),
+                        can_go_back: i > 0,
+                        can_go_forward: i + 1 < entries.len(),
+                    })
+                });
+            }
+            Ok(Shot { navigation: d.navigation.clone(), mime: "image/jpeg".into(), bytes: jpeg.len(), data: base64::engine::general_purpose::STANDARD.encode(jpeg) })
         })
     }
 
@@ -313,7 +330,7 @@ impl Inner {
         let mut page = Attached::attach_new(&endpoint).map_err(io)?;
         let policy = self.policy.clone();
         page.guard_requests(Arc::new(move |url| request_allowed(&policy, url))).map_err(io)?;
-        let drive = Arc::new(Mutex::new(Drive { viewport: None, page, x: 0.0, y: 0.0, buttons: 0 }));
+        let drive = Arc::new(Mutex::new(Drive { next_navigation_sample: Instant::now(), navigation: None, viewport: None, page, x: 0.0, y: 0.0, buttons: 0 }));
         state.pages.push(Entry { key: key.to_string(), drive: drive.clone(), used: Instant::now() });
         Ok(drive)
     }

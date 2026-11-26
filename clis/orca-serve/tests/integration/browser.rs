@@ -80,6 +80,9 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
         for width in [390, 520] {
             let frame = rca.call("browser", "browser.frame", json!({"workspace":"w1","key":page,"width":width,"height":680,"quality":72,"mobile":false})).expect("the executor captures the page");
             assert_eq!(frame["mime"], "image/jpeg");
+            assert_eq!(frame["navigation"]["url"], format!("{url}next"));
+            assert_eq!(frame["navigation"]["can_go_back"], true);
+            assert_eq!(frame["navigation"]["can_go_forward"], false);
             assert!(frame["data"].as_str().unwrap().starts_with("/9j/"));
             assert_eq!(eval(&mut rca, &page, "[innerWidth,innerHeight]"), json!([width,680]));
         }

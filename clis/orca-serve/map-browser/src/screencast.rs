@@ -57,6 +57,7 @@ pub(super) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription
         page,
         id,
         ready: Some(ready),
+        navigation: Value::Null,
         args,
         ack,
         pending: None,
@@ -77,6 +78,7 @@ struct Stream {
     page: Page,
     id: String,
     ready: Option<Value>,
+    navigation: Value,
     args: Value,
     ack: bool,
     pending: Option<u32>,
@@ -87,8 +89,15 @@ struct Stream {
 }
 
 impl Stream {
-    fn capture(&self) -> Result<Vec<u8>, Failure> {
+    fn capture(&mut self) -> Result<Vec<u8>, Failure> {
         let shot = ask(self.agent.as_ref(), FRAME, &self.page, self.args.clone())?;
+        if let Some(nav) = shot.get("navigation").filter(|nav| nav.is_object() && **nav != self.navigation) {
+            if self.page.named.is_some() {
+                let page = json!({"url":nav["url"],"title":nav["title"],"canGoBack":nav["can_go_back"],"canGoForward":nav["can_go_forward"]});
+                orca_map_workspace::layout::update_browser_location(self.agent.as_ref(), &self.page.workspace, &self.page.key, &page)?;
+            }
+            self.navigation = nav.clone();
+        }
         let jpeg = STANDARD
             .decode(shot["data"].as_str().unwrap_or_default())
             .map_err(|_| Failure::internal("Invalid browser image"))?;

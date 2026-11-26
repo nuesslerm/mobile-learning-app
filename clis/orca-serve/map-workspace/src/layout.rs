@@ -71,9 +71,14 @@ pub fn update_browser_location(agent: &dyn AgentApi, workspace: &str, id: &str, 
     let _turn = orca_core::kept_state_turn();
     let mut tabs = kept(agent, workspace)?;
     if let Some(tab) = tabs.iter_mut().find(|tab| tab["id"] == id && tab["kind"] == "browser") {
-        if tab["url"] != page["url"] || tab["title"] != page["title"] {
-            tab["url"] = page["url"].clone();
-            tab["title"] = page["title"].clone();
+        let mut changed = false;
+        for field in ["url", "title", "canGoBack", "canGoForward"] {
+            if let Some(value) = page.get(field).filter(|value| tab[field] != **value) {
+                tab[field] = value.clone();
+                changed = true;
+            }
+        }
+        if changed {
             keep(agent, &extras_key(workspace), Value::Array(tabs))?;
         }
     }
@@ -156,7 +161,7 @@ pub fn project(target: &Target, record: &Value, active: Option<&str>) -> Value {
     let id = record["id"].as_str().unwrap_or_default();
     let is_active = active == Some(id);
     if record["kind"] == "browser" {
-        return json!({"type":"browser","id":id,"browserPageId":id,"title":record["title"],"url":record["url"],"isActive":is_active,"isPinned":false,"color":null});
+        return json!({"type":"browser","id":id,"browserPageId":id,"title":record["title"],"url":record["url"],"canGoBack":record["canGoBack"].as_bool().unwrap_or(false),"canGoForward":record["canGoForward"].as_bool().unwrap_or(false),"isActive":is_active,"isPinned":false,"color":null});
     }
     if record["kind"] == "agent-session" {
         return json!({"type": "agent-session", "id": id, "title": record["title"], "sessionId": record["sessionId"], "agent": record["agent"], "color": null, "isPinned": false, "isActive": is_active});

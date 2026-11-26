@@ -1,1 +1,3 @@
 Stock Orca iOS 0.0.68 paired directly to orca-serve on the disposable rca-workspace-tabs simulator. RCA used the mobile web bundle from the installed Orca desktop app via --mobile-web-dir. The desktop fixture page sent a request when tapped and changed the button text from Send to Received. The two crops show the same area of the phone before and after the tap.
+
+On the named rca simulator, opening the saved browser after a host restart restored the desktop fixture. Orca rotated to 956 × 440 points. A link on the desktop page opened its second page. The phone’s Back and Forward controls returned to the input and then the second page, with the address field following Chromium. [Stock device screenshots, recording and results](browser-navigation/)
