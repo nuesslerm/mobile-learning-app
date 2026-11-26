@@ -167,9 +167,14 @@ export function ComposerSuggestionList({
       clearTimeout(timer);
     };
   }, [source, files, requestedQuery, attempt]);
+  const commands = source.commands ?? [];
+  const catalog = [
+    ...commands,
+    ...entries.filter(row => !commands.some(command => command.token === row.token && row.kind === 'command')),
+  ];
   const matches = files
     ? entries
-    : entries.filter((row) =>
+    : catalog.filter((row) =>
         row.token.toLowerCase().includes(query.toLowerCase())
       );
   const narrowed = matches.filter(

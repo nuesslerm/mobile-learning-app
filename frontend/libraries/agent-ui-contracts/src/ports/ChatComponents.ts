@@ -23,6 +23,7 @@ export interface ComposerSuggestion {
 }
 
 export interface ComposerSuggestions {
+  readonly commands?: readonly ComposerSuggestion[];
   files(query: string): Promise<readonly ComposerSuggestion[]>;
   catalog(): Promise<readonly ComposerSuggestion[]>;
 }
@@ -107,6 +108,8 @@ export interface SessionTabsSheetProps {
 }
 
 export interface ComposerOptionsProps {
+  visible: boolean;
+  onVisibleChange: (visible: boolean) => void;
   provider: string;
   selectedModel?: string;
   permission?: string;

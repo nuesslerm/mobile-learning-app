@@ -1,5 +1,5 @@
 import type { ComposerOptionsProps } from '@lib/agent-ui-contracts';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import Check from 'lucide-react-native/dist/esm/icons/check.mjs';
 import ChevronLeft from 'lucide-react-native/dist/esm/icons/chevron-left.mjs';
 import ChevronRight from 'lucide-react-native/dist/esm/icons/chevron-right.mjs';
@@ -33,30 +33,18 @@ export function ComposerOptions(props: ComposerOptionsProps) {
   const colors = useChatPalette();
   const reducedMotion = useReducedMotionEnabled();
   const { bottom } = useSafeAreaInsets();
-  const [page, setPage] = useState<'Model' | 'Permissions' | null>(null);
+  const [page, setPage] = useState<'Model' | 'Permissions'>('Model');
   const [models, setModels] = useState<readonly Choice[]>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const operation = useRef(0);
-  useEffect(
-    () => () => {
-      operation.current += 1;
-    },
-    []
-  );
+  const { visible, loadModels, onVisibleChange } = props;
   const ink = { color: colors.textPrimary };
-  function close() {
-    operation.current += 1;
-    setBusy(false);
-    setPage(null);
-  }
-  function open() {
-    Keyboard.dismiss();
-    setPage('Model');
+  const load = useCallback(() => {
     setError('');
     setModels(undefined);
     const request = ++operation.current;
-    void props.loadModels().then(
+    void loadModels().then(
       (choices) => {
         if (request === operation.current) setModels(choices);
       },
@@ -64,6 +52,17 @@ export function ComposerOptions(props: ComposerOptionsProps) {
         if (request === operation.current) setError('Could not load models.');
       }
     );
+  }, [loadModels]);
+  useEffect(() => {
+    if (!visible) return;
+    Keyboard.dismiss();
+    setPage('Model');
+    setBusy(false);
+    load();
+    return () => { operation.current += 1; };
+  }, [visible, load]);
+  function close() {
+    onVisibleChange(false);
   }
   function select(slug: string) {
     if (busy) return;
@@ -106,7 +105,7 @@ export function ComposerOptions(props: ComposerOptionsProps) {
           label +
           (props.permission === 'full-access' ? ', full access' : '')
         }
-        onPress={open}
+        onPress={() => onVisibleChange(true)}
         style={[styles.pill, { backgroundColor: colors.bgRaised }]}
       >
         {props.permission === 'full-access' && (
@@ -116,7 +115,7 @@ export function ComposerOptions(props: ComposerOptionsProps) {
           {label}
         </Text>
       </Pressable>
-      {page !== null && (
+      {visible && (
         <Modal
           visible
           transparent
@@ -266,7 +265,7 @@ export function ComposerOptions(props: ComposerOptionsProps) {
                   </Text>
                 )}
                 {!!error && !choices && (
-                  <Pressable accessibilityRole="button" onPress={open}>
+                  <Pressable accessibilityRole="button" onPress={load}>
                     <Text style={[styles.status, ink]}>Try again</Text>
                   </Pressable>
                 )}

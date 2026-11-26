@@ -254,6 +254,12 @@ export function openConversation(
   }
   return {
     close: () => close(),
+    get commands() {
+      const thread = snapshot?.thread;
+      return thread?.modelSelection?.instanceId || thread?.providerInstanceId
+        ? [{ kind: 'command' as const, token: '/model', description: 'Choose the model' }]
+        : [];
+    },
     async files(query) {
       return composerFiles(call, await checkoutPath(), query);
     },

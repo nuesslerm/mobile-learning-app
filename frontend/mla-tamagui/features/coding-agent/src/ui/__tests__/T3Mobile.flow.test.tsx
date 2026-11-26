@@ -218,6 +218,61 @@ describe('Orca chat with the T3 transport', () => {
     expect(screen.queryByRole('button', { name: '/status' })).toBeNull();
   });
 
+  it('Given a connected chat with a slow catalog, when /model is picked and sent, then its picker opens and no turn is dispatched', async () => {
+    const port = backend();
+    const connect = port.open;
+    const sent: string[] = [];
+    port.open = async (...args) => ({
+      ...await connect(...args),
+      commands: [{kind: 'command', token: '/model', description: 'Choose the model'}],
+      catalog: () => new Promise(() => {}),
+      send: async (_id, text) => { sent.push(text); },
+    });
+    await app.render('/coding-agent/thread-42', {overrides: {'coding-agent': {t3Mobile: port}}});
+    await userEvent.click(await screen.findByRole('button', {name: 'Add to message'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Commands'}));
+    await userEvent.click(await screen.findByRole('button', {name: '/model'}));
+    const field = screen.getByPlaceholderText('Ask anything, @ to mention files, / for commands') as HTMLTextAreaElement;
+    expect(field.value.trim()).toBe('/model');
+    expect(screen.queryByRole('button', {name: /^Default/})).toBeNull();
+    await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+    expect(await screen.findByRole('button', {name: /^Default/})).toBeTruthy();
+    expect(field.value).toBe('');
+    expect(sent).toEqual([]);
+    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+    expect(screen.queryByRole('button', {name: /^Default/})).toBeNull();
+  });
+
+  it('Given a model display name, when its command is refused and retried, then the draft stays until the selected model is saved', async () => {
+    const port = backend();
+    const connect = port.open;
+    const changes: string[][] = [];
+    const sent: string[] = [];
+    port.open = async (...args) => ({
+      ...await connect(...args),
+      models: async () => [{slug: 'minimax/flash', name: 'MiniMax Flash'}],
+      setModel: async (id, instance, model) => {
+        changes.push([id, instance, model]);
+        if (changes.length === 1) throw new Error('Host unavailable');
+      },
+      send: async (_id, text) => { sent.push(text); },
+    });
+    await app.render('/coding-agent/thread-42', {overrides: {'coding-agent': {t3Mobile: port}}});
+    await screen.findByRole('button', {name: 'Model, Model'});
+    const field = screen.getByPlaceholderText('Ask anything, @ to mention files, / for commands') as HTMLTextAreaElement;
+    await userEvent.type(field, '/MODEL minimax flash');
+    await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+    expect(await screen.findByText('Host unavailable')).toBeTruthy();
+    expect(field.value).toBe('/MODEL minimax flash');
+    await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+    await waitFor(() => expect(field.value).toBe(''));
+    expect(changes).toEqual(Array(2).fill(['new-message', 'opencode', 'minimax/flash']));
+    expect(sent).toEqual([]);
+    await userEvent.type(field, 'Explain /model');
+    await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+    expect(sent).toEqual(['Explain /model']);
+  });
+
   it('Given a connected chat, when the reader selects a model, then the current thread receives that model', async () => {
     const port = backend();
     const connect = port.open;

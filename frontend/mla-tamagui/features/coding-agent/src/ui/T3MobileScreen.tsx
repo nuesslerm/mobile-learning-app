@@ -97,7 +97,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
                 </HomeSettingsGroup>
                 {state.error ? (
                   <View>
-                    <Text accessibilityRole="alert">{state.error}</Text>
+                    <Text role="alert">{state.error}</Text>
                     <Button onPress={state.retry}>Try again</Button>
                   </View>
                 ) : (
@@ -137,7 +137,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
         />
       )}
       {state.error ? (
-        <Text accessibilityRole="alert">{state.error}</Text>
+        <Text role="alert">{state.error}</Text>
       ) : null}
       {state.pair === undefined ? (
         <Text>Opening connection…</Text>
@@ -160,6 +160,8 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
                   thread={state.snapshot.thread}
                   session={state.imageSession}
                   newId={api.newId}
+                  visible={state.modelPickerOpen}
+                  onVisibleChange={state.setModelPickerOpen}
                 />
               )
             }

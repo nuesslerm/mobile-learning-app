@@ -54,6 +54,7 @@ export type T3Shell = {
 
 export type T3ComposerEntry = { kind: 'command' | 'skill' | 'file'; token: string; description?: string; hint?: string };
 export interface T3Conversation {
+  readonly commands?: readonly T3ComposerEntry[];
   files(query: string): Promise<T3ComposerEntry[]>;
   catalog(): Promise<T3ComposerEntry[]>;
   models(instanceId: string): Promise<T3Model[]>;

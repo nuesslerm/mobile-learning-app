@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import type {
   T3Conversation,
@@ -16,7 +17,11 @@ export function T3ComposerOptions({
   thread,
   session,
   newId,
+  visible,
+  onVisibleChange,
 }: {
+  visible: boolean;
+  onVisibleChange: (visible: boolean) => void;
   thread: T3Thread;
   session: T3Conversation;
   newId: () => string;
@@ -24,6 +29,10 @@ export function T3ComposerOptions({
   const { ComposerOptions } = useAgentComponents();
   const provider =
     thread.modelSelection?.instanceId ?? thread.providerInstanceId;
+  const loadModels = useCallback(
+    () => provider ? session.models(provider) : Promise.resolve([]),
+    [session, provider]
+  );
   if (!provider) return null;
   const permissions = modes.filter(
     ({ slug }) =>
@@ -34,11 +43,13 @@ export function T3ComposerOptions({
   );
   return (
     <ComposerOptions
+      visible={visible}
+      onVisibleChange={onVisibleChange}
       provider={provider}
       selectedModel={thread.modelSelection?.model}
       permission={thread.runtimeMode ?? undefined}
       permissions={permissions}
-      loadModels={() => session.models(provider)}
+      loadModels={loadModels}
       setModel={(model) => session.setModel(newId(), provider, model)}
       setPermission={(value) => {
         const permission = permissions.find(({ slug }) => slug === value);

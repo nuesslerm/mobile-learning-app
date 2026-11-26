@@ -14,6 +14,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
   const [snapshot, setSnapshot] = useState<T3Snapshot>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [connected, setConnected] = useState(false);
   const [imageSession, setImageSession] = useState<T3Conversation>();
   const connection = useRef<T3Conversation | null>(null);
@@ -115,16 +116,36 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
   async function send() {
     const text = draft.trim();
     if (!connected || !connection.current || !text || sending.current) return;
+    const session = connection.current;
     sending.current = true;
     setBusy(true);
     if (pending.current?.text !== text)
       pending.current = { text, id: api.newId() };
     try {
-      await connection.current.send(pending.current.id, text);
+      const modelCommand = /^\/model(?:\s+([^\r\n\u2028\u2029]+))?$/i.exec(draft.trimEnd());
+      if (modelCommand) {
+        const thread = snapshot?.thread;
+        const provider = thread?.modelSelection?.instanceId ?? thread?.providerInstanceId;
+        if (!provider) throw new Error('The model picker is unavailable for this chat.');
+        const argument = modelCommand[1]?.trim();
+        if (argument) {
+          const choices = await session.models(provider);
+          if (connection.current !== session) return;
+          const name = argument.toLowerCase();
+          const choice = choices.find(row => row.name.toLowerCase() === name || row.slug.toLowerCase() === name);
+          await session.setModel(pending.current.id, provider, choice?.slug ?? argument);
+        } else {
+          setModelPickerOpen(true);
+        }
+      } else {
+        await session.send(pending.current.id, text);
+      }
+      if (connection.current !== session) return;
+      setError('');
       setDraft((current) => (current === draft ? '' : current));
       pending.current = null;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sending failed.');
+      if (connection.current === session) setError(e instanceof Error ? e.message : 'Sending failed.');
     } finally {
       sending.current = false;
       setBusy(false);
@@ -144,6 +165,8 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     error,
     retry,
     send,
+    modelPickerOpen,
+    setModelPickerOpen,
     draft,
     setDraft,
   };
