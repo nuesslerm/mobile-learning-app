@@ -1,6 +1,12 @@
 import type { ComposerOptionsProps } from '@lib/agent-ui-contracts';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import Check from 'lucide-react-native/dist/esm/icons/check.mjs';
+import ChevronLeft from 'lucide-react-native/dist/esm/icons/chevron-left.mjs';
+import ChevronRight from 'lucide-react-native/dist/esm/icons/chevron-right.mjs';
+import FilePenLine from 'lucide-react-native/dist/esm/icons/file-pen-line.mjs';
+import Hand from 'lucide-react-native/dist/esm/icons/hand.mjs';
+import ShieldAlert from 'lucide-react-native/dist/esm/icons/shield-alert.mjs';
+import ShieldCheck from 'lucide-react-native/dist/esm/icons/shield-check.mjs';
 import {
   Keyboard,
   Modal,
@@ -11,12 +17,21 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReducedMotionEnabled } from './useReducedMotion';
 import { useChatPalette } from './chatPalette';
+
+const permissionIcons = new Map([
+  ['approval-required', Hand],
+  ['auto-accept-edits', FilePenLine],
+  ['auto', ShieldCheck],
+  ['full-access', ShieldAlert],
+]);
 
 type Choice = { slug: string; name: string };
 
 export function ComposerOptions(props: ComposerOptionsProps) {
   const colors = useChatPalette();
+  const reducedMotion = useReducedMotionEnabled();
   const { bottom } = useSafeAreaInsets();
   const [page, setPage] = useState<'Model' | 'Permissions' | null>(null);
   const [models, setModels] = useState<readonly Choice[]>();
@@ -86,16 +101,28 @@ export function ComposerOptions(props: ComposerOptionsProps) {
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={'Model, ' + label}
+        accessibilityLabel={
+          'Model, ' +
+          label +
+          (props.permission === 'full-access' ? ', full access' : '')
+        }
         onPress={open}
         style={[styles.pill, { backgroundColor: colors.bgRaised }]}
       >
+        {props.permission === 'full-access' && (
+          <ShieldAlert size={15} color={colors.statusAmber} strokeWidth={2.2} />
+        )}
         <Text numberOfLines={1} style={[styles.title, ink]}>
           {label}
         </Text>
       </Pressable>
       {page !== null && (
-        <Modal visible transparent animationType="slide" onRequestClose={close}>
+        <Modal
+          visible
+          transparent
+          animationType={reducedMotion ? 'fade' : 'slide'}
+          onRequestClose={close}
+        >
           <View style={styles.overlay}>
             <Pressable
               accessibilityLabel="Dismiss"
@@ -108,8 +135,8 @@ export function ComposerOptions(props: ComposerOptionsProps) {
               style={[
                 styles.sheet,
                 {
-                  paddingBottom: Math.max(20, bottom + 12),
-                  backgroundColor: colors.bgRaised,
+                  paddingBottom: bottom + 20,
+                  backgroundColor: colors.sheetSurface,
                 },
               ]}
             >
@@ -137,43 +164,93 @@ export function ComposerOptions(props: ComposerOptionsProps) {
                 </Pressable>
               </View>
               <ScrollView bounces={false} keyboardShouldPersistTaps="handled">
-                <Text style={[styles.section, { color: colors.textSecondary }]}>
-                  {page}
-                </Text>
+                {page === 'Model' ? (
+                  <Text
+                    style={[
+                      styles.section,
+                      styles.firstSection,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Model
+                  </Text>
+                ) : (
+                  <View style={{ height: 8 }} />
+                )}
                 <View
                   style={[styles.group, { backgroundColor: colors.bgGroup }]}
                 >
-                  {choices?.map((choice, index) => (
-                    <Pressable
-                      key={choice.slug}
-                      accessibilityRole="button"
-                      accessibilityState={{
-                        selected: selected === choice.slug,
-                        disabled: busy,
-                      }}
-                      disabled={busy}
-                      onPress={() => select(choice.slug)}
-                      style={[
-                        styles.row,
-                        index > 0 && {
-                          borderTopWidth: StyleSheet.hairlineWidth,
-                          borderColor: colors.borderSubtle,
-                        },
-                      ]}
-                    >
-                      <View style={styles.name}>
-                        <Text style={ink}>{choice.name}</Text>
-                        {page === 'Model' && choice.slug === 'default' && (
-                          <Text style={{ color: colors.textSecondary }}>
-                            The model {props.provider} is configured with
-                          </Text>
+                  {choices?.map((choice, index) => {
+                    const Icon =
+                      page === 'Permissions'
+                        ? permissionIcons.get(choice.slug)
+                        : undefined;
+                    const subtitle =
+                      page === 'Model' && choice.slug === 'default';
+                    return (
+                      <Fragment key={choice.slug}>
+                        {index > 0 && (
+                          <View
+                            style={[
+                              styles.separator,
+                              {
+                                marginLeft: Icon ? 52 : 16,
+                                backgroundColor: colors.borderSubtle,
+                              },
+                            ]}
+                          />
                         )}
-                      </View>
-                      {selected === choice.slug && (
-                        <Check size={17} color={colors.textPrimary} />
-                      )}
-                    </Pressable>
-                  ))}
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityState={{
+                            selected: selected === choice.slug,
+                            disabled: busy,
+                          }}
+                          disabled={busy}
+                          onPress={() => select(choice.slug)}
+                          style={[styles.row, subtitle && styles.twoLine]}
+                        >
+                          {Icon && (
+                            <View style={styles.leadingIcon}>
+                              <Icon
+                                size={18}
+                                strokeWidth={2.2}
+                                color={
+                                  choice.slug === 'full-access'
+                                    ? colors.statusAmber
+                                    : colors.textSecondary
+                                }
+                              />
+                            </View>
+                          )}
+                          <View style={styles.name}>
+                            <Text
+                              style={[
+                                styles.rowTitle,
+                                ink,
+                                subtitle && styles.emphasis,
+                              ]}
+                            >
+                              {choice.name}
+                            </Text>
+                            {subtitle && (
+                              <Text
+                                style={[
+                                  styles.subtitle,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
+                                The model {props.provider} is configured with
+                              </Text>
+                            )}
+                          </View>
+                          {selected === choice.slug && (
+                            <Check size={17} color={colors.textPrimary} />
+                          )}
+                        </Pressable>
+                      </Fragment>
+                    );
+                  })}
                   {choices?.length === 0 && (
                     <Text style={[styles.status, ink]}>
                       No models available
@@ -210,9 +287,12 @@ export function ComposerOptions(props: ComposerOptionsProps) {
                         { backgroundColor: colors.bgGroup },
                       ]}
                     >
-                      <Text style={[styles.name, ink]}>Permissions</Text>
+                      <Text style={[styles.name, styles.rowTitle, ink]}>
+                        Permissions
+                      </Text>
                       <Text
                         style={{
+                          fontSize: 15,
                           color:
                             permission.slug === 'full-access'
                               ? colors.statusAmber
@@ -237,6 +317,9 @@ export function ComposerOptions(props: ComposerOptionsProps) {
 const styles = StyleSheet.create({
   pill: {
     height: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
     borderRadius: 20,
     justifyContent: 'center',
@@ -251,31 +334,55 @@ const styles = StyleSheet.create({
   sheet: {
     maxHeight: '84%',
     paddingHorizontal: 12,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   handle: {
-    width: 38,
+    width: 36,
     height: 5,
     alignSelf: 'center',
     borderRadius: 3,
     marginTop: 8,
-    opacity: 0.45,
+    opacity: 0.5,
   },
-  header: { height: 58, justifyContent: 'center', alignItems: 'center' },
+  header: {
+    marginTop: 8,
+    height: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   heading: { fontSize: 16, fontWeight: '600' },
-  done: { position: 'absolute', right: 8, padding: 8 },
+  done: {
+    position: 'absolute',
+    right: 4,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+  },
   back: { position: 'absolute', left: 4, padding: 8 },
-  section: { fontSize: 13, marginLeft: 16, marginTop: 12, marginBottom: 8 },
+  section: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 16,
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  firstSection: { marginTop: 4 },
   group: { borderRadius: 16, overflow: 'hidden' },
   row: {
     minHeight: 48,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
+  leadingIcon: { width: 24, alignItems: 'center' },
+  separator: { height: StyleSheet.hairlineWidth },
+  rowTitle: { fontSize: 15 },
+  emphasis: { fontWeight: '500' },
+  subtitle: { fontSize: 13 },
+  twoLine: { minHeight: 60 },
   name: { flex: 1, gap: 2 },
   status: { padding: 14 },
 });
