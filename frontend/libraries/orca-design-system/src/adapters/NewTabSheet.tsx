@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   Asterisk,
-  ChevronLeft,
   ChevronRight,
   FileText,
   Globe,
@@ -31,6 +30,7 @@ export function NewTabSheet({
   const scheme = useOrcaScheme();
   const c = homePalettes[scheme];
   const [browser, setBrowser] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [url, setUrl] = useState('');
   const ink = { color: c.textPrimary };
   const card = { backgroundColor: c.bgGroup };
@@ -49,61 +49,97 @@ export function NewTabSheet({
       {(dismiss) => (
         <>
           <View style={[styles.handle, { backgroundColor: c.textMuted }]} />
-          <View style={styles.heading}>
-            {browser && (
-              <Pressable
-                accessibilityLabel="Back"
-                accessibilityRole="button"
-                style={styles.back}
-                onPress={() => setBrowser(false)}
-              >
-                <ChevronLeft size={19} color={c.textPrimary} />
-              </Pressable>
-            )}
-            <Text accessibilityRole="header" style={[styles.title, ink]}>
-              {browser ? 'New Browser Tab' : 'New Tab'}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={{ color: c.textMuted, fontSize: 12 }}
-            >
-              {workspace}
-            </Text>
-            <Pressable
-              style={styles.close}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              onPress={() => dismiss()}
-            >
-              <X size={18} color={c.textPrimary} />
-            </Pressable>
-          </View>
           {browser ? (
             <>
+              <View style={{ padding: 4, paddingVertical: 8 }}>
+                <Text
+                  accessibilityRole="header"
+                  style={[ink, { fontSize: 15, fontWeight: '600' }]}
+                >
+                  New Browser
+                </Text>
+                <Text
+                  style={{ color: c.textMuted, fontSize: 13, marginTop: 2 }}
+                >
+                  Enter a URL, or leave blank for a new tab.
+                </Text>
+              </View>
               <TextInput
                 accessibilityLabel="Browser URL"
                 autoFocus
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
-                placeholder="Enter URL"
+                returnKeyType="done"
+                selectTextOnFocus
+                placeholder="https://example.com"
                 placeholderTextColor={c.textMuted}
                 value={url}
                 onChangeText={setUrl}
-                style={[styles.address, ink, card]}
-              />
-              <Pressable
-                accessibilityRole="button"
-                style={[styles.open, card]}
-                onPress={() =>
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onSubmitEditing={() =>
                   dismiss(() => onCreate('browser', url.trim() || undefined))
                 }
+                style={[
+                  styles.address,
+                  ink,
+                  card,
+                  {
+                    borderWidth: 2,
+                    borderColor: focused ? c.accentBlue : c.borderSubtle,
+                  },
+                ]}
+              />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  gap: 8,
+                  marginTop: 12,
+                }}
               >
-                <Text style={ink}>Open</Text>
-              </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.open}
+                  onPress={() => dismiss()}
+                >
+                  <Text style={[ink, { fontWeight: '600' }]}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  style={[styles.open, { backgroundColor: c.textPrimary }]}
+                  onPress={() =>
+                    dismiss(() => onCreate('browser', url.trim() || undefined))
+                  }
+                >
+                  <Text style={{ color: c.bgBase, fontWeight: '600' }}>
+                    Open
+                  </Text>
+                </Pressable>
+              </View>
             </>
           ) : (
             <>
+              <View style={styles.heading}>
+                <Text accessibilityRole="header" style={[styles.title, ink]}>
+                  New Tab
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={{ color: c.textMuted, fontSize: 12 }}
+                >
+                  {workspace}
+                </Text>
+                <Pressable
+                  style={styles.close}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  onPress={() => dismiss()}
+                >
+                  <X size={18} color={c.textPrimary} />
+                </Pressable>
+              </View>
               {agents.length > 0 && (
                 <>
                   <Text style={[styles.label, { color: c.textSecondary }]}>
@@ -194,7 +230,6 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 17, fontWeight: '600' },
   close: { position: 'absolute', right: 0, padding: 14 },
-  back: { position: 'absolute', left: 0, padding: 14 },
   label: {
     fontSize: 12,
     fontWeight: '500',
@@ -224,10 +259,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   rowText: { flex: 1, fontSize: 15 },
-  address: { borderRadius: 12, padding: 14, marginVertical: 8 },
+  address: { borderRadius: 12, paddingHorizontal: 12, height: 46 },
   open: {
     alignSelf: 'flex-end',
-    borderRadius: 9,
+    borderRadius: 12,
     paddingHorizontal: 18,
     paddingVertical: 10,
   },

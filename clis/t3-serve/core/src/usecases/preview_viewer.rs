@@ -226,7 +226,7 @@ impl Viewer {
             "key" if msg["action"] == "down" => {
                 self.page(
                     "browser.input",
-                    json!({"kind":"key_press","key":msg["key"]}),
+                    json!({"kind":"key_press","text":msg["key"]}),
                 )?;
             }
             "navigate" | "history" | "reload" => {

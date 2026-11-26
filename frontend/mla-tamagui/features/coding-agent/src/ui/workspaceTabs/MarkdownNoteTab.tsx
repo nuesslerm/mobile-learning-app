@@ -1,5 +1,6 @@
+import { BottomSheet } from '@lib/orca-design-system';
 import { useEffect, useRef, useState } from 'react';
-import { Button, Text, View } from 'react-native';
+import { Button, Keyboard, Pressable, Text, View } from 'react-native';
 import type { Pairing } from '../../domain/mobile';
 import type {
   NoteDraft,
@@ -8,7 +9,7 @@ import type {
 import { Logger } from '@lib/logging';
 
 import { RichNoteEditor } from './RichNoteEditor';
-import { TabControl } from './TabControls';
+import { useTabColors } from './TabControls';
 import { useCodingAgentPorts } from '../../state/ports';
 
 type Props = {
@@ -28,6 +29,8 @@ export function MarkdownNoteTab({
   directory,
 }: Props) {
   const { copyMessage } = useCodingAgentPorts();
+  const c = useTabColors();
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draft, setDraft] = useState<NoteDraft>();
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -94,52 +97,140 @@ export function MarkdownNoteTab({
           }}
         />
       )}
-      {draft && draft.previous === draft.content && (
+      {draft && (
         <View
           style={{
-            flexDirection: 'row',
-            justifyContent: 'flex-end',
-            gap: 6,
-            padding: 8,
+            position: 'absolute',
+            bottom: 12,
+            right: 12,
+            left: 12,
+            alignItems: 'flex-end',
+            gap: 4,
           }}
+          pointerEvents="box-none"
         >
-          <TabControl
-            label="Copy"
-            onPress={() => void copyMessage(draft.content)}
-          />
-          <TabControl
-            label="Copy path"
-            onPress={() =>
-              void copyMessage(
-                path.startsWith('/')
-                  ? path
-                  : directory.replace(/\/$/, '') + '/' + path
-              )
-            }
-          />
+          {!!error && (
+            <Text
+              accessibilityRole="alert"
+              style={{ color, backgroundColor: c.bg }}
+            >
+              {error}
+            </Text>
+          )}
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              gap: 4,
+            }}
+          >
+            {[
+              {
+                label: 'Copy',
+                accessibility: 'Copy Markdown source',
+                act: () => void copyMessage(draft.content),
+              },
+              {
+                label: 'Copy path',
+                accessibility: 'Copy Markdown path',
+                act: () =>
+                  void copyMessage(
+                    path.startsWith('/')
+                      ? path
+                      : directory.replace(/\/$/, '') + '/' + path
+                  ),
+              },
+              ...(draft.previous !== draft.content
+                ? [
+                    {
+                      label: 'Discard',
+                      accessibility: 'Discard',
+                      act: () => {
+                        Keyboard.dismiss();
+                        setConfirmDiscard(true);
+                      },
+                    },
+                    {
+                      label: 'Save',
+                      accessibility: 'Save',
+                      act: () => void save(),
+                    },
+                  ]
+                : []),
+            ].map((item) => (
+              <Pressable
+                key={item.label}
+                accessibilityRole="button"
+                accessibilityLabel={item.accessibility}
+                disabled={saving}
+                style={{
+                  backgroundColor: c.surface,
+                  borderRadius: 12,
+                  minHeight: 34,
+                  paddingHorizontal: 12,
+                  justifyContent: 'center',
+                  opacity: saving ? 0.45 : 1,
+                }}
+                onPress={item.act}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: c.ink }}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       )}
-      {error ? (
-        <Text accessibilityRole="alert" style={{ color }}>
-          {error}
-        </Text>
-      ) : null}
-      {draft && draft.previous !== draft.content ? (
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-          <Button
-            title="Discard"
-            disabled={saving}
-            onPress={() => {
-              setDraft(undefined);
-              void persist(null).then(() => refresh((n) => n + 1));
-            }}
-          />
-          <Button title="Save" disabled={saving} onPress={() => void save()} />
-        </View>
-      ) : (
-        !!error && (
+      {!draft && !!error && (
+        <>
+          <Text accessibilityRole="alert" style={{ color }}>
+            {error}
+          </Text>
           <Button title="Retry" onPress={() => refresh((n) => n + 1)} />
-        )
+        </>
+      )}
+      {confirmDiscard && (
+        <BottomSheet
+          onClose={() => setConfirmDiscard(false)}
+          style={{
+            backgroundColor: c.bg,
+            borderTopLeftRadius: 22,
+            borderTopRightRadius: 22,
+            padding: 16,
+            paddingBottom: 32,
+          }}
+        >
+          {(dismiss) => (
+            <>
+              <Text
+                accessibilityRole="header"
+                style={{ fontSize: 16, fontWeight: '600', color }}
+              >
+                Discard changes?
+              </Text>
+              <Text style={{ color: c.muted, marginVertical: 8 }}>
+                Replace the phone draft with the latest desktop file?
+              </Text>
+              <View
+                style={{ flexDirection: 'row', justifyContent: 'flex-end' }}
+              >
+                <Button title="Cancel" onPress={() => dismiss()} />
+                <Button
+                  title="Discard"
+                  color="#c42d36"
+                  onPress={() =>
+                    dismiss(() => {
+                      setConfirmDiscard(false);
+                      setDraft(undefined);
+                      void persist(null).then(() => refresh((n) => n + 1));
+                    })
+                  }
+                />
+              </View>
+            </>
+          )}
+        </BottomSheet>
       )}
     </View>
   );

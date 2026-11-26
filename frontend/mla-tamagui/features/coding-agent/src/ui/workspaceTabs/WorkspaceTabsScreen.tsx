@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Button, Text, View, useColorScheme } from 'react-native';
+import {
+  Button,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+  useColorScheme,
+} from 'react-native';
 import { router } from 'expo-router';
 import {
   SafeAreaView,
@@ -112,117 +119,148 @@ export function WorkspaceTabsScreen({
       setAgentError('Could not start ' + agent.name + ' in this checkout.');
     }
   };
+  const browserZoom = Platform.OS === 'ios' && active?.kind === 'browser';
+  const SessionViewport = browserZoom ? ScrollView : View;
   return (
     <ChatSurface>
       <SafeAreaView edges={['left', 'right']} style={{ flex: 1 }}>
-        <SessionHeader
-          workspace={name}
-          title={active?.title ?? name}
-          connected={!!layout && !error}
-          tabs={tabs}
-          activeId={active?.id}
-          onSelectTab={(id) => void select(id)}
-          branch={tabs.length === 1 ? '1 tab' : tabs.length + ' tabs'}
-          onOpenSourceControl={() =>
-            router.push(
-              `/coding-agent/source-control?checkoutId=${encodeURIComponent(checkout)}`
-            )
-          }
-          tabCount={tabs.length}
-          topInset={top}
-          directory={layout?.directory}
-          onBack={onBack}
-          onReconnect={() => void run()}
-          onShowTabs={() => setSheet('tabs')}
-          onNewTab={() => setSheet('new')}
-        />
-        {error instanceof WorktreeMissing || error instanceof RcaUnavailable ? (
-          <AvailabilityNotice
-            missing={error instanceof WorktreeMissing}
-            reconnecting={error instanceof RcaUnavailable}
-            onAction={() =>
-              error instanceof WorktreeMissing
-                ? router.replace('/coding-agent?host=1')
-                : void run()
+        <SessionViewport
+          style={{ flex: 1 }}
+          {...(browserZoom
+            ? {
+                maximumZoomScale: 3.5,
+                minimumZoomScale: 1,
+                pinchGestureEnabled: true,
+                bounces: false,
+                keyboardShouldPersistTaps: 'always' as const,
+                contentInsetAdjustmentBehavior: 'never' as const,
+                showsVerticalScrollIndicator: false,
+                showsHorizontalScrollIndicator: false,
+                contentContainerStyle: { flex: 1 },
+              }
+            : {})}
+        >
+          <SessionHeader
+            workspace={name}
+            title={active?.title ?? name}
+            connected={!!layout && !error}
+            tabs={tabs}
+            activeId={active?.id}
+            onSelectTab={(id) => void select(id)}
+            branch={tabs.length === 1 ? '1 tab' : tabs.length + ' tabs'}
+            onOpenSourceControl={() =>
+              router.push(
+                `/coding-agent/source-control?checkoutId=${encodeURIComponent(checkout)}`
+              )
             }
+            tabCount={tabs.length}
+            topInset={top}
+            directory={layout?.directory}
+            onBack={onBack}
+            onReconnect={() => void run()}
+            onShowTabs={() => setSheet('tabs')}
+            onNewTab={() => setSheet('new')}
           />
-        ) : error || agentError ? (
-          <Text accessibilityRole="alert" style={{ color, padding: 12 }}>
-            {error?.message ?? agentError}
-          </Text>
-        ) : null}
-        {active &&
-        layout &&
-        foreground &&
-        !(error instanceof WorktreeMissing) ? (
-          <ChatKeyboardArea>
-            {active.kind === 'terminal' && (
-              <TerminalTab api={api} pair={pair} layout={layout} tab={active} />
-            )}
-            {active.kind === 'browser' && (
-              <BrowserTab
-                api={api}
-                pair={pair}
-                layout={layout}
-                tab={active}
-                color={color}
-              />
-            )}
-            {active.kind === 'markdown' && (
-              <MarkdownNoteTab
-                key={active.id}
-                api={api}
-                pair={pair}
-                checkout={checkout}
-                directory={layout.directory}
-                path={active.resource}
-                color={color}
-              />
-            )}
-          </ChatKeyboardArea>
-        ) : layout && !active && !error ? (
-          <View
-            style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Button
-              title="New Tab"
-              disabled={busy}
-              onPress={() => setSheet('new')}
+          {error instanceof WorktreeMissing ||
+          error instanceof RcaUnavailable ? (
+            <AvailabilityNotice
+              missing={error instanceof WorktreeMissing}
+              reconnecting={error instanceof RcaUnavailable}
+              onAction={() =>
+                error instanceof WorktreeMissing
+                  ? router.replace('/coding-agent?host=1')
+                  : void run()
+              }
             />
-          </View>
-        ) : null}
-        {sheet === 'new' && layout && (
-          <NewTabSheet
-            workspace={name}
-            agents={agents}
-            bottomInset={bottom}
-            onClose={() => setSheet(undefined)}
-            onAgent={(id) => void startAgent(id)}
-            onCreate={(kind, url) => {
-              setSheet(undefined);
-              void run({
-                action: 'create',
-                kind,
-                url,
-                id: mobile.newId().replace(/-/g, '').slice(0, 20),
-              });
-            }}
-          />
-        )}
-        {sheet === 'tabs' && (
-          <SessionTabsSheet
-            visible
-            workspace={name}
-            sessions={tabs}
-            activeId={active?.id ?? ''}
-            bottomInset={bottom}
-            onClose={() => setSheet(undefined)}
-            onRetry={() => void run()}
-            onSelect={(id) => void select(id)}
-            closeableIds={layout?.tabs.map((t) => t.id)}
-            onCloseTab={(id) => void run({ action: 'close', id })}
-          />
-        )}
+          ) : error || agentError ? (
+            <Text accessibilityRole="alert" style={{ color, padding: 12 }}>
+              {error?.message ?? agentError}
+            </Text>
+          ) : null}
+          {active &&
+          layout &&
+          foreground &&
+          !(error instanceof WorktreeMissing) ? (
+            <ChatKeyboardArea
+              restingBottom={active.kind === 'markdown' ? 4 : undefined}
+            >
+              {active.kind === 'terminal' && (
+                <TerminalTab
+                  api={api}
+                  pair={pair}
+                  layout={layout}
+                  tab={active}
+                />
+              )}
+              {active.kind === 'browser' && (
+                <BrowserTab
+                  api={api}
+                  pair={pair}
+                  layout={layout}
+                  tab={active}
+                  color={color}
+                />
+              )}
+              {active.kind === 'markdown' && (
+                <MarkdownNoteTab
+                  key={active.id}
+                  api={api}
+                  pair={pair}
+                  checkout={checkout}
+                  directory={layout.directory}
+                  path={active.resource}
+                  color={color}
+                />
+              )}
+            </ChatKeyboardArea>
+          ) : layout && !active && !error ? (
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Button
+                title="New Tab"
+                disabled={busy}
+                onPress={() => setSheet('new')}
+              />
+            </View>
+          ) : null}
+          {sheet === 'new' && layout && (
+            <NewTabSheet
+              workspace={name}
+              agents={agents}
+              bottomInset={bottom}
+              onClose={() => setSheet(undefined)}
+              onAgent={(id) => void startAgent(id)}
+              onCreate={(kind, url) => {
+                setSheet(undefined);
+                void run({
+                  action: 'create',
+                  kind,
+                  url,
+                  id: mobile.newId().replace(/-/g, '').slice(0, 20),
+                });
+              }}
+            />
+          )}
+          {sheet === 'tabs' && (
+            <SessionTabsSheet
+              visible
+              workspace={name}
+              sessions={tabs}
+              activeId={active?.id ?? ''}
+              bottomInset={bottom}
+              onClose={() => setSheet(undefined)}
+              onRetry={() => void run()}
+              onSelect={(id) => void select(id)}
+              closeableIds={layout?.tabs.map((t) => t.id)}
+              onCloseTab={(id) => void run({ action: 'close', id })}
+            />
+          )}
+        </SessionViewport>
       </SafeAreaView>
     </ChatSurface>
   );

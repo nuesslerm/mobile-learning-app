@@ -36,7 +36,7 @@ const items = [
   ['heading3', 'H3', Heading3],
   ['bold', 'Bold', Bold],
   ['italic', 'Italic', Italic],
-  ['strike', 'Strikethrough', Strikethrough],
+  ['strike', 'Strike', Strikethrough],
   ['bulletList', 'Bullet list', List],
   ['orderedList', 'Numbered list', ListOrdered],
   ['taskList', 'Task list', ListTodo],
@@ -151,7 +151,11 @@ export function RichNoteEditor({
           horizontal
           keyboardShouldPersistTaps="always"
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 6 }}
+          contentContainerStyle={{
+            alignItems: 'center',
+            paddingHorizontal: 8,
+            gap: 6,
+          }}
         >
           {items.map(([cmd, label, Icon]) => (
             <Pressable
@@ -160,8 +164,8 @@ export function RichNoteEditor({
               disabled={!ready || !editable}
               key={cmd}
               style={{
-                width: 36,
-                height: 40,
+                width: 30,
+                height: 30,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}

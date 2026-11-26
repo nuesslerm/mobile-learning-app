@@ -4,7 +4,13 @@ import { KeyboardAvoidingView, Platform, View } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export function ChatKeyboardArea({ children }: { children: ReactNode }) {
+export function ChatKeyboardArea({
+  children,
+  restingBottom,
+}: {
+  children: ReactNode;
+  restingBottom?: number;
+}) {
   const { bottom } = useSafeAreaInsets();
   const frame = useKeyboardFrame();
   return (
@@ -16,7 +22,15 @@ export function ChatKeyboardArea({ children }: { children: ReactNode }) {
         paddingBottom: Platform.OS === 'web' ? frame.height : 0,
       }}
     >
-      <View style={{ flex: 1, minHeight: 0, paddingBottom: frame.height > 0 ? 0 : bottom }}>{children}</View>
+      <View
+        style={{
+          flex: 1,
+          minHeight: 0,
+          paddingBottom: frame.height > 0 ? 0 : (restingBottom ?? bottom),
+        }}
+      >
+        {children}
+      </View>
     </KeyboardAvoidingView>
   );
 }

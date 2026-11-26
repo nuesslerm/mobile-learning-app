@@ -106,15 +106,16 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 2,
-          paddingHorizontal: 5,
-          height: 36,
+          gap: 4,
+          paddingHorizontal: 8,
+          height: 34,
           borderBottomWidth: 1,
           borderColor: c.border,
           backgroundColor: c.bg,
         }}
       >
         <TabControl
+          browser="tool"
           label="Back in browser"
           disabled={!history.back}
           onPress={() => stream.current?.history(-1)}
@@ -122,13 +123,18 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           <ChevronLeft size={15} color={color} />
         </TabControl>
         <TabControl
+          browser="tool"
           label="Forward in browser"
           disabled={!history.forward}
           onPress={() => stream.current?.history(1)}
         >
           <ChevronRight size={15} color={color} />
         </TabControl>
-        <TabControl label="Reload" onPress={() => stream.current?.reload()}>
+        <TabControl
+          browser="tool"
+          label="Reload"
+          onPress={() => stream.current?.reload()}
+        >
           <RefreshCw size={14} color={color} />
         </TabControl>
         <TextInput
@@ -167,6 +173,7 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           }}
         />
         <TabControl
+          browser="tool"
           label="Show web website view"
           selected={!mobile}
           onPress={() => setMobile(false)}
@@ -174,6 +181,7 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           <Monitor size={14} color={!mobile ? c.bg : color} />
         </TabControl>
         <TabControl
+          browser="tool"
           label="Show mobile website view"
           selected={mobile}
           onPress={() => setMobile(true)}
@@ -221,6 +229,7 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           {['Cmd', 'Ctrl', 'Alt', 'Shift'].map((label) => (
             <TabControl
               key={label}
+              browser="key"
               label={label}
               selected={modifiers.includes(label.toLowerCase())}
               onPress={() =>
@@ -234,10 +243,12 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           ))}
         </View>
         <View style={{ flexDirection: 'row', gap: 4 }}>
-          {['Enter', 'Tab', 'Esc'].map((label) => (
+          {['Enter', 'Backspace', 'Tab', 'Esc'].map((label) => (
             <TabControl
               key={label}
+              browser="key"
               label={label}
+              display={label === 'Backspace' ? '⌫' : label}
               onPress={() =>
                 stream.current?.key(label === 'Esc' ? 'Escape' : label)
               }
@@ -260,7 +271,9 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
               borderRadius: 12,
               paddingHorizontal: 9,
               paddingVertical: 5,
-              fontSize: 15,
+              fontSize: 16,
+              height: 34,
+              fontFamily: 'Menlo',
             }}
             onSubmitEditing={submit}
           />

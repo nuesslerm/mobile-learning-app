@@ -77,7 +77,8 @@ fn paired_server_preview_displays_desktop_content_accepts_input_and_reconnects()
         let mut ws = viewer(&chain, &media_ticket(case, &chain, &phone), tab);
         let first = jpeg(&mut ws);
         for input in [
-            json!({"type":"text","text":"paired-RCA"}),
+            json!({"type":"text","text":"paired-RCAx"}),
+            json!({"type":"key","key":"Backspace","action":"down"}),
             json!({"type":"ack"}),
         ] {
             ws.send(Message::text(input.to_string())).unwrap();
