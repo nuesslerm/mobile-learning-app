@@ -334,7 +334,16 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
         },
       };
     },
-    async browser(pair, layout, tab, frame, failed, navigation, textFocus) {
+    async browser(
+      pair,
+      layout,
+      tab,
+      frame,
+      failed,
+      navigation,
+      textFocus,
+      pickImage
+    ) {
       const query = new URLSearchParams({
         threadId: layout.threadId,
         tabId: tab.resource,
@@ -350,6 +359,26 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
           post('ack', {});
         } else if (typeof data === 'string') {
           const event = JSON.parse(data);
+          if (event.type === 'imagePicker' && pickImage) {
+            const deliver = (part: string | null, done: boolean) =>
+              post('imagePickerResult', { id: event.id, part, done });
+            void pickImage()
+              .then((data) => {
+                if (!data) return deliver(null, true);
+                const chunk = 48 * 1024;
+                for (let start = 0; start < data.length; start += chunk)
+                  deliver(
+                    data.slice(start, start + chunk),
+                    start + chunk >= data.length
+                  );
+              })
+              .catch((cause) => {
+                deliver(null, true);
+                Logger.withError(cause).warn(
+                  'coding_agent.preview_image_failed'
+                );
+              });
+          }
           if (event.type === 'textFocus') textFocus?.(event.editable === true);
           if (event.type === 'navigation')
             navigation?.(event.url, event.canGoBack, event.canGoForward);
@@ -377,6 +406,7 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
               x,
               y,
               button: 'left',
+              ...(pickImage ? { imagePicker: true } : {}),
               ...(textFocus && action === 'up' ? { reportFocus: true } : {}),
             });
         },

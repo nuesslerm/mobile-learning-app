@@ -14,6 +14,8 @@ pub struct Viewer {
     controlling: bool,
     mobile: bool,
     navigation: Option<Value>,
+    image_request: Option<String>,
+    image_picker_armed: bool,
 }
 
 impl Service {
@@ -74,6 +76,8 @@ impl Service {
             height,
             permitted,
             controlling: false,
+            image_request: None,
+            image_picker_armed: false,
             mobile: false,
             navigation: (param("navigation") == Some("1")).then_some(Value::Null),
         };
@@ -154,6 +158,8 @@ impl Viewer {
                 .unwrap()
                 .remove(&self.tab);
             self.controlling = false;
+            self.image_request = None;
+            self.image_picker_armed = false;
         }
     }
     pub fn viewport(&self) -> Value {
@@ -206,16 +212,44 @@ impl Viewer {
                     Some("up") => "mouse_up",
                     _ => return Ok(None),
                 };
+                if action == "mouse_down" { self.image_picker_armed = false; }
+                if action == "mouse_down" && msg["imagePicker"] == true {
+                    if let (Some(x), Some(y)) = (msg["x"].as_f64(), msg["y"].as_f64()) {
+                        let script = format!("Boolean(document.elementFromPoint({x},{y})?.closest('[aria-label=\"Attach image\"]') && (window.rcaImagePickerUntil=Date.now()+3000))");
+                        self.image_picker_armed = self.page("browser.eval", json!({"expression":script}))?["value"] == true;
+                    }
+                }
                 self.page(
                     "browser.input",
                     json!({"kind":action,"button":msg["button"]}),
                 )?;
+                if action == "mouse_up" && std::mem::take(&mut self.image_picker_armed) {
+                    let request = self.page("browser.eval", json!({"expression":"window.rcaImageRequest?.id ?? null"}))?;
+                    if let Some(id) = request["value"].as_str().filter(|id| id.len() == 36 && id.bytes().all(|c| c.is_ascii_hexdigit() || c == b'-')) {
+                        if self.image_request.as_deref() != Some(id) {
+                            self.image_request = Some(id.into());
+                            return Ok(Some(json!({"type":"imagePicker","id":id})));
+                        }
+                    }
+                }
                 if action == "mouse_up" && msg["reportFocus"] == true {
                     let focus = self.page("browser.eval", json!({"expression":
                         "(() => { const e = document.activeElement; return !!e && (e.isContentEditable || (!e.disabled && !e.readOnly && (e.tagName === 'TEXTAREA' || (e.tagName === 'INPUT' && ['text','email','number','password','search','tel','url'].includes(e.type))))); })()"
                     }))?;
                     return Ok(Some(json!({"type":"textFocus","editable":focus["value"] == true})));
                 }
+            }
+            "imagePickerResult" => {
+                let Some(id) = msg["id"].as_str() else { return Ok(None) };
+                if self.image_request.as_deref() != Some(id) { return Ok(None); }
+                let part = &msg["part"];
+                let done = msg["done"] == true;
+                if !part.is_null() && !part.as_str().is_some_and(|s| s.len() <= 48 * 1024 && s.bytes().all(|c| c.is_ascii_alphanumeric() || b"+/=".contains(&c))) {
+                    return Err(AgentError::Failed("Invalid image selection".into()));
+                }
+                if done || part.is_null() { self.image_request = None; }
+                let script = format!("(() => {{const r=window.rcaImageRequest;if(r?.id==={})r.receive({part},{done});return true}})()", msg["id"]);
+                self.page("browser.eval", json!({"expression":script}))?;
             }
             "wheel" => {
                 self.page(

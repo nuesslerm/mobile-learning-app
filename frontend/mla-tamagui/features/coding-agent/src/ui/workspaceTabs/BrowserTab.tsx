@@ -1,15 +1,8 @@
+import { FullscreenControl } from './FullscreenControl';
+import { pickTerminalImage } from './pickTerminalImage';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Button, Platform, Text, TextInput, View } from 'react-native';
 import {
-  Button,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import {
-  Maximize2,
-  Minimize2,
   ChevronLeft,
   ChevronRight,
   Monitor,
@@ -104,7 +97,8 @@ export function BrowserTab({
               if (!live) return;
               if (editable) keyboard.current?.focus();
               else keyboard.current?.blur();
-            }
+            },
+        Platform.OS === 'web' ? undefined : pickTerminalImage
       )
       .then((connection) => {
         if (!live) {
@@ -234,7 +228,8 @@ export function BrowserTab({
               if (text) stream.current?.text(text);
             }}
             onKeyPress={({ nativeEvent }) => {
-              if (nativeEvent.key === 'Backspace') stream.current?.key('Backspace');
+              if (nativeEvent.key === 'Backspace')
+                stream.current?.key('Backspace');
             }}
             onSubmitEditing={() => stream.current?.key('Enter')}
             submitBehavior="submit"
@@ -256,35 +251,17 @@ export function BrowserTab({
           }}
           wheel={(dx, dy) => stream.current?.wheel(dx * scale, dy * scale)}
         />
-        {controlsVisible && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'
-            }
-            onPress={() => {
-              toggleFullscreen();
-              showControls();
-            }}
-            style={{
-              position: 'absolute',
-              right: 12,
-              bottom: 12,
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: 'rgba(0,0,0,0.74)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {fullscreen ? (
-              <Minimize2 color="white" size={19} />
-            ) : (
-              <Maximize2 color="white" size={19} />
-            )}
-          </Pressable>
-        )}
+        <FullscreenControl
+          visible={controlsVisible}
+          viewport={viewport}
+          fullscreen={fullscreen}
+          hold={() => clearTimeout(hideControls.current)}
+          release={showControls}
+          toggle={() => {
+            toggleFullscreen();
+            showControls();
+          }}
+        />
       </View>
       {!!error && (
         <>

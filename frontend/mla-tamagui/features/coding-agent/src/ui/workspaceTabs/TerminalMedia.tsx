@@ -1,3 +1,4 @@
+import { pickTerminalImage } from './pickTerminalImage';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import {
@@ -72,16 +73,8 @@ export function TerminalMedia({
     working.current = true;
     setBusy(true);
     try {
-      const picker = await import('expo-image-picker');
-      const result = await picker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        base64: true,
-        quality: 0.8,
-      });
-      if (result.canceled) return;
-      const encoded = result.assets[0]?.base64;
-      if (!encoded || encoded.length > Math.ceil((10 * 1024 * 1024) / 3) * 4)
-        throw new Error('Choose an image smaller than 10 MB.');
+      const encoded = await pickTerminalImage();
+      if (encoded === null) return;
       const jpeg = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
       const path = await api.terminalImage(pair, checkout, jpeg.buffer);
       if (live.current) insert("'" + path.replace(/'/g, "'\\''") + "' ");
