@@ -282,6 +282,7 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
         "thread.history" => vec![answer(request, json!({"events": [], "last_seq": BEFORE, "more": false}))],
         "turn.interrupt" => vec![answer(request, json!({"thread": "t1", "turn": TURN}))],
         "file.list" => vec![answer(request, entries.clone())],
+        "file.readChunk" => vec![answer(request, json!({"data":"YQ==","offset":0,"bytes":1,"total_bytes":1,"eof":true}))],
         "file.read" => vec![answer(request, json!({"content": "x", "total_lines": 1, "truncated": false}))],
         "agents.detect" => vec![answer(request, json!({"agents": [
             {"driver": "claudeAgent", "installed": true, "signed_in": true},
@@ -317,6 +318,7 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     agent.interrupt("t1").unwrap();
     agent.list_dir("", "").unwrap();
     agent.read_file("", "a").unwrap();
+    agent.file_preview("", "a").unwrap();
     agent.setup_events("/work/proj", 0, Duration::from_millis(50)).unwrap();
     agent.terminal_events("", "t1.a", None, Duration::from_millis(50)).unwrap();
     agent.terminals().unwrap();

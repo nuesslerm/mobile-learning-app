@@ -461,7 +461,7 @@ impl AgentApi for ScriptedAgent {
 
     fn read_file(&self, root: &str, path: &str) -> Result<String, AgentError> {
         self.called("file.read");
-        self.files.lock().unwrap().get(&format!("{root}/{path}")).cloned().ok_or_else(|| AgentError::Failed(format!("{path} does not exist")))
+        self.files.lock().unwrap().get(&format!("{root}/{path}")).cloned().ok_or_else(|| AgentError::Refused { code:"NOT_FOUND".into(), message:format!("{path} does not exist") })
     }
 
     fn setup_events(&self, root: &str, after_seq: u64, _: std::time::Duration) -> Result<SetupBatch, AgentError> {

@@ -88,6 +88,7 @@ export function T3SessionNavigation({
   return (
     <>
       <SessionHeader
+        files={session}
         workspace={workspace}
         title={sessions.find((s) => s.id === id)?.title ?? title}
         connected={connected}

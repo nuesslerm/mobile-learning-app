@@ -1,6 +1,7 @@
 import { ChevronLeft, SquareTerminal } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SessionHeaderProps } from '@lib/agent-ui-contracts';
+import { SessionFiles } from './SessionFiles';
 import { homePalettes, useOrcaScheme } from './appearance';
 
 export function SessionHeader(props: SessionHeaderProps) {
@@ -57,6 +58,7 @@ export function SessionHeader(props: SessionHeaderProps) {
         >
           <ChevronLeft size={18} strokeWidth={2.1} color={colors.textPrimary} />
         </Pressable>
+        <SessionFiles files={props.files} workspace={props.workspace} topInset={props.topInset}/>
       </View>
       <View style={[styles.tabs, border]}>
         <View

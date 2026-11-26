@@ -38,7 +38,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 146] = [
+pub const USES: [Method; 147] = [
     STATUS,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
@@ -76,6 +76,7 @@ pub const USES: [Method; 146] = [
     agent_api_state::SET,
     CLIENT_ACTIVITY,
     edit::FILE_STAT,
+    edit::FILE_READ_CHUNK,
     edit::FILE_WRITE,
     edit::FILE_BROWSE,
     edit::FILE_MKDIR,
@@ -751,6 +752,20 @@ impl AgentApi for RcaAgent {
         let mut entries: Vec<DirEntry> = listed.entries.into_iter().map(|e| DirEntry { name: e.name, directory: e.kind == EntryKind::Dir, size: e.size }).collect();
         entries.sort_by(|a, b| b.directory.cmp(&a.directory).then_with(|| a.name.cmp(&b.name)));
         Ok(entries)
+    }
+
+    fn file_preview(&self, root: &str, path: &str) -> Result<t3_core::ports::FilePreview, AgentError> {
+        use t3_core::ports::{FilePreview, FILE_PREVIEW_LIMIT};
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        let mut client = self.connect()?;
+        let (workspace, path) = self.place(&mut client, root, path)?;
+        let result = client.call(edit::FILE_READ_CHUNK, json!({"workspace": workspace, "path": path, "length": FILE_PREVIEW_LIMIT})).map_err(refused)?;
+        let chunk: exec_fs::ChunkResult = serde_json::from_value(result).map_err(unreadable("file.readChunk"))?;
+        let bytes = STANDARD.decode(&chunk.data).map_err(|_| AgentError::Failed("Invalid file preview encoding".into()))?;
+        if chunk.offset != 0 || bytes.len() as u64 != chunk.bytes || bytes.len() > FILE_PREVIEW_LIMIT {
+            return Err(AgentError::Failed("Invalid file preview range".into()));
+        }
+        Ok(FilePreview { bytes, total_bytes: chunk.total_bytes })
     }
 
     fn read_file(&self, root: &str, path: &str) -> Result<String, AgentError> {

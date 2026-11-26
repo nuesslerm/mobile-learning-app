@@ -1,0 +1,5 @@
+device:tap_on({point="94%,9.2%"})
+sleep_ms(500)
+device:tap_on({point="57%,14.2%"})
+sleep_ms(2300)
+device:take_screenshot(env.out .. "/files.png")

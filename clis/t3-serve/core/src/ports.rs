@@ -249,6 +249,13 @@ pub enum Follow {
     Stop,
 }
 
+pub const FILE_PREVIEW_LIMIT: usize = 1024 * 1024;
+
+pub struct FilePreview {
+    pub bytes: Vec<u8>,
+    pub total_bytes: u64,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct DirEntry {
     pub name: String,
@@ -537,6 +544,12 @@ pub trait AgentApi: Send + Sync {
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError>;
     fn list_dir(&self, root: &str, path: &str) -> Result<Vec<DirEntry>, AgentError>;
     fn read_file(&self, root: &str, path: &str) -> Result<String, AgentError>;
+    fn file_preview(&self, root: &str, path: &str) -> Result<FilePreview, AgentError> {
+        let mut bytes = self.read_file(root, path)?.into_bytes();
+        let total_bytes = bytes.len() as u64;
+        bytes.truncate(FILE_PREVIEW_LIMIT);
+        Ok(FilePreview { bytes, total_bytes })
+    }
     /// The setup events of the worktree at `root` after `after_seq`, those it has first, waiting up to `wait` for the setup to finish.
     fn setup_events(&self, root: &str, after_seq: u64, wait: std::time::Duration) -> Result<SetupBatch, AgentError>;
     /// What the terminal `terminal` of the directory `root` did after the byte offset `after_offset` (a snapshot of what is kept when none is

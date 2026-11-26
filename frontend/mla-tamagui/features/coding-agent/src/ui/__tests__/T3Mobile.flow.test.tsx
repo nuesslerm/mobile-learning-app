@@ -54,6 +54,8 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
       update({ thread, messages });
       return {
         files: async () => [],
+        listDirectory: async () => ({entries: [], truncated: false}),
+        readFile: async () => ({contents: '', truncated: false}),
         catalog: async () => [],
         models: async () => [{ slug: 'default', name: 'Default' }],
         async setModel() {},
@@ -79,6 +81,35 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
 }
 
 describe('Orca chat with the T3 transport', () => {
+  it('Given a paired workspace, when opening a nested file and returning, then the folder stays expanded and the chat draft survives', async () => {
+    const port = backend();
+    const open = port.open;
+    const readFile = vi.fn().mockResolvedValue({contents:'export const answer = 42;', truncated:true});
+    const listDirectory = vi.fn(async (path: string) => ({
+      entries: path ? [{path:'src/main.ts', kind:'file' as const}] : [{path:'node_modules',kind:'directory' as const}, {path:'src',kind:'directory' as const}, {path:'.git',kind:'directory' as const}],
+      truncated:false,
+    }));
+    port.open = async (...args) => ({...await open(...args), readFile, listDirectory});
+    await app.render('/coding-agent/thread-42', {overrides: {'coding-agent': {t3Mobile: port}}});
+    const draft = await screen.findByPlaceholderText('Ask anything, @ to mention files, / for commands') as HTMLTextAreaElement;
+    await userEvent.type(draft,'Keep this draft');
+    await userEvent.click(await screen.findByRole('button',{name:'More actions'}));
+    await userEvent.click(await screen.findByRole('button',{name:'File explorer'}));
+    const src = await screen.findByRole('button',{name:'src'});
+    expect(screen.queryByRole('button',{name:'.git'})).toBeNull();
+    expect(screen.queryByRole('button',{name:'node_modules'})).toBeNull();
+    await userEvent.click(src);
+    await userEvent.click(await screen.findByRole('button',{name:'main.ts'}));
+    expect(await screen.findByText('export const answer = 42;')).toBeTruthy();
+    expect(screen.getByText('Showing the first 1 MiB')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:'Back to files'}));
+    expect(await screen.findByRole('button',{name:'main.ts'})).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:'Back to chat'}));
+    expect(draft.value).toBe('Keep this draft');
+    expect(listDirectory.mock.calls).toEqual([[''],['src']]);
+    expect(readFile.mock.calls).toEqual([['src/main.ts']]);
+  });
+
   it('Given a paired host on an older server, when Feed gets a missing endpoint, then it uses the catalog and preserves authorization failures', async () => {
     const api = createT3MobileApi();
     const host = { name: 'Legacy desktop', os: 'linux' };

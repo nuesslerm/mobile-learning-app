@@ -452,8 +452,33 @@ fn the_file_rpcs_list_and_read_through_the_agent_api_under_the_project_and_a_fil
     let paths: Vec<(&str, &str)> = success(&root)["entries"].as_array().unwrap().iter().map(|e| (e["path"].as_str().unwrap(), e["kind"].as_str().unwrap())).collect();
     assert_eq!(paths, [("README.md", "file"), ("src", "directory")]);
     assert_eq!(success(&src)["entries"][0]["path"], "src/main.rs");
-    assert_eq!(success(&read)["contents"], "# demo");
+    assert_eq!(success(&read), &json!({"relativePath":"README.md","contents":"# demo","byteLength":6,"truncated":false}));
     assert_eq!(failure(&missing)["_tag"], "ExecutionHostError");
+    let optional = rpc.call("projects.readFile", json!({"cwd":"/workspace/demo","relativePath":"nope","allowMissing":true}));
+    assert_eq!(success(&optional), &json!({"relativePath":"nope","contents":"","byteLength":0,"truncated":false,"exists":false}));
+}
+
+#[test]
+fn project_previews_keep_line_breaks_and_original_byte_length_and_reject_binary_content() {
+    // Given a UTF-8 file whose last character straddles the preview limit and a binary file
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    let prefix = "a\n".repeat(524287) + "a";
+    let contents = prefix.clone() + "🌿";
+    h.agent.files.lock().unwrap().extend([
+        ("/workspace/demo/text".into(), contents.clone()),
+        ("/workspace/demo/binary".into(), "a\0b".into()),
+    ]);
+    // When both previews are read
+    let read = rpc.call("projects.readFile", json!({"cwd":"/workspace/demo","relativePath":"text"}));
+    let binary = rpc.call("projects.readFile", json!({"cwd":"/workspace/demo","relativePath":"binary"}));
+    // Then the text ends at a complete character, with the original byte count, and binary has a typed refusal
+    let result = success(&read);
+    assert_eq!(result["contents"].as_str().unwrap(), prefix);
+    assert_eq!(result["byteLength"], contents.len());
+    assert_eq!(result["truncated"], true);
+    assert_eq!(failure(&binary)["failure"], "binary_file");
 }
 
 #[test]

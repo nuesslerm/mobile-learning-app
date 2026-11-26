@@ -37,6 +37,7 @@ inputs = ["cassettes/**", "../../tooling/t3-conformance/t3-pin.json", "../../doc
 testing = ["t3-core/testing"]
 
 [dependencies]
+base64 = "0.22"
 wf-kit = { path = "../wf-kit" }
 t3-contracts = { path = "contracts" }
 t3-core = { path = "core" }
@@ -64,7 +65,6 @@ getrandom = "0.3"
 telemetry = { version = "0.1", registry = "mla", features = ["service"] }
 tracing = "0.1"
 toml = { version = "0.8", default-features = false, features = ["parse"] }
-base64 = "0.22"
 t3-serve = { path = ".", features = ["testing"] }
 agent-api-accounts = { path = "../../libraries/agent-api/agent-api-accounts", features = ["testing"] }
 agent-api-agent = { path = "../../libraries/agent-api/agent-api-agent", features = ["testing"] }

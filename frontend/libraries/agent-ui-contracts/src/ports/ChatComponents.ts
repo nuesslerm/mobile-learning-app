@@ -88,6 +88,10 @@ export interface ChatMessageMetaProps {
 }
 
 export interface SessionHeaderProps {
+  files?: {
+    listDirectory(path: string): Promise<{ entries: {path: string; kind: 'file' | 'directory'}[]; truncated: boolean }>;
+    readFile(path: string): Promise<{contents: string; truncated: boolean}>;
+  };
   workspace: string;
   title: string;
   connected: boolean;

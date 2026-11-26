@@ -275,6 +275,18 @@ export function openConversation(
     async files(query) {
       return composerFiles(call, await checkoutPath(), query);
     },
+    async listDirectory(path) {
+      const cwd = await checkoutPath();
+      return z.object({
+        entries: z.array(z.object({ path: z.string(), kind: z.enum(['file', 'directory']) })),
+        truncated: z.boolean(),
+      }).parse(await call('projects.listEntries', { cwd, directoryPath: path }));
+    },
+    async readFile(path) {
+      const cwd = await checkoutPath();
+      return z.object({ contents: z.string(), truncated: z.boolean().default(false) })
+        .parse(await call('projects.readFile', { cwd, relativePath: path }));
+    },
     async catalog() {
       const provider = snapshot?.thread.modelSelection?.instanceId ?? snapshot?.thread.providerInstanceId;
       return provider ? composerCatalog(call, await checkoutPath(), provider) : [];

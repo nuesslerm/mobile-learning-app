@@ -61,6 +61,8 @@ export const resumeCommand = {
   kind: 'command', token: '/resume', aliases: ['sessions'], description: 'Available in the desktop app',
 } as const;
 export interface T3Conversation {
+  listDirectory(path: string): Promise<{entries: {path: string; kind: 'file' | 'directory'}[]; truncated: boolean}>;
+  readFile(path: string): Promise<{contents: string; truncated: boolean}>;
   readonly commands?: readonly T3ComposerEntry[];
   files(query: string): Promise<T3ComposerEntry[]>;
   catalog(): Promise<T3ComposerEntry[]>;

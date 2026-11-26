@@ -112,15 +112,16 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
         assert!(kinds.contains(&"user_message") && kinds.contains(&"command_execution"), "{kinds:?}");
         assert_eq!(page.body["items"].as_array().unwrap().iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>(), items.iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>());
         // When the phone lists the notes directory and reads the file the model wrote
-        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"cwd": chain.repo.path().display().to_string(), "directoryPath": "notes"}));
+        let cwd = chain.repo.path().canonicalize().unwrap();
+        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"cwd": cwd, "directoryPath": "notes"}));
         let (listing_agent, listing_executor) = last_window(case);
-        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"cwd": chain.repo.path().display().to_string(), "relativePath": "notes/a.txt"}));
+        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"cwd": cwd, "relativePath": "notes/a.txt"}));
         let (read_agent, read_executor) = last_window(case);
         // Then the entries and the contents are the repository's, and each call went agent API, then executor
         assert_eq!(success(&listed)["entries"][0]["path"], "notes/a.txt");
         assert_eq!(success(&read)["contents"], "hello from the model");
-        assert_eq!((listing_agent, read_agent), (vec![("worktree.list".to_string(), true), ("file.list".to_string(), true)], vec![("worktree.list".to_string(), true), ("file.read".to_string(), true)]));
-        assert!(hit(&listing_executor, "tool", "list_dir").is_some_and(|h| h["ok"] == true) && hit(&read_executor, "tool", "read_file").is_some_and(|h| h["ok"] == true), "{listing_executor} {read_executor}");
+        assert_eq!((listing_agent, read_agent), (vec![("worktree.list".to_string(), true), ("file.list".to_string(), true)], vec![("worktree.list".to_string(), true), ("file.readChunk".to_string(), true)]));
+        assert!(hit(&listing_executor, "tool", "list_dir").is_some_and(|h| h["ok"] == true) && hit(&read_executor, "tool", "read_chunk").is_some_and(|h| h["ok"] == true), "{listing_executor} {read_executor}");
     });
 }
 
