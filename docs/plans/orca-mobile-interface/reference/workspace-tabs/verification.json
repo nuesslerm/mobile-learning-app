@@ -1,0 +1,30 @@
+[
+  {
+    "journey": "configured terminal path",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 10.6,
+    "cases": []
+  },
+  {
+    "journey": "Orca navigation and input",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 8.6,
+    "cases": []
+  },
+  {
+    "journey": "RCA executor frame",
+    "platform": "integration",
+    "verdict": "pass",
+    "durationS": 10.3,
+    "cases": []
+  },
+  {
+    "journey": "Stock Orca tab switching",
+    "platform": "ios",
+    "verdict": "pass",
+    "durationS": 4.3,
+    "cases": []
+  }
+]
