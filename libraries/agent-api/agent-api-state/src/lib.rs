@@ -81,6 +81,6 @@ mod tests {
         assert_eq!(get_result(Some(json!(["ls"]))), json!({"value": ["ls"]}));
         assert_eq!(get_result(None), json!({"value": null}));
         assert_eq!(set_result(), json!({}));
-        assert_eq!(METHODS, [GET, SET]);
+        assert_eq!(METHODS, [GET, SET, COMPARE_AND_SET]);
     }
 }

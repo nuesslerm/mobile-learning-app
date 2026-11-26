@@ -18,8 +18,8 @@ pub(crate) fn get(ctx: &mut Ctx, params: &Value) -> Value {
     out.insert("runtimeProtocolVersion".into(), RUNTIME_PROTOCOL_VERSION.into());
     out.insert("minCompatibleRuntimeClientVersion".into(), MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION.into());
     let mut capabilities = ctx.capabilities.to_vec();
-    if capabilities.iter().any(|c| c == "browser.screencast.v1") {
-        if !orca_map_browser::available(ctx.agent) { capabilities.retain(|c| c != "browser.screencast.v1"); }
+    if capabilities.iter().any(|c| c == "browser.screencast.v1") && !orca_map_browser::available(ctx.agent) {
+        capabilities.retain(|c| c != "browser.screencast.v1");
     }
     out.insert("capabilities".into(), json!(capabilities));
     // The host answers for itself when rca does not: the phone reads a degradation, never a dead host.
