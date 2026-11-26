@@ -116,15 +116,18 @@ describe('given the native keyboard source', () => {
     expect(store.getState().visible).toBe(false);
   });
 
-  it('when subscribing, then it listens for the events the platform actually emits', async () => {
-    // iOS gets Will*, which carries the animation duration so UI moves WITH the
-    // keyboard. Android never fires Will* at all, so it must use Did*, and
-    // getting this backwards is silent: no events, no toolbar, no error.
-    await freshStore();
+  it('when the suggestions row changes the open keyboard frame, then the store follows its height', async () => {
+    const store = await freshStore();
     const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource');
     const stop = startKeyboardSource();
 
-    expect([...listeners.keys()].sort()).toEqual(['keyboardWillHide', 'keyboardWillShow']);
+    emit('keyboardWillShow', { endCoordinates: { height: 291 }, duration: 250 });
+    emit('keyboardWillChangeFrame', { endCoordinates: { height: 336 }, duration: 100 });
+    expect(store.getState().height).toBe(336);
+
+    emit('keyboardWillHide', { endCoordinates: { height: 0 } });
+    emit('keyboardWillChangeFrame', { endCoordinates: { height: 291 } });
+    expect(store.getState().visible).toBe(false);
     stop();
   });
 });

@@ -190,6 +190,7 @@ export function WorkspaceTabsScreen({
           foreground &&
           !(error instanceof WorktreeMissing) ? (
             <ChatKeyboardArea
+              alignToScreenBottom={active.kind === 'browser'}
               restingBottom={active.kind === 'markdown' ? 4 : undefined}
             >
               {active.kind === 'terminal' && (
