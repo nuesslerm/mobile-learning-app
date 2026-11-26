@@ -1,3 +1,5 @@
+import { ChatSizeControl, ChatSpacingControl } from './ChatTextControls';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SessionHeaderProps } from '@lib/agent-ui-contracts';
 import {
   ChevronDown,
@@ -5,6 +7,7 @@ import {
   ChevronRight,
   Ellipsis,
   FileText,
+  Type,
   Folder,
   FolderOpen,
 } from 'lucide-react-native';
@@ -258,10 +261,15 @@ function Preview({ source, path }: { source: Source; path: string }) {
 export function SessionFiles({
   files,
   workspace,
+  onOpenTextSettings,
   topInset,
-}: Pick<SessionHeaderProps, 'files' | 'workspace' | 'topInset'>) {
+}: Pick<
+  SessionHeaderProps,
+  'files' | 'workspace' | 'topInset' | 'onOpenTextSettings'
+>) {
   const colors = homePalettes[useOrcaScheme()];
-  const [page, setPage] = useState<'menu' | 'files'>();
+  const [page, setPage] = useState<'menu' | 'files' | 'text'>();
+  const { bottom } = useSafeAreaInsets();
   const [path, setPath] = useState('');
   function back() {
     if (path) setPath('');
@@ -312,8 +320,123 @@ export function SessionFiles({
                   </Text>
                   <Folder size={17} color={colors.textPrimary} />
                 </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Text size"
+                  style={[
+                    styles.menuItem,
+                    {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderColor: colors.borderSubtle,
+                    },
+                  ]}
+                  onPress={() => setPage('text')}
+                >
+                  <Text style={{ fontSize: 15, color: colors.textPrimary }}>
+                    Text size
+                  </Text>
+                  <Type size={17} color={colors.textPrimary} />
+                </Pressable>
               </View>
             </>
+          ) : page === 'text' ? (
+            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close Chat text"
+                onPress={back}
+                style={StyleSheet.absoluteFill}
+              />
+              <View
+                style={{
+                  paddingHorizontal: 12,
+                  paddingBottom: bottom + 16,
+                  paddingTop: 8,
+                  borderTopLeftRadius: 22,
+                  borderTopRightRadius: 22,
+                  backgroundColor: colors.bgRaised,
+                }}
+              >
+                <Pressable
+                  onPress={back}
+                  accessibilityLabel="Dismiss Chat text"
+                  accessibilityRole="button"
+                  style={{
+                    alignSelf: 'center',
+                    width: 44,
+                    height: 16,
+                    alignItems: 'center',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 36,
+                      height: 5,
+                      borderRadius: 3,
+                      backgroundColor: colors.textMuted,
+                    }}
+                  />
+                </Pressable>
+                <View
+                  style={{
+                    height: 48,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text
+                    accessibilityRole="header"
+                    style={{
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: colors.textPrimary,
+                    }}
+                  >
+                    Chat text
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={back}
+                    style={{ position: 'absolute', right: 8, padding: 8 }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: '600',
+                        color: colors.textPrimary,
+                      }}
+                    >
+                      Done
+                    </Text>
+                  </Pressable>
+                </View>
+                <View
+                  style={{
+                    borderRadius: 16,
+                    backgroundColor: colors.bgGroup,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <ChatSizeControl label="Size" />
+                  <ChatSpacingControl />
+                  {onOpenTextSettings && (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => {
+                        setPage(undefined);
+                        onOpenTextSettings();
+                      }}
+                      style={[styles.menuItem, { height: 48 }]}
+                    >
+                      <Text style={{ fontSize: 15, color: colors.textPrimary }}>
+                        More text settings
+                      </Text>
+                      <ChevronRight size={16} color={colors.textSecondary} />
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            </View>
           ) : page === 'files' ? (
             <View
               style={{

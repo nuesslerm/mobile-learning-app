@@ -119,6 +119,20 @@ describe('The settings screens', () => {
     expect(doubles.recorded.appearance).toBe('dark');
   });
 
+  it('Given saved chat text, when font and spacing change and then reset, the device keeps the edits until reset', async () => {
+    const { doubles, overrides } = settings();
+    await doubles.preferences.writeChatText({size:19, font:'system', lineSpacing:'default'});
+    await app.render('/coding-agent/native-chat-settings', {overrides});
+    expect(await screen.findByText('19 pt')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', {name:'Font, System'}));
+    await userEvent.click(await screen.findByRole('button', {name:'Serif'}));
+    await userEvent.click(screen.getByRole('button', {name:'Relaxed'}));
+    await waitFor(async () => expect(await doubles.preferences.readChatText()).toEqual({size:19,font:'serif',lineSpacing:'relaxed'}));
+    await userEvent.click(screen.getByRole('button', {name:'Reset text settings'}));
+    await waitFor(async () => expect(await doubles.preferences.readChatText()).toBeNull());
+    expect(screen.getByRole('button', {name:'Font, System'})).toBeTruthy();
+  });
+
   it('Given the notifications screen, when the user opts in, then the device keeps it', async () => {
     const { doubles, overrides } = settings();
     await app.render('/coding-agent/notifications', { overrides });

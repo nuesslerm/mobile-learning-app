@@ -50,6 +50,28 @@ export function createAsyncStorageSettingsPreferences(
     }
   };
   return {
+    async readChatText() {
+      const raw = await read('chatText');
+      if (raw === null) return null;
+      try {
+        const value: unknown = JSON.parse(raw);
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+        const { size, font, lineSpacing } = value as Record<string, unknown>;
+        return {
+          size: typeof size === 'number' && Number.isFinite(size) ? Math.min(24, Math.max(11, Math.round(size))) : undefined,
+          font: font === 'system' || font === 'mono' || font === 'serif' ? font : undefined,
+          lineSpacing: lineSpacing === 'default' || lineSpacing === 'compact' || lineSpacing === 'relaxed' ? lineSpacing : undefined,
+        };
+      } catch (cause) {
+        Logger.withError(cause).warn('coding-agent.settings.invalid_chat_text');
+        return null;
+      }
+    },
+    async writeChatText(value) {
+      const key = CODING_AGENT_SETTINGS_STORAGE_KEY + '.chatText';
+      if (value === null) await storage.removeItem(key);
+      else await storage.setItem(key, JSON.stringify(value));
+    },
     async readAppearance() {
       return appearance(await read(APPEARANCE_KEY));
     },

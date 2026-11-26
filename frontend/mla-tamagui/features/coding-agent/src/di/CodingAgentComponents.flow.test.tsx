@@ -2,7 +2,8 @@ import {
   useAgentComponents,
   type OnboardingChoiceProps,
 } from '@lib/agent-ui-contracts';
-import { createFlowApp, screen, userEvent } from '@lib/flow-test-harness';
+import { ChatUiSettingsScreen } from '../ui/settings/ChatUiSettingsScreen';
+import { createFlowApp, screen, userEvent, waitFor } from '@lib/flow-test-harness';
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 import { describe, expect, it } from 'vitest';
@@ -83,4 +84,24 @@ describe('Notification choices in the coding-agent container', () => {
       expect(screen.getByText('skip')).toBeTruthy();
     }
   );
+});
+
+it('Given two mounted Expo route stacks, when one changes the device chat font, both immediately display the new font', async () => {
+  function Stacks() {
+    return <>
+      <CodingAgentContainer><ChatUiSettingsScreen /></CodingAgentContainer>
+      <CodingAgentContainer><ChatUiSettingsScreen /></CodingAgentContainer>
+    </>;
+  }
+  const stacks = createFlowApp({
+    routes: { '../routes/index.tsx': {default: Stacks} },
+    routesRoot: '../routes/',
+    basePath: '/coding-agent',
+  });
+  await stacks.render('/coding-agent');
+  await userEvent.click(screen.getAllByRole('button', {name: 'Font, System'})[0]);
+  await userEvent.click(await screen.findByRole('button', {name: 'Serif'}));
+  await waitFor(() => expect(screen.getAllByRole('button', {name: 'Font, Serif'})).toHaveLength(2));
+  await userEvent.click(screen.getAllByRole('button', {name:'Reset text settings'})[1]);
+  await waitFor(() => expect(screen.getAllByRole('button', {name: 'Font, System'})).toHaveLength(2));
 });

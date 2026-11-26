@@ -28,13 +28,6 @@ export const TERMINAL_CAPABILITIES: readonly SettingsCapability[] = [
   },
 ];
 
-export const CHAT_UI_CAPABILITIES: readonly SettingsCapability[] = [
-  {
-    label: 'Open sessions in the terminal view',
-    reason: 'This app has no terminal view; sessions open in the chat view.',
-  },
-];
-
 export const BROWSER_CAPABILITIES: readonly SettingsCapability[] = [
   {
     label: 'Choose where links in terminal output open',

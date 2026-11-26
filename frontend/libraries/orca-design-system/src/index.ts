@@ -60,3 +60,6 @@ export {
   AppearancePreferenceContextProvider,
   useAppearancePreference,
 } from './adapters/appearance';
+
+export { ChatTextContext, useChatText } from './adapters/chatText';
+export { ChatSizeControl, ChatSpacingControl } from './adapters/ChatTextControls';

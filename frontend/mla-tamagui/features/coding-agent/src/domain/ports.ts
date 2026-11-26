@@ -1,3 +1,4 @@
+import type { ChatTextPreference } from '@lib/agent-ui-contracts';
 import type { ChatImageFile, ImageActions } from './imageActions';
 import type { T3MobilePort } from './t3Mobile';
 import type { MobilePort } from './mobile';
@@ -90,6 +91,8 @@ export type AppearancePreference = 'system' | 'light' | 'dark';
 
 /** The settings this app keeps on the device. */
 export interface SettingsPreferencesPort {
+  readChatText(): Promise<Partial<ChatTextPreference> | null>;
+  writeChatText(value: ChatTextPreference | null): Promise<void>;
   readAppearance(): Promise<AppearancePreference>;
   writeAppearance(preference: AppearancePreference): Promise<void>;
   /** Whether the user asked for agent notifications. */

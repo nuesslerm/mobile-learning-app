@@ -29,7 +29,7 @@ export {
   useAgentComponents,
 } from './core/AgentComponentsContext';
 
-export type { ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerSuggestion, ComposerSuggestions, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ports/ChatComponents';
+export type { ChatTextPreference, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerSuggestion, ComposerSuggestions, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ports/ChatComponents';
 export type { PairingScreenProps, PairingCodeSheetProps } from './ports/PairingComponents';
 export type { ComposerOptionsProps, ChatMessageTextProps, ChatMessageMetaProps, SessionHeaderProps, SessionTabsSheetProps } from './ports/ChatComponents';
 

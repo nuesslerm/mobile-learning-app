@@ -80,6 +80,12 @@ export interface ChatToolActivityProps {
   children?: ReactNode;
 }
 
+export interface ChatTextPreference {
+  size: number;
+  font: 'system' | 'serif' | 'mono';
+  lineSpacing: 'compact' | 'default' | 'relaxed';
+}
+
 export interface ChatMessageTextProps { text: string }
 export interface ChatMessageMetaProps {
   time?: string;
@@ -88,6 +94,7 @@ export interface ChatMessageMetaProps {
 }
 
 export interface SessionHeaderProps {
+  onOpenTextSettings?: () => void;
   files?: {
     listDirectory(path: string): Promise<{ entries: {path: string; kind: 'file' | 'directory'}[]; truncated: boolean }>;
     readFile(path: string): Promise<{contents: string; truncated: boolean}>;

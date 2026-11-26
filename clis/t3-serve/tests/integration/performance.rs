@@ -49,11 +49,14 @@ fn given_a_paired_t3_phone_when_it_browses_the_project_then_rca_reads_the_execut
                 json!({"cwd":cwd,"relativePath":"notes/build.log"}),
             )
         });
-        assert_eq!(support::success(&read)["contents"], content);
+        let preview = support::success(&read);
+        assert_eq!(preview["contents"], content);
+        assert_eq!(preview["byteLength"], content.len());
+        assert_eq!(preview["truncated"], false);
         let hits = case.calls().last().unwrap()["executor"].as_array().unwrap();
         assert!(hits
             .iter()
-            .any(|hit| hit["tool"] == "read_file" && hit["ok"] == true));
+            .any(|hit| hit["tool"] == "read_chunk" && hit["ok"] == true));
     }
     exporter.shutdown();
 }

@@ -15,10 +15,10 @@
     "rca.client.artifact.stat": 400,
     "rca.server.artifact.stat": 400,
     "rca.executor.artifact_stat": 400,
-    "rca.executor.read_file": 400
+    "rca.executor.read_chunk": 400
   },
   "min_change_ms": {
     "rca.executor.artifact_stat": 3,
-    "rca.executor.read_file": 3
+    "rca.executor.read_chunk": 3
   }
 }

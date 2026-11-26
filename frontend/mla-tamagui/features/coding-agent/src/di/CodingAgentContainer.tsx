@@ -1,3 +1,4 @@
+import { ChatTextGate } from './ChatTextGate';
 import { imageActionsFor } from '../data/imageActions';
 import { copyMessage } from '../data/copyMessage';
 import { pairingCamera } from '../data/pairingCamera';
@@ -31,6 +32,8 @@ export const CODING_AGENT_OVERRIDES =
 export const CODING_AGENT_UI_OVERRIDES =
   overrideKey<AgentComponents>('coding-agent-ui');
 
+const devicePreferences = createAsyncStorageSettingsPreferences();
+
 export function createDefaultPorts(
   overrides: Partial<CodingAgentPorts> = {}
 ): CodingAgentPorts {
@@ -48,7 +51,7 @@ export function createDefaultPorts(
     dispatchRuns:
       overrides.dispatchRuns ??
       createHttpDispatchRunsPort(appConfig.vmOpsApiBaseUrl),
-    preferences: overrides.preferences ?? createAsyncStorageSettingsPreferences(),
+    preferences: overrides.preferences ?? devicePreferences,
     appUpdate: overrides.appUpdate ?? createExpoUpdatesAppUpdate(),
     appInfo: overrides.appInfo ?? createExpoConstantsAppInfo(),
     externalLinks: overrides.externalLinks ?? createLinkingExternalLinks(),
@@ -109,9 +112,11 @@ export function CodingAgentContainer({ children }: { children: ReactNode }) {
   return (
     <CodingAgentPortsProvider value={ports}>
       <AppearanceGate>
-        <AgentComponentsProvider value={components}>
-          {children}
-        </AgentComponentsProvider>
+        <ChatTextGate>
+          <AgentComponentsProvider value={components}>
+            {children}
+          </AgentComponentsProvider>
+        </ChatTextGate>
       </AppearanceGate>
     </CodingAgentPortsProvider>
   );

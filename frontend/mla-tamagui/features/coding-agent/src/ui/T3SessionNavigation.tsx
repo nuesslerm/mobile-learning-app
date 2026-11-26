@@ -89,6 +89,7 @@ export function T3SessionNavigation({
     <>
       <SessionHeader
         files={session}
+        onOpenTextSettings={() => router.push('/coding-agent/native-chat-settings')}
         workspace={workspace}
         title={sessions.find((s) => s.id === id)?.title ?? title}
         connected={connected}

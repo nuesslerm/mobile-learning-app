@@ -58,7 +58,7 @@ export function SessionHeader(props: SessionHeaderProps) {
         >
           <ChevronLeft size={18} strokeWidth={2.1} color={colors.textPrimary} />
         </Pressable>
-        <SessionFiles files={props.files} workspace={props.workspace} topInset={props.topInset}/>
+        <SessionFiles onOpenTextSettings={props.onOpenTextSettings} files={props.files} workspace={props.workspace} topInset={props.topInset}/>
       </View>
       <View style={[styles.tabs, border]}>
         <View

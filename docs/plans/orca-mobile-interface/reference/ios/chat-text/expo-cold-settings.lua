@@ -1,0 +1,6 @@
+device:tap_on({point="35%,92.2%"})
+sleep_ms(900)
+device:take_screenshot(env.out .. "/cold-settings.png")
+device:swipe("50%,87%","51%,36%",{duration=500})
+sleep_ms(550)
+device:take_screenshot(env.out .. "/before-reset.png")

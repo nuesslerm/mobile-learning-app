@@ -7,6 +7,7 @@ import {
 } from '@lib/flow-test-harness';
 import { describe, expect, it, vi } from 'vitest';
 import { app } from '../../__tests__/flowApp';
+import { createSettingsPortDoubles } from '../../testing/settingsPorts';
 import { createT3MobileApi } from '../../data/t3/mobileApi';
 import { resumeCommand } from '../../domain/t3Mobile';
 import type { T3MobilePort, T3Snapshot } from '../../domain/t3Mobile';
@@ -81,6 +82,25 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
 }
 
 describe('Orca chat with the T3 transport', () => {
+  it('Given a paired chat with a draft, when text spacing changes in the header sheet, then it persists and the draft survives', async () => {
+    const { preferences } = createSettingsPortDoubles();
+    await app.render('/coding-agent/thread-42', {
+      overrides: { 'coding-agent': { t3Mobile: backend(), preferences } },
+    });
+    const draft = await screen.findByPlaceholderText('Ask anything, @ to mention files, / for commands') as HTMLTextAreaElement;
+    await userEvent.type(draft, 'Unsaved reply');
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Text size'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Compact'}));
+    await waitFor(async () => expect((await preferences.readChatText())?.lineSpacing).toBe('compact'));
+    await userEvent.click(screen.getByRole('button', {name:'Done'}));
+    expect(draft.value).toBe('Unsaved reply');
+    await userEvent.click(screen.getByRole('button', {name:'More actions'}));
+    await userEvent.click(await screen.findByRole('button', {name:'Text size'}));
+    await userEvent.click(await screen.findByRole('button', {name:'More text settings'}));
+    expect(routerHarness().lastPush()).toBe('/coding-agent/native-chat-settings');
+  });
+
   it('Given a paired workspace, when opening a nested file and returning, then the folder stays expanded and the chat draft survives', async () => {
     const port = backend();
     const open = port.open;

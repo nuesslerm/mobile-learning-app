@@ -1,3 +1,4 @@
+import type { ChatTextPreference } from '@lib/agent-ui-contracts';
 import type {
   AppearancePreference,
   AppInfoPort,
@@ -27,6 +28,7 @@ export interface SettingsPortDoubles {
 export function createSettingsPortDoubles(
   options: { update?: AppUpdateCheck } = {}
 ): SettingsPortDoubles {
+  let chatText: ChatTextPreference | null = null;
   const recorded: SettingsPortDoubles['recorded'] = {
     appearance: 'system',
     notificationsEnabled: false,
@@ -36,6 +38,8 @@ export function createSettingsPortDoubles(
     opened: [],
   };
   const preferences: SettingsPreferencesPort = {
+    readChatText: async () => chatText,
+    writeChatText: async (next) => { chatText = next; },
     readAppearance: async () => recorded.appearance,
     writeAppearance: async (preference) => {
       recorded.appearance = preference;
