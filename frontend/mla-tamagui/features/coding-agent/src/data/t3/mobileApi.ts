@@ -1,3 +1,4 @@
+import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
 import { z } from 'zod';
 import type { Pairing } from '../../domain/mobile';
@@ -68,6 +69,20 @@ export function createT3MobileApi(): T3MobilePort {
         workspace: z.string().nullable(),
         sessions: z.array(z.object({ id: z.string(), title: z.string(), needsProjection: z.boolean().optional() })),
       }).parse(result);
+    },
+    async workspacePreferences(pair, signal) {
+      const data = await json(endpoint(pair.endpoint), '/api/mobile/workspace-preferences', {
+        headers: authorization(pair), signal,
+      });
+      return workspacePreferences.parse(data).preferences;
+    },
+    async saveWorkspacePreferences(pair, patch) {
+      const data = await json(endpoint(pair.endpoint), '/api/mobile/workspace-preferences', {
+        method: 'POST',
+        headers: { ...authorization(pair), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: 1, preferences: patch }),
+      });
+      return workspacePreferences.parse(data).preferences;
     },
     async shell(pair) {
       return shellSchema.parse(

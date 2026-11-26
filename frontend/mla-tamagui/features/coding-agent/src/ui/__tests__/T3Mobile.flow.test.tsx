@@ -19,7 +19,18 @@ const thread = {
 
 function backend(openTab: (id: string) => Promise<void> = async () => {}) {
   let messages: T3Snapshot['messages'] = [];
+  let preferences: Awaited<ReturnType<T3MobilePort['workspacePreferences']>> = {
+    groupBy:'repo', sortBy:'recent', projectOrderBy:'manual', cardLayout:'detailed',
+    worktreeCardProperties:['pr','ports'],agentActivityDisplayMode:'compact',
+    filters:{hideSleepingWorkspaces:false,alwaysShowDefaultBranchWorkspace:true,hideDefaultBranchWorkspace:false,hideAutomationGeneratedWorkspaces:false,
+      hideCliCreatedWorkspaces:false,hideDetachedHeadWorkspaces:false,hideWorkspacesFromOtherDevices:false,filterRepoIds:[],visibleHostIds:null},
+  };
   const port: T3MobilePort = {
+    workspacePreferences: async () => preferences,
+    saveWorkspacePreferences: async (_pair,patch) => {
+      preferences={...preferences,...patch,filters:{...preferences.filters,...patch.filters}};
+      return preferences;
+    },
     restore: async () => pair,
     sessionContext: async () => ({
       workspace: 'Mobile checkout',
@@ -110,6 +121,19 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(copies[0]);
     expect(await screen.findByRole('button', {name:'Copied'})).toBeTruthy();
     expect(copied).toEqual([progress]);
+  });
+
+  it('Given a paired workspace, when the reader changes card layout, then reopening options restores it', async () => {
+    const port = backend();
+    await app.render('/coding-agent', { overrides: { 'coding-agent': { t3Mobile: port } } });
+    await userEvent.click(await screen.findByRole('button', {name:'Workspace options'}));
+    await userEvent.click(await screen.findByRole('button', {name:'Card layout, Detailed'}));
+    await userEvent.click(await screen.findByRole('radio', {name:'Compact'}));
+    await waitFor(async () => expect((await port.workspacePreferences(pair,new AbortController().signal)).cardLayout).toBe('compact'));
+    await userEvent.click(screen.getByRole('button',{name:'Done'}));
+    await userEvent.click(screen.getByRole('button',{name:'Workspace options'}));
+    await userEvent.click(await screen.findByRole('button',{name:'Card layout, Compact'}));
+    expect(await screen.findByRole('radio',{name:'Compact',checked:true})).toBeTruthy();
   });
 
   it('Given a connected chat, when the reader selects a model, then the current thread receives that model', async () => {

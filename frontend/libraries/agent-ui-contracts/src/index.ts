@@ -31,3 +31,5 @@ export {
 export type { ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ports/ChatComponents';
 export type { PairingScreenProps, PairingCodeSheetProps } from './ports/PairingComponents';
 export type { ComposerOptionsProps, ChatMessageTextProps, ChatMessageMetaProps, SessionHeaderProps, SessionTabsSheetProps } from './ports/ChatComponents';
+
+export type { WorkspaceOptionGroup, WorkspaceOptionRow, WorkspaceOptionsProps } from './ports/WorkspaceOptions';

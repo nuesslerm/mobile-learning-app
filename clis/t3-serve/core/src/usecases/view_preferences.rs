@@ -2,7 +2,7 @@
 //! group, so it outlives a restart of the server the way the server's own settings do. The pinned T3 API has no method for them, so
 //! `mobile.viewPreferences.get` and `mobile.viewPreferences.set` are our extension.
 use super::queries::QueryFailure;
-use super::service::Service;
+use super::service::{Refusal, Service};
 use crate::ports::Op;
 use serde_json::{json, Value};
 use t3_contracts::view_preferences as contract;
@@ -19,6 +19,27 @@ fn refusal(why: contract::Refusal) -> QueryFailure {
 }
 
 impl Service {
+    /// The workspace list uses ordinary HTTP before a chat has opened an RPC connection.
+    pub fn workspace_preferences_http(&self, authorization: Option<&str>, patch: Option<&Value>) -> Result<Value, Refusal> {
+        let result = match patch {
+            Some(body) => {
+                self.scope_gate("mobile.viewPreferences.set", authorization, "orchestration:operate")?;
+                self.write_view_preferences(body)
+            }
+            None => {
+                self.read_gate("mobile.viewPreferences.get", authorization)?;
+                self.read_view_preferences()
+            }
+        };
+        result.map_err(|error| match error {
+            QueryFailure::Defect(_) => Refusal::bare(400),
+            QueryFailure::Error(body) => {
+                let status = if body["_tag"] == "MobileViewPreferencesError" { 422 } else { 502 };
+                Refusal { status, body }
+            }
+        })
+    }
+
     /// The stored blob, or none when the phone has set none.
     fn stored_view_preferences(&self) -> Result<Option<Value>, QueryFailure> {
         let read = self.agent().run(&Op::StateGet { scope: SCOPE.into(), key: KEY.into() }).map_err(|e| QueryFailure::Error(wire::host_error(&e.message())))?;

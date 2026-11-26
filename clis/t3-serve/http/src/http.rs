@@ -119,6 +119,7 @@ fn reason(status: u16) -> &'static str {
         401 => "Unauthorized",
         403 => "Forbidden",
         404 => "Not Found",
+        422 => "Unprocessable Content",
         426 => "Upgrade Required",
         502 => "Bad Gateway",
         503 => "Service Unavailable",
@@ -259,7 +260,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/guest/redeem" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -352,6 +353,16 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
         },
         ("GET" | "POST" | "PUT" | "PATCH", path) if path.strip_prefix(HOOKS).and_then(|rest| rest.split_once('/')).is_some_and(|(a, b)| !a.is_empty() && !b.is_empty() && !b.contains('/')) => {
             respond_with(&mut stream, 404, &json!({"error": "hook_not_found"}), "x-t3-hook-outcome: not_found\r\n")
+        }
+        ("GET" | "POST", "/api/mobile/workspace-preferences") => {
+            let patch = if request.method == "POST" {
+                let Some(body) = json_object(&mut stream, &request) else { return };
+                Some(body)
+            } else { None };
+            match svc.workspace_preferences_http(auth, patch.as_ref()) {
+                Ok(body) => respond(&mut stream, 200, &body),
+                Err(r) => refused(&mut stream, r, ""),
+            }
         }
         ("GET", "/api/projects") => match svc.projects_snapshot_http(auth) {
             Ok(body) => respond(&mut stream, 200, &body),

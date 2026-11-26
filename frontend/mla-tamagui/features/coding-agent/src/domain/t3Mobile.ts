@@ -1,3 +1,4 @@
+import type { WorkspacePatch, WorkspacePreferences } from './workspacePreferences';
 import type { Pairing } from './mobile';
 
 export type T3Attachment = {
@@ -60,6 +61,8 @@ export interface T3Conversation {
 }
 
 export interface T3MobilePort {
+  workspacePreferences(pairing: Pairing, signal: AbortSignal): Promise<WorkspacePreferences>;
+  saveWorkspacePreferences(pairing: Pairing, patch: WorkspacePatch): Promise<WorkspacePreferences>;
   restore(): Promise<Pairing | null>;
   pair(endpoint: string, code: string, signal?: AbortSignal): Promise<Pairing>;
   sessionContext(pairing: Pairing, threadId: string, signal: AbortSignal): Promise<SessionContext>;

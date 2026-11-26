@@ -17,3 +17,25 @@ These are reference captures. Matching candidate frames, setting changes on a se
 ## RCA persistence through T3
 
 Two independently paired clients exercised the workspace preference extension against the same RCA host. The first changed the card layout from Detailed to Compact. After restarting the isolated gateway at the same address, the second read Compact and restored Detailed. The calls used authenticated T3 RPC requests to `mobile.viewPreferences.get` and `mobile.viewPreferences.set`. These methods extend the upstream T3 contract. Matched native UI captures remain open.
+
+## Expo Go on the paired RCA iPhone
+
+Open Workspace options using the sliders under the paired workspace list. The phone reads the saved preferences with one authenticated GET to `/api/mobile/workspace-preferences`. POST accepts the same versioned partial update as `mobile.viewPreferences.set`. Both transports share the RCA state record. A read-only bearer can read the settings. A write needs the orchestration operate scope.
+
+| Checkpoint | Expo capture | Differing pixels in sheet region |
+| --- | --- | ---: |
+| Workspace options | [Root sheet](expo-options.png) | 126,747 (4.52%) |
+| Sort by | [Sort choices](expo-sort.png) | 38,689 (1.38%) |
+| Project order | [Project order choices](expo-project-order.png) | 22,788 (0.81%) |
+| Card layout | [Layout choices](expo-card-layout.png) | 15,636 (0.56%) |
+| Show properties | [Properties and activity layout](expo-properties.png) | 55,728 (1.99%) |
+
+Each comparison counts all RGBA differences across the full width from the higher sheet edge to the bottom (2,801,040 pixels). On these 1320 × 2868 captures all five Orca sheets begin at y=747 and Expo at y=746. The host screen behind the sheet still differs. Expo currently shows projected chats under T3 projects. The native reference shows worktrees, their branch and activity, and the host toolbar.
+
+The [device runbook](expo-options.lua) opens the four pages and changes Detailed to Compact. After opening the published update again, run it with `restoreOnly=true` to check Compact and restore Detailed. The test takes the original and alternate layouts as inputs. Use a paired fixture in project grouping, with the filters off. [Layout change recording](expo-change-layout.mp4) · [Restore recording](expo-restore-layout.mp4).
+
+```sh
+WF_IOS_APP_ID=host.exp.Exponent wf ios test expo-options.lua --device "$RCA_UDID" \
+  --env out="$CAPTURE_DIR" --env originalLayout=Detailed --env otherLayout=Compact \
+  --env restoreOnly=false --test-output-dir "$RECORDING_DIR/change"
+```

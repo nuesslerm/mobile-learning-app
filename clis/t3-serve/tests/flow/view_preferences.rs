@@ -169,3 +169,26 @@ fn a_phone_paired_with_the_scopes_a_plain_pairing_grants_reads_and_writes_the_vi
     assert_eq!(success(&read)["preferences"]["groupBy"], json!("repo"));
     assert_eq!(success(&set)["preferences"]["groupBy"], json!("none"));
 }
+
+#[test]
+fn workspace_preferences_changed_over_http_are_shared_with_rpc_and_enforce_write_scope() {
+    // Given two clients of the same host, one with read-only access
+    let (h, mut rpc) = started();
+    let _state = state_of_the_agent(&h);
+    let auth = |request| format!("Bearer {}", bearer_of(h.addr, &h.pair(request).code));
+    let reader = auth(PairingRequest { scopes: vec!["orchestration:read".into()], ..Default::default() });
+    let writer = auth(PairingRequest::default());
+    let path = "/api/mobile/workspace-preferences";
+    let post = |token: &str, body: &str| http(h.addr, "POST", path, &[("Authorization", token), ("Content-Type", "application/json")], body);
+    let patch = json!({"version": 1, "preferences": {"cardLayout": "compact"}}).to_string();
+    // When a reader tries to write, then only an operator can apply the change
+    assert_eq!(http(h.addr, "GET", path, &[], "").status, 401);
+    assert_eq!(post(&reader, &patch).status, 403);
+    assert_eq!(post(&writer, &patch).body["preferences"]["cardLayout"], "compact");
+    assert_eq!(post(&writer, r#"{"version":1,"preferences":{"cardLayout":"unknown"}}"#).status, 422);
+    // Then HTTP and RPC readers see the same complete saved configuration
+    let read = http(h.addr, "GET", path, &[("Authorization", &reader)], "");
+    assert_eq!(read.status, 200);
+    assert_eq!(read.body, *success(&rpc.call("mobile.viewPreferences.get", json!({}))));
+    assert_eq!(read.body["preferences"]["cardLayout"], "compact");
+}

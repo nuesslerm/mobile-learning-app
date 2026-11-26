@@ -1,3 +1,5 @@
+import type { WorkspacePreferences } from '../domain/workspacePreferences';
+import { T3WorkspaceOptions } from './T3WorkspaceOptions';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 import { router } from 'expo-router';
@@ -30,6 +32,7 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const state = useT3Mobile(api, threadId);
   const { ChatSurface, Composer, HomeTabHeader } = useAgentComponents();
+  const [preferences, setPreferences] = useState<WorkspacePreferences>();
   const [pairing, setPairing] = useState(false);
   const goBack = () =>
     router.canGoBack()
@@ -64,15 +67,19 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
                   {state.shell?.projects.length === 0 ? (
                     <Text>No projects yet.</Text>
                   ) : null}
-                  {state.shell?.projects.map((project) => (
+                  {state.shell?.projects.filter(project =>
+                    !preferences?.filters.filterRepoIds.length || preferences.filters.filterRepoIds.includes(project.id)
+                  ).map((project) => (
                     <View key={project.id}>
-                      <Text variant="strong">{project.title}</Text>
+                      {preferences?.groupBy !== 'none' && <Text variant="strong">{project.title}</Text>}
                       {state.shell?.threads
                         .filter((thread) => thread.projectId === project.id)
+                        .sort((a,b) => preferences?.sortBy === 'name' ? a.title.localeCompare(b.title) : 0)
                         .map((thread) => (
                           <ListItem
                             key={thread.id}
                             testID={'MobileThread-' + thread.id}
+                            variant={preferences?.cardLayout === 'compact' ? 'grouped' : 'standalone'}
                             showChevron
                             onPress={() =>
                               router.push(
@@ -89,6 +96,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
                   <Button onPress={state.retry}>Refresh</Button>
                 </View>
               </ScrollView>
+              <T3WorkspaceOptions key={state.pair.endpoint} api={api} pair={state.pair} projects={state.shell?.projects ?? []} onChanged={setPreferences} />
             </>
           }
         />

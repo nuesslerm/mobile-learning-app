@@ -1,3 +1,4 @@
+import type { WorkspaceOptionsProps } from './WorkspaceOptions';
 import type { PairingScreenProps, PairingCodeSheetProps } from './PairingComponents';
 import type { ComponentType, ReactNode } from 'react';
 import type { ComposerOptionsProps, SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
@@ -197,6 +198,7 @@ export interface HomeSettingsNoteProps {
 }
 
 export interface AgentComponents {
+  WorkspaceOptions: ComponentType<WorkspaceOptionsProps>;
   PairingScreen: ComponentType<PairingScreenProps>;
   PairingCodeSheet: ComponentType<PairingCodeSheetProps>;
   SessionTabsSheet: ComponentType<SessionTabsSheetProps>;
