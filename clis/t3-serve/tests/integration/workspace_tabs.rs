@@ -101,6 +101,13 @@ fn paired_server_preview_displays_desktop_content_accepts_input_and_reconnects()
         let mut ws = viewer(&chain, &media_ticket(case, &chain, &phone), tab);
         assert!(!jpeg(&mut ws).is_empty());
         drop(ws);
+        // An idle executor may release Chromium while its preview tab remains open on the phone.
+        desk.call("browser", "browser.close", json!({"workspace":"w1","key":tab})).unwrap();
+        let mut resumed = viewer(&chain, &media_ticket(case, &chain, &phone), tab);
+        assert!(!jpeg(&mut resumed).is_empty());
+        let location = desk.call("browser","browser.eval",json!({"workspace":"w1","key":tab,"expression":"location.href"})).unwrap();
+        assert_eq!(location["value"], format!("http://{allow}/"));
+        drop(resumed);
         success(&phone.call(
             case,
             &chain,

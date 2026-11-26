@@ -73,6 +73,15 @@ impl Service {
             permitted,
             controlling: false,
         };
+        let unavailable = |e: AgentError| refuse(503, json!({"message":e.message()}));
+        let pages = viewer.page("browser.pages", json!({})).map_err(unavailable)?;
+        if !pages["pages"].as_array().is_some_and(|rows| rows.iter().any(|page| page["key"] == tab)) {
+            let mut restore = json!({});
+            if let Some(url) = session["nav"]["url"].as_str().filter(|u| *u != "about:blank") {
+                restore["url"] = json!(url);
+            }
+            viewer.page("browser.open", restore).map_err(unavailable)?;
+        }
         viewer.take_control();
         Ok(viewer)
     }
@@ -85,7 +94,7 @@ fn valid_dimensions(w: u32, h: u32) -> bool {
 impl Viewer {
     fn page(&self, method: &'static str, mut params: Value) -> Result<Value, AgentError> {
         params["workspace"] = json!(self.workspace);
-        params["key"] = json!(self.tab);
+        if method != "browser.pages" { params["key"] = json!(self.tab); }
         self.service
             .agent()
             .run(&Op::PreviewPage { method, params })

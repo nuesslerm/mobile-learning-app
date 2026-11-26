@@ -39,9 +39,9 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 158] = [
+pub const USES: [Method; 160] = [
     STATUS,
-    preview::rendering::FRAME, preview::rendering::INPUT, preview::rendering::GOTO, preview::rendering::HISTORY,
+    preview::rendering::OPEN, preview::rendering::PAGES, preview::rendering::FRAME, preview::rendering::INPUT, preview::rendering::GOTO, preview::rendering::HISTORY,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
     agent_api_agent::THREAD_GET,

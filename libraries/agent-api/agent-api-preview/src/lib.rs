@@ -8,8 +8,8 @@ use serde_json::{Map, Value};
 
 /// Executor operations used by a server-rendered preview viewer.
 pub mod rendering {
-    pub use agent_api_browser::{FRAME, GOTO, HISTORY, INPUT};
-    pub const METHODS: &[agent_api_proto::Method] = &[FRAME, GOTO, HISTORY, INPUT];
+    pub use agent_api_browser::{FRAME, GOTO, HISTORY, INPUT, OPEN, PAGES};
+    pub const METHODS: &[agent_api_proto::Method] = &[FRAME, GOTO, HISTORY, INPUT, OPEN, PAGES];
 }
 pub mod sessions;
 #[cfg(any(test, feature = "testing"))]
