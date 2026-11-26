@@ -133,13 +133,26 @@ export function createT3MobileApi(): T3MobilePort {
       url.searchParams.set('orchestrationProtocol', '2');
       url.searchParams.set('frameParts', '1');
       url.searchParams.set('wsTicket', ticket);
+      const projectRoots = new Map<string, string>();
+      async function projectRoot(id: string) {
+        const cached = projectRoots.get(id);
+        if (cached) return cached;
+        const { projects } = z.object({ projects: z.array(z.object({
+          id: z.string(), workspaceRoot: z.string(),
+        })) }).parse(await json(base, '/api/projects', { headers: authorization(pair) }));
+        const root = projects.find(project => project.id === id)?.workspaceRoot;
+        if (!root) throw new Error('The project directory is unavailable.');
+        projectRoots.set(id, root);
+        return root;
+      }
       return openConversation(
         new WebSocket(url.href),
         base,
         thread,
         update,
         disconnected,
-        initial
+        initial,
+        projectRoot
       );
     },
   };

@@ -438,6 +438,8 @@ fn an_orca_bounded_snapshot_places_tools_between_the_original_assistant_fragment
     let orca = fetch("?rcaChatLayout=1");
     // Then only the opt-in representation carries the UTF-16 offset, and both return the same transcript
     assert_eq!((ordinary.status, orca.status), (200, 200));
+    assert!(ordinary.body.get("rcaProjectRoot").is_none());
+    assert_eq!(orca.body["rcaProjectRoot"], "/workspace/demo");
     assert!(ordinary.body.get("rcaToolTextOffsets").is_none());
     assert_eq!(orca.body["rcaToolTextOffsets"][tool], "Hi 👋".encode_utf16().count());
     assert_eq!(ordinary.body["projection"], orca.body["projection"]);

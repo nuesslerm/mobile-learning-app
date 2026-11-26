@@ -33,7 +33,7 @@ impl Placed {
                 Some(name) => args["worktree"] = json!(name),
                 None => args["path"] = json!(join(&string(&args, "path").unwrap_or_else(|| ".".into()))?),
             },
-            exec_fs::SEARCH_ENTRIES => args["path"] = self.place.prefix.clone().map_or(Value::Null, Value::from),
+            exec_fs::SEARCH_ENTRIES => args["path"] = json!(self.place.search_path(args["path"].as_str()).map_err(refuse)?),
             exec_fs::BROWSE => {
                 if let Some(path) = string(&args, "path").filter(|p| !std::path::Path::new(p).is_absolute()) {
                     args["path"] = json!(join(&path)?);
@@ -91,6 +91,7 @@ mod tests {
             ("run_command", json!({"command": "ls", "cwd": "sub"})),
             ("git_diff", json!({"path": "a.rs"})),
             ("search_entries", json!({"query": "q"})),
+            ("search_entries", json!({"query": "q", "path": "src"})),
             ("cancel", json!({"id": "a1"})),
         ] {
             placed.call(tool, args).await.unwrap();
@@ -106,6 +107,7 @@ mod tests {
                 json!({"command": "ls", "cwd": "/base/wt/sub"}),
                 json!({"path": "a.rs", "worktree": "wt"}),
                 json!({"query": "q", "path": "/base/wt"}),
+                json!({"query": "q", "path": "/base/wt/src"}),
                 json!({"id": "a1"}),
             ]
         );

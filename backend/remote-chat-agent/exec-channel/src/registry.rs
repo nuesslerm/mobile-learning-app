@@ -54,6 +54,13 @@ impl Place {
         Ok(Place { prefix: Some(prefix), worktree: None })
     }
 
+    pub fn search_path(&self, path: Option<&str>) -> Result<Option<String>, String> {
+        match path {
+            Some(path) => self.path(path).map(Some),
+            None => Ok(self.prefix.clone()),
+        }
+    }
+
     /// The path the executor is given for `path` of the workspace. Under a prefix a path is relative and stays below it, so a workspace
     /// that is a directory or a worktree cannot name anything outside it; at the root the path is the executor's to confine.
     pub fn path(&self, path: &str) -> Result<String, String> {

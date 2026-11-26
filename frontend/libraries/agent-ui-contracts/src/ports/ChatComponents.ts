@@ -15,7 +15,33 @@ export interface ComposerSendButtonProps {
   onLongPress?: () => void;
 }
 
+export interface ComposerSuggestion {
+  kind: 'file' | 'skill' | 'command';
+  token: string;
+  description?: string;
+  hint?: string;
+}
+
+export interface ComposerSuggestions {
+  files(query: string): Promise<readonly ComposerSuggestion[]>;
+  catalog(): Promise<readonly ComposerSuggestion[]>;
+}
+
+export interface ComposerAddButtonProps {
+  onSelect: (kind: ComposerSuggestion['kind']) => void;
+  onDismiss: () => void;
+}
+
+export interface ComposerSuggestionListProps {
+  source: ComposerSuggestions;
+  sigil: string;
+  query: string;
+  kind: ComposerSuggestion['kind'] | null;
+  onPick: (row: ComposerSuggestion) => void;
+}
+
 export interface ComposerProps {
+  suggestions?: ComposerSuggestions;
   value: string;
   placeholder: string;
   sendLabel: string;

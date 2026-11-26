@@ -125,6 +125,30 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
 }
 
 #[test]
+fn given_two_projects_when_the_phone_searches_files_and_skills_then_only_the_selected_projects_matches_are_returned() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given two projects below one executor, each with its own README and Codex skill
+        let chain = Chain::start();
+        for project in ["one", "two"] {
+            chain.repo.write(&format!("{project}/README-{project}.md"), project);
+            chain.repo.write(&format!("{project}/.agents/skills/{project}/SKILL.md"), &format!("---\nname: {project}\ndescription: Project {project}\n---\n"));
+        }
+        let mut phone = Phone::connect(case, &chain);
+        let cwd = chain.repo.path().join("two").canonicalize().unwrap();
+        // When the phone searches and refreshes the catalog for the second project
+        let files = phone.call(case, &chain, &["rpc:projects.searchEntries"], "projects.searchEntries", json!({"cwd": cwd, "query": "README", "limit": 10, "kind": "file"}));
+        let catalog = phone.call(case, &chain, &["rpc:server.refreshProviders"], "server.refreshProviders", json!({"instanceId": "codex", "cwd": cwd, "workspaceSnapshotsOnDemand": true}));
+        // Then paths are relative to the selected project and its skill came from the same directory
+        assert_eq!(success(&files)["entries"], json!([{"path": "README-two.md", "kind": "file"}]));
+        let provider = hit(&success(&catalog)["providers"], "instanceId", "codex").unwrap();
+        let snapshot = &provider["workspaceSnapshots"][0];
+        assert_eq!(snapshot["cwd"], json!(cwd));
+        assert!(hit(&snapshot["skills"], "name", "two").is_some(), "{snapshot}");
+        assert!(hit(&snapshot["skills"], "name", "one").is_none(), "{snapshot}");
+    });
+}
+
+#[test]
 fn a_launch_creates_the_thread_runs_its_first_message_through_rca_and_answers_with_the_projection() {
     exec_testkit::case!(SUITE, |case| {
         // Given a project on the repository and a CLI whose turn writes launched.txt

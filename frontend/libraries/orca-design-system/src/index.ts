@@ -20,6 +20,7 @@ import { HomeEmptyState } from './adapters/HomeEmptyState';
 import { HomeSearchField } from './adapters/HomeSearchField';
 import { HomeActionSheet } from './adapters/HomeActionSheet';
 import { HomeSettingsRow } from './adapters/HomeSettingsRow';
+import { ComposerAddButton, ComposerSuggestionList } from './adapters/ComposerSuggestions';
 import { ComposerOptions } from './adapters/ComposerOptions';
 import { Composer, ComposerSendButton } from './adapters/Composer';
 import { MessageBubble } from './adapters/MessageBubble';
@@ -41,7 +42,7 @@ export const orcaComponents: AgentComponents = {
   HomeActionSheet,
   HomeSettingsRow, HomeSettingsGroup, HomeSettingsNote, HomeSettingsScreen,
   Composer,
-  ComposerSendButton,
+  ComposerSendButton, ComposerAddButton, ComposerSuggestionList,
   SessionHeader, SessionTabsSheet, ChatMessageText, ChatMessageMeta, ChatToolActivity,
   ChatSurface, ChatImage, ChatImageViewer,
   MessageBubble,

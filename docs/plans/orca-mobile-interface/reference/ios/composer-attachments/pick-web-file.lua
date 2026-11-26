@@ -1,0 +1,7 @@
+device:tap_on("Add to message")
+device:assert_visible("Workspace file")
+device:take_screenshot(env.out .. "/web-menu.png")
+device:tap_on("Workspace file")
+device:tap_on("Composer demo.md")
+device:assert_visible('@"Composer demo.md" ')
+device:take_screenshot(env.out .. "/web-draft.png")

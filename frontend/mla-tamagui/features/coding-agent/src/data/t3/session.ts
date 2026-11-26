@@ -1,3 +1,4 @@
+import { composerCatalog, composerFiles } from './composerDiscovery';
 import { Logger } from '@lib/logging';
 import { z } from 'zod';
 import type { T3Conversation, T3Snapshot } from '../../domain/t3Mobile';
@@ -5,6 +6,7 @@ import type { T3Conversation, T3Snapshot } from '../../domain/t3Mobile';
 export const threadSchema = z.object({
   id: z.string(),
   projectId: z.string(),
+  worktreePath: z.string().nullish(),
   providerInstanceId: z.string().nullish(),
   modelSelection: z.object({ instanceId: z.string(), model: z.string() }).nullish().catch(null),
   runtimeMode: z.enum(['approval-required', 'auto-accept-edits', 'auto', 'full-access']).nullish(),
@@ -56,6 +58,7 @@ const snapshotSchema = z.object({
 export const boundedSchema = z.object({
   snapshotSequence: z.number().int().nonnegative(),
   projection: snapshotSchema,
+  rcaProjectRoot: z.string().optional(),
   rcaToolTextOffsets: z
     .record(z.string(), z.number().int().nonnegative())
     .optional(),
@@ -90,7 +93,8 @@ export function openConversation(
   threadId: string,
   update: (value: T3Snapshot) => void,
   disconnected: (error: Error) => void,
-  initial?: z.infer<typeof boundedSchema>
+  initial?: z.infer<typeof boundedSchema>,
+  projectRoot?: (id: string) => Promise<string>
 ): T3Conversation {
   let snapshot: T3Snapshot | undefined;
   let sequence = -1;
@@ -241,8 +245,22 @@ export function openConversation(
       close(new Error('The server returned an unreadable chat update.'));
     }
   };
+  async function checkoutPath() {
+    const thread = snapshot?.thread;
+    if (thread?.worktreePath) return thread.worktreePath;
+    if (initial?.rcaProjectRoot && thread?.projectId === initial.projection.thread.projectId) return initial.rcaProjectRoot;
+    if (thread && projectRoot) return projectRoot(thread.projectId);
+    throw new Error('Waiting for the workspace.');
+  }
   return {
     close: () => close(),
+    async files(query) {
+      return composerFiles(call, await checkoutPath(), query);
+    },
+    async catalog() {
+      const provider = snapshot?.thread.modelSelection?.instanceId ?? snapshot?.thread.providerInstanceId;
+      return provider ? composerCatalog(call, await checkoutPath(), provider) : [];
+    },
     async models(instanceId) {
       const config = z.object({ providers: z.array(z.object({
         instanceId: z.string(),

@@ -94,7 +94,7 @@ pub(crate) fn executor_args(method: agent_api_proto::Method, mut params: FilePar
             Ok(params.executor_args())
         }
         edit::FILE_SEARCH => {
-            params.path = place.prefix.clone();
+            params.path = place.search_path(params.path.as_deref()).map_err(Refusal::invalid)?;
             Ok(params.executor_args())
         }
         edit::FILE_BROWSE | edit::ARTIFACT_STAT | edit::ARTIFACT_READ | edit::ARTIFACT_WRITE => {

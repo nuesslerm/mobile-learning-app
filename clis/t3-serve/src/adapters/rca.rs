@@ -381,7 +381,14 @@ impl RcaAgent {
         // A path to give the executor only when the directory is below the workspace's own
         let below = |path: String| Some(path).filter(|p| p != ".");
         Ok(Some(match op {
-            Op::ProviderCommands { root, driver } => (catalog::COMMANDS_LIST, json!({"driver": driver, "workspace": self.place(client, root, "")?.0})),
+            Op::ProviderCommands { root, driver } => {
+                let (workspace, path) = self.place(client, root, "")?;
+                let mut params = json!({"workspace": workspace, "driver": driver});
+                if let Some(path) = below(path) {
+                    params["path"] = json!(path);
+                }
+                (catalog::COMMANDS_LIST, params)
+            }
             Op::FileStat { root, path } => {
                 let (workspace, path) = at(client, root, path)?;
                 (edit::FILE_STAT, json!({"workspace": workspace, "path": path}))

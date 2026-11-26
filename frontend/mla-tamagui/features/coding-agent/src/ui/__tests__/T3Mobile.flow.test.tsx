@@ -50,6 +50,8 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     open: async (_pair, _id, update) => {
       update({ thread, messages });
       return {
+        files: async () => [],
+        catalog: async () => [],
         models: async () => [{ slug: 'default', name: 'Default' }],
         async setModel() {},
         async setRuntimeMode() {},
@@ -190,6 +192,30 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('button',{name:'Save'}));
     expect(await screen.findByRole('button',{name:'Saved label'})).toBeTruthy();
     expect(screen.queryByRole('button',{name:'Mobile checkout'})).toBeNull();
+  });
+
+  it('Given a paired chat, when adding a workspace file and then a skill, then each selection is inserted into the draft', async () => {
+    const port = backend();
+    const connect = port.open;
+    port.open = async (...args) => ({
+      ...await connect(...args),
+      files: async () => [{ kind: 'file', token: 'notes/my plan.md' }],
+      catalog: async () => [
+        { kind: 'skill', token: '/review', description: 'Review a change' },
+        { kind: 'command', token: '/status' },
+      ],
+    });
+    await app.render('/coding-agent/thread-42', { overrides: { 'coding-agent': { t3Mobile: port } } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Add to message' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Workspace file' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'notes/my plan.md' }));
+    const field = screen.getByPlaceholderText('Ask anything, @ to mention files, / for commands') as HTMLTextAreaElement;
+    expect(field.value).toBe('@"notes/my plan.md" ');
+    await userEvent.click(screen.getByRole('button', { name: 'Add to message' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Skills' }));
+    await userEvent.click(await screen.findByRole('button', { name: '/review' }));
+    expect(field.value.trim()).toBe('/review @"notes/my plan.md"');
+    expect(screen.queryByRole('button', { name: '/status' })).toBeNull();
   });
 
   it('Given a connected chat, when the reader selects a model, then the current thread receives that model', async () => {

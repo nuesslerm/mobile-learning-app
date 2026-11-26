@@ -165,11 +165,13 @@ async fn given_a_workspace_that_is_a_directory_when_files_are_asked_for_then_the
     ok(&mut agent, "file.write", json!({"workspace": "web", "path": "index.ts", "content": "one\ntwo\n"})).await;
     ok(&mut agent, "file.write", json!({"workspace": "w1", "path": "apps/api/index.ts", "content": "api\nchanged\n"})).await;
     let found = ok(&mut agent, "file.search", json!({"workspace": "web", "query": "index"})).await;
+    let scoped = ok(&mut agent, "file.search", json!({"workspace": "w1", "path": "apps/api", "query": "index"})).await;
     let diff = ok(&mut agent, "file.diff", json!({"workspace": "web"})).await;
     let listed = ok(&mut agent, "file.list", json!({"workspace": "web", "path": "."})).await;
     // Then the write is under apps/web, the search finds only its own files, the diff is its own change and not apps/api's, and the listing is its directory
     assert_eq!(std::fs::read_to_string(rig.repo.path().join("apps/web/index.ts")).unwrap(), "one\ntwo\n");
     assert_eq!(found["entries"], json!([{"path": "index.ts", "kind": "file"}]));
+    assert_eq!(scoped["entries"], json!([{"path": "index.ts", "kind": "file"}]));
     let text = diff["diff"].as_str().unwrap();
     assert!(text.contains("apps/web/index.ts") && text.contains("+two") && !text.contains("apps/api"), "{text}");
     assert!(listed["entries"].as_array().unwrap().iter().any(|e| e["name"] == "index.ts"));

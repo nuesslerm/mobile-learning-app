@@ -152,6 +152,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
             )}
           </ChatScroll>
           <Composer
+            suggestions={state.imageSession}
             leadingControls={
               state.snapshot &&
               state.imageSession && (

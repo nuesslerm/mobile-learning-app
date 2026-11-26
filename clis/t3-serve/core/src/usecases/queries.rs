@@ -291,6 +291,9 @@ impl Service {
             let projection = state.thread_projection(thread)?;
             let mut result = json!({"snapshotSequence": state.last_sequence, "projection": projection, "hasMoreHistory": false});
             if include_layout {
+                if let Some(root) = projection["thread"]["projectId"].as_str().and_then(|id| state.projects.get(id)).and_then(|row| row["workspaceRoot"].as_str()) {
+                    result["rcaProjectRoot"] = json!(root);
+                }
                 result["rcaToolTextOffsets"] = state.entities.get(thread).map_or_else(|| json!({}), |e| json!(e.tool_text_offsets));
             }
             Some(result)

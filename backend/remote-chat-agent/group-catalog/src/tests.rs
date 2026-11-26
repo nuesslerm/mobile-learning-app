@@ -172,6 +172,19 @@ async fn given_skills_in_the_workspace_and_the_home_when_commands_are_listed_the
 }
 
 #[tokio::test]
+async fn given_a_project_below_the_workspace_when_its_commands_are_requested_then_discovery_starts_in_that_project() {
+    // Given an executor serving a parent workspace
+    let rig = rig(|_, args| {
+        assert_eq!(args, &json!({"root": "apps/web", "home": true}));
+        ok(json!({"skills": [], "truncated": false}))
+    });
+    // When a command catalog is requested for its nested project
+    let answer = rig.ask(api::COMMANDS_LIST, json!({"driver": "codex", "workspace": "w1", "path": "apps/web"})).await;
+    // Then the executor's catalog is returned
+    assert_eq!(answer["result"]["commands"], json!([]));
+}
+
+#[tokio::test]
 async fn given_a_workspace_nobody_serves_or_an_executor_that_refuses_when_skills_are_listed_then_the_refusal_is_the_contracts_and_the_executors_keeps_its_code() {
     // Given an executor that refuses skill_scan for a root outside the workspace
     let rig = rig(|_, _| Err(RemoteError::Action { code: "PATH_OUTSIDE_ROOT".into(), message: "root is outside the workspace".into() }));

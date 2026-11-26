@@ -23,6 +23,7 @@ export type T3Model = { slug: string; name: string };
 export type T3Thread = {
   id: string;
   projectId: string;
+  worktreePath?: string | null;
   title: string;
   providerInstanceId?: string | null;
   modelSelection?: { instanceId: string; model: string } | null;
@@ -51,7 +52,10 @@ export type T3Shell = {
   threads: T3Thread[];
 };
 
+export type T3ComposerEntry = { kind: 'command' | 'skill' | 'file'; token: string; description?: string; hint?: string };
 export interface T3Conversation {
+  files(query: string): Promise<T3ComposerEntry[]>;
+  catalog(): Promise<T3ComposerEntry[]>;
   models(instanceId: string): Promise<T3Model[]>;
   setModel(commandId: string, instanceId: string, model: string): Promise<void>;
   setRuntimeMode(commandId: string, runtimeMode: T3RuntimeMode): Promise<void>;
