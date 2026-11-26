@@ -96,6 +96,9 @@ export function WorkspaceTabsScreen({
     return () => abort.abort();
   }, [mobile, pair, checkout, sheet]);
   const active = layout?.tabs.find((t) => t.id === layout.active);
+  const [fullscreenTab, setFullscreenTab] = useState<string>();
+  const fullscreen = active?.kind === 'browser' && fullscreenTab === active.id;
+  useEffect(() => setFullscreenTab(undefined), [active?.id]);
   const tabs = [...chats, ...(layout?.tabs ?? [])];
   const select = async (id: string) => {
     setSheet(undefined);
@@ -123,7 +126,10 @@ export function WorkspaceTabsScreen({
   const SessionViewport = browserZoom ? ScrollView : View;
   return (
     <ChatSurface>
-      <SafeAreaView edges={['left', 'right']} style={{ flex: 1 }}>
+      <SafeAreaView
+        edges={fullscreen ? ['top', 'left', 'right'] : ['left', 'right']}
+        style={{ flex: 1 }}
+      >
         <SessionViewport
           style={{ flex: 1 }}
           {...(browserZoom
@@ -140,27 +146,29 @@ export function WorkspaceTabsScreen({
               }
             : {})}
         >
-          <SessionHeader
-            workspace={name}
-            title={active?.title ?? name}
-            connected={!!layout && !error}
-            tabs={tabs}
-            activeId={active?.id}
-            onSelectTab={(id) => void select(id)}
-            branch={tabs.length === 1 ? '1 tab' : tabs.length + ' tabs'}
-            onOpenSourceControl={() =>
-              router.push(
-                `/coding-agent/source-control?checkoutId=${encodeURIComponent(checkout)}`
-              )
-            }
-            tabCount={tabs.length}
-            topInset={top}
-            directory={layout?.directory}
-            onBack={onBack}
-            onReconnect={() => void run()}
-            onShowTabs={() => setSheet('tabs')}
-            onNewTab={() => setSheet('new')}
-          />
+          {!fullscreen && (
+            <SessionHeader
+              workspace={name}
+              title={active?.title ?? name}
+              connected={!!layout && !error}
+              tabs={tabs}
+              activeId={active?.id}
+              onSelectTab={(id) => void select(id)}
+              branch={tabs.length === 1 ? '1 tab' : tabs.length + ' tabs'}
+              onOpenSourceControl={() =>
+                router.push(
+                  `/coding-agent/source-control?checkoutId=${encodeURIComponent(checkout)}`
+                )
+              }
+              tabCount={tabs.length}
+              topInset={top}
+              directory={layout?.directory}
+              onBack={onBack}
+              onReconnect={() => void run()}
+              onShowTabs={() => setSheet('tabs')}
+              onNewTab={() => setSheet('new')}
+            />
+          )}
           {error instanceof WorktreeMissing ||
           error instanceof RcaUnavailable ? (
             <AvailabilityNotice
@@ -199,6 +207,10 @@ export function WorkspaceTabsScreen({
                   layout={layout}
                   tab={active}
                   color={color}
+                  fullscreen={fullscreen}
+                  toggleFullscreen={() =>
+                    setFullscreenTab(fullscreen ? undefined : active.id)
+                  }
                 />
               )}
               {active.kind === 'markdown' && (

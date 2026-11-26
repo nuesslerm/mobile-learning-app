@@ -1,4 +1,5 @@
 import { View } from '@lib/tamagui-design-system';
+import { useGlobalSearchParams, usePathname } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import type { ViewStyle } from 'react-native';
 import { Platform, useWindowDimensions } from 'react-native';
@@ -17,6 +18,9 @@ import { useResolvedScheme } from '@/app-shell/NativeChromeBridge';
  * documented it; the same navigator is in use here.
  */
 export default function AppLayout() {
+  const path = usePathname();
+  const { workspace } = useGlobalSearchParams<{ workspace?: string }>();
+  const workspaceTabsOpen = path === '/coding-agent' && workspace === '1';
   const { width } = useWindowDimensions();
   const scheme = useResolvedScheme();
   const drawerWidth: ViewStyle['width'] =
@@ -35,6 +39,7 @@ export default function AppLayout() {
           sceneStyle: { backgroundColor: 'transparent' },
           overlayColor: 'transparent',
           keyboardDismissMode: 'on-drag',
+          swipeEnabled: !workspaceTabsOpen,
           swipeEdgeWidth: 40,
         }}
       >

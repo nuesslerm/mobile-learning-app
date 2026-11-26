@@ -4,6 +4,7 @@ import { Image, View, type GestureResponderEvent } from 'react-native';
 const initial = { zoom: 1, left: 0, top: 0 };
 type Props = {
   uri: string;
+  onInteraction: () => void;
   viewport: { width: number; height: number };
   onLayout: (size: { width: number; height: number }) => void;
   click: (x: number, y: number, right: boolean) => void;
@@ -12,6 +13,7 @@ type Props = {
 
 export function BrowserViewport({
   uri,
+  onInteraction,
   viewport,
   onLayout,
   click,
@@ -92,6 +94,7 @@ export function BrowserViewport({
       }}
       onStartShouldSetResponder={() => true}
       onResponderGrant={(e) => {
+        onInteraction();
         clearHold();
         pinch.current = null;
         const { locationX: x, locationY: y } = e.nativeEvent;

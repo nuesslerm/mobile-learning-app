@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import { Button, Pressable, Text, TextInput, View } from 'react-native';
 import {
-  ArrowUp,
+  Maximize2,
+  Minimize2,
   ChevronLeft,
   ChevronRight,
   Monitor,
@@ -25,11 +26,30 @@ type Props = {
   layout: WorkspaceLayout;
   tab: WorkspaceTab;
   color: string;
+  fullscreen: boolean;
+  toggleFullscreen: () => void;
 };
-export function BrowserTab({ api, pair, layout, tab, color }: Props) {
+export function BrowserTab({
+  api,
+  pair,
+  layout,
+  tab,
+  color,
+  fullscreen,
+  toggleFullscreen,
+}: Props) {
   const [uri, frame] = useState('');
   const [address, setAddress] = useState('');
-  const [text, setText] = useState('');
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const hideControls = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+  const showControls = () => {
+    clearTimeout(hideControls.current);
+    setControlsVisible(true);
+    hideControls.current = setTimeout(() => setControlsVisible(false), 3000);
+  };
+  useEffect(() => () => clearTimeout(hideControls.current), []);
   const [error, setError] = useState('');
   const [revision, retry] = useState(0);
   const c = useTabColors();
@@ -38,7 +58,6 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
   const [history, setHistory] = useState({ back: false, forward: false });
   const currentUrl = useRef('');
   const editing = useRef(false);
-  const [modifiers, setModifiers] = useState<string[]>([]);
   const stream = useRef<BrowserConnection | null>(null);
   const size = useRef({ width: 1280, height: 800, mobile: false });
   const scale = mobile ? 1 : 1280 / Math.max(viewport.width, 1);
@@ -94,117 +113,144 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
       stream.current = null;
     };
   }, [api, pair, layout, tab, revision]);
-  const submit = () => {
-    if (text) {
-      stream.current?.text(text);
-      setText('');
-    } else stream.current?.key('Enter');
-  };
   return (
     <View style={{ flex: 1 }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: 8,
-          height: 34,
-          borderBottomWidth: 1,
-          borderColor: c.border,
-          backgroundColor: c.bg,
-        }}
-      >
-        <TabControl
-          browser="tool"
-          label="Back in browser"
-          disabled={!history.back}
-          onPress={() => stream.current?.history(-1)}
-        >
-          <ChevronLeft size={15} color={color} />
-        </TabControl>
-        <TabControl
-          browser="tool"
-          label="Forward in browser"
-          disabled={!history.forward}
-          onPress={() => stream.current?.history(1)}
-        >
-          <ChevronRight size={15} color={color} />
-        </TabControl>
-        <TabControl
-          browser="tool"
-          label="Reload"
-          onPress={() => stream.current?.reload()}
-        >
-          <RefreshCw size={14} color={color} />
-        </TabControl>
-        <TextInput
-          accessibilityLabel="Browser address"
-          selectTextOnFocus
+      {!fullscreen && (
+        <View
           style={{
-            flex: 1,
-            color,
-            borderWidth: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 8,
+            height: 34,
+            borderBottomWidth: 1,
             borderColor: c.border,
-            borderRadius: 12,
-            paddingHorizontal: 9,
-            paddingVertical: 2,
-            fontSize: 14,
+            backgroundColor: c.bg,
           }}
-          placeholder="Enter URL"
-          value={address}
-          onChangeText={setAddress}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          returnKeyType="go"
-          onFocus={() => {
-            editing.current = true;
+        >
+          <TabControl
+            browser="tool"
+            label="Back in browser"
+            disabled={!history.back}
+            onPress={() => stream.current?.history(-1)}
+          >
+            <ChevronLeft size={15} color={color} />
+          </TabControl>
+          <TabControl
+            browser="tool"
+            label="Forward in browser"
+            disabled={!history.forward}
+            onPress={() => stream.current?.history(1)}
+          >
+            <ChevronRight size={15} color={color} />
+          </TabControl>
+          <TabControl
+            browser="tool"
+            label="Reload"
+            onPress={() => stream.current?.reload()}
+          >
+            <RefreshCw size={14} color={color} />
+          </TabControl>
+          <TextInput
+            accessibilityLabel="Browser address"
+            selectTextOnFocus
+            style={{
+              flex: 1,
+              color,
+              borderWidth: 1,
+              borderColor: c.border,
+              borderRadius: 12,
+              paddingHorizontal: 9,
+              paddingVertical: 2,
+              fontSize: 14,
+            }}
+            placeholder="Enter URL"
+            value={address}
+            onChangeText={setAddress}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            returnKeyType="go"
+            onFocus={() => {
+              editing.current = true;
+            }}
+            onBlur={() => {
+              editing.current = false;
+              setAddress(currentUrl.current);
+            }}
+            onSubmitEditing={(e) => {
+              const raw = e.nativeEvent.text.trim();
+              if (raw)
+                stream.current?.navigate(
+                  /^https?:\/\//i.test(raw) ? raw : 'https://' + raw
+                );
+            }}
+          />
+          <TabControl
+            browser="tool"
+            label="Show web website view"
+            selected={!mobile}
+            onPress={() => setMobile(false)}
+          >
+            <Monitor size={14} color={!mobile ? c.bg : color} />
+          </TabControl>
+          <TabControl
+            browser="tool"
+            label="Show mobile website view"
+            selected={mobile}
+            onPress={() => setMobile(true)}
+          >
+            <Smartphone size={14} color={mobile ? c.bg : color} />
+          </TabControl>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <BrowserViewport
+          key={String(mobile)}
+          onInteraction={showControls}
+          uri={uri}
+          viewport={viewport}
+          onLayout={setViewport}
+          click={(x, y, right) => {
+            stream.current?.click(
+              x * scale,
+              y * scale,
+              [],
+              right ? 'right' : 'left'
+            );
           }}
-          onBlur={() => {
-            editing.current = false;
-            setAddress(currentUrl.current);
-          }}
-          onSubmitEditing={(e) => {
-            const raw = e.nativeEvent.text.trim();
-            if (raw)
-              stream.current?.navigate(
-                /^https?:\/\//i.test(raw) ? raw : 'https://' + raw
-              );
-          }}
+          wheel={(dx, dy) => stream.current?.wheel(dx * scale, dy * scale)}
         />
-        <TabControl
-          browser="tool"
-          label="Show web website view"
-          selected={!mobile}
-          onPress={() => setMobile(false)}
-        >
-          <Monitor size={14} color={!mobile ? c.bg : color} />
-        </TabControl>
-        <TabControl
-          browser="tool"
-          label="Show mobile website view"
-          selected={mobile}
-          onPress={() => setMobile(true)}
-        >
-          <Smartphone size={14} color={mobile ? c.bg : color} />
-        </TabControl>
+        {controlsVisible && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'
+            }
+            onPress={() => {
+              toggleFullscreen();
+              showControls();
+            }}
+            style={{
+              position: 'absolute',
+              right: 12,
+              bottom: 12,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: 'rgba(0,0,0,0.74)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {fullscreen ? (
+              <Minimize2 color="white" size={19} />
+            ) : (
+              <Maximize2 color="white" size={19} />
+            )}
+          </Pressable>
+        )}
       </View>
-      <BrowserViewport
-        key={String(mobile)}
-        uri={uri}
-        viewport={viewport}
-        onLayout={setViewport}
-        click={(x, y, right) => {
-          stream.current?.click(
-            x * scale,
-            y * scale,
-            modifiers,
-            right ? 'right' : 'left'
-          );
-          setModifiers([]);
-        }}
-        wheel={(dx, dy) => stream.current?.wheel(dx * scale, dy * scale)}
-      />
       {!!error && (
         <>
           <Text accessibilityRole="alert" style={{ color }}>
@@ -216,76 +262,6 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           />
         </>
       )}
-      <View
-        style={{
-          backgroundColor: c.bg,
-          borderTopWidth: 1,
-          borderColor: c.border,
-          padding: 8,
-          gap: 4,
-        }}
-      >
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          {['Cmd', 'Ctrl', 'Alt', 'Shift'].map((label) => (
-            <TabControl
-              key={label}
-              browser="key"
-              label={label}
-              selected={modifiers.includes(label.toLowerCase())}
-              onPress={() =>
-                setModifiers((m) =>
-                  m.includes(label.toLowerCase())
-                    ? m.filter((k) => k !== label.toLowerCase())
-                    : [...m, label.toLowerCase()]
-                )
-              }
-            />
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          {['Enter', 'Backspace', 'Tab', 'Esc'].map((label) => (
-            <TabControl
-              key={label}
-              browser="key"
-              label={label}
-              display={label === 'Backspace' ? '⌫' : label}
-              onPress={() =>
-                stream.current?.key(label === 'Esc' ? 'Escape' : label)
-              }
-            />
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <TextInput
-            accessibilityLabel="Type on page"
-            placeholder="Type on page…"
-            value={text}
-            onChangeText={setText}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={{
-              flex: 1,
-              color,
-              borderWidth: 1,
-              borderColor: c.border,
-              borderRadius: 12,
-              paddingHorizontal: 9,
-              paddingVertical: 5,
-              fontSize: 16,
-              height: 34,
-              fontFamily: 'Menlo',
-            }}
-            onSubmitEditing={submit}
-          />
-          <TabControl
-            label="Send text to browser"
-            disabled={!text}
-            onPress={submit}
-          >
-            <ArrowUp size={18} color={color} />
-          </TabControl>
-        </View>
-      </View>
     </View>
   );
 }
