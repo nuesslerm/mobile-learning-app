@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   Asterisk,
   ChevronRight,
@@ -33,6 +33,7 @@ export function NewTabSheet({
   const [focused, setFocused] = useState(false);
   const [url, setUrl] = useState('');
   const ink = { color: c.textPrimary };
+  const sheetColor = scheme === 'light' ? '#f5f5f5' : c.bgPanel;
   const card = { backgroundColor: c.bgGroup };
   return (
     <BottomSheet
@@ -41,7 +42,7 @@ export function NewTabSheet({
       style={[
         styles.sheet,
         {
-          backgroundColor: scheme === 'light' ? '#f5f5f5' : c.bgPanel,
+          backgroundColor: sheetColor,
           paddingBottom: Math.max(16, bottomInset),
         },
       ]}
@@ -51,6 +52,12 @@ export function NewTabSheet({
           <View style={[styles.handle, { backgroundColor: c.textMuted }]} />
           {browser ? (
             <>
+              {Platform.OS === 'ios' && (
+                <View
+                  pointerEvents="none"
+                  style={[styles.keyboardUnderlay, { backgroundColor: sheetColor }]}
+                />
+              )}
               <View style={{ padding: 4, paddingVertical: 8 }}>
                 <Text
                   accessibilityRole="header"
@@ -214,6 +221,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 12,
   },
+  // Continue the panel behind the rounded top corners of the iOS keyboard.
+  keyboardUnderlay: { position: 'absolute', left: 0, right: 0, bottom: -32, height: 32 },
   handle: {
     width: 36,
     height: 4,
