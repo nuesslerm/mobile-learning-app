@@ -18,6 +18,13 @@ with the rules of the set's rules.json applied (ids a client makes up,
 timestamps). The nth equal request gets the nth recording; once every equal
 recording has answered, the first answers again ("reused").
 
+Two more things may differ, because an unmodified client is not the same on
+every run. A key the set's mimic.toml lists under [proxy.replay] ignore_keys
+is taken out of both sides (a flag the client sends only when it resumes), and
+a value of this machine the client still holds from the run that was recorded
+(the home and temp directory, the host and user name, a tailnet name, and what
+--mask adds) is compared as the fixture value the recording has in its place.
+
 A socket whose replies name the request they answer (the T3 orchestration
 socket, JSON-RPC) is replayed by request: a request takes the recorded request
 of the same method and payload, and gets that one's recorded replies, in
@@ -37,6 +44,7 @@ Options:
   --duration <seconds>    stop after this long
   --settle-ms <ms>        how long a client is quiet before held replies go out (default 300)
   --fail-fast             stop at the first mismatch
+  --mask <value>=<stand-in>,...  more values of this machine, as given to the record
   --suite <name>          write $WF_TEST_OUTPUT_DIR/<name>/report.json
   --ready <file>          write the listening address here once the replay is up
   -h, --help              display help for command

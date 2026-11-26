@@ -37,6 +37,8 @@ mimic.toml (paths relative to the file):
   allowlist = "allowlist.json"     (optional; entries may carry "pin_hash")
   [reference]                      the pinned program a record runs
   driver = "stdio"                 command = ["node", "driver.mjs"]
+  driver = "wire"                  a server observed through `wf mimic proxy record`: it names no command, and its
+                                   pin stamps what was recorded through the proxy as recorded
   driver = "script"                the step interpreter plays the corpus's `script` cases itself (docs/plans/mimic/step-language.md):
   [reference.script]               target = "spawn" (the release the pin names, verified by sha256, started in a hermetic host)
                                    or "url" (addr = "127.0.0.1:7000", workspace = "/w", mint = ["cmd"] prints a credential)
@@ -51,6 +53,7 @@ mimic.toml (paths relative to the file):
   [diff.fold]                      a stream's chunks count as one list per request:
                                    channel, tag, chunk, values, once, squash (see wf mimic diff)
   [record]                         batch, write_chunk, stability_pct (the flags of wf mimic record)
+  [proxy.replay]                   ignore_keys = ["key", ...]: keys `wf mimic proxy replay` does not compare
   live_when_named = "why"          in [reference]: `verify --all --live` skips it, `verify <set> --live` runs it
   [record]                         allow_nondeterministic (default false), args: what `wf mimic capture record`
                                    adds to the record call of the set

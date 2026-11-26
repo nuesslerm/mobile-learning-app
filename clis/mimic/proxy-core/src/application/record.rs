@@ -31,7 +31,13 @@ pub struct Recorded {
 /// The rules a set without a preset matches and diffs under: ids and times a client or server makes up per run.
 pub fn default_rules() -> RuleSet {
     let trace = [("traceId", "<trace>"), ("spanId", "<trace>")].iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
-    RuleSet::new(vec![Rule::UuidOrdinal, Rule::Timestamp { keys: Vec::new(), placeholder: "<ts>".into() }, Rule::VolatileString { keys: trace }])
+    let per_connection = ["date", "host", "connection", "keep-alive", "content-length", "transfer-encoding", "user-agent", "accept-encoding", "sec-websocket-key", "sec-websocket-accept"];
+    RuleSet::new(vec![
+        Rule::UuidOrdinal,
+        Rule::Timestamp { keys: Vec::new(), placeholder: "<ts>".into() },
+        Rule::VolatileString { keys: trace },
+        Rule::DropHeader { names: per_connection.iter().map(|name| name.to_string()).collect() },
+    ])
 }
 
 /// The credential names a rule set declares, added to the policy's own.

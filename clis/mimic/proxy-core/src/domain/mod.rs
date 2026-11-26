@@ -1,3 +1,4 @@
+pub mod bindings;
 pub mod interactions;
 pub mod matching;
 pub mod mismatch;

@@ -6,6 +6,10 @@ The installed T3 mobile app paired through a loopback Mimic proxy to the genuine
 
 To reproduce, start the pinned server on loopback, point the proxy at its origin, and add an environment in the native app using the proxy address and a fresh token from the reference server. Open a thread belonging to that environment. Supplying the server address directly in the mobile form bypasses the capture. The contract pin and integrity digest are in [the conformance manifest](../../../../../tooling/t3-conformance/t3-pin.json).
 
+## A replayable recording
+
+[native-open-chat](native-open-chat/) is the same client against the same pinned server with the values kept: T3 Code 2.3.0, already paired, launches, reconnects and opens a fixture chat that holds one made-up message. `wf mimic proxy record` wrote it with every credential replaced by a fixture value and the names of the recording machine masked; `wf mimic proxy replay` answers the unmodified app from it with the server stopped. With the reference refusing connections, the relaunched app opened the chat again and showed the same message: 6 HTTP exchanges and 37 socket requests were answered, none was missing and the replay opened no connection. Steps: [the runbook](../../../../runbooks/record-and-replay-a-mobile-run.md).
+
 ## Expo against RCA
 
 The Coding agent drawer entry opens `/coding-agent`. Both the home route and existing thread URLs use the Orca interface and restore the saved T3 connection. A device paired only to the older RCA gateway needs a T3 pairing invite. On the exported mobile web app, the RCA-backed server accepted a pairing grant, returned the fixture project and opened its thread using a fresh RPC ticket. Sending through the composer dispatched a real provider turn. The transcript displayed the streamed reply and restored it after reloading. The [restored chat](mla-web-chat.png) was captured with the keyboard dismissed. Native visual matching, uploads and interrupted-turn recovery remain open.

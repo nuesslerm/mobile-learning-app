@@ -20,6 +20,7 @@ export interface ComposerSuggestion {
   token: string;
   description?: string;
   hint?: string;
+  aliases?: readonly string[];
 }
 
 export interface ComposerSuggestions {
@@ -43,6 +44,8 @@ export interface ComposerSuggestionListProps {
 
 export interface ComposerProps {
   suggestions?: ComposerSuggestions;
+  notice?: string;
+  onPickSuggestion?: (row: ComposerSuggestion, leading: boolean) => boolean;
   value: string;
   placeholder: string;
   sendLabel: string;

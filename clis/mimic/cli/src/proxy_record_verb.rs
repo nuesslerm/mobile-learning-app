@@ -20,6 +20,8 @@ use wf_kit::args::Parsed;
 
 const NEXT: &str = "wf mimic proxy record --set <dir> --upstream http://127.0.0.1:<port>";
 const SET_TOML: &str = "# Recorded through `wf mimic proxy record`. Add a [reference] with its pin to stamp a recording of a pinned server as recorded.\nrules = \"rules.json\"\n";
+/// What the T3 app sends on some runs and not on others: a subscription names where it resumes from, and its fallback, only when the app holds a snapshot.
+const T3_REPLAY_TOML: &str = "\n[proxy.replay]\nignore_keys = [\"httpSnapshotFallback\", \"afterSequence\"]\n";
 
 fn rules_of(p: &Parsed, set_dir: &Path) -> Result<RuleSet, Fail> {
     let file = set_dir.join(RULES_FILE);
@@ -44,8 +46,9 @@ fn declared(p: &Parsed) -> Result<Vec<(String, String)>, Fail> {
         .collect()
 }
 
-/// What of this machine must not be in a published set: the home and the temp directory, and what `--mask` adds.
-fn masks(p: &Parsed) -> Result<Vec<(String, String)>, Fail> {
+/// What of this machine must not be in a published set: the home, the temp directory, the host and the user name (in any
+/// case), and what `--mask` adds. A name inside a tailnet is replaced by the core whatever it is.
+pub(super) fn masks(p: &Parsed) -> Result<Vec<(String, String)>, Fail> {
     let mut out = Vec::new();
     if let Some(home) = std::env::var("HOME").ok().filter(|h| h.len() > 1) {
         out.push((home, "/fixture/home".to_string()));
@@ -56,6 +59,13 @@ fn masks(p: &Parsed) -> Result<Vec<(String, String)>, Fail> {
         let text = text.trim_end_matches('/');
         if text.len() > 1 {
             out.push((text.to_string(), "/fixture/tmp".to_string()));
+        }
+    }
+    let host = std::process::Command::new("hostname").output().ok().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
+    let user = std::env::var("USER").unwrap_or_default();
+    for (name, stand_in) in [(host.as_str(), "fixture-host"), (host.split('.').next().unwrap_or_default(), "fixture-host"), (user.as_str(), "fixture-user")] {
+        if name.len() >= 4 && !out.iter().any(|(have, _)| have == name) {
+            out.push((name.to_string(), stand_in.to_string()));
         }
     }
     for pair in p.val("mask").unwrap_or_default().split(',').filter(|m| !m.is_empty()) {
@@ -155,7 +165,8 @@ pub fn record_verb(p: &Parsed) -> Done {
     wrote.push(set.dir.join(RULES_FILE).display().to_string());
     let toml = set.dir.join("mimic.toml");
     if !toml.exists() {
-        std::fs::write(&toml, SET_TOML).map_err(|e| fail(format!("{}: {e}", toml.display()), "make the set directory writable"))?;
+        let text = if p.val("preset") == Some("t3") { format!("{SET_TOML}{T3_REPLAY_TOML}") } else { SET_TOML.to_string() };
+        std::fs::write(&toml, text).map_err(|e| fail(format!("{}: {e}", toml.display()), "make the set directory writable"))?;
         wrote.push(toml.display().to_string());
     }
     wrote.extend(p.val("trace").map(String::from));

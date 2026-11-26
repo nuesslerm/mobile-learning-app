@@ -4379,6 +4379,8 @@ mimic.toml (paths relative to the file):
   allowlist = "allowlist.json"     (optional; entries may carry "pin_hash")
   [reference]                      the pinned program a record runs
   driver = "stdio"                 command = ["node", "driver.mjs"]
+  driver = "wire"                  a server observed through `wf mimic proxy record`: it names no command, and its
+                                   pin stamps what was recorded through the proxy as recorded
   driver = "script"                the step interpreter plays the corpus's `script` cases itself (docs/plans/mimic/step-language.md):
   [reference.script]               target = "spawn" (the release the pin names, verified by sha256, started in a hermetic host)
                                    or "url" (addr = "127.0.0.1:7000", workspace = "/w", mint = ["cmd"] prints a credential)
@@ -4393,6 +4395,7 @@ mimic.toml (paths relative to the file):
   [diff.fold]                      a stream's chunks count as one list per request:
                                    channel, tag, chunk, values, once, squash (see wf mimic diff)
   [record]                         batch, write_chunk, stability_pct (the flags of wf mimic record)
+  [proxy.replay]                   ignore_keys = ["key", ...]: keys `wf mimic proxy replay` does not compare
   live_when_named = "why"          in [reference]: `verify --all --live` skips it, `verify <set> --live` runs it
   [record]                         allow_nondeterministic (default false), args: what `wf mimic capture record`
                                    adds to the record call of the set
@@ -5460,7 +5463,9 @@ or Ctrl-C), what crossed is sanitised in memory and only then written:
     password and their kin), a Bearer token or a JWT anywhere, and every
     value --secret-env names;
   - the home and the temp directory of this machine become /fixture/home and
-    /fixture/tmp; --mask adds more;
+    /fixture/tmp, its host name fixture-host and the user name fixture-user,
+    in any case, and a name inside a tailnet (*.ts.net) one fixture name;
+    --mask adds more;
   - a run that cannot be made safe is not written at all (exit 1): a body the
     proxy could not read (compressed), or a token-shaped value that is still
     there after sanitising. The verb asks the server for uncompressed bodies.
@@ -5476,6 +5481,9 @@ The set is <dir>/cassette.json, interactions.jsonl, rules.json and mimic.toml
 order. A set whose mimic.toml has a [reference] with a pin is stamped
 `recorded` with that pin's hash; any other is `authored`: a fixture, not
 evidence of a reference. A set that holds a recording is never written over.
+A new set recorded with --preset t3 gets [proxy.replay] ignore_keys =
+["httpSnapshotFallback", "afterSequence"] in its mimic.toml (see
+`wf mimic proxy replay`).
 
 Options:
   --set <dir>             the cassette set to write
@@ -5539,6 +5547,13 @@ with the rules of the set's rules.json applied (ids a client makes up,
 timestamps). The nth equal request gets the nth recording; once every equal
 recording has answered, the first answers again ("reused").
 
+Two more things may differ, because an unmodified client is not the same on
+every run. A key the set's mimic.toml lists under [proxy.replay] ignore_keys
+is taken out of both sides (a flag the client sends only when it resumes), and
+a value of this machine the client still holds from the run that was recorded
+(the home and temp directory, the host and user name, a tailnet name, and what
+--mask adds) is compared as the fixture value the recording has in its place.
+
 A socket whose replies name the request they answer (the T3 orchestration
 socket, JSON-RPC) is replayed by request: a request takes the recorded request
 of the same method and payload, and gets that one's recorded replies, in
@@ -5558,6 +5573,7 @@ Options:
   --duration <seconds>    stop after this long
   --settle-ms <ms>        how long a client is quiet before held replies go out (default 300)
   --fail-fast             stop at the first mismatch
+  --mask <value>=<stand-in>,...  more values of this machine, as given to the record
   --suite <name>          write $WF_TEST_OUTPUT_DIR/<name>/report.json
   --ready <file>          write the listening address here once the replay is up
   -h, --help              display help for command

@@ -8,6 +8,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { app } from '../../__tests__/flowApp';
 import { createT3MobileApi } from '../../data/t3/mobileApi';
+import { resumeCommand } from '../../domain/t3Mobile';
 import type { T3MobilePort, T3Snapshot } from '../../domain/t3Mobile';
 
 const pair = { endpoint: 'https://fixture.invalid', token: 'fixture-token' };
@@ -275,6 +276,42 @@ describe('Orca chat with the T3 transport', () => {
     expect(sent).toEqual([]);
     await userEvent.click(screen.getByRole('button', {name: 'Done'}));
     expect(screen.queryByRole('button', {name: /^Default/})).toBeNull();
+  });
+
+  it('Given a structured chat, when picking or submitting /resume, then the notice preserves the draft and sends no turn', async () => {
+    const port = backend();
+    const open = port.open;
+    const sent: string[] = [];
+    port.open = async (...args) => ({
+      ...await open(...args), commands: [resumeCommand],
+      catalog: async () => [{ kind: 'skill', token: '/resume' }],
+      send: async (_id, text) => { sent.push(text); },
+    });
+    await app.render('/coding-agent/thread-42', { overrides: { 'coding-agent': { t3Mobile: port } } });
+    const field = await screen.findByPlaceholderText('Ask anything, @ to mention files, / for commands') as HTMLTextAreaElement;
+    await userEvent.click(await screen.findByRole('button', { name: 'Add to message' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Commands' }));
+    await userEvent.click(await screen.findByRole('button', { name: '/resume' }));
+    expect(screen.getByRole('alert').textContent).toBe('Available in the desktop app');
+    expect(field.value).toBe('/');
+    await userEvent.type(field, 'RESUME example');
+    const send = screen.getByRole('button', { name: 'Send message' });
+    await userEvent.click(send);
+    expect(field.value).toBe('/RESUME example');
+    expect(sent).toEqual([]);
+
+    await userEvent.clear(field);
+    await userEvent.click(screen.getByRole('button', { name: 'Add to message' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Skills' }));
+    await userEvent.click(await screen.findByRole('button', { name: '/resume' }));
+    await userEvent.type(field, 'this file');
+    await userEvent.click(send);
+    expect(sent).toEqual(['/resume this file']);
+    expect(field.value).toBe('');
+    await userEvent.type(field, '/resume');
+    await userEvent.click(send);
+    expect(sent).toEqual(['/resume this file']);
+    expect(field.value).toBe('/resume');
   });
 
   it('Given a model display name, when its command is refused and retried, then the draft stays until the selected model is saved', async () => {

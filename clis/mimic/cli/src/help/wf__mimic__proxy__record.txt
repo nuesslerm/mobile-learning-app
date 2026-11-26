@@ -24,7 +24,9 @@ or Ctrl-C), what crossed is sanitised in memory and only then written:
     password and their kin), a Bearer token or a JWT anywhere, and every
     value --secret-env names;
   - the home and the temp directory of this machine become /fixture/home and
-    /fixture/tmp; --mask adds more;
+    /fixture/tmp, its host name fixture-host and the user name fixture-user,
+    in any case, and a name inside a tailnet (*.ts.net) one fixture name;
+    --mask adds more;
   - a run that cannot be made safe is not written at all (exit 1): a body the
     proxy could not read (compressed), or a token-shaped value that is still
     there after sanitising. The verb asks the server for uncompressed bodies.
@@ -40,6 +42,9 @@ The set is <dir>/cassette.json, interactions.jsonl, rules.json and mimic.toml
 order. A set whose mimic.toml has a [reference] with a pin is stamped
 `recorded` with that pin's hash; any other is `authored`: a fixture, not
 evidence of a reference. A set that holds a recording is never written over.
+A new set recorded with --preset t3 gets [proxy.replay] ignore_keys =
+["httpSnapshotFallback", "afterSequence"] in its mimic.toml (see
+`wf mimic proxy replay`).
 
 Options:
   --set <dir>             the cassette set to write

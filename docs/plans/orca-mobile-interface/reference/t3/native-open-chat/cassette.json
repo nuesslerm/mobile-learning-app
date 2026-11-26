@@ -1,0 +1,31 @@
+{
+  "content_hash": "sha256:81766fe65138367e0348601a42f4a94b89c9ae16e06db6d6fba53044f4e2eb81",
+  "interactions": 8,
+  "provenance": {
+    "driver": {
+      "name": "mimic-proxy",
+      "protocol": "mimic-proxy-record/1",
+      "version": "0.1.0"
+    },
+    "kind": "recorded",
+    "recorded_at": "2026-11-26T02:13:53.810Z",
+    "recorded_on": "macOS host, iPhone 18 Pro Max simulator",
+    "rules_hash": "sha256:7f6a78b06504e5e72462ba03910ad748023f04fb36f2316830ad2c35d322c9c7",
+    "source": "T3 Code 2.3.0 (com.t3tools.t3code) on an iOS 27.0 simulator, already paired: launch, reconnect, open the fixture chat",
+    "target": {
+      "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
+      "name": "t3",
+      "pin_file": "../../../../../../tooling/t3-conformance/t3-pin.json",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1",
+      "version": "0.1.9"
+    },
+    "tool": {
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:7f6a78b06504e5e72462ba03910ad748023f04fb36f2316830ad2c35d322c9c7",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

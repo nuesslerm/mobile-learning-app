@@ -35,6 +35,24 @@ struct File {
     provision: Option<crate::provision::Raw>,
     provision_file: Option<String>,
     record: Option<RecordFile>,
+    #[serde(default)]
+    proxy: ProxyFile,
+}
+
+/// `[proxy.replay]`: what `wf mimic proxy replay` lets differ between the recording and a live client.
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+struct ProxyFile {
+    #[serde(default)]
+    replay: ReplayFile,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+struct ReplayFile {
+    /// Keys a client sends on some runs and not on others: they are not compared.
+    #[serde(default)]
+    ignore_keys: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -255,6 +273,7 @@ pub struct Config {
     pub diff: DiffOptions,
     pub provision: Option<crate::provision::Provision>,
     pub record: RecordOptions,
+    pub replay_ignore_keys: Vec<String>,
 }
 
 /// The nearest ancestor of `dir` that is a checkout (holds `.git`, a directory or a worktree's file).
@@ -282,9 +301,11 @@ fn load_provision(dir: &Path, file: &Path, inline: Option<crate::provision::Raw>
 }
 
 fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
-    if !matches!(t.driver.as_str(), "stdio" | "script") {
-        return Err(format!("[{name}] driver {:?}: this build runs drivers of kind \"stdio\" and \"script\" (a Rust closure is the SDK's InProcessDriver)", t.driver));
+    if !matches!(t.driver.as_str(), "stdio" | "script" | "wire") {
+        return Err(format!("[{name}] driver {:?}: this build runs drivers of kind \"stdio\", \"script\" and \"wire\" (a Rust closure is the SDK's InProcessDriver)", t.driver));
     }
+    // a server observed through `wf mimic proxy record`: nothing is started for it, so it names no command
+    let observed = t.driver == "wire";
     for declared in t.env_from_vault.iter().flat_map(|(env, key)| [env, key]).chain(t.script.iter().flat_map(|s| &s.env_pass)) {
         if crate::child_env::never(declared) || !declared.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_') {
             return Err(format!("[{name}] declares {declared:?}: an UPPER_SNAKE name, and never a BWS_* or GITHUB_* one (no child gets those)"));
@@ -302,7 +323,7 @@ fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
     if t.pin.is_some() && t.pin_tree.is_some() {
         return Err(format!("[{name}] names both pin and pin_tree: a reference has one pin"));
     }
-    if t.command.is_empty() && script.is_none() {
+    if t.command.is_empty() && script.is_none() && !observed {
         return Err(format!("[{name}] command is empty"));
     }
     let mut command = t.command;
@@ -359,6 +380,7 @@ impl Config {
             diff,
             provision: load_provision(&dir, file, parsed.provision, parsed.provision_file)?,
             record: record_options(file, parsed.record)?,
+            replay_ignore_keys: parsed.proxy.replay.ignore_keys,
             dir,
         })
     }

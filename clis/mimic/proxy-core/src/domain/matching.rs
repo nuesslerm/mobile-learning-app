@@ -1,6 +1,7 @@
 //! Tells whether a live request is one the recording has. Two tiers: equal once credentials are masked, then equal once the
 //! set's rules have masked what varies between runs (ids a client makes up, timestamps).
-use mimic_core::json::canonical_string;
+use super::sanitize::without_machine_values;
+use mimic_core::json::{canonical, canonical_string};
 use mimic_core::rules::{Compiled, Normalizer, Rule, RuleSet, RulesError};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -15,9 +16,19 @@ pub struct Key {
     pub shown: Value,
 }
 
+/// What a set allows to differ between its recording and a live request, beside what its rules mask.
+#[derive(Clone, Debug, Default)]
+pub struct Tolerance {
+    /// Keys a client sends on some runs and not on others: taken out of both sides before they are compared.
+    pub ignore_keys: Vec<String>,
+    /// Values of this machine a client may still hold from the run that was recorded, and what stands for each in the recording.
+    pub machine: Vec<(String, String)>,
+}
+
 pub struct Keys {
     strict: Compiled,
     loose: Compiled,
+    tolerance: Tolerance,
 }
 
 fn body_value(nz: &mut Normalizer, body: &str, content_type: &str) -> Value {
@@ -25,13 +36,29 @@ fn body_value(nz: &mut Normalizer, body: &str, content_type: &str) -> Value {
         return Value::Null;
     }
     match serde_json::from_str::<Value>(body) {
-        Ok(value) => nz.json(&value, None),
+        // sorted keys first: the rules number ids in the order they meet them, which must not depend on how a client orders its keys
+        Ok(value) => nz.json(&canonical(&value), None),
         Err(_) => nz.body(body, content_type),
     }
 }
 
+impl Tolerance {
+    fn text(&self, text: &str) -> String {
+        if self.machine.is_empty() { text.to_string() } else { without_machine_values(text, &self.machine) }
+    }
+
+    fn value(&self, value: &Value) -> Value {
+        match value {
+            Value::String(text) => Value::String(self.text(text)),
+            Value::Array(items) => Value::Array(items.iter().map(|item| self.value(item)).collect()),
+            Value::Object(fields) => Value::Object(fields.iter().filter(|(key, _)| !self.ignore_keys.contains(key)).map(|(key, item)| (key.clone(), self.value(item))).collect()),
+            other => other.clone(),
+        }
+    }
+}
+
 impl Keys {
-    pub fn new(rules: &RuleSet, secret_keys: &[String]) -> Result<Keys, RulesError> {
+    pub fn new(rules: &RuleSet, secret_keys: &[String], tolerance: Tolerance) -> Result<Keys, RulesError> {
         let mut keys: BTreeMap<String, String> = secret_keys.iter().map(|k| (k.clone(), SECRET.to_string())).collect();
         for rule in &rules.rules {
             if let Rule::SecretKey { keys: named } = rule {
@@ -41,7 +68,7 @@ impl Keys {
         let secret = Rule::SecretKey { keys };
         let strict = RuleSet::new(vec![secret.clone()]).compile()?;
         let loose = RuleSet::new(rules.rules.iter().cloned().chain([secret]).collect()).compile()?;
-        Ok(Keys { strict, loose })
+        Ok(Keys { strict, loose, tolerance })
     }
 
     fn both(&self, form: impl Fn(&mut Normalizer) -> Value) -> Key {
@@ -51,15 +78,19 @@ impl Keys {
     }
 
     pub fn http(&self, method: &str, target: &str, body: &str, content_type: &str) -> Key {
-        self.both(|nz| json!({"method": method.to_uppercase(), "path": nz.path(target), "body": body_value(nz, body, content_type)}))
+        let (target, body) = (self.tolerance.text(target), self.tolerance.text(body));
+        let tolerated = |value: Value| self.tolerance.value(&value);
+        self.both(|nz| json!({"method": method.to_uppercase(), "path": nz.path(&target), "body": tolerated(body_value(nz, &body, content_type))}))
     }
 
     pub fn target(&self, target: &str) -> Key {
-        self.both(|nz| json!(nz.path(target)))
+        let target = self.tolerance.text(target);
+        self.both(|nz| json!(nz.path(&target)))
     }
 
     pub fn frame(&self, frame: &Value) -> Key {
-        self.both(|nz| nz.json(frame, None))
+        let frame = canonical(&self.tolerance.value(frame));
+        self.both(|nz| nz.json(&frame, None))
     }
 }
 
@@ -138,7 +169,23 @@ mod tests {
 
     fn keys() -> Keys {
         let secret: Vec<String> = SECRET_KEYS.iter().map(|s| s.to_string()).collect();
-        Keys::new(&RuleSet::new(vec![Rule::UuidOrdinal]), &secret).expect("rules compile")
+        Keys::new(&RuleSet::new(vec![Rule::UuidOrdinal]), &secret, Tolerance::default()).expect("rules compile")
+    }
+
+    #[test]
+    fn given_a_key_the_set_ignores_and_a_path_of_this_machine_when_keyed_then_the_live_request_equals_the_recording() {
+        // Given
+        let tolerance = Tolerance { ignore_keys: vec!["httpSnapshotFallback".into()], machine: vec![("/Users/jane".into(), "/fixture/home".into())] };
+        let keys = Keys::new(&RuleSet::new(Vec::new()), &[], tolerance).expect("rules compile");
+
+        // When
+        let recorded = keys.frame(&json!({"tag": "subscribe", "payload": {"cwd": "/fixture/home/repo"}}));
+        let live = keys.frame(&json!({"tag": "subscribe", "payload": {"cwd": "/Users/jane/repo", "httpSnapshotFallback": true}}));
+        let other = keys.frame(&json!({"tag": "subscribe", "payload": {"cwd": "/Users/jane/other"}}));
+
+        // Then
+        assert_eq!(recorded.strict, live.strict);
+        assert_ne!(recorded.strict, other.strict);
     }
 
     #[test]
@@ -168,6 +215,22 @@ mod tests {
         // Then
         assert_ne!(recorded.strict, live.strict);
         assert_eq!(recorded.loose, live.loose);
+    }
+
+    #[test]
+    fn given_the_same_request_with_its_keys_in_another_order_when_keyed_then_the_ids_it_makes_up_are_numbered_alike() {
+        // Given
+        let keys = keys();
+        let recorded: Value = serde_json::from_str(r#"{"clientId":"mobile-6f1e6a2e-9d0b-4d7c-8a51-0c2a4b9f1e11","environmentId":"0b7c2f4d-1a3e-4f5a-9b6c-7d8e9f0a1b2c","at":1}"#).unwrap();
+        let live: Value = serde_json::from_str(r#"{"environmentId":"0b7c2f4d-1a3e-4f5a-9b6c-7d8e9f0a1b2c","at":2,"clientId":"mobile-6f1e6a2e-9d0b-4d7c-8a51-0c2a4b9f1e11"}"#).unwrap();
+
+        // When
+        let (recorded, live) = (keys.frame(&recorded), keys.frame(&live));
+
+        // Then
+        assert_ne!(recorded.strict, live.strict);
+        assert_eq!(recorded.shown["clientId"], live.shown["clientId"]);
+        assert_eq!(recorded.shown["environmentId"], live.shown["environmentId"]);
     }
 
     #[test]

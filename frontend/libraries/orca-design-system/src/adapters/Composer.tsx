@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  Text,
   TextInput,
   type TextInputInstance,
   Platform,
@@ -58,6 +59,8 @@ export function ComposerSendButton({
 
 export function Composer({
   suggestions,
+  notice,
+  onPickSuggestion,
   value,
   placeholder,
   sendLabel,
@@ -99,7 +102,7 @@ export function Composer({
     else field.current?.focus();
   }
   function pick(row: ComposerSuggestion) {
-    if (!trigger) return;
+    if (!trigger || onPickSuggestion?.(row, !value.slice(0, trigger.start).trim())) return;
     const token = row.kind === 'file' ? fileToken(row.token) : row.token;
     const before = value.slice(0, trigger.start) + token + ' ';
     insert(before + value.slice(end).replace(/^ /, ''), before.length);
@@ -108,6 +111,11 @@ export function Composer({
   }
   return (
     <>
+      {!!notice && (
+        <View style={styles.notice} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+          <Text style={[styles.noticeText, { color: colors.statusRed }]}>{notice}</Text>
+        </View>
+      )}
       {suggestions && trigger && (
         <ComposerSuggestionList
           source={suggestions}
@@ -176,6 +184,8 @@ export function Composer({
 }
 
 const styles = StyleSheet.create({
+  notice: { alignItems: 'center', paddingHorizontal: 12, paddingBottom: 4 },
+  noticeText: { flexShrink: 1, fontSize: 12, fontWeight: '600' },
   inset: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 8 },
   box: { borderWidth: 1, borderRadius: 24, padding: 12 },
   frame: { width: '100%', overflow: 'hidden' },

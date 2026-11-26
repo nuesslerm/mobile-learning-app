@@ -160,7 +160,9 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
               )
             }
             value={state.draft}
-            onChangeText={state.setDraft}
+            onChangeText={state.changeDraft}
+            notice={state.notice}
+            onPickSuggestion={state.pickSuggestion}
             onSend={() => void state.send()}
             sendLabel="Send message"
             canSend={state.connected && !!state.draft.trim()}

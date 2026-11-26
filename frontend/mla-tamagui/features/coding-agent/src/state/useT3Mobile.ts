@@ -1,6 +1,7 @@
 import type { CheckoutRow, HomeSummary, WorkspaceCatalog } from '../domain/workspaceCatalog';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { resumeCommand, type T3ComposerEntry } from '../domain/t3Mobile';
 import type { Pairing } from '../domain/mobile';
 import type {
   T3Conversation,
@@ -21,6 +22,33 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
   const connection = useRef<T3Conversation | null>(null);
   const [generation, setGeneration] = useState(0);
   const [draft, setDraft] = useState('');
+  const [notice, setNotice] = useState('');
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pickedSkill = useRef<string | undefined>(undefined);
+  useEffect(() => () => clearTimeout(noticeTimer.current), []);
+  useEffect(() => {
+    if (!draft) pickedSkill.current = undefined;
+  }, [draft]);
+
+  function showResumeNotice() {
+    clearTimeout(noticeTimer.current);
+    setNotice(resumeCommand.description);
+    noticeTimer.current = setTimeout(() => setNotice(''), 4000);
+  }
+
+  function changeDraft(next: string) {
+    if (pickedSkill.current !== next.trimStart().split(/\s/, 1)[0]) pickedSkill.current = undefined;
+    setDraft(next);
+  }
+
+  function pickSuggestion(row: T3ComposerEntry, leading: boolean) {
+    if (row.kind === 'command' && row.token === resumeCommand.token) {
+      showResumeNotice();
+      return true;
+    }
+    if (leading) pickedSkill.current = row.kind === 'skill' ? row.token : undefined;
+    return false;
+  }
   const pending = useRef<{ text: string; id: string } | null>(null);
   const sending = useRef(false);
   const retry = useCallback(() => setGeneration((v) => v + 1), []);
@@ -122,13 +150,22 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
     const text = draft.trim();
     if (!connected || !connection.current || !text || sending.current) return;
     const session = connection.current;
+    const leading = text.split(/\s/, 1)[0];
+    const isPickedSkill = leading === pickedSkill.current;
+    if (!isPickedSkill && leading.toLowerCase() === resumeCommand.token &&
+        session.commands?.some(row => row.token === resumeCommand.token)) {
+      showResumeNotice();
+      return;
+    }
+    clearTimeout(noticeTimer.current);
+    setNotice('');
     sending.current = true;
     setBusy(true);
     if (pending.current?.text !== text)
       pending.current = { text, id: api.newId() };
     try {
       const modelCommand = /^\/model(?:\s+([^\r\n\u2028\u2029]+))?$/i.exec(draft.trimEnd());
-      if (modelCommand) {
+      if (modelCommand && !isPickedSkill) {
         const thread = snapshot?.thread;
         const provider = thread?.modelSelection?.instanceId ?? thread?.providerInstanceId;
         if (!provider) throw new Error('The model picker is unavailable for this chat.');
@@ -174,6 +211,8 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
     modelPickerOpen,
     setModelPickerOpen,
     draft,
-    setDraft,
+    notice,
+    pickSuggestion,
+    changeDraft,
   };
 }

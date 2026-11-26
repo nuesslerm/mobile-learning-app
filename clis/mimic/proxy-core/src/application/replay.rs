@@ -1,7 +1,7 @@
 //! A cassette answers a client: a request comes in, the recorded reply or a mismatch goes out. Nothing here can reach a server,
 //! so a request the recording does not have is never forwarded.
 use crate::domain::interactions::{route, CHANNEL_HTTP, CHANNEL_OPEN, OP_HTTP, OP_WS};
-use crate::domain::matching::{pick, Candidate, Key, Keys};
+use crate::domain::matching::{pick, Candidate, Key, Keys, Tolerance};
 use crate::domain::mismatch::{nearest, Mismatch};
 use crate::domain::ordering::{Out, Payload, Script, Session};
 use base64::engine::general_purpose::STANDARD;
@@ -113,8 +113,8 @@ fn exchange(at: usize, it: &Interaction, keys: &Keys) -> Option<Exchange> {
 }
 
 impl Replayer {
-    pub fn new(set: &CassetteSet, secret_keys: &[String], settle_ms: u64) -> Result<Replayer, String> {
-        let keys = Keys::new(&set.rules, secret_keys).map_err(|e| e.to_string())?;
+    pub fn new(set: &CassetteSet, secret_keys: &[String], tolerance: Tolerance, settle_ms: u64) -> Result<Replayer, String> {
+        let keys = Keys::new(&set.rules, secret_keys, tolerance).map_err(|e| e.to_string())?;
         let (mut exchanges, mut scripts, mut sockets) = (Vec::new(), Vec::new(), Vec::new());
         for (at, it) in set.cassette.interactions.iter().enumerate() {
             match it.op.as_deref() {
@@ -264,7 +264,7 @@ mod tests {
         let meta = Meta { kind: Kind::Authored, target: None, tool: ToolInfo { mimic: "0".into(), git: None }, recorded_at: None, recorded_on: None, source: None, note: None };
         let recorded = record(&events, default_rules(), &Policy::default(), meta).expect("recorded");
         let secret: Vec<String> = SECRET_KEYS.iter().map(|s| s.to_string()).collect();
-        Replayer::new(&recorded.set, &secret, 300).expect("a replayer")
+        Replayer::new(&recorded.set, &secret, Tolerance::default(), 300).expect("a replayer")
     }
 
     #[test]

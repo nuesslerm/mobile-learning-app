@@ -317,7 +317,7 @@ mod tests {
     }
 
     fn script(frames: Vec<Event>) -> (Vec<Script>, Keys) {
-        let keys = Keys::new(&RuleSet::new(vec![Rule::UuidOrdinal]), &[]).expect("rules compile");
+        let keys = Keys::new(&RuleSet::new(vec![Rule::UuidOrdinal]), &[], Default::default()).expect("rules compile");
         let mut events = vec![Event::WsOpen { connection: 1, target: "/ws".into(), status: 101 }];
         events.extend(frames);
         let its = interactions(&events);

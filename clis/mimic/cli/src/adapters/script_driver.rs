@@ -55,6 +55,9 @@ fn launch(target: &Target, spec: &ScriptSpec) -> Result<Box<dyn Launch>, String>
 /// `stdio` target as the caller wants it run (the recorder adds its concurrency to the environment).
 pub fn open_driver(target: &Target, command: StdioSpec) -> Result<Box<dyn Driver>, String> {
     let Some(spec) = &target.script else {
+        if command.command.is_empty() {
+            return Err(format!("[{}] was observed through a proxy (driver = \"wire\") and names no program to run", target.name));
+        }
         return Ok(Box::new(StdioDriver::new(command)));
     };
     let mut policy = Policy::default();

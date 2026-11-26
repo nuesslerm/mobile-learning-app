@@ -48,7 +48,7 @@ fn call(method: &str, target: &str, headers: &Headers, body: &[u8]) -> Step {
     step(Dir::Call, message(fields, headers, body))
 }
 
-fn ret(status: u16, headers: &Headers, body: &[u8]) -> Step {
+pub fn ret(status: u16, headers: &Headers, body: &[u8]) -> Step {
     let mut fields = Map::new();
     fields.insert("status".into(), json!(status));
     step(Dir::Ret, message(fields, headers, body))

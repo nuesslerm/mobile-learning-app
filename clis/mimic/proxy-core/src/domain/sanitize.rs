@@ -24,7 +24,7 @@ pub struct Policy {
     pub secret_headers: Vec<String>,
     /// Values the caller knows must never be written, by a name of the caller's.
     pub declared: Vec<(String, String)>,
-    /// Values of this machine (home, temp directory, host name) and what stands for each.
+    /// Values of this machine (home, temp directory, host and user name) and what stands for each, whatever their case.
     pub masks: Vec<(String, String)>,
 }
 
@@ -283,7 +283,50 @@ fn learn(value: &Value, policy: &Policy, fx: &mut Fixtures, depth: usize) {
     }
 }
 
-struct Table(Vec<(String, String)>);
+pub const TAILNET_NAME: &str = "fixture-host.fixture-tailnet.ts.net";
+const TAILNET_SUFFIX: &str = ".ts.net";
+
+fn replace_ignoring_case(text: &str, from: &str, to: &str) -> String {
+    let (lower, from) = (text.to_ascii_lowercase(), from.to_ascii_lowercase());
+    let (mut out, mut at) = (String::new(), 0);
+    while let Some(found) = lower[at..].find(&from) {
+        out.push_str(&text[at..at + found]);
+        out.push_str(to);
+        at += found + from.len();
+    }
+    out.push_str(&text[at..]);
+    out
+}
+
+/// A name inside a tailnet names the machine and the account's network: each becomes one fixture name.
+fn without_tailnet_names(text: &str) -> String {
+    let name = |c: char| c.is_ascii_alphanumeric() || matches!(c, '-' | '.');
+    let (mut out, mut rest) = (String::new(), text);
+    while let Some(at) = rest.find(TAILNET_SUFFIX) {
+        let start = rest[..at].rfind(|c: char| !name(c)).map_or(0, |i| i + 1);
+        let after = &rest[at + TAILNET_SUFFIX.len()..];
+        if start == at || after.starts_with(name) {
+            out.push_str(&rest[..at + TAILNET_SUFFIX.len()]);
+        } else {
+            out.push_str(&rest[..start]);
+            out.push_str(TAILNET_NAME);
+        }
+        rest = after;
+    }
+    out + rest
+}
+
+/// Text with the values of this machine replaced: what a live request must go through before it is compared with a recording.
+pub fn without_machine_values(text: &str, masks: &[(String, String)]) -> String {
+    let mut sorted: Vec<&(String, String)> = masks.iter().filter(|(value, _)| !value.is_empty()).collect();
+    sorted.sort_by_key(|(value, _)| std::cmp::Reverse(value.len()));
+    without_tailnet_names(&sorted.iter().fold(text.to_string(), |out, (from, to)| replace_ignoring_case(&out, from, to)))
+}
+
+struct Table {
+    credentials: Vec<(String, String)>,
+    machine: Vec<(String, String)>,
+}
 
 impl Table {
     fn of(fx: &Fixtures, masks: &[(String, String)]) -> Table {
@@ -296,19 +339,18 @@ impl Table {
                 }
             }
         }
-        pairs.extend(masks.iter().filter(|(value, _)| !value.is_empty()).cloned());
         pairs.sort_by_key(|(value, _)| std::cmp::Reverse(value.len()));
-        Table(pairs)
+        Table { credentials: pairs, machine: masks.to_vec() }
     }
 
     fn swap(&self, text: &str) -> String {
         let mut out = text.to_string();
-        for (from, to) in &self.0 {
+        for (from, to) in &self.credentials {
             if out.contains(from.as_str()) {
                 out = out.replace(from.as_str(), to);
             }
         }
-        out
+        without_machine_values(&out, &self.machine)
     }
 
     fn rewrite(&self, value: &mut Value) {
@@ -463,7 +505,7 @@ fn encoded(interactions: &[Interaction]) -> Result<(), Leak> {
     Ok(())
 }
 
-fn verify(interactions: &[Interaction], fx: &Fixtures) -> Result<(), Leak> {
+fn verify(interactions: &[Interaction], fx: &Fixtures, masks: &[(String, String)]) -> Result<(), Leak> {
     for it in interactions {
         for (n, step) in it.steps.iter().enumerate() {
             let mut text = String::new();
@@ -480,6 +522,14 @@ fn verify(interactions: &[Interaction], fx: &Fixtures) -> Result<(), Leak> {
             }
             if let Some(shape) = token_shape(&text) {
                 return Err(Leak::Shape { interaction: it.id.clone(), step: n, shape });
+            }
+            let lower = text.to_ascii_lowercase();
+            let left_over = masks.iter().any(|(value, stand_in)| {
+                let value = value.to_ascii_lowercase();
+                !value.is_empty() && !stand_in.to_ascii_lowercase().contains(&value) && lower.contains(&value)
+            });
+            if left_over {
+                return Err(Leak::Value { interaction: it.id.clone(), step: n, kind: "a value of this machine".into() });
             }
         }
     }
@@ -515,7 +565,7 @@ pub fn sanitise(interactions: &mut [Interaction], policy: &Policy) -> Result<San
             }
         }
     }
-    verify(interactions, &fx)?;
+    verify(interactions, &fx, &policy.masks)?;
     Ok(Sanitised { fixtures: fx.counts })
 }
 
@@ -614,6 +664,23 @@ mod tests {
         let all = text(&its);
         assert!(!all.contains("CANARY") && !all.contains("/Users/someone"), "{all}");
         assert!(all.contains("/fixture/home/repo") && all.contains("fx-declared-1"), "{all}");
+    }
+
+    #[test]
+    fn given_the_names_of_this_machine_in_any_case_and_a_tailnet_name_when_sanitised_then_none_is_written() {
+        // Given
+        let body = r#"{"targets":[{"host":"my-laptop.tail1234.ts.net","username":"jane"},{"host":"MY-LAPTOP.local","username":"Jane"}],"docs":"see https://tailscale.com/kb/ts.net.html"}"#;
+        let events = vec![request(1, "/x", &[], ""), answer(1, &[], body)];
+        let mut its = interactions(&events);
+        let policy = Policy { masks: vec![("My-Laptop".into(), "fixture-host".into()), ("jane".into(), "fixture-user".into())], ..Policy::default() };
+
+        // When
+        sanitise(&mut its, &policy).expect("sanitised");
+
+        // Then
+        let got: Value = serde_json::from_str(its[0].steps[1].payload["body"].as_str().unwrap()).unwrap();
+        assert_eq!(got["targets"], serde_json::json!([{"host": TAILNET_NAME, "username": "fixture-user"}, {"host": "fixture-host.local", "username": "fixture-user"}]));
+        assert_eq!(got["docs"], "see https://tailscale.com/kb/ts.net.html");
     }
 
     #[test]

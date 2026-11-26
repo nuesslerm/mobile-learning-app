@@ -1,6 +1,7 @@
 import { composerCatalog, composerFiles } from './composerDiscovery';
 import { Logger } from '@lib/logging';
 import { z } from 'zod';
+import { resumeCommand } from '../../domain/t3Mobile';
 import type { T3Conversation, T3Snapshot } from '../../domain/t3Mobile';
 
 export const threadSchema = z.object({
@@ -257,7 +258,7 @@ export function openConversation(
     get commands() {
       const thread = snapshot?.thread;
       return thread?.modelSelection?.instanceId || thread?.providerInstanceId
-        ? [{ kind: 'command' as const, token: '/model', description: 'Choose the model' }]
+        ? [{ kind: 'command' as const, token: '/model', description: 'Choose the model' }, resumeCommand]
         : [];
     },
     async files(query) {

@@ -61,7 +61,7 @@ const SCAN: Spec = Spec { values: &["clis"], positional: Positional::Any, ..Spec
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
 const PROXY_RECORD: Spec = Spec { values: &["set", "upstream", "listen", "duration", "max-events", "ready", "trace", "preset", "secret-env", "mask", "source", "recorded-on"], positional: Positional::None, ..Spec::NONE };
-const PROXY_REPLAY: Spec = Spec { values: &["listen", "duration", "ready", "suite", "settle-ms"], flags: &["fail-fast"], positional: Positional::Exactly(1), ..Spec::NONE };
+const PROXY_REPLAY: Spec = Spec { values: &["listen", "duration", "ready", "suite", "settle-ms", "mask"], flags: &["fail-fast"], positional: Positional::Exactly(1), ..Spec::NONE };
 const PROXY: Spec = Spec { values: &["upstream", "out", "listen", "duration", "max-events", "ready"], positional: Positional::None, ..Spec::NONE };
 
 /// What a verb prints when it cannot run at all (exit 2).

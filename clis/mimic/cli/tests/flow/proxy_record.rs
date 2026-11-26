@@ -81,6 +81,25 @@ fn given_a_replay_when_a_client_asks_for_what_was_not_recorded_then_the_run_fail
 }
 
 #[test]
+fn given_the_recorded_native_t3_set_when_it_is_replayed_then_it_answers_the_first_request_of_the_app_and_opens_no_connection() {
+    // Given the committed recording of T3 Code against the pinned T3 server
+    let dir = tempfile::tempdir().unwrap();
+    let set = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../docs/plans/orca-mobile-interface/reference/t3/native-open-chat");
+    let mut replay = Tool::start(dir.path(), &["replay", &text(&set)], &[]);
+
+    // When a client asks what the app asks first, and for something the app never asked
+    let (status, _, descriptor) = http(replay.addr, "GET", "/.well-known/t3/environment", &[], "");
+    let (unknown, _, _) = http(replay.addr, "GET", "/api/not-recorded", &[], "");
+    let ended = replay.stop();
+
+    // Then the recorded server answers, as the pinned version, under a fixture name
+    let descriptor: Value = serde_json::from_str(&descriptor).expect("the descriptor is JSON");
+    assert_eq!((status, &descriptor["serverVersion"], &descriptor["label"]), (200, &json!("0.1.9"), &json!("fixture-host")));
+    // and the request it never recorded fails the run, with no connection opened
+    assert_eq!((unknown, ended.code, &ended.json["kind"], &ended.json["upstream_connections"], &ended.json["mismatch_count"]), (502, 1, &json!("recorded"), &json!(0), &json!(1)), "{}", ended.stdout);
+}
+
+#[test]
 fn given_a_set_that_holds_a_recording_when_another_is_recorded_into_it_then_it_is_refused() {
     // Given
     let dir = tempfile::tempdir().unwrap();

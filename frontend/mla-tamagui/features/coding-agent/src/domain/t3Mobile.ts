@@ -52,7 +52,11 @@ export type T3Shell = {
   threads: T3Thread[];
 };
 
-export type T3ComposerEntry = { kind: 'command' | 'skill' | 'file'; token: string; description?: string; hint?: string };
+export type T3ComposerEntry = { kind: 'command' | 'skill' | 'file'; token: string; description?: string; hint?: string; aliases?: readonly string[] };
+
+export const resumeCommand = {
+  kind: 'command', token: '/resume', aliases: ['sessions'], description: 'Available in the desktop app',
+} as const;
 export interface T3Conversation {
   readonly commands?: readonly T3ComposerEntry[];
   files(query: string): Promise<T3ComposerEntry[]>;

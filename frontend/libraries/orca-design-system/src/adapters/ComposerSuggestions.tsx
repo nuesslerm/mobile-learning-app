@@ -7,6 +7,7 @@ import { AtSign, FileText, Package, Plus, Terminal } from 'lucide-react-native';
 import { Fragment, useEffect, useState } from 'react';
 import {
   Keyboard,
+  Platform,
   Modal,
   Pressable,
   ScrollView,
@@ -16,6 +17,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChatPalette } from './chatPalette';
+
+const monoFamily = Platform.select({
+  ios: 'Menlo',
+  web: 'ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+  default: 'monospace',
+});
 
 const choices = [
   { kind: 'file', label: 'Workspace file', Icon: AtSign },
@@ -175,7 +182,7 @@ export function ComposerSuggestionList({
   const matches = files
     ? entries
     : catalog.filter((row) =>
-        row.token.toLowerCase().includes(query.toLowerCase())
+        [row.token, ...(row.aliases ?? [])].some(name => name.toLowerCase().includes(query.toLowerCase()))
       );
   const narrowed = matches.filter(
     (row) => row.kind === (sigil === '$' ? 'skill' : kind)
@@ -216,18 +223,24 @@ export function ComposerSuggestionList({
                   accessibilityRole="button"
                   accessibilityLabel={row.token}
                   onPress={() => onPick(row)}
-                  style={styles.suggestion}
+                  style={({ pressed }) => [styles.suggestion, pressed && { backgroundColor: colors.bgRaised }]}
                 >
-                  <Icon size={16} color={colors.textSecondary} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textPrimary, fontSize: 14 }}>
-                      {row.token}
-                      {row.hint ? ' ' + row.hint : ''}
-                    </Text>
+                  <Icon size={16} color={colors.textSecondary} style={styles.suggestionIcon} />
+                  <View style={styles.body}>
+                    <View style={styles.nameLine}>
+                      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+                        {row.token}
+                      </Text>
+                      {!!row.hint && (
+                        <Text style={[styles.hint, { color: colors.textMuted }]} numberOfLines={1}>
+                          {row.hint}
+                        </Text>
+                      )}
+                    </View>
                     {!!row.description && (
                       <Text
                         numberOfLines={2}
-                        style={{ color: colors.textMuted, fontSize: 12 }}
+                        style={[styles.description, { color: colors.textMuted }]}
                       >
                         {row.description}
                       </Text>
@@ -281,12 +294,20 @@ const styles = StyleSheet.create({
   },
   icon: { width: 24, alignItems: 'center' },
   card: {
-    borderRadius: 18,
+    flexShrink: 1,
+    marginBottom: 8,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     marginHorizontal: 10,
     paddingVertical: 6,
     overflow: 'hidden',
   },
+  body: { flex: 1, minWidth: 0, gap: 2 },
+  nameLine: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  name: { fontFamily: monoFamily, fontSize: 13.5, flexShrink: 1 },
+  hint: { fontFamily: monoFamily, fontSize: 12, flexShrink: 1 },
+  suggestionIcon: { marginTop: 2 },
+  description: { fontSize: 12.5, lineHeight: 17 },
   heading: {
     fontSize: 11,
     fontWeight: '600',

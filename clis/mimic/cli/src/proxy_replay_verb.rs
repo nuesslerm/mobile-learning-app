@@ -1,11 +1,13 @@
 //! `wf mimic proxy replay`: a cassette set answers an unmodified client on a loopback address. The verb opens no connection of
 //! its own, and a request the recording lacks fails the run.
+use super::proxy_record_verb::masks;
 use super::proxy_verb::{listen_addr, serve_until};
-use super::{fail, set_ref, Done};
+use super::{fail, load_config, set_ref, Done};
 use crate::adapters::conn;
 use crate::adapters::replay_server::ReplayServer;
 use mimic_proxy_core::application::record::policy_for;
 use mimic_proxy_core::application::replay::Replayer;
+use mimic_proxy_core::domain::matching::Tolerance;
 use mimic_proxy_core::domain::sanitize::Policy;
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -44,7 +46,10 @@ pub fn replay_verb(p: &Parsed) -> Done {
     let number = |name: &str| p.val(name).map(|v| v.parse::<u64>().map_err(|_| fail(format!("--{name} is not a number"), "wf mimic proxy replay --help"))).transpose();
     let (duration, settle) = (number("duration")?.filter(|d| *d > 0), number("settle-ms")?.unwrap_or(SETTLE_MS));
     let policy = policy_for(&content.rules, Policy::default());
-    let replayer = Replayer::new(&content, &policy.secret_keys, settle).map_err(|e| fail(e, format!("fix {}", set.dir.join("rules.json").display())))?;
+    let toml = set.dir.join("mimic.toml");
+    let ignore_keys = if toml.is_file() { load_config(&toml)?.replay_ignore_keys } else { Vec::new() };
+    let tolerance = Tolerance { ignore_keys, machine: masks(p)? };
+    let replayer = Replayer::new(&content, &policy.secret_keys, tolerance, settle).map_err(|e| fail(e, format!("fix {}", set.dir.join("rules.json").display())))?;
     let replayer = Arc::new(Mutex::new(replayer));
     let stop = Arc::new(AtomicBool::new(false));
     for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {

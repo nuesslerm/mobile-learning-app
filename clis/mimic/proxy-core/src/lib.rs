@@ -3,3 +3,6 @@
 //! the `wf-mimic` crate, and time comes in as an argument.
 pub mod application;
 pub mod domain;
+
+#[cfg(feature = "testing")]
+pub mod testing;
