@@ -292,6 +292,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
                 spellCheck={false}
                 keyboardType="ascii-capable"
                 style={{
+                  outlineStyle: 'solid',
                   outlineWidth: 0,
                   padding: 0,
                   fontSize: 14,
