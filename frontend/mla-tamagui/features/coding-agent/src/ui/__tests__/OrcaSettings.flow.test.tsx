@@ -29,16 +29,14 @@ describe("The Orca home's settings tab", () => {
     routerHarness().reset();
   });
 
-  it('Given the staged home, when the user opens the settings tab, then it carries the original menu in order', async () => {
+  it('Given the staged home, when the user opens Settings, then it carries the original menu in order', async () => {
     const { overrides } = settings();
-    await app.render('/coding-agent', { overrides });
-    await screen.findByRole('tab', { name: 'Settings' });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await app.render('/coding-agent/settings', { overrides });
 
     expect(
       screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'))
     ).toEqual([
+      'Back',
       'Appearance',
       'Terminal',
       'Chat UI',
@@ -53,23 +51,17 @@ describe("The Orca home's settings tab", () => {
     ]);
   });
 
-  it('Given the settings tab, when the user picks a screen row, then it opens the screen the original names', async () => {
+  it('Given the settings screen, when the user picks a screen row, then it opens the screen the original names', async () => {
     const { overrides } = settings();
-    await app.render('/coding-agent', { overrides });
-    await screen.findByRole('tab', { name: 'Settings' });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await app.render('/coding-agent/settings', { overrides });
     await userEvent.click(screen.getByRole('button', { name: 'Terminal' }));
 
     expect(routerHarness().lastPush()).toBe('/coding-agent/terminal-settings');
   });
 
-  it('Given the settings tab, when the user picks a link row, then it opens the original address', async () => {
+  it('Given the settings screen, when the user picks a link row, then it opens the original address', async () => {
     const { doubles, overrides } = settings();
-    await app.render('/coding-agent', { overrides });
-    await screen.findByRole('tab', { name: 'Settings' });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await app.render('/coding-agent/settings', { overrides });
     await userEvent.click(screen.getByRole('button', { name: 'Privacy Policy' }));
     await userEvent.click(screen.getByRole('button', { name: 'Support' }));
 
@@ -79,23 +71,17 @@ describe("The Orca home's settings tab", () => {
     ]);
   });
 
-  it('Given the settings tab, then it never claims an update that does not exist', async () => {
+  it('Given the settings screen, then it never claims an update that does not exist', async () => {
     const { overrides } = settings();
-    await app.render('/coding-agent', { overrides });
-    await screen.findByRole('tab', { name: 'Settings' });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await app.render('/coding-agent/settings', { overrides });
 
     expect(screen.queryByText(/Update to Orca/)).toBeNull();
     expect(screen.getByText('Version 1.0.0')).toBeTruthy();
   });
 
-  it('Given the settings tab, when the user asks for a check, then the check runs and the row reports it', async () => {
+  it('Given the settings screen, when the user asks for a check, then the check runs and the row reports it', async () => {
     const { doubles, overrides } = settings();
-    await app.render('/coding-agent', { overrides });
-    await screen.findByRole('tab', { name: 'Settings' });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await app.render('/coding-agent/settings', { overrides });
     expect(doubles.recorded.checks).toBe(0);
 
     await userEvent.click(screen.getByRole('button', { name: 'Check for updates, Never' }));
@@ -106,14 +92,11 @@ describe("The Orca home's settings tab", () => {
     ).toBeTruthy();
   });
 
-  it('Given the settings tab, when a check finds an update, then the row offers it', async () => {
+  it('Given the settings screen, when a check finds an update, then the row offers it', async () => {
     const { doubles, overrides } = settings({
       update: { status: 'available', updateId: 'update-7' },
     });
-    await app.render('/coding-agent', { overrides });
-    await screen.findByRole('tab', { name: 'Settings' });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+    await app.render('/coding-agent/settings', { overrides });
     await userEvent.click(screen.getByRole('button', { name: 'Check for updates, Never' }));
 
     await userEvent.click(await screen.findByRole('button', { name: 'Update available' }));

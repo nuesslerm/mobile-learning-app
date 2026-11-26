@@ -1,9 +1,3 @@
-// The Orca home: the five tabs of the original, in its order, each with
-// its own screen, and the bar that switches between them.
-//
-// Ported from `references/orca/mobile/src/home/MobileHomeScreen.tsx` at
-// `980c0024741812bd7ae934c0c22144d9926a784e` (Orca, MIT, Lovecast Inc.).
-
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { useEffect, type ReactNode } from 'react';
 import { BackHandler, Platform, StyleSheet, View } from 'react-native';
@@ -12,11 +6,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useHomeNavigation } from '../state/useHomeNavigation';
 import { OrcaAgentsTab } from './home/OrcaAgentsTab';
 import { OrcaAutomationsTab } from './home/OrcaAutomationsTab';
-import { OrcaSettingsTab } from './home/OrcaSettingsTab';
+import { router } from 'expo-router';
+import { OrcaBotsTab } from './home/OrcaBotsTab';
 import { OrcaUsageTab } from './home/OrcaUsageTab';
 
-export function OrcaHome({ feed }: { feed: ReactNode }) {
-  const { HomeSurface, HomeTabBar } = useAgentComponents();
+export function OrcaHome({ feed, computer }: { feed: ReactNode; computer: string | null | undefined }) {
+  const { HomeSurface, HomeTabBar, HomeTabHeader } = useAgentComponents();
   const { bottom } = useSafeAreaInsets();
   const { entries, active, visited, select } = useHomeNavigation();
 
@@ -39,15 +34,21 @@ export function OrcaHome({ feed }: { feed: ReactNode }) {
             style={entry.id === active ? styles.fill : styles.hidden}
           >
             {entry.id === 'feed' ? (
-              feed
+              <>
+                <HomeTabHeader title="Feed" actions={[{
+                  id: 'settings', icon: 'settings', accessibilityLabel: 'Settings',
+                  onPress: () => router.push('/coding-agent/settings'),
+                }]} />
+                {feed}
+              </>
+            ) : entry.id === 'bots' ? (
+              <OrcaBotsTab computer={computer} />
             ) : entry.id === 'agents' ? (
               <OrcaAgentsTab />
             ) : entry.id === 'usage' ? (
               <OrcaUsageTab />
-            ) : entry.id === 'automations' ? (
-              <OrcaAutomationsTab />
             ) : (
-              <OrcaSettingsTab />
+              <OrcaAutomationsTab />
             )}
           </View>
         ) : null

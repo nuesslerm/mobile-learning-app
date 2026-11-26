@@ -29,7 +29,6 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const {
     ChatSurface,
     Composer,
-    HomeTabHeader,
     HomeSettingsRow,
     HomeSettingsGroup,
   } = useAgentComponents();
@@ -50,11 +49,12 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
         }}
       />
     );
-  if (state.pair === null) {
+  if (state.pair === null || (!threadId && state.pair === undefined)) {
     return (
       <ChatSurface>
         <OrcaHome
-          feed={<UnpairedFeed onPairDesktop={() => setPairing(true)} />}
+          computer={state.pair}
+          feed={state.pair === null && <UnpairedFeed onPairDesktop={() => setPairing(true)} />}
         />
       </ChatSurface>
     );
@@ -74,9 +74,9 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
     return (
       <ChatSurface>
         <OrcaHome
+          computer={state.catalog?.host.name}
           feed={
             <>
-              <HomeTabHeader title="Feed" />
               <ScrollView contentContainerStyle={{ padding: 16 }}>
                 <Text variant="strong">Desktops</Text>
                 <HomeSettingsGroup>

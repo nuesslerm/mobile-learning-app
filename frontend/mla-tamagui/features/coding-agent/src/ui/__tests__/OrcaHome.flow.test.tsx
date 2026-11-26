@@ -18,10 +18,10 @@ describe('The default Orca home', () => {
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((tab) => tab.getAttribute('aria-label'))).toEqual([
       'Feed',
+      'Bots',
       'Agents',
       'Usage',
       'Automations',
-      'Settings',
     ]);
     // The active tab wears the heavier glyph, the way the original marks it.
     expect(tabs[0].querySelector('svg')?.getAttribute('stroke-width')).toBe(
@@ -80,22 +80,14 @@ describe('The default Orca home', () => {
     ).toBeTruthy();
   });
 
-  it('Given the default home, when the user opens the settings tab, then it carries the original\'s menu', async () => {
+  it('Given an unpaired Feed, when the user opens Bots and returns to the gear, then Bots explains pairing and Settings opens from Feed', async () => {
     await app.render('/coding-agent');
-    await screen.findByRole('tab', { name: 'Feed' });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
-
-    expect(screen.getByText('Appearance')).toBeTruthy();
-    expect(screen.getByText('Terminal')).toBeTruthy();
-    expect(screen.getByText('Chat UI')).toBeTruthy();
-    expect(screen.getByText('Browser')).toBeTruthy();
-    expect(screen.getByText('Voice')).toBeTruthy();
-    expect(screen.getByText('Notifications')).toBeTruthy();
-    expect(screen.getByText('Troubleshooting')).toBeTruthy();
-    expect(screen.getByText('About')).toBeTruthy();
-    expect(screen.getByText('Privacy Policy')).toBeTruthy();
-    expect(screen.getByText('Support')).toBeTruthy();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Bots' }));
+    expect(await screen.findByText('Pair a desktop to see its bots here.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
+    await userEvent.click(screen.getByRole('tab', { name: 'Feed' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    expect(routerHarness().calls()).toContainEqual(['push', '/coding-agent/settings']);
   });
 
   it('Given the default home, when pairing is opened and dismissed, then the unpaired feed returns', async () => {

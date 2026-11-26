@@ -76,6 +76,14 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
 }
 
 describe('Orca chat with the T3 transport', () => {
+  it('Given a paired RCA desktop without bots support, when Bots opens, then the notice names that desktop', async () => {
+    await app.render('/coding-agent', { overrides: { 'coding-agent': { t3Mobile: backend() } } });
+    await screen.findByRole('button', { name: 'Open Fixture Mac' });
+    await userEvent.click(screen.getByRole('tab', { name: 'Bots' }));
+    expect(await screen.findByRole('heading', { name: 'Update Orca on Fixture Mac' })).toBeTruthy();
+    expect(screen.getByText('Its version of Orca can’t show bots on your phone yet.')).toBeTruthy();
+  });
+
   it('Given an unpaired desktop, when retrying a bad invite and pasting the T3 link, then only the valid grant is exchanged and its project appears', async () => {
     const port = backend();
     port.restore = async () => null;

@@ -40,7 +40,7 @@ export interface PairDesktopButtonProps {
 }
 
 /** The five tabs of the Orca home, in the order its bar shows them. */
-export type HomeTabId = 'feed' | 'agents' | 'usage' | 'automations' | 'settings';
+export type HomeTabId = 'feed' | 'bots' | 'agents' | 'usage' | 'automations';
 
 /**
  * The glyphs the home draws.
@@ -49,6 +49,8 @@ export type HomeTabId = 'feed' | 'agents' | 'usage' | 'automations' | 'settings'
  * wants instead of shipping one.
  */
 export type HomeIconKind =
+  | 'bots'
+  | 'settings'
   | 'add'
   | 'search'
   | 'options'

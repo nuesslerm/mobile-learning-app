@@ -1,7 +1,9 @@
 import AddIcon from 'lucide-react-native/dist/esm/icons/plus.mjs';
 import type { LucideIcon } from 'lucide-react-native';
 import AboutIcon from 'lucide-react-native/dist/esm/icons/info.mjs';
-import AgentsIcon from 'lucide-react-native/dist/esm/icons/bot.mjs';
+import BotIcon from 'lucide-react-native/dist/esm/icons/bot.mjs';
+import SettingsIcon from 'lucide-react-native/dist/esm/icons/settings.mjs';
+import AgentsIcon from 'lucide-react-native/dist/esm/icons/square-terminal.mjs';
 import AppearanceIcon from 'lucide-react-native/dist/esm/icons/sun-moon.mjs';
 import AutomationsIcon from 'lucide-react-native/dist/esm/icons/calendar-clock.mjs';
 import BackIcon from 'lucide-react-native/dist/esm/icons/chevron-left.mjs';
@@ -32,6 +34,8 @@ export const homeIcons: Record<HomeIconKind, LucideIcon> = {
   options: OptionsIcon,
   add: AddIcon,
   back: BackIcon,
+  bots: BotIcon,
+  settings: SettingsIcon,
   agents: AgentsIcon,
   usage: UsageIcon,
   automations: AutomationsIcon,

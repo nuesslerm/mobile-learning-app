@@ -1,11 +1,11 @@
 // Ported from `references/orca/mobile/src/home/tabs/MobileHomeTabBar.tsx` at
-// `980c0024741812bd7ae934c0c22144d9926a784e` (Orca, MIT, Lovecast Inc.).
+// `2c0cbbc279b61afe80a954fbf43de4f34ef2c32c` (Orca, MIT, Lovecast Inc.).
 import type { LucideIcon } from 'lucide-react-native';
 import BotIcon from 'lucide-react-native/dist/esm/icons/bot.mjs';
 import CalendarClockIcon from 'lucide-react-native/dist/esm/icons/calendar-clock.mjs';
 import GaugeIcon from 'lucide-react-native/dist/esm/icons/gauge.mjs';
 import LayoutListIcon from 'lucide-react-native/dist/esm/icons/layout-list.mjs';
-import SettingsIcon from 'lucide-react-native/dist/esm/icons/settings.mjs';
+import SquareTerminalIcon from 'lucide-react-native/dist/esm/icons/square-terminal.mjs';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import Animated, {
@@ -24,10 +24,10 @@ import { useReducedMotionEnabled } from './useReducedMotion';
 /** The Orca home's glyphs. */
 const TAB_ICONS: Record<HomeTabId, LucideIcon> = {
   feed: LayoutListIcon,
-  agents: BotIcon,
+  bots: BotIcon,
+  agents: SquareTerminalIcon,
   usage: GaugeIcon,
   automations: CalendarClockIcon,
-  settings: SettingsIcon,
 };
 
 /** Strong ease-out for things entering or reacting to a touch. */
