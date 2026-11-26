@@ -38,7 +38,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 145] = [
+pub const USES: [Method; 146] = [
     STATUS,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
@@ -72,6 +72,7 @@ pub const USES: [Method; 145] = [
     lifecycle::TURN_RETRY,
     lifecycle::THREAD_SHELF,
     agent_api_state::GET,
+    agent_api_state::watch::SUBSCRIBE,
     agent_api_state::SET,
     CLIENT_ACTIVITY,
     edit::FILE_STAT,
@@ -309,6 +310,9 @@ impl RcaAgent {
     fn mobile_worktrees(&self, client: &mut Client) -> Result<Value, AgentError> {
         let listed = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace": self.workspace}))?;
         let registrations = Self::call(client, REPO_LIST, json!({}))?;
+        // One scope snapshot supplies the saved labels and pins for every checkout on this short-lived connection.
+        let snapshot = Self::call(client, agent_api_state::watch::SUBSCRIBE, json!({"scope":"orca"}))?;
+        let metadata = snapshot["values"].as_object().ok_or_else(|| AgentError::Failed("Missing RCA workspace metadata.".into()))?;
         let rows = listed["worktrees"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA worktrees.".into()))?;
         let repos = registrations["repos"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA repositories.".into()))?;
         let by_path: std::collections::HashMap<_, _> = repos.iter()
@@ -321,7 +325,10 @@ impl RcaAgent {
             let branch = row["branch"].as_str().filter(|b| !b.is_empty());
             let title = branch.unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
             let workspace = by_path.get(path).copied().unwrap_or(&self.workspace);
-            checkouts.push(json!({"id": format!("{}::{path}", self.workspace), "name": title, "branch": branch,
+            let id = format!("{}::{path}", self.workspace);
+            let meta = metadata.get(&format!("orca.worktree.{id}"));
+            let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
+            checkouts.push(json!({"id": id, "name": name, "automaticName": title, "pinned": meta.is_some_and(|m| m["isPinned"] == true), "branch": branch,
                 "main": row["is_main"] == true, "workspace": workspace, "path": path}));
         }
         Ok(json!({"repo": self.workspace, "checkouts": checkouts}))

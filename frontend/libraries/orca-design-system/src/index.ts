@@ -1,3 +1,4 @@
+import { WorkspaceActions } from './adapters/WorkspaceActions';
 import { HostWorkspaceList } from './adapters/HostWorkspaceList';
 import { WorkspaceOptions } from './adapters/WorkspaceOptions';
 import { SessionTabsSheet } from './adapters/SessionTabsSheet';
@@ -30,7 +31,7 @@ import { NotificationChoices } from './core/NotificationChoices';
 import { OnboardingChoice } from './adapters/OnboardingChoice';
 
 export const orcaComponents: AgentComponents = {
-  HostWorkspaceList, WorkspaceOptions, ComposerOptions,
+  WorkspaceActions, HostWorkspaceList, WorkspaceOptions, ComposerOptions,
   PairingScreen, PairingCodeSheet,
   HomeSurface,
   HomeTabBar,

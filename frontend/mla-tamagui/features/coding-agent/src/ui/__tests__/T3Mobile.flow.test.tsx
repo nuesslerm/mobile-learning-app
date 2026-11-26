@@ -1,4 +1,5 @@
 import {
+  fireEvent,
   routerHarness,
   screen,
   userEvent,
@@ -39,6 +40,8 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     pair: async () => pair,
     workspaces: async () => ({host:{name:'Fixture Mac',os:'darwin'}, repo:'Fixture repository',
       checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
+    editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
+      automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned}),
     checkoutSessions: async () => ({active:thread.id, sessions:[thread]}),
     shell: async () => ({
       projects: [{ id: 'project', title: 'Fixture repository' }],
@@ -137,6 +140,22 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('button',{name:'Workspace options'}));
     await userEvent.click(await screen.findByRole('button',{name:'Card layout, Compact'}));
     expect(await screen.findByRole('radio',{name:'Compact',checked:true})).toBeTruthy();
+  });
+
+  it('Given a checkout, when the reader renames it from its context menu, then the host list shows the saved label', async () => {
+    const port = backend();
+    await app.render('/coding-agent', {search:{host:'1'}, overrides:{'coding-agent':{t3Mobile:port}}});
+    const checkout = await screen.findByRole('button', {name:'Mobile checkout'});
+    await userEvent.pointer({keys:'[MouseRight]', target:checkout});
+    const backdrop = await screen.findByRole('button', {name:'Dismiss'});
+    fireEvent.click(backdrop, { detail: 1 });
+    await userEvent.click(screen.getByRole('button',{name:'Rename'}));
+    const field = screen.getByRole('textbox',{name:'Workspace name'});
+    await userEvent.clear(field);
+    await userEvent.type(field,'Saved label');
+    await userEvent.click(screen.getByRole('button',{name:'Save'}));
+    expect(await screen.findByRole('button',{name:'Saved label'})).toBeTruthy();
+    expect(screen.queryByRole('button',{name:'Mobile checkout'})).toBeNull();
   });
 
   it('Given a connected chat, when the reader selects a model, then the current thread receives that model', async () => {

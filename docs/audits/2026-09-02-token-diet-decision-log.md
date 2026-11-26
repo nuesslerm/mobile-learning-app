@@ -3828,3 +3828,7 @@ One paired iOS run against the pinned 0.1.9 server produced 106 traffic rows bef
 ### 2026-11-25 — iPhone keyboard coverage in the browser runbook
 
 Same iPhone 15 Pro preset, focused Expo chat, 852 CSS px viewport. The software keyboard started at y=582. The harness previously told the app the keyboard resized its viewport while the device shell overlaid it, placing the Send button’s bottom at y=831. Resolving the platform through the device’s existing iOS default moved Send to y=561. One real RCA reply arrived after tapping it with the keyboard visible.
+
+### 2026-11-26 — Holding a checkout on the RCA iPhone
+
+One 800 ms stationary gesture on the same checkout in the installed Orca app took 826 ms through idb swipe and left the list visible. The iOS bridge sent a touch held for the same duration through idb tap in 824 ms and opened the checkout menu. Use a held touch for identical endpoints. [Runbook and captures](../plans/orca-mobile-interface/reference/ios/checkout-settings/README.md).

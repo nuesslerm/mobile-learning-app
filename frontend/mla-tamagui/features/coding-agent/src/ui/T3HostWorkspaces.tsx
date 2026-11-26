@@ -8,6 +8,8 @@ import {
   chatRoute,
   type CheckoutSessions,
   type WorkspaceCatalog,
+  type CheckoutRow,
+  type CheckoutEdit,
 } from '../domain/workspaceCatalog';
 import type { WorkspacePreferences } from '../domain/workspacePreferences';
 import { T3WorkspaceOptions } from './T3WorkspaceOptions';
@@ -16,18 +18,41 @@ export function T3HostWorkspaces({
   api,
   pair,
   catalog,
+  onUpdated,
   onBack,
 }: {
   api: T3MobilePort;
   pair: Pairing;
   catalog: WorkspaceCatalog;
+  onUpdated: (row: CheckoutRow) => void;
   onBack: () => void;
 }) {
-  const { HostWorkspaceList } = useAgentComponents();
+  const { HostWorkspaceList, WorkspaceActions } = useAgentComponents();
   const [preferences, setPreferences] = useState<WorkspacePreferences>();
   const [search, setSearch] = useState('');
   const [selected, setSelected] =
     useState<WorkspaceCatalog['checkouts'][number]>();
+  const [actionRow, setActionRow] = useState<CheckoutRow>();
+  const [mutationError, setMutationError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const pending = useRef(false);
+  async function edit(patch: CheckoutEdit) {
+    if (!actionRow || pending.current) return;
+    pending.current = true;
+    setSaving(true);
+    setMutationError('');
+    try {
+      const saved = await api.editWorkspace(pair, actionRow.id, patch);
+      onUpdated(saved);
+      setActionRow(undefined);
+    } catch {
+      Logger.warn('coding_agent.t3.workspace_edit_failed');
+      setMutationError('Could not save the change. Try again.');
+    } finally {
+      pending.current = false;
+      setSaving(false);
+    }
+  }
   const [sessions, setSessions] = useState<CheckoutSessions>();
   const [error, setError] = useState('');
   const request = useRef<AbortController | undefined>(undefined);
@@ -106,36 +131,63 @@ export function T3HostWorkspaces({
       } as Record<string, string>
     )[catalog.host.os] ?? catalog.host.os;
   return (
-    <HostWorkspaceList
-      title={catalog.host.name}
-      platform={os}
-      group={preferences?.groupBy === 'repo' ? catalog.repo : undefined}
-      rows={rows.map((r) => ({
-        id: r.id,
-        name: r.name,
-        detail:
-          preferences?.cardLayout === 'compact'
+    <>
+      <HostWorkspaceList
+        title={catalog.host.name}
+        platform={os}
+        group={preferences?.groupBy === 'repo' ? catalog.repo : undefined}
+        rows={rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          pinned: r.pinned,
+          detail:
+            preferences?.cardLayout === 'compact'
+              ? undefined
+              : (r.branch ?? undefined),
+        }))}
+        onActions={(id) => {
+          setMutationError('');
+          setActionRow(catalog.checkouts.find((r) => r.id === id));
+        }}
+        onSelect={(id) => void open(id)}
+        notice={
+          rows.length
             ? undefined
-            : (r.branch ?? undefined),
-      }))}
-      onSelect={(id) => void open(id)}
-      notice={
-        rows.length
-          ? undefined
-          : query
-            ? 'No matching workspaces.'
-            : 'No workspaces.'
-      }
-      search={{ value: search, onChange: setSearch }}
-      onBack={onBack}
-      options={
-        <T3WorkspaceOptions
-          api={api}
-          pair={pair}
-          projects={[{ id: catalog.repo, title: catalog.repo }]}
-          onChanged={setPreferences}
+            : query
+              ? 'No matching workspaces.'
+              : 'No workspaces.'
+        }
+        search={{ value: search, onChange: setSearch }}
+        onBack={onBack}
+        options={
+          <T3WorkspaceOptions
+            api={api}
+            pair={pair}
+            projects={[{ id: catalog.repo, title: catalog.repo }]}
+            onChanged={setPreferences}
+          />
+        }
+      />
+      {actionRow && (
+        <WorkspaceActions
+          key={actionRow.id}
+          name={actionRow.name}
+          branch={actionRow.branch}
+          automaticName={actionRow.automaticName ?? actionRow.name}
+          pinned={!!actionRow.pinned}
+          saving={saving}
+          error={mutationError}
+          onClose={() => {
+            if (!pending.current) setActionRow(undefined);
+          }}
+          onPin={() => void edit({ isPinned: !actionRow.pinned })}
+          onRename={(name) =>
+            name === actionRow.name
+              ? setActionRow(undefined)
+              : void edit({ displayName: name })
+          }
         />
-      }
-    />
+      )}
+    </>
   );
 }

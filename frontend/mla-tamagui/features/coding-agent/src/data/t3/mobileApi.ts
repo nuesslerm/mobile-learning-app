@@ -1,4 +1,4 @@
-import { checkoutSessions, workspaceCatalog } from '../../domain/workspaceCatalog';
+import { checkoutRow, checkoutSessions, workspaceCatalog } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
 import { z } from 'zod';
@@ -84,6 +84,12 @@ export function createT3MobileApi(): T3MobilePort {
         body: JSON.stringify({ version: 1, preferences: patch }),
       });
       return workspacePreferences.parse(data).preferences;
+    },
+    async editWorkspace(pair, checkout, edit) {
+      return checkoutRow.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspaces', {
+        method: 'POST', headers: { ...authorization(pair), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkout, ...edit }),
+      }));
     },
     async workspaces(pair, signal) {
       return workspaceCatalog.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspaces', { headers: authorization(pair), signal }));

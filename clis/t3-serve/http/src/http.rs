@@ -354,6 +354,13 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
         ("GET" | "POST" | "PUT" | "PATCH", path) if path.strip_prefix(HOOKS).and_then(|rest| rest.split_once('/')).is_some_and(|(a, b)| !a.is_empty() && !b.is_empty() && !b.contains('/')) => {
             respond_with(&mut stream, 404, &json!({"error": "hook_not_found"}), "x-t3-hook-outcome: not_found\r\n")
         }
+        ("POST", "/api/mobile/workspaces") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            match svc.edit_mobile_workspace(auth, body) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
         ("GET", "/api/mobile/workspaces") => {
             let checkout = request.query.iter().find(|(k, _)| k == "checkout").map(|(_, v)| v.as_str());
             match svc.mobile_workspaces_http(auth, checkout) {

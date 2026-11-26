@@ -1,4 +1,4 @@
-import type { WorkspaceCatalog } from '../domain/workspaceCatalog';
+import type { CheckoutRow, WorkspaceCatalog } from '../domain/workspaceCatalog';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Pairing } from '../domain/mobile';
@@ -137,6 +137,9 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     snapshot,
     imageSession: connected ? imageSession : undefined,
     catalog,
+    updateCheckout(row: CheckoutRow) {
+      setCatalog(current => current && {...current, checkouts:current.checkouts.map(r => r.id === row.id ? row : r)});
+    },
     busy,
     error,
     retry,

@@ -251,7 +251,7 @@ fn mobile_checkouts_open_the_saved_projected_chat_only_inside_the_selected_works
     success(&rpc.call("orchestration.dispatchCommand", thread_create("outside", "outside", "p1")));
     *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
         Op::MobileWorktrees => Some(Ok(json!({"repo":"desk","checkouts":[
-            {"id":"desk::/fixture", "name":"fixture","path":"/fixture","workspace":"desk","branch":null,"main":false}
+            {"id":"desk::/fixture", "name":"fixture","automaticName":"fixture","path":"/fixture","workspace":"desk","branch":null,"main":false}
         ]}))),
         Op::ThreadList => Some(Ok(json!({"threads":[{"id":"t1","workspace":"desk"},{"id":"outside","workspace":"another"}]}))),
         Op::StateGet {scope,key} if scope == "orca" && key == "tabs.active.desk" => Some(Ok(json!({"value":"t1"}))),
@@ -262,11 +262,45 @@ fn mobile_checkouts_open_the_saved_projected_chat_only_inside_the_selected_works
     // When the phone reads the catalog and opens the checkout, then only its projected chat is eligible
     let list = get("/api/mobile/workspaces", &reader);
     assert_eq!(list.status, 200);
-    assert_eq!(list.body["checkouts"], json!([{"id":"desk::/fixture","name":"fixture","branch":null,"main":false}]));
+    assert_eq!(list.body["checkouts"], json!([{"id":"desk::/fixture","name":"fixture","automaticName":"fixture","pinned":false,"branch":null,"main":false}]));
     let result = get("/api/mobile/workspaces?checkout=desk%3A%3A%2Ffixture", &reader);
     assert_eq!(result.body["active"], "t1");
     assert_eq!(result.body["sessions"].as_array().unwrap().len(), 1);
     assert_eq!(get("/api/mobile/workspaces?checkout=outside", &reader).status, 404);
     assert_eq!(get("/api/mobile/workspaces", "").status, 401);
     assert_eq!(get("/api/mobile/workspaces", &scoped(&h, &["relay:read"])).status, 403);
+}
+
+#[test]
+fn mobile_workspace_edits_preserve_other_metadata_and_require_operate_scope() {
+    use t3_core::ports::Op;
+    // Given a checkout whose native Orca settings already contain notes
+    let h = Harness::start();
+    let state = std::sync::Arc::new(std::sync::Mutex::new(json!({"comment":"kept"})));
+    let saved = state.clone();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(move |op| match op {
+        Op::MobileWorktrees => Some(Ok(json!({"repo":"desk","checkouts":[
+            {"id":"desk::/one","name":"main","automaticName":"main","branch":"main","main":true}
+        ]}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "orca.worktree.desk::/one" => Some(Ok(json!({"value":saved.lock().unwrap().clone()}))),
+        Op::StateSet {scope,key,value} if scope == "orca" && key == "orca.worktree.desk::/one" => {
+            *saved.lock().unwrap() = value.clone(); Some(Ok(json!({})))
+        }
+        _ => None,
+    }));
+    let writer = scoped(&h, &["orchestration:operate"]);
+    let reader = scoped(&h, &["orchestration:read"]);
+    let edit = |token:&str, body:Value| http(h.addr,"POST","/api/mobile/workspaces",&[("Authorization",token),("Content-Type","application/json")],&body.to_string());
+    // When the phone pins and renames a checkout, then the updates share the native record and can be retried
+    let pin = json!({"checkout":"desk::/one","isPinned":true});
+    assert_eq!(edit(&reader,pin.clone()).status,403);
+    for _ in 0..2 { assert_eq!(edit(&writer,pin.clone()).body["pinned"],true); }
+    let renamed = edit(&writer,json!({"checkout":"desk::/one","displayName":"Preview"}));
+    assert_eq!(renamed.body["name"],"Preview");
+    assert_eq!(*state.lock().unwrap(), json!({"comment":"kept","isPinned":true,"displayName":"Preview"}));
+    // When a name is cleared, then the branch is visible and unrelated metadata survives a rejected edit
+    assert_eq!(edit(&writer,json!({"checkout":"desk::/one","displayName":""})).body["name"],"main");
+    assert_eq!(edit(&writer,json!({"checkout":"other::/one","displayName":"wrong"})).status,404);
+    assert_eq!(edit(&writer,json!({"checkout":"desk::/one","isPinned":"yes"})).status,422);
+    assert_eq!(*state.lock().unwrap(),json!({"comment":"kept","isPinned":true}));
 }

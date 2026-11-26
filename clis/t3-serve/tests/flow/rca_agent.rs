@@ -291,6 +291,8 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
         "models.list" => vec![answer(request, json!({"models": [
             {"id": "default", "label": "Default", "is_default": true},
         ]}))],
+        "state.subscribe" => vec![answer(request, json!({"values":{}}))],
+        "repo.list" => vec![answer(request, json!({"repos":[]}))],
         "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "is_main": false}]}))],
         "terminal.list" => vec![answer(request, json!({"workspace": "w1", "terminals": []}))],
         "terminal.attach" => vec![answer(request, json!({"workspace": "w1", "terminal": "t1.a", "after_offset": null, "start_offset": 0, "offset": 0, "reset": false, "cols": 80, "rows": 24, "status": "running", "exit_code": null}))],
@@ -445,6 +447,7 @@ fn every_op() -> Vec<Op> {
         Op::GitCreateRef { root: "/work/proj".into(), name: "t3code/pr-12/x".into(), from: Some("abc1234".into()), checkout: false },
         Op::GitFetch { root: "/work/proj".into(), refspecs: vec!["+refs/pull/12/head:refs/rca/pr/12/head".into()] },
         Op::GitCompare { root: "/work/proj".into(), base: "main".into(), head: "feat".into(), limit: 100 },
+        Op::MobileWorktrees,
         Op::WorktreeList { root: "/work/proj".into() },
         Op::GitPull { root: "/work/proj".into() },
         Op::GitBlob { root: "/work/proj".into(), rev: "HEAD".into(), path: "a.txt".into() },

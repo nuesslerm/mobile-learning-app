@@ -2990,6 +2990,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "hex",
+ "serde",
  "serde_json",
  "sha2",
  "t3-contracts",

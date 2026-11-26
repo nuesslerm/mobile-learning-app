@@ -342,7 +342,11 @@ async def drive(socket, udid, info=None):
                 elif op == "tap":
                     await client.tap(*args)
                 elif op == "swipe":
-                    await client.swipe(tuple(args[0]), tuple(args[1]), duration=args[2]/1000)
+                    start, end, duration = tuple(args[0]), tuple(args[1]), args[2] / 1000
+                    if start == end:
+                        await client.tap(*start, duration=duration)
+                    else:
+                        await client.swipe(start, end, duration=duration)
                 elif op == "text":
                     if folder:
                         rows = await tree()

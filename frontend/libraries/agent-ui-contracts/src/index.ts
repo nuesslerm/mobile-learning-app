@@ -34,4 +34,4 @@ export type { ComposerOptionsProps, ChatMessageTextProps, ChatMessageMetaProps, 
 
 export type { WorkspaceOptionGroup, WorkspaceOptionRow, WorkspaceOptionsProps } from './ports/WorkspaceOptions';
 
-export type { HostWorkspaceListProps } from './ports/HostWorkspaceList';
+export type { HostWorkspaceListProps, WorkspaceActionsProps } from './ports/HostWorkspaceList';

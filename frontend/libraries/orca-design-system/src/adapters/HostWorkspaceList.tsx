@@ -1,8 +1,10 @@
 import type { HostWorkspaceListProps } from '@lib/agent-ui-contracts';
+import Pin from 'lucide-react-native/dist/esm/icons/pin.mjs';
 import Folder from 'lucide-react-native/dist/esm/icons/folder.mjs';
 import ChevronDown from 'lucide-react-native/dist/esm/icons/chevron-down.mjs';
 import { useState } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,10 +18,21 @@ import { useChatPalette } from './chatPalette';
 
 export function HostWorkspaceList(props: HostWorkspaceListProps) {
   const c = useChatPalette();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const ink = { color: c.textPrimary };
   const muted = { color: c.textSecondary };
-  const Toggle = collapsed ? ChevronRightIcon : ChevronDown;
+  const pinned = props.rows.filter((row) => row.pinned);
+  const sections = [
+    ...(pinned.length
+      ? [{ key: 'pinned', label: 'Pinned', rows: pinned, Icon: Pin }]
+      : []),
+    {
+      key: 'rows',
+      label: props.group,
+      rows: props.rows.filter((row) => !row.pinned),
+      Icon: Folder,
+    },
+  ];
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: c.bgBase }]}>
       <View style={styles.nav}>
@@ -45,48 +58,80 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
             <Text style={[styles.metadata, muted]}>{props.platform}</Text>
           </View>
         )}
-        {props.group && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: !collapsed }}
-            style={styles.group}
-            onPress={() => setCollapsed(!collapsed)}
-          >
-            <Toggle size={13} color={c.textMuted} />
-            <Folder size={15} color={c.textMuted} />
-            <Text style={[styles.groupText, muted]}>
-              {props.group} {props.rows.length}
-            </Text>
-          </Pressable>
-        )}
-        {(!props.group || !collapsed) &&
-          props.rows.map((row) => (
-            <Pressable
-              key={row.id}
-              accessibilityLabel={row.name}
-              accessibilityRole="button"
-              onPress={() => props.onSelect(row.id)}
-              style={styles.row}
-            >
-              <View
-                style={[
-                  styles.dot,
-                  styles.rowDot,
-                  { backgroundColor: c.textMuted },
-                ]}
-              />
-              <View style={[styles.body, { borderColor: c.borderSubtle }]}>
-                <Text numberOfLines={1} style={[styles.name, ink]}>
-                  {row.name}
-                </Text>
-                {row.detail && (
-                  <Text numberOfLines={1} style={[styles.branch, muted]}>
-                    {row.detail}
-                  </Text>
+        {sections.map(({ key, label, rows, Icon }) => (
+          <View key={key}>
+            {label && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !collapsed[key] }}
+                style={styles.group}
+                onPress={() =>
+                  setCollapsed((old) => ({ ...old, [key]: !old[key] }))
+                }
+              >
+                {collapsed[key] ? (
+                  <ChevronRightIcon size={13} color={c.textMuted} />
+                ) : (
+                  <ChevronDown size={13} color={c.textMuted} />
                 )}
-              </View>
-            </Pressable>
-          ))}
+                <Icon size={15} color={c.textMuted} />
+                <Text style={[styles.groupText, muted]}>
+                  {label} {rows.length}
+                </Text>
+              </Pressable>
+            )}
+            {(!label || !collapsed[key]) &&
+              rows.map((row) => (
+                <Pressable
+                  key={row.id}
+                  accessibilityLabel={row.name}
+                  accessibilityRole="button"
+                  onPress={() => props.onSelect(row.id)}
+                  onLongPress={
+                    props.onActions && (() => props.onActions?.(row.id))
+                  }
+                  accessibilityActions={
+                    props.onActions
+                      ? [{ name: 'longpress', label: 'Workspace actions' }]
+                      : undefined
+                  }
+                  onAccessibilityAction={(event) => {
+                    if (event.nativeEvent.actionName === 'longpress')
+                      props.onActions?.(row.id);
+                  }}
+                  {...(Platform.OS === 'web' && props.onActions
+                    ? {
+                        onContextMenu: (event: {
+                          preventDefault: () => void;
+                        }) => {
+                          event.preventDefault();
+                          props.onActions?.(row.id);
+                        },
+                      }
+                    : {})}
+                  style={styles.row}
+                >
+                  <View
+                    style={[
+                      styles.dot,
+                      styles.rowDot,
+                      { backgroundColor: c.textMuted },
+                    ]}
+                  />
+                  <View style={[styles.body, { borderColor: c.borderSubtle }]}>
+                    <Text numberOfLines={1} style={[styles.name, ink]}>
+                      {row.name}
+                    </Text>
+                    {row.detail && (
+                      <Text numberOfLines={1} style={[styles.branch, muted]}>
+                        {row.detail}
+                      </Text>
+                    )}
+                  </View>
+                </Pressable>
+              ))}
+          </View>
+        ))}
         {props.notice && (
           <Text accessibilityLiveRegion="polite" style={[styles.notice, muted]}>
             {props.notice}
