@@ -26,6 +26,8 @@ mod proxy_verb;
 mod proxy_record_verb;
 #[path = "proxy_replay_verb.rs"]
 mod proxy_replay_verb;
+#[path = "proxy_check_verb.rs"]
+mod proxy_check_verb;
 
 use crate::adapters::{open_driver, FsCheckpoint, FsStore};
 use crate::config::{relative, Config, Target};
@@ -62,6 +64,7 @@ const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exa
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
 const PROXY_RECORD: Spec = Spec { values: &["set", "upstream", "listen", "duration", "max-events", "ready", "trace", "preset", "secret-env", "mask", "source", "recorded-on"], positional: Positional::None, ..Spec::NONE };
 const PROXY_REPLAY: Spec = Spec { values: &["listen", "duration", "ready", "suite", "settle-ms", "mask"], flags: &["fail-fast"], positional: Positional::Exactly(1), ..Spec::NONE };
+const PROXY_CHECK: Spec = Spec { values: &["addr", "bind-env", "settle-ms", "suite", "allowlist"], positional: Positional::Exactly(1), ..Spec::NONE };
 const PROXY: Spec = Spec { values: &["upstream", "out", "listen", "duration", "max-events", "ready"], positional: Positional::None, ..Spec::NONE };
 
 /// What a verb prints when it cannot run at all (exit 2).
@@ -112,6 +115,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "proxy" => match rest.split_first() {
             Some((sub, more)) if sub == "record" => finish("mimic-proxy-record/1", proxy_record_verb::record_verb(&parse_spec(more, &PROXY_RECORD)?)),
             Some((sub, more)) if sub == "replay" => finish("mimic-proxy-replay/1", proxy_replay_verb::replay_verb(&parse_spec(more, &PROXY_REPLAY)?)),
+            Some((sub, more)) if sub == "check" => finish("mimic-proxy-check/1", proxy_check_verb::check_verb(&parse_spec(more, &PROXY_CHECK)?)),
             _ => finish("mimic-proxy/1", proxy_verb::proxy_verb(&parse_spec(rest, &PROXY)?)),
         },
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),

@@ -108,6 +108,13 @@ impl Drop for Proxy {
     }
 }
 
+/// A head and what follows it as one write: a peer that reads once and answers must not be left with half a message unread.
+fn whole(head: String, rest: &[u8]) -> Vec<u8> {
+    let mut out = head.into_bytes();
+    out.extend_from_slice(rest);
+    out
+}
+
 /// One connection: an HTTP exchange, or an orchestration socket.
 fn serve(
     mut client: TcpStream,
@@ -161,8 +168,7 @@ fn exchange_http(
     up.set_read_timeout(Some(READ_TIMEOUT))?;
     up.set_write_timeout(Some(READ_TIMEOUT))?;
     let skip = |k: &str| matches!(k, "host" | "connection" | "proxy-connection") || (options.readable_bodies && k == "accept-encoding");
-    write!(up, "{}Host: {upstream}\r\nConnection: close\r\n\r\n", head.text(&skip))?;
-    up.write_all(&request_body.wire)?;
+    up.write_all(&whole(format!("{}Host: {upstream}\r\nConnection: close\r\n\r\n", head.text(&skip)), &request_body.wire))?;
     let (answer, early) = match read_head(&mut up) {
         Ok(pair) => pair,
         Err(_) => {
@@ -175,8 +181,7 @@ fn exchange_http(
     let res_body = if bodiless(status, &method) { Body::empty() } else { body(&mut up, &answer, early, true)? };
     sink(Event::HttpResponse { exchange, status, headers: answer.headers.clone(), body: res_body.observed().to_vec() });
     let skip = |k: &str| matches!(k, "connection" | "keep-alive");
-    write!(client, "{}Connection: close\r\n\r\n", answer.text(&skip))?;
-    client.write_all(&res_body.wire)
+    client.write_all(&whole(format!("{}Connection: close\r\n\r\n", answer.text(&skip)), &res_body.wire))
 }
 
 /// An orchestration socket: the handshake goes through (without the compression offer, so the frames stay readable), then the frames
@@ -203,8 +208,7 @@ fn socket(
     up.set_read_timeout(Some(PUMP_TIMEOUT))?;
     up.set_write_timeout(Some(READ_TIMEOUT))?;
     let skip = |k: &str| matches!(k, "host" | "connection" | "sec-websocket-extensions");
-    write!(up, "{}Host: {upstream}\r\nConnection: Upgrade\r\n\r\n", head.text(&skip))?;
-    up.write_all(&rest)?;
+    up.write_all(&whole(format!("{}Host: {upstream}\r\nConnection: Upgrade\r\n\r\n", head.text(&skip)), &rest))?;
     let (answer, early) = match read_head(&mut up) {
         Ok(pair) => pair,
         Err(_) => {
@@ -218,12 +222,11 @@ fn socket(
         let response_body = body(&mut up, &answer, early, true)?;
         sink(Event::WsRefused { connection, target, status, body: response_body.observed().to_vec() });
         let skip = |k: &str| matches!(k, "connection" | "keep-alive");
-        write!(client, "{}Connection: close\r\n\r\n", answer.text(&skip))?;
-        return client.write_all(&response_body.wire);
+        return client.write_all(&whole(format!("{}Connection: close\r\n\r\n", answer.text(&skip)), &response_body.wire));
     }
     sink(Event::WsOpen { connection, target, status });
     let skip = |k: &str| matches!(k, "connection" | "keep-alive");
-    write!(client, "{}Connection: Upgrade\r\n\r\n", answer.text(&skip))?;
+    client.write_all(format!("{}Connection: Upgrade\r\n\r\n", answer.text(&skip)).as_bytes())?;
     client.set_read_timeout(Some(PUMP_TIMEOUT))?;
     client.set_write_timeout(Some(READ_TIMEOUT))?;
     let (mut client_in, mut up_in) = (client.try_clone()?, up.try_clone()?);

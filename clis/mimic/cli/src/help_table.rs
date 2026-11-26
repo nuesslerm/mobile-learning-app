@@ -21,4 +21,5 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("mimic proxy", false, include_str!("help/wf__mimic__proxy.txt")),
     ("mimic proxy record", false, include_str!("help/wf__mimic__proxy__record.txt")),
     ("mimic proxy replay", false, include_str!("help/wf__mimic__proxy__replay.txt")),
+    ("mimic proxy check", false, include_str!("help/wf__mimic__proxy__check.txt")),
 ];

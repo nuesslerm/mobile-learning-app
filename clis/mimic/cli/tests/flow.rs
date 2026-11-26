@@ -35,6 +35,8 @@ mod real_clis;
 mod proxy;
 #[path = "flow/proxy_canary.rs"]
 mod proxy_canary;
+#[path = "flow/proxy_check.rs"]
+mod proxy_check;
 #[path = "flow/proxy_record.rs"]
 mod proxy_record;
 #[path = "flow/proxy_shape.rs"]

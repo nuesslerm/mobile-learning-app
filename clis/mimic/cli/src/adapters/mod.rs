@@ -12,6 +12,7 @@ pub mod replay_server;
 pub mod script_driver;
 mod stdio;
 mod tap;
+pub mod tcp_candidate;
 
 pub use command_crawler::CommandCrawler;
 pub use coverage::{sources_from_env, FsTree, GitHistory, HttpUpstream, MimicEvidence, RunTraces};

@@ -4358,7 +4358,8 @@ section 5) and follow the pins of the real servers the sets are recorded from.
 for: a loopback proxy that forwards every byte and writes the shape of what
 crossed as an ordered, correlated JSONL. `proxy record` keeps what a replay needs
 (credentials replaced by fixture values) as a cassette set, and `proxy replay`
-answers an unmodified client from that set with the server stopped.
+answers an unmodified client from that set with the server stopped. `proxy check`
+plays the set's client to a candidate server and names the first difference.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -4426,6 +4427,7 @@ Commands:
   proxy [options] --upstream <url> --out <file>  Observe the native T3 mobile app against its own server
   proxy record [options] --set <dir> --upstream <url>  Record a client against its server as a replayable cassette set
   proxy replay [options] <set>  Answer an unmodified client from a cassette set, with no server
+  proxy check [options] <set> --addr <host:port>  Check a server against what a recorded client and its reference said
   help [command]              display help for command
 ```
 
@@ -5583,6 +5585,69 @@ Output (schema mimic-proxy-replay/1):
   mismatch_count, mismatches: [{protocol, what, connection?, reason, received, nearest?: {interaction, cassette, step?, diff}}],
   unused, evidence: {report}, warnings, next}
 Exit 0 every request had a recording, 1 a mismatch, 2 a usage or environment error.
+```
+
+</details>
+
+### `wf mimic proxy check`
+
+Check a server against what a recorded client and its reference said
+
+Usage: `wf mimic proxy check [options] <set> --addr <host:port>`
+
+Examples:
+
+```sh
+wf mimic proxy check docs/plans/orca-mobile-interface/reference/t3/native-open-chat --addr 127.0.0.1:3775
+wf mimic proxy check /tmp/t3-open-chat --addr 127.0.0.1:3775 --bind-env fx-subject-token-1=PAIRING --suite wf-mimic-proxy-check
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic proxy check [options] <set> --addr <host:port>
+
+Check a server against what a recorded client and its reference said. Every
+interaction of the set is played to the candidate in recorded order: an HTTP
+exchange as the recorded request, a socket as the recorded client frames, each
+sent once the candidate has answered what the recording shows before it. What
+the candidate answers is masked with the set's rules and compared with the
+recording, as `wf mimic replay` compares ([diff] of the set's mimic.toml: fold,
+breaking_paths, ignore_dirs; its allowlist).
+
+  wf mimic proxy check docs/plans/orca-mobile-interface/reference/t3/native-open-chat --addr 127.0.0.1:3775
+  PAIRING=<a pairing code the candidate minted for this run> \
+    wf mimic proxy check <set> --addr 127.0.0.1:3775 --bind-env fx-subject-token-1=PAIRING --suite wf-mimic-proxy-check
+
+A candidate hands out credentials and ids of its own. Where a recorded answer
+holds a fixture value (fx-access-token-1) or an id and the candidate's answer
+holds another value at the same place, the two are bound, and later requests
+carry the candidate's value: the token it issued, the ticket that token
+bought, the thread it created. A value the candidate cannot hand out by itself
+(a pairing grant minted for this run) is bound with --bind-env, which names
+the variable that holds it, so the value is never on the command line.
+
+"first" is the first thing that differs: the HTTP route or the RPC method it
+belongs to ("what"), where the recording has it (interactions.jsonl:<line>),
+the path inside the interaction, the recorded and the answered value (masked
+by the rules, so no credential is printed) and "evidence": observed when the
+set is a recording of a pinned reference, authored when it is a fixture
+someone made. A candidate that does not answer at all fails that interaction
+with "error".
+
+Options:
+  --addr <host:port>      the candidate, on the loopback
+  --bind-env <fixture>=<VARIABLE>,...  fixture values of the set and the variables that hold the candidate's
+  --settle-ms <ms>        how long the candidate is quiet before its replies count as complete (default 300)
+  --allowlist <file>      replace the allowlist of mimic.toml
+  --suite <name>          write $WF_TEST_OUTPUT_DIR/<name>/report.json and trace.json
+  -h, --help              display help for command
+
+Output (schema mimic-proxy-check/1):
+  {schema, ok, set, kind, candidate, connections, severity, summary: {total, clean, allowlisted, drift, breaking},
+  first?: {interaction, what, cassette, path, expected?, actual?, error?, evidence: observed|authored},
+  results, evidence: {report, trace}, warnings, next}
+Exit 0 nothing differs, 1 a difference, 2 a usage or environment error.
 ```
 
 </details>

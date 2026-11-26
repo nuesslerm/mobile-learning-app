@@ -16,7 +16,8 @@ section 5) and follow the pins of the real servers the sets are recorded from.
 for: a loopback proxy that forwards every byte and writes the shape of what
 crossed as an ordered, correlated JSONL. `proxy record` keeps what a replay needs
 (credentials replaced by fixture values) as a cassette set, and `proxy replay`
-answers an unmodified client from that set with the server stopped.
+answers an unmodified client from that set with the server stopped. `proxy check`
+plays the set's client to a candidate server and names the first difference.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -84,4 +85,5 @@ Commands:
   proxy [options] --upstream <url> --out <file>  Observe the native T3 mobile app against its own server
   proxy record [options] --set <dir> --upstream <url>  Record a client against its server as a replayable cassette set
   proxy replay [options] <set>  Answer an unmodified client from a cassette set, with no server
+  proxy check [options] <set> --addr <host:port>  Check a server against what a recorded client and its reference said
   help [command]              display help for command

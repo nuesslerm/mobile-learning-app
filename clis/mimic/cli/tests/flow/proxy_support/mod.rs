@@ -26,6 +26,15 @@ pub struct Upstream {
     pub asked_for_encoding: Arc<AtomicBool>,
     /// What the fixture answers `GET /api/extra` with: a header line and a body.
     pub extra: Arc<std::sync::Mutex<(String, Vec<u8>)>>,
+    /// How the fixture words its pushed reply to a command, and the home directory its session names.
+    pub wording: Arc<std::sync::Mutex<(String, String)>>,
+}
+
+#[derive(Clone)]
+struct Knobs {
+    extra: Arc<std::sync::Mutex<(String, Vec<u8>)>>,
+    wording: Arc<std::sync::Mutex<(String, String)>>,
+    asked_for_encoding: Arc<AtomicBool>,
 }
 
 fn head_of(stream: &mut TcpStream) -> (String, Vec<u8>) {
@@ -48,18 +57,20 @@ impl Upstream {
         let (serving, after_stop) = (Arc::new(AtomicBool::new(true)), Arc::new(AtomicU32::new(0)));
         let extra = Arc::new(std::sync::Mutex::new((String::new(), b"{}".to_vec())));
         let asked_for_encoding = Arc::new(AtomicBool::new(false));
-        let (on, late, more, coded) = (serving.clone(), after_stop.clone(), extra.clone(), asked_for_encoding.clone());
+        let wording = Arc::new(std::sync::Mutex::new(("reply to: ".to_string(), std::env::var("HOME").unwrap_or_default())));
+        let knobs = Knobs { extra: extra.clone(), wording: wording.clone(), asked_for_encoding: asked_for_encoding.clone() };
+        let (on, late) = (serving.clone(), after_stop.clone());
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
                 if !on.load(Ordering::SeqCst) {
                     late.fetch_add(1, Ordering::SeqCst);
                     continue;
                 }
-                let (more, coded) = (more.clone(), coded.clone());
-                std::thread::spawn(move || serve(stream, &more, &coded));
+                let knobs = knobs.clone();
+                std::thread::spawn(move || serve(stream, &knobs));
             }
         });
-        Upstream { addr, serving, after_stop, asked_for_encoding, extra }
+        Upstream { addr, serving, after_stop, asked_for_encoding, extra, wording }
     }
 
     /// The server is gone: whatever still reaches its address is counted and dropped.
@@ -72,7 +83,8 @@ impl Upstream {
     }
 }
 
-fn serve(mut stream: TcpStream, extra: &std::sync::Mutex<(String, Vec<u8>)>, asked_for_encoding: &AtomicBool) {
+fn serve(mut stream: TcpStream, knobs: &Knobs) {
+    let (reply_wording, home) = knobs.wording.lock().unwrap().clone();
     let (head, rest) = head_of(&mut stream);
     let mut lines = head.lines();
     let start = lines.next().unwrap_or("").to_string();
@@ -81,7 +93,7 @@ fn serve(mut stream: TcpStream, extra: &std::sync::Mutex<(String, Vec<u8>)>, ask
     let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_lowercase(), v.trim().to_string())).collect();
     let header = |name: &str| headers.iter().find(|(k, _)| k == name).map(|(_, v)| v.as_str()).unwrap_or_default();
     if !header("accept-encoding").is_empty() {
-        asked_for_encoding.store(true, Ordering::SeqCst);
+        knobs.asked_for_encoding.store(true, Ordering::SeqCst);
     }
     if header("upgrade").eq_ignore_ascii_case("websocket") {
         if !target.contains(&format!("wsTicket={TICKET}")) {
@@ -89,7 +101,7 @@ fn serve(mut stream: TcpStream, extra: &std::sync::Mutex<(String, Vec<u8>)>, ask
             return;
         }
         let _ = write!(stream, "HTTP/1.1 101 Switching Protocols\r\nupgrade: websocket\r\nconnection: Upgrade\r\nsec-websocket-accept: fixture\r\n\r\n");
-        socket(stream, rest);
+        socket(stream, rest, &reply_wording);
         return;
     }
     let length = header("content-length").parse::<usize>().unwrap_or(0);
@@ -109,10 +121,10 @@ fn serve(mut stream: TcpStream, extra: &std::sync::Mutex<(String, Vec<u8>)>, ask
             ("200 OK", format!("set-cookie: sid={COOKIE}; Path=/; HttpOnly\r\n"), json!({"access_token": TOKEN, "token_type": "Bearer", "expires_in": 3600}).to_string().into_bytes())
         }
         ("POST", "/api/auth/websocket-ticket/rpc") if authorised => ok(json!({"ticket": TICKET}).to_string()),
-        ("GET", "/api/auth/session") if authorised => ok(json!({"user": "fixture user", "sessionToken": SESSION, "home": std::env::var("HOME").unwrap_or_default()}).to_string()),
+        ("GET", "/api/auth/session") if authorised => ok(json!({"user": "fixture user", "sessionToken": SESSION, "home": home}).to_string()),
         ("GET", p) if authorised && p == format!("/api/orchestration/threads/{THREAD}") => ok(json!({"id": THREAD, "messages": messages()}).to_string()),
         ("GET", "/api/extra") => {
-            let (line, bytes) = extra.lock().unwrap().clone();
+            let (line, bytes) = knobs.extra.lock().unwrap().clone();
             ("200 OK", line, bytes)
         }
         _ => ("401 Unauthorized", String::new(), br#"{"error":"not allowed"}"#.to_vec()),
@@ -126,7 +138,7 @@ pub fn messages() -> Value {
 }
 
 /// The orchestration socket: a thread subscription stays open and gets a pushed chunk after every command.
-fn socket(mut stream: TcpStream, rest: Vec<u8>) {
+fn socket(mut stream: TcpStream, rest: Vec<u8>, reply_wording: &str) {
     let (mut parser, mut chunk, mut pending) = (FrameParser::default(), [0u8; 4096], rest);
     let mut subscription: Option<Value> = None;
     let say = |stream: &mut TcpStream, frame: Value| {
@@ -148,7 +160,7 @@ fn socket(mut stream: TcpStream, rest: Vec<u8>) {
                 "orchestration.dispatchCommand" => {
                     say(&mut stream, json!({"_tag": "Exit", "requestId": id, "exit": {"_tag": "Success", "value": {"accepted": true}}}));
                     if let Some(sub) = &subscription {
-                        let text = format!("reply to: {}", frame["payload"]["text"].as_str().unwrap_or_default());
+                        let text = format!("{reply_wording}{}", frame["payload"]["text"].as_str().unwrap_or_default());
                         say(&mut stream, json!({"_tag": "Chunk", "requestId": sub, "values": [{"kind": "message", "role": "assistant", "text": text}]}));
                     }
                 }
