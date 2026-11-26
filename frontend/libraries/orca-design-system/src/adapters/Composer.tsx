@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fileToken, suggestionTrigger } from './ComposerSuggestions';
 import {
   useAgentComponents,
@@ -78,6 +78,9 @@ export function Composer({
     ComposerSuggestionList,
   } = useAgentComponents();
   const field = useRef<TextInputInstance>(null);
+  useEffect(() => {
+    if (notice && Platform.OS === 'ios') field.current?.blur();
+  }, [notice]);
   const refocus = useRef(false);
   const [caret, setCaret] = useState(value.length);
   const [selection, setSelection] = useState<{ start: number; end: number }>();
@@ -98,7 +101,7 @@ export function Composer({
     } else {
       insert(value.trimStart() ? '/ ' + value.trimStart() : '/', 1);
     }
-    if (Platform.OS === 'ios') refocus.current = true;
+    if (Platform.OS === 'ios') refocus.current = kind !== 'command';
     else field.current?.focus();
   }
   function pick(row: ComposerSuggestion) {
