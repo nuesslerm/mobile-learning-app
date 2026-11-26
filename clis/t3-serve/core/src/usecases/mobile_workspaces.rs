@@ -184,6 +184,46 @@ impl Service {
         Ok(statuses)
     }
 
+    pub fn workspace_disclosure_http(&self, auth: Option<&str>, edit: Option<&Value>) -> Result<Value, Refusal> {
+        let change = if let Some(body) = edit {
+            self.scope_gate("mobile.workspaceDisclosure.set", auth, "orchestration:operate")?;
+            let key = body["key"].as_str().filter(|s| !s.is_empty() && s.encode_utf16().count() <= 1024).ok_or_else(|| Refusal::bare(422))?;
+            let collapsed = body["collapsed"].as_bool().ok_or_else(|| Refusal::bare(422))?;
+            Some((key, collapsed))
+        } else {
+            self.read_gate("mobile.workspaceDisclosure.get", auth)?;
+            None
+        };
+        let state = self.agent().run(&Op::StateGet { scope: "orca".into(), key: "ui".into() }).map_err(upstream)?;
+        let mut current = state.get("value").cloned().ok_or_else(|| Refusal::bare(502))?;
+        for _ in 0..8 {
+            let mut ui = match &current {
+                Value::Null => serde_json::Map::new(),
+                Value::Object(ui) => ui.clone(),
+                _ => return Err(Refusal::bare(502)),
+            };
+            let mut groups: Vec<String> = match ui.get("collapsedGroups") {
+                None | Some(Value::Null) => Vec::new(),
+                Some(value) => serde_json::from_value(value.clone()).map_err(|_| Refusal::bare(502))?,
+            };
+            let Some((key, collapsed)) = change else { return Ok(json!(groups)) };
+            if groups.iter().any(|group| group == key) == collapsed {
+                return Ok(json!(groups));
+            }
+            if collapsed { groups.push(key.to_owned()); } else { groups.retain(|group| group != key); }
+            ui.insert("collapsedGroups".into(), json!(groups));
+            let reply = self.agent().run(&Op::StateCompareAndSet {
+                scope: "orca".into(), key: "ui".into(), expected: current, value: Value::Object(ui),
+            }).map_err(upstream)?;
+            match reply["applied"].as_bool() {
+                Some(true) => return Ok(json!(groups)),
+                Some(false) => current = reply.get("value").cloned().ok_or_else(|| Refusal::bare(502))?,
+                None => return Err(Refusal::bare(502)),
+            }
+        }
+        Err(Refusal::bare(409))
+    }
+
     pub fn workspace_statuses_http(&self, auth: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("mobile.workspaceStatuses", auth)?;
         self.workspace_statuses().map(Value::Array)

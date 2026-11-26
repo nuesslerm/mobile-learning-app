@@ -9,6 +9,7 @@ export interface HostWorkspaceListProps {
     icon?: 'pin' | 'folder';
     rows: { id: string; name: string; detail?: string; project?: string; projectInTitle?: boolean; unread?: boolean }[];
   }[];
+  disclosure?: { keys: ReadonlySet<string>; ready: boolean; change: (key: string, collapsed: boolean) => void };
   search?: { value: string; onChange: (value: string) => void };
   options?: ReactNode;
   notice?: string;

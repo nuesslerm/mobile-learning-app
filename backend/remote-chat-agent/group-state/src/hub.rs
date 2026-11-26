@@ -86,6 +86,22 @@ impl StateHub {
     /// Keeps the value and, only when the store kept it, numbers its change on the scope's stream.
     pub(crate) fn set(&self, scope: &str, key: &str, value: Value) -> Result<(), String> {
         let mut streams = self.streams();
+        self.write_locked(&mut streams, scope, key, value)
+    }
+
+    pub(crate) fn compare_and_set(&self, scope: &str, key: &str, expected: &Value, next: Value) -> Result<Value, String> {
+        let mut streams = self.streams();
+        let current = self.store.get(scope, key).unwrap_or(Value::Null);
+        if &current != expected {
+            return Ok(serde_json::json!({"applied": false, "value": current}));
+        }
+        if current != next {
+            self.write_locked(&mut streams, scope, key, next)?;
+        }
+        Ok(serde_json::json!({"applied": true}))
+    }
+
+    fn write_locked(&self, streams: &mut HashMap<String, Stream>, scope: &str, key: &str, value: Value) -> Result<(), String> {
         self.store.set(scope, key, value.clone())?;
         let stream = streams.entry(scope.to_string()).or_insert_with(|| Stream::new(self.base));
         stream.seq += 1;

@@ -85,6 +85,8 @@ export interface T3MobilePort {
   editWorkspace(pairing: Pairing, checkout: string, edit: CheckoutEdit): Promise<CheckoutRow>;
   agents(pairing: Pairing, signal: AbortSignal): Promise<DesktopAgents>;
   home(pairing: Pairing, signal: AbortSignal): Promise<HomeSummary>;
+  workspaceDisclosure(pairing: Pairing, signal: AbortSignal): Promise<string[]>;
+  setWorkspaceDisclosure(pairing: Pairing, key: string, collapsed: boolean): Promise<string[]>;
   workspaceStatuses(pairing: Pairing, signal: AbortSignal): Promise<import('./workspaceCatalog').WorkspaceStatus[]>;
   workspaces(pairing: Pairing, signal: AbortSignal): Promise<WorkspaceCatalog>;
   threadCheckout(pairing: Pairing, thread: string, selected: string | undefined, signal: AbortSignal): Promise<CheckoutRow>;

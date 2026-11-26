@@ -423,6 +423,7 @@ fn every_op() -> Vec<Op> {
         Op::ThreadShelf { shelf: "settled", before: Some((5, Some("x".into()))), limit: 10 },
         Op::StateGet { scope: "t3".into(), key: "k".into() },
         Op::StateSet { scope: "t3".into(), key: "k".into(), value: json!(1) },
+        Op::StateCompareAndSet { scope: "t3".into(), key: "k".into(), expected: json!(1), value: json!(2) },
         Op::FileStat { root: "/work/proj".into(), path: "a.txt".into() },
         Op::FileWrite { root: "/work/proj".into(), path: "a.txt".into(), content: "new\n".into() },
         Op::FileBrowse { root: String::new(), path: "/shared".into(), show_hidden: false },

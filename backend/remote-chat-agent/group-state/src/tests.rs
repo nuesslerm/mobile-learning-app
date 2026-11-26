@@ -206,3 +206,23 @@ async fn given_a_client_that_followed_an_earlier_run_when_the_service_restarts_a
     assert_eq!(resumed.answer["result"]["values"].as_object().unwrap().len(), 90);
     resumed.stream.abort();
 }
+
+#[tokio::test]
+async fn conditional_writes_preserve_a_competing_change_and_notify_only_for_an_applied_edit() {
+    // Given two clients that both saw an empty record and a watcher of that scope
+    let api = api(MemoryStore::default(), 8);
+    let mut sub = subscribe(&api, json!({"scope":"orca"})).await;
+    let change = |expected: Value, value: Value| json!({"scope":"orca","key":"ui","expected":expected,"value":value});
+    let first = json!({"collapsedGroups":["pinned"]});
+    let second = json!({"collapsedGroups":["pinned", "repo:sample"]});
+    // When the first update wins, the stale writer receives the current value
+    assert_eq!(call(&api, "state.compareAndSet", change(Value::Null, first.clone())).await["result"], json!({"applied":true}));
+    assert_eq!(call(&api, "state.compareAndSet", change(Value::Null, second.clone())).await["result"], json!({"applied":false,"value":first}));
+    // Then it can preserve the first edit, and repeating its unchanged write produces no extra event
+    assert_eq!(call(&api, "state.compareAndSet", change(first, second.clone())).await["result"], json!({"applied":true}));
+    assert_eq!(call(&api, "state.compareAndSet", change(second.clone(), second.clone())).await["result"], json!({"applied":true}));
+    assert_eq!(call(&api, "state.get", json!({"scope":"orca","key":"ui"})).await["result"]["value"], second);
+    sub.next().await;
+    sub.next().await;
+    assert!(sub.silent().await);
+}

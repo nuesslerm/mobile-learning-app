@@ -31,7 +31,11 @@ const authorization = (pair: Pairing) => ({
   Authorization: 'Bearer ' + pair.token,
 });
 
+const disclosureRoute = '/api/mobile/workspace-disclosure';
+const disclosureKeys = z.array(z.string());
+
 export function createT3MobileApi(): T3MobilePort {
+  const disclosureWrites = new Map<string, Promise<void>>();
   return {
     newId: randomUUID,
     restore: () => readPairing(key),
@@ -108,6 +112,23 @@ export function createT3MobileApi(): T3MobilePort {
         const catalog = await this.workspaces(pair, signal);
         return { host: catalog.host, worktreeCount: catalog.checkouts.length };
       }
+    },
+    async workspaceDisclosure(pair, signal) {
+      await disclosureWrites.get(pair.endpoint);
+      return disclosureKeys.parse(await json(endpoint(pair.endpoint), disclosureRoute, { headers: authorization(pair), signal }));
+    },
+    setWorkspaceDisclosure(pair, key, collapsed) {
+      const write = async () => disclosureKeys.parse(await json(endpoint(pair.endpoint), disclosureRoute, {
+        method: 'POST', headers: { ...authorization(pair), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, collapsed }),
+      }));
+      const result = (disclosureWrites.get(pair.endpoint) ?? Promise.resolve()).then(write);
+      const settled = result.then(cleanup, cleanup);
+      function cleanup() {
+        if (disclosureWrites.get(pair.endpoint) === settled) disclosureWrites.delete(pair.endpoint);
+      }
+      disclosureWrites.set(pair.endpoint, settled);
+      return result;
     },
     async workspaceStatuses(pair, signal) {
       return workspaceStatuses.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspace-statuses', { headers: authorization(pair), signal }));

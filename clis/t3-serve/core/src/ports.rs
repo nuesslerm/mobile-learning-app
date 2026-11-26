@@ -323,6 +323,7 @@ pub enum Op {
     ThreadShelf { shelf: &'static str, before: Option<(u64, Option<String>)>, limit: u32 },
     StateGet { scope: String, key: String },
     StateSet { scope: String, key: String, value: Value },
+    StateCompareAndSet { scope: String, key: String, expected: Value, value: Value },
     ClientActivity(ClientActivity),
     /// The files and worktrees of a project: `root` is the project's directory (a worktree's path, or the project's own), `path` is under it
     /// unless it is absolute (`FileBrowse`).
@@ -454,6 +455,7 @@ impl Op {
             Op::ThreadShelf { .. } => "thread.shelf",
             Op::StateGet { .. } => "state.get",
             Op::StateSet { .. } => "state.set",
+            Op::StateCompareAndSet { .. } => "state.compareAndSet",
             Op::ClientActivity(_) => "service.clientActivity",
             Op::FileStat { .. } => "file.stat",
             Op::FileWrite { .. } => "file.write",

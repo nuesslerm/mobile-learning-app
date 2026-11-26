@@ -39,7 +39,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 151] = [
+pub const USES: [Method; 152] = [
     STATUS,
     THREAD_CREATE,
     agent_api_agent::THREAD_LIST,
@@ -78,6 +78,7 @@ pub const USES: [Method; 151] = [
     agent_api_service::panes::LIST,
     agent_api_service::panes::MARK,
     agent_api_state::SET,
+    agent_api_state::COMPARE_AND_SET,
     CLIENT_ACTIVITY,
     edit::FILE_STAT,
     edit::FILE_READ_CHUNK,
@@ -954,6 +955,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceCreate { workspace, path } => (WORKSPACE_CREATE, json!({"workspace": workspace, "path": path})),
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
+        Op::StateCompareAndSet { scope, key, expected, value } => (agent_api_state::COMPARE_AND_SET, json!({"scope": scope, "key": key, "expected": expected, "value": value})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
         Op::CheckoutPullRequest { .. } | Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));

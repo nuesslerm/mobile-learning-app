@@ -29,7 +29,14 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     filters:{hideSleepingWorkspaces:false,alwaysShowDefaultBranchWorkspace:true,hideDefaultBranchWorkspace:false,hideAutomationGeneratedWorkspaces:false,
       hideCliCreatedWorkspaces:false,hideDetachedHeadWorkspaces:false,hideWorkspacesFromOtherDevices:false,filterRepoIds:[],visibleHostIds:null},
   };
+  const collapsedGroups = new Set<string>();
   const port: T3MobilePort = {
+    workspaceDisclosure: async () => [...collapsedGroups],
+    setWorkspaceDisclosure: async (_pair, key, collapsed) => {
+      if (collapsed) collapsedGroups.add(key);
+      else collapsedGroups.delete(key);
+      return [...collapsedGroups];
+    },
     workspacePreferences: async () => preferences,
     saveWorkspacePreferences: async (_pair,patch) => {
       preferences={...preferences,...patch,filters:{...preferences.filters,...patch.filters}};
@@ -549,6 +556,57 @@ describe('Orca chat with the T3 transport', () => {
     await open();
     expect(await screen.findByRole('radio', { name: 'QA review', checked: true })).toBeTruthy();
     expect(edit).toHaveBeenCalledWith(expect.anything(), 'repo::/fixture', { workspaceStatus: 'review' });
+  });
+
+  it('Given a pending collapse, when the reader expands and returns to the host, then both writes precede the read even if the first fails', async () => {
+    const api = createT3MobileApi();
+    const project = 'repo:Fixture repository';
+    let refuse!: (response: Response) => void;
+    const firstReply = new Promise<Response>(resolve => { refuse = resolve; });
+    const fetch = vi.fn<typeof globalThis.fetch>()
+      .mockReturnValueOnce(firstReply)
+      .mockResolvedValueOnce(Response.json([]))
+      .mockResolvedValueOnce(Response.json([]));
+    vi.stubGlobal('fetch', fetch);
+    try {
+      const collapse = api.setWorkspaceDisclosure(pair, project, true);
+      const expand = api.setWorkspaceDisclosure(pair, project, false);
+      const reopened = api.workspaceDisclosure(pair, new AbortController().signal);
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+      const refused = expect(collapse).rejects.toThrow('HTTP 409');
+      refuse(new Response(null, { status: 409 }));
+      await refused;
+      expect(await expand).toEqual([]);
+      expect(await reopened).toEqual([]);
+      expect(fetch.mock.calls.map(([, init]) => init?.body ? JSON.parse(String(init.body)) : 'read')).toEqual([
+        { key: project, collapsed: true }, { key: project, collapsed: false }, 'read',
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('Given a folded project on the host, when expanded or refused a change, then the saved membership determines the visible checkouts', async () => {
+    const port = backend();
+    const project = 'repo:Fixture repository';
+    const read = vi.fn(async () => [project]);
+    const edit = vi.fn(port.setWorkspaceDisclosure);
+    edit.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('refused')).mockResolvedValueOnce([project]);
+    await app.render('/coding-agent', { search: { host: '1' }, overrides: { 'coding-agent': {
+      t3Mobile: { ...port, workspaceDisclosure: read, setWorkspaceDisclosure: edit },
+    } } });
+    const header = await screen.findByRole('button', { name: 'Fixture repository 1', expanded: false });
+    expect(screen.queryByRole('button', { name: 'Mobile checkout' })).toBeNull();
+    await userEvent.click(header);
+    expect(await screen.findByRole('button', { name: 'Mobile checkout' })).toBeTruthy();
+    expect(edit).toHaveBeenCalledWith(pair, project, false);
+    await userEvent.click(header);
+    expect(await screen.findByText('Could not save collapsed workspace groups.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Mobile checkout' })).toBeTruthy();
+    await userEvent.click(header);
+    expect(await screen.findByRole('button', { name: 'Fixture repository 1', expanded: false })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Mobile checkout' })).toBeNull();
+    expect(edit).toHaveBeenLastCalledWith(pair, project, true);
   });
 
   it('Given saved Status grouping, when the reader collapses and searches, then host-ordered nonempty groups count only visible unpinned checkouts', async () => {

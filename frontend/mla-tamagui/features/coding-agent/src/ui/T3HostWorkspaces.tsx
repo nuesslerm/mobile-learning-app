@@ -17,6 +17,7 @@ import {
 import type { WorkspacePreferences } from '../domain/workspacePreferences';
 import { T3WorkspaceOptions } from './T3WorkspaceOptions';
 
+import { useWorkspaceDisclosure } from '../state/useWorkspaceDisclosure';
 import { T3SourceControl } from './T3SourceControl';
 
 export function T3HostWorkspaces({
@@ -36,6 +37,7 @@ export function T3HostWorkspaces({
 }) {
   const { HostWorkspaceList, WorkspaceActions } = useAgentComponents();
   const [preferences, setPreferences] = useState<WorkspacePreferences>();
+  const disclosure = useWorkspaceDisclosure(api, pair);
   const [search, setSearch] = useState('');
   const [selected, setSelected] =
     useState<WorkspaceCatalog['checkouts'][number]>();
@@ -200,10 +202,10 @@ export function T3HostWorkspaces({
   const pinned: Section = { key: 'pinned', label: 'Pinned', icon: 'pin', rows: [] };
   const byStatus = new Map<string, Section>();
   for (const status of statusGroups ?? []) {
-    byStatus.set(status.id, { key: 'workspace-status:' + status.id, label: status.label, rows: [] });
+    byStatus.set(status.id, { key: 'workspace-status:' + encodeURIComponent(status.id), label: status.label, rows: [] });
   }
   const projectGroup = preferences?.groupBy === 'repo';
-  const other: Section = { key: 'rows', label: projectGroup ? catalog.repo : undefined,
+  const other: Section = { key: projectGroup ? 'repo:' + catalog.repo : 'all', label: projectGroup ? catalog.repo : undefined,
     icon: projectGroup ? 'folder' : undefined, rows: [] };
   for (const row of rows) {
     const status = groupByStatus && statusGroups && resolveWorkspaceStatus(statusGroups, row.workspaceStatus);
@@ -227,7 +229,8 @@ export function T3HostWorkspaces({
         title={catalog.host.name}
         platform={desktopPlatform(catalog.host.os)}
         sections={sections}
-        retry={groupError ? () => setGroupRetry(n => n + 1) : undefined}
+        disclosure={disclosure}
+        retry={disclosure.error ? disclosure.reload : groupError ? () => setGroupRetry(n => n + 1) : undefined}
         onActions={(id) => {
           setMutationError('');
           statusRequest.current?.abort();
@@ -236,7 +239,7 @@ export function T3HostWorkspaces({
         }}
         onSelect={(id) => void open(id)}
         notice={
-          catalogError ?? (groupError ? 'Could not load status groups.' : undefined) ?? (rows.length
+          catalogError ?? disclosure.error ?? (groupError ? 'Could not load status groups.' : undefined) ?? (rows.length
             ? undefined
             : query
               ? 'No matching workspaces.'

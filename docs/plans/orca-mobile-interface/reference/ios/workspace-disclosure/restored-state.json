@@ -1,0 +1,11 @@
+{
+  "native": {
+    "groupBy": "repo",
+    "collapsedGroups": [],
+    "workspaceViewKeys": [
+      "collapsedGroups",
+      "groupBy"
+    ]
+  },
+  "gateway": []
+}

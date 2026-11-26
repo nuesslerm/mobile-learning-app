@@ -3,7 +3,6 @@ import Bell from 'lucide-react-native/dist/esm/icons/bell.mjs';
 import Pin from 'lucide-react-native/dist/esm/icons/pin.mjs';
 import Folder from 'lucide-react-native/dist/esm/icons/folder.mjs';
 import ChevronDown from 'lucide-react-native/dist/esm/icons/chevron-down.mjs';
-import { useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -19,7 +18,7 @@ import { useChatPalette } from './chatPalette';
 
 export function HostWorkspaceList(props: HostWorkspaceListProps) {
   const c = useChatPalette();
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const folded = (key: string) => props.disclosure?.keys.has(key) ?? false;
   const ink = { color: c.textPrimary };
   const muted = { color: c.textSecondary };
   return (
@@ -53,14 +52,14 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={label + ' ' + rows.length}
-                accessibilityState={{ expanded: !collapsed[key] }}
+                aria-expanded={!folded(key)}
+                accessibilityState={{ expanded: !folded(key), disabled: !props.disclosure?.ready }}
+                disabled={!props.disclosure?.ready}
                 style={styles.group}
-                onPress={() =>
-                  setCollapsed((old) => ({ ...old, [key]: !old[key] }))
-                }
+                onPress={() => props.disclosure?.change(key, !folded(key))}
               >
                 <View style={styles.disclosure}>
-                  {collapsed[key] ? (
+                  {folded(key) ? (
                     <ChevronRightIcon size={12} color={c.textMuted} />
                   ) : (
                     <ChevronDown size={12} color={c.textMuted} />
@@ -74,7 +73,7 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
                 <Text style={[styles.count, { color: c.textMuted }]}>{rows.length}</Text>
               </Pressable>
             )}
-            {(!label || !collapsed[key]) &&
+            {(!label || !folded(key)) &&
               rows.map((row) => (
                 <Pressable
                   key={row.id}

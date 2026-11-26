@@ -192,3 +192,47 @@ fn workspace_preferences_changed_over_http_are_shared_with_rpc_and_enforce_write
     assert_eq!(read.body, *success(&rpc.call("mobile.viewPreferences.get", json!({}))));
     assert_eq!(read.body["preferences"]["cardLayout"], "compact");
 }
+
+#[test]
+fn changing_one_disclosure_preserves_other_host_updates_and_is_shared_by_paired_clients() {
+    // Given a host with a folded project and a second writer that pins a group during the first edit
+    let (h, _rpc) = started();
+    let ui = Arc::new(Mutex::new(json!({"collapsedGroups":["repo:old"],"theme":"light"})));
+    let store = ui.clone();
+    let conflict = std::sync::atomic::AtomicBool::new(true);
+    *h.agent.responder.lock().unwrap() = Some(Box::new(move |op| match op {
+        Op::StateGet { scope, key } if scope == "orca" && key == "ui" => Some(Ok(json!({"value":*store.lock().unwrap()}))),
+        Op::StateCompareAndSet { scope, key, expected, value } if scope == "orca" && key == "ui" => {
+            let mut record = store.lock().unwrap();
+            if conflict.swap(false, std::sync::atomic::Ordering::SeqCst) {
+                record["collapsedGroups"] = json!(["repo:old","pinned"]);
+                record["theme"] = json!("dark");
+            }
+            if &*record != expected {
+                Some(Ok(json!({"applied":false,"value":*record})))
+            } else {
+                *record = value.clone();
+                Some(Ok(json!({"applied":true})))
+            }
+        }
+        _ => None,
+    }));
+    let auth = |req| format!("Bearer {}", bearer_of(h.addr, &h.pair(req).code));
+    let reader = auth(PairingRequest { scopes: vec!["orchestration:read".into()], ..Default::default() });
+    let writer = auth(PairingRequest::default());
+    let path = "/api/mobile/workspace-disclosure";
+    let get = |token: &str| http(h.addr, "GET", path, &[("Authorization", token)], "");
+    let change = |token: &str, key: &str, collapsed| http(h.addr, "POST", path, &[("Authorization", token), ("Content-Type", "application/json")], &json!({"key":key,"collapsed":collapsed}).to_string());
+    assert_eq!(get("").status, 401);
+    assert_eq!(get(&reader).body, json!(["repo:old"]));
+    assert_eq!(change(&reader, "workspace-status:review", true).status, 403);
+    assert_eq!(change(&writer, "", true).status, 422);
+    // When the writer folds a status, repeats it, and unfolds the original project
+    let folded = json!(["repo:old","pinned","workspace-status:review"]);
+    assert_eq!(change(&writer, "workspace-status:review", true).body, folded);
+    assert_eq!(change(&writer, "workspace-status:review", true).body, folded);
+    assert_eq!(change(&writer, "repo:old", false).body, json!(["pinned","workspace-status:review"]));
+    // Then the independent reader and the native UI record agree, including the competing edit
+    assert_eq!(get(&reader).body, json!(["pinned","workspace-status:review"]));
+    assert_eq!(*ui.lock().unwrap(), json!({"collapsedGroups":["pinned","workspace-status:review"],"theme":"dark"}));
+}

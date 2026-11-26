@@ -278,7 +278,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspace-statuses" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/checkout" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspace-disclosure" | "/api/mobile/workspace-statuses" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/checkout" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -438,6 +438,16 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
         ("GET", "/api/mobile/workspaces") => {
             let checkout = request.query.iter().find(|(k, _)| k == "checkout").map(|(_, v)| v.as_str());
             match svc.mobile_workspaces_http(auth, checkout) {
+                Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET" | "POST", "/api/mobile/workspace-disclosure") => {
+            let change = if request.method == "POST" {
+                let Some(body) = json_object(&mut stream, &request) else { return };
+                Some(body)
+            } else { None };
+            match svc.workspace_disclosure_http(auth, change.as_ref()) {
                 Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
                 Err(r) => refused(&mut stream, r, NO_STORE),
             }
