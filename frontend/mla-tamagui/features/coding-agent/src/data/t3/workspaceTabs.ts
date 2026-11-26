@@ -334,7 +334,7 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
         },
       };
     },
-    async browser(pair, layout, tab, frame, failed, navigation) {
+    async browser(pair, layout, tab, frame, failed, navigation, textFocus) {
       const query = new URLSearchParams({
         threadId: layout.threadId,
         tabId: tab.resource,
@@ -350,6 +350,7 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
           post('ack', {});
         } else if (typeof data === 'string') {
           const event = JSON.parse(data);
+          if (event.type === 'textFocus') textFocus?.(event.editable === true);
           if (event.type === 'navigation')
             navigation?.(event.url, event.canGoBack, event.canGoForward);
         }
@@ -371,7 +372,13 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
             return;
           }
           for (const action of ['down', 'up'])
-            post('mouse', { action, x, y, button: 'left' });
+            post('mouse', {
+              action,
+              x,
+              y,
+              button: 'left',
+              ...(textFocus && action === 'up' ? { reportFocus: true } : {}),
+            });
         },
         text: (text) => post('text', { text }),
         key: (key) => post('key', { key, action: 'down' }),

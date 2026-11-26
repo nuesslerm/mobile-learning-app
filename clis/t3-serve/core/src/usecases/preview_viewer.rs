@@ -210,6 +210,12 @@ impl Viewer {
                     "browser.input",
                     json!({"kind":action,"button":msg["button"]}),
                 )?;
+                if action == "mouse_up" && msg["reportFocus"] == true {
+                    let focus = self.page("browser.eval", json!({"expression":
+                        "(() => { const e = document.activeElement; return !!e && (e.isContentEditable || (!e.disabled && !e.readOnly && (e.tagName === 'TEXTAREA' || (e.tagName === 'INPUT' && ['text','email','number','password','search','tel','url'].includes(e.type))))); })()"
+                    }))?;
+                    return Ok(Some(json!({"type":"textFocus","editable":focus["value"] == true})));
+                }
             }
             "wheel" => {
                 self.page(

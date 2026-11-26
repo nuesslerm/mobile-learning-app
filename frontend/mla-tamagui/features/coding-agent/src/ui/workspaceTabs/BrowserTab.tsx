@@ -1,5 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { Button, Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import {
+  Button,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   Maximize2,
   Minimize2,
@@ -56,6 +63,7 @@ export function BrowserTab({
   const [mobile, setMobile] = useState(false);
   const [viewport, setViewport] = useState({ width: 390, height: 680 });
   const [history, setHistory] = useState({ back: false, forward: false });
+  const keyboard = useRef<ComponentRef<typeof TextInput>>(null);
   const currentUrl = useRef('');
   const editing = useRef(false);
   const stream = useRef<BrowserConnection | null>(null);
@@ -89,7 +97,14 @@ export function BrowserTab({
           currentUrl.current = url;
           if (!editing.current) setAddress(url);
           setHistory({ back, forward });
-        }
+        },
+        Platform.OS === 'web'
+          ? undefined
+          : (editable) => {
+              if (!live) return;
+              if (editable) keyboard.current?.focus();
+              else keyboard.current?.blur();
+            }
       )
       .then((connection) => {
         if (!live) {
@@ -205,6 +220,28 @@ export function BrowserTab({
         </View>
       )}
       <View style={{ flex: 1 }}>
+        {Platform.OS !== 'web' && (
+          <TextInput
+            ref={keyboard}
+            accessible={false}
+            tabIndex={-1}
+            defaultValue=" "
+            autoCorrect={false}
+            autoCapitalize="none"
+            caretHidden
+            style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
+            onChangeText={(value) => {
+              if (!value) stream.current?.key('Backspace');
+              else
+                stream.current?.text(
+                  value.startsWith(' ') ? value.slice(1) : value
+                );
+              keyboard.current?.setNativeProps({ text: ' ' });
+            }}
+            onSubmitEditing={() => stream.current?.key('Enter')}
+            submitBehavior="submit"
+          />
+        )}
         <BrowserViewport
           key={String(mobile)}
           onInteraction={showControls}

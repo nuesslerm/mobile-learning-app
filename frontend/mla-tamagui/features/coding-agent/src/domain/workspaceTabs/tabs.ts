@@ -96,6 +96,7 @@ export interface WorkspaceTabsPort {
     tab: WorkspaceTab,
     frame: (uri: string) => void,
     error: (message: string) => void,
-    navigation?: (url: string, back: boolean, forward: boolean) => void
+    navigation?: (url: string, back: boolean, forward: boolean) => void,
+    textFocus?: (editable: boolean) => void
   ): Promise<BrowserConnection>;
 }
