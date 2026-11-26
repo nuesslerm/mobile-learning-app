@@ -13,6 +13,7 @@ import type { T3MobilePort } from '../domain/t3Mobile';
 import { useCodingAgentPorts } from '../state/ports';
 import { ChatKeyboardArea } from './ChatKeyboardArea';
 import { T3SessionNavigation } from './T3SessionNavigation';
+import { T3ComposerOptions } from './T3ComposerOptions';
 import { T3Transcript } from './T3Transcript';
 import { ChatScroll } from './ChatScroll';
 import { OrcaHome } from './OrcaHome';
@@ -115,6 +116,9 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
             )}
           </ChatScroll>
           <Composer
+            leadingControls={state.snapshot && state.imageSession && (
+              <T3ComposerOptions thread={state.snapshot.thread} session={state.imageSession} newId={api.newId} />
+            )}
             value={state.draft}
             onChangeText={state.setDraft}
             onSend={() => void state.send()}

@@ -16,7 +16,16 @@ export type T3Message = {
   text: string;
   attachments?: T3Attachment[];
 };
-export type T3Thread = { id: string; projectId: string; title: string };
+export type T3RuntimeMode = 'approval-required' | 'auto-accept-edits' | 'auto' | 'full-access';
+export type T3Model = { slug: string; name: string };
+export type T3Thread = {
+  id: string;
+  projectId: string;
+  title: string;
+  providerInstanceId?: string | null;
+  modelSelection?: { instanceId: string; model: string } | null;
+  runtimeMode?: T3RuntimeMode | null;
+};
 export type T3TurnItem = {
   id: string;
   type: string;
@@ -41,6 +50,9 @@ export type T3Shell = {
 };
 
 export interface T3Conversation {
+  models(instanceId: string): Promise<T3Model[]>;
+  setModel(commandId: string, instanceId: string, model: string): Promise<void>;
+  setRuntimeMode(commandId: string, runtimeMode: T3RuntimeMode): Promise<void>;
   openTab(tabId: string): Promise<void>;
   send(commandId: string, text: string): Promise<void>;
   resolveImage(attachment: T3Attachment): Promise<T3ImageSource>;

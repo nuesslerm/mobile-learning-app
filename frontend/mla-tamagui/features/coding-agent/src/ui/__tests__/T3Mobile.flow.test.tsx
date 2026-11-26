@@ -10,6 +10,8 @@ import type { T3MobilePort, T3Snapshot } from '../../domain/t3Mobile';
 
 const pair = { endpoint: 'https://fixture.invalid', token: 'fixture-token' };
 const thread = {
+  providerInstanceId: 'opencode',
+  runtimeMode: 'approval-required' as const,
   id: 'thread-42',
   projectId: 'project',
   title: 'Review the changed files',
@@ -31,6 +33,9 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     open: async (_pair, _id, update) => {
       update({ thread, messages });
       return {
+        models: async () => [{ slug: 'default', name: 'Default' }],
+        async setModel() {},
+        async setRuntimeMode() {},
         openTab,
         close() {},
         async resolveImage() {
@@ -105,6 +110,23 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(copies[0]);
     expect(await screen.findByRole('button', {name:'Copied'})).toBeTruthy();
     expect(copied).toEqual([progress]);
+  });
+
+  it('Given a connected chat, when the reader selects a model, then the current thread receives that model', async () => {
+    const port = backend();
+    const connect = port.open;
+    const selections: string[][] = [];
+    port.open = async (...args) => ({
+      ...await connect(...args),
+      models: async () => [{ slug: 'minimax/flash', name: 'MiniMax Flash' }],
+      setModel: async (id, provider, model) => { selections.push([id, provider, model]); },
+    });
+    await app.render('/coding-agent/thread-42', {overrides: {'coding-agent': {t3Mobile: port}}});
+    await userEvent.click(await screen.findByRole('button', {name: 'Model, Model'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'MiniMax Flash'}));
+    expect(selections).toEqual([['new-message', 'opencode', 'minimax/flash']]);
+    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+    expect(screen.queryByRole('button', {name: 'MiniMax Flash'})).toBeNull();
   });
 
   it('Given two chats in the workspace, when a reader picks its other tab, then that thread opens through the Orca T3 route', async () => {

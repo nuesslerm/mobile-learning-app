@@ -77,3 +77,13 @@ export interface SessionTabsSheetProps {
   onRetry: () => void;
   onSelect: (id: string) => void;
 }
+
+export interface ComposerOptionsProps {
+  provider: string;
+  selectedModel?: string;
+  permission?: string;
+  permissions: readonly { slug: string; name: string }[];
+  loadModels: () => Promise<readonly { slug: string; name: string }[]>;
+  setModel: (model: string) => Promise<void>;
+  setPermission: (mode: string) => Promise<void>;
+}

@@ -5,6 +5,9 @@ import type { T3Conversation, T3Snapshot } from '../../domain/t3Mobile';
 export const threadSchema = z.object({
   id: z.string(),
   projectId: z.string(),
+  providerInstanceId: z.string().nullish(),
+  modelSelection: z.object({ instanceId: z.string(), model: z.string() }).nullish().catch(null),
+  runtimeMode: z.enum(['approval-required', 'auto-accept-edits', 'auto', 'full-access']).nullish(),
   title: z.string(),
 });
 const messageSchema = z.object({
@@ -174,7 +177,9 @@ export function openConversation(
           turnItems: upsert(existing, row),
           toolTextOffsets: offsets,
         };
-      } else if (item.event?.type === 'thread.metadata-updated') {
+      } else if (item.event?.type === 'thread.metadata-updated' ||
+                 item.event?.type === 'thread.model-selection-updated' ||
+                 item.event?.type === 'thread.runtime-mode-updated') {
         snapshot = {
           ...snapshot,
           thread: threadSchema.parse(item.event.payload),
@@ -238,6 +243,23 @@ export function openConversation(
   };
   return {
     close: () => close(),
+    async models(instanceId) {
+      const config = z.object({ providers: z.array(z.object({
+        instanceId: z.string(),
+        models: z.array(z.object({ slug: z.string(), name: z.string() })),
+      })) }).parse(await call('server.getConfig', {}));
+      return config.providers.find((provider) => provider.instanceId === instanceId)?.models ?? [];
+    },
+    async setModel(commandId, instanceId, model) {
+      await call('orchestration.dispatchCommand', {
+        type: 'thread.model-selection.set', commandId, threadId, modelSelection: { instanceId, model },
+      });
+    },
+    async setRuntimeMode(commandId, runtimeMode) {
+      await call('orchestration.dispatchCommand', {
+        type: 'thread.runtime-mode.set', commandId, threadId, runtimeMode,
+      });
+    },
     async openTab(tabId) {
       await call('mobile.session.openTab', { threadId, tabId });
     },
