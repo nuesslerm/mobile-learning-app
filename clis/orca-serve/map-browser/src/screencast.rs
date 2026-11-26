@@ -15,10 +15,19 @@ pub(super) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription
         plain(params, "page")?,
     )?;
     let pages = ask(ctx.agent, PAGES, &page, json!({}))?;
-    let tab = pages["pages"]
-        .as_array()
-        .and_then(|rows| rows.iter().find(|row| row["key"] == page.key))
-        .ok_or_else(|| Failure::new("browser_tab_not_found", "Browser page was not found"))?;
+    let tab = match pages["pages"].as_array().and_then(|rows| rows.iter().find(|row| row["key"] == page.key)) {
+        Some(row) => row.clone(),
+        None => {
+            // Chromium frees idle pages. Only a browser tab still in this checkout's layout may reopen one.
+            let _turn = orca_core::kept_state_turn();
+            let tabs = orca_map_workspace::layout::kept(ctx.agent, &page.workspace)?;
+            let saved = tabs.iter().find(|tab| tab["kind"] == "browser" && tab["id"] == page.key)
+                .ok_or_else(|| Failure::new("browser_tab_not_found", "Browser page was not found"))?;
+            let url = saved["url"].as_str().filter(|url| !url.is_empty() && *url != "about:blank");
+            let args = url.map_or_else(|| json!({}), |url| json!({"url":url}));
+            ask(ctx.agent, agent_api_browser::OPEN, &page, args)?
+        }
+    };
     let dimension = |viewport: &str, max: &str, default| {
         let value = params.get(viewport).or_else(|| params.get(max));
         match value {

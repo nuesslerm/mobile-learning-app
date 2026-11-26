@@ -102,6 +102,14 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
         // And a late acknowledgement of a screencast credits nothing, and the executor is left with no browser and no dev server
         let ack = phone.call(case, &chain, &["rpc:browser.screencast.ack"], "browser.screencast.ack", json!({"subscriptionId": "none", "seq": 3}));
         assert_eq!(ack["result"], json!({"credited": false}));
+        // When the executor has reclaimed the idle page, a new phone reopens the kept tab at its last address.
+        rca.call("browser","browser.close",json!({"workspace":"w1","key":page})).unwrap();
+        drop(phone);
+        let mut phone = Phone::connect(case, &chain);
+        let (_, restored) = phone.subscribe(case, &chain, &["rpc:browser.screencast"], "browser.screencast",
+            json!({"worktree":WS,"page":page,"viewportWidth":390,"viewportHeight":680,"frameAck":1}));
+        assert_eq!(restored["result"]["tab"]["url"], format!("{url}next"), "{restored}");
+        assert!(!phone.next_binary().is_empty());
         let close = phone.call(case, &chain, &["rpc:session.tabs.close"], "session.tabs.close", json!({"worktree":WS,"tabId":page,"reason":"user"}));
         assert_eq!(close["result"]["closed"],true,"{close}");
         assert_eq!(rca.call("browser","browser.pages",json!({"workspace":"w1"})).unwrap()["pages"],json!([]));

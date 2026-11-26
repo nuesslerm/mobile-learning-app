@@ -67,6 +67,19 @@ pub fn open_browser(agent: &dyn AgentApi, workspace: &str, id: &str, page: &Valu
     open(agent, workspace, json!({"id":id,"kind":"browser","title":title,"url":page["url"]}))
 }
 
+pub fn update_browser_location(agent: &dyn AgentApi, workspace: &str, id: &str, page: &Value) -> Result<(), Failure> {
+    let _turn = orca_core::kept_state_turn();
+    let mut tabs = kept(agent, workspace)?;
+    if let Some(tab) = tabs.iter_mut().find(|tab| tab["id"] == id && tab["kind"] == "browser") {
+        if tab["url"] != page["url"] || tab["title"] != page["title"] {
+            tab["url"] = page["url"].clone();
+            tab["title"] = page["title"].clone();
+            keep(agent, &extras_key(workspace), Value::Array(tabs))?;
+        }
+    }
+    Ok(())
+}
+
 /// A chat's tab, opened by `agentSession.reveal`: the chat's own id names it.
 pub fn open_chat(agent: &dyn AgentApi, workspace: &str, session: &str, chat_agent: &str, title: &str) -> Result<(), Failure> {
     open(agent, workspace, json!({"id": session, "kind": "agent-session", "sessionId": session, "agent": chat_agent, "title": title}))

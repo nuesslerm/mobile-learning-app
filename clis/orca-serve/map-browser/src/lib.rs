@@ -162,21 +162,24 @@ fn ask(agent: &dyn AgentApi, method: AgentMethod, page: &Page, mut params: Value
     agent.request(method.name(), params).map_err(|e| refusal(e, page))
 }
 
-fn navigated(answer: &Value) -> Value {
-    json!({"url": answer["url"], "title": answer["title"]})
+fn navigated(agent: &dyn AgentApi, page: &Page, answer: Value) -> Result<Value, Failure> {
+    if page.named.is_some() {
+        orca_map_workspace::layout::update_browser_location(agent, &page.workspace, &page.key, &answer)?;
+    }
+    Ok(json!({"url": answer["url"], "title": answer["title"]}))
 }
 
 fn goto(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let (worktree, page) = target_fields(params)?;
     let url = params.get("url").and_then(Value::as_str).filter(|u| !u.is_empty()).ok_or_else(|| Failure::invalid("Missing required --url"))?;
     let page = locate(agent, worktree, page)?;
-    Ok(navigated(&ask(agent, GOTO, &page, json!({"url": url}))?))
+    navigated(agent, &page, ask(agent, GOTO, &page, json!({"url": url}))?)
 }
 
 fn history(agent: &dyn AgentApi, params: &Value, direction: &str) -> Result<Value, Failure> {
     let (worktree, page) = target_fields(params)?;
     let page = locate(agent, worktree, page)?;
-    Ok(navigated(&ask(agent, HISTORY, &page, json!({"direction": direction}))?))
+    navigated(agent, &page, ask(agent, HISTORY, &page, json!({"direction": direction}))?)
 }
 
 fn tab_create(ctx: &mut Ctx, params: &Value) -> Result<Value, Failure> {
