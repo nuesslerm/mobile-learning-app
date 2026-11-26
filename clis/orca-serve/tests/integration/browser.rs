@@ -83,10 +83,28 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
             assert!(frame["data"].as_str().unwrap().starts_with("/9j/"));
             assert_eq!(eval(&mut rca, &page, "[innerWidth,innerHeight]"), json!([width,680]));
         }
+        // When the paired phone subscribes, then it receives a JPEG in Orca's binary envelope and can acknowledge its sequence.
+        let caps = phone.call(case, &chain, &["rpc:status.get"], "status.get", json!({}));
+        assert!(caps["result"]["capabilities"].as_array().unwrap().contains(&json!("browser.screencast.v1")));
+        let (_, ready) = phone.subscribe(case, &chain, &["rpc:browser.screencast"], "browser.screencast",
+            json!({"worktree":WS,"page":page,"viewportWidth":390,"viewportHeight":680,"format":"jpeg","quality":72,"frameAck":1}));
+        let subscription = &ready["result"]["subscriptionId"];
+        assert_eq!(ready["result"]["frameAck"], true, "{ready}");
+        let frame = phone.next_binary();
+        assert_eq!(&frame[..8], &[0x62,1,1,1,0,0,0,0]);
+        let meta_end = 16 + u32::from_le_bytes(frame[8..12].try_into().unwrap()) as usize;
+        assert_eq!(serde_json::from_slice::<Value>(&frame[16..meta_end]).unwrap()["deviceWidth"],390);
+        assert_eq!(&frame[meta_end..meta_end+2], &[0xff,0xd8]);
+        let credit = phone.call(case, &chain, &["rpc:browser.screencast.ack"], "browser.screencast.ack", json!({"subscriptionId":subscription,"seq":0}));
+        assert_eq!(credit["result"]["credited"],true);
+        let end = phone.call(case, &chain, &["rpc:browser.screencast.unsubscribe"], "browser.screencast.unsubscribe", json!({"subscriptionId":subscription}));
+        assert_eq!(end["ok"],true);
         // And a late acknowledgement of a screencast credits nothing, and the executor is left with no browser and no dev server
         let ack = phone.call(case, &chain, &["rpc:browser.screencast.ack"], "browser.screencast.ack", json!({"subscriptionId": "none", "seq": 3}));
         assert_eq!(ack["result"], json!({"credited": false}));
-        assert_eq!(rca.call("browser", "browser.close", json!({"workspace": "w1", "key": page})).expect("the page closes"), json!({"closed": true}));
+        let close = phone.call(case, &chain, &["rpc:session.tabs.close"], "session.tabs.close", json!({"worktree":WS,"tabId":page,"reason":"user"}));
+        assert_eq!(close["result"]["closed"],true,"{close}");
+        assert_eq!(rca.call("browser","browser.pages",json!({"workspace":"w1"})).unwrap()["pages"],json!([]));
         rca.call("preview", "preview.stop", json!({"workspace": "w1", "id": server["id"]})).expect("the dev server stops");
     });
 }

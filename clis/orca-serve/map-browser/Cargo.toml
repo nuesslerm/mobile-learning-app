@@ -12,6 +12,7 @@ doctest = false
 testing = ["orca-core/testing"]
 
 [dependencies]
+base64 = "0.22"
 orca-core = { path = "../core" }
 orca-map-workspace = { path = "../map-workspace" }
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }

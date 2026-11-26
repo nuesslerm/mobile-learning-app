@@ -1,10 +1,6 @@
-//! Orca's browser rows over rca's `browser` group (a headless Chromium at the executor that owns the workspace): `browser.goto`, `reload`, `back`,
-//! `forward`, `tabCreate`, `keypress`, `keyboardInsertText`, `mouseMove`, `mouseDown`, `mouseUp`, `mouseClick`, `mouseWheel`, and `screencast.ack`
-//! (no screencast is ever open here, so a late ack credits nothing, which is what the recorded host answers). A browser page of this host is a key
-//! of the executor's page table; its `browserPageId` is `<workspace>:<token>`, so a command that names the page needs no worktree. A command with no
-//! `page` acts on the workspace's own page (the key is the workspace name), and with neither `worktree` nor `page` on the first workspace's. While the
-//! service has the browser off (`RCA_BROWSER`) every command answers `browser_unavailable`, as the recorded host does without a desktop browser.
-//! What the phone sends that this host does not do (`expectUrl`, a browser profile, a split pane, a client placement, a key chord) is refused by name.
+//! Maps Orca browser commands and acknowledged screencast frames to pages owned by the checkout executor.
+mod screencast;
+
 use agent_api_browser::{GOTO, HISTORY, INPUT, OPEN, PAGES};
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{received, Failure, INVALID_ARGUMENT, METHOD_NOT_FOUND};
@@ -16,7 +12,7 @@ use serde_json::{json, Value};
 pub mod testing;
 
 /// The agent methods this crate sends.
-pub const USES: &[AgentMethod] = &[OPEN, GOTO, HISTORY, INPUT, PAGES];
+pub const USES: &[AgentMethod] = &[agent_api_browser::FRAME, agent_api_browser::CLOSE, orca_map_workspace::layout::SET,OPEN, GOTO, HISTORY, INPUT, PAGES];
 
 const METHODS: &[Method] = &[
     Method { name: "browser.goto", kind: Kind::Unary },
@@ -31,6 +27,8 @@ const METHODS: &[Method] = &[
     Method { name: "browser.mouseUp", kind: Kind::Unary },
     Method { name: "browser.mouseClick", kind: Kind::Unary },
     Method { name: "browser.mouseWheel", kind: Kind::Unary },
+    Method { name: "browser.screencast", kind: Kind::Streaming },
+    Method { name: "browser.screencast.unsubscribe", kind: Kind::Unary },
     Method { name: "browser.screencast.ack", kind: Kind::Unary },
 ];
 
@@ -43,9 +41,13 @@ impl Area for BrowserArea {
         "browser"
     }
 
+    fn capabilities(&self) -> &'static [&'static str] { &["browser.screencast.v1"] }
+
     fn methods(&self) -> &'static [Method] {
         METHODS
     }
+
+    fn open(&self, ctx: &mut Ctx, _: &str, params: &Value) -> Result<Box<dyn orca_core::Subscription>, Failure> { screencast::open(ctx, params) }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let agent = ctx.agent;
@@ -62,7 +64,16 @@ impl Area for BrowserArea {
             "browser.mouseUp" => mouse_button(agent, params, "mouse_up", "released"),
             "browser.mouseClick" => mouse_click(agent, params),
             "browser.mouseWheel" => mouse_wheel(agent, params),
-            "browser.screencast.ack" => screencast_ack(params),
+            "browser.screencast.ack" => screencast_ack(ctx, params),
+            "browser.screencast.unsubscribe" => {
+                let id = plain(params, "subscriptionId")?.ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;
+                if id.starts_with("browser-screencast:") && ctx.subscriptions.cancel(id) {
+                    return Ok(json!({"unsubscribed":true}));
+                }
+                let page = locate(agent, None, None)?;
+                ask(agent, PAGES, &page, json!({}))?;
+                Ok(json!({"unsubscribed":false}))
+            },
             other => Err(Failure::new(METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
     }
@@ -73,6 +84,17 @@ struct Page {
     workspace: String,
     key: String,
     named: Option<String>,
+}
+
+pub fn available(agent: &dyn AgentApi) -> bool {
+    targets(agent).unwrap_or_default().iter().any(|target| {
+        agent.request(PAGES.name(), json!({"workspace":target.workspace})).is_ok()
+    })
+}
+
+pub fn close_page(agent: &dyn AgentApi, workspace: &str, key: &str) -> Result<(), Failure> {
+    let page = Page { workspace: workspace.to_owned(), key: key.to_owned(), named: Some(key.to_owned()) };
+    ask(agent, agent_api_browser::CLOSE, &page, json!({})).map(|_| ())
 }
 
 fn plain<'a>(params: &'a Value, key: &str) -> Result<Option<&'a str>, Failure> {
@@ -184,10 +206,14 @@ fn tab_create(ctx: &mut Ctx, params: &Value) -> Result<Value, Failure> {
     };
     let id = format!("{workspace}:{}", ctx.subscription_id("page"));
     let page = Page { key: id.clone(), workspace, named: None };
-    ask(agent, OPEN, &page, match url {
+    let info = ask(agent, OPEN, &page, match url.filter(|u| *u != "about:blank") {
         Some(url) => json!({"url": url}),
         None => json!({}),
     })?;
+    if let Err(err) = orca_map_workspace::layout::open_browser(agent, &page.workspace, &id, &info) {
+        ask(agent, agent_api_browser::CLOSE, &page, json!({}))?;
+        return Err(err);
+    }
     Ok(json!({"browserPageId": id}))
 }
 
@@ -261,14 +287,14 @@ fn mouse_wheel(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     Ok(json!({"scrolled": true, "deltaX": dx, "deltaY": dy}))
 }
 
-fn screencast_ack(params: &Value) -> Result<Value, Failure> {
+fn screencast_ack(ctx: &mut Ctx, params: &Value) -> Result<Value, Failure> {
     match params.get("subscriptionId") {
         Some(Value::String(s)) if !s.is_empty() => {}
         Some(Value::String(_)) => return Err(Failure::invalid("Missing required --subscription-id")),
         other => return Err(Failure::invalid(format!("Invalid input: expected string, received {}", other.map_or("undefined", received)))),
     }
     match params.get("seq").and_then(Value::as_f64) {
-        Some(seq) if seq >= 0.0 && seq.fract() == 0.0 => Ok(json!({"credited": false})),
+        Some(seq) if seq >= 0.0 && seq.fract() == 0.0 => Ok(json!({"credited": params["seq"].as_u64().and_then(|n| u32::try_from(n).ok()).is_some_and(|seq| ctx.subscriptions.acknowledge(params["subscriptionId"].as_str().unwrap_or(""), seq))})),
         Some(seq) if seq < 0.0 => Err(Failure::invalid("Too small: expected number to be >=0")),
         Some(_) => Err(Failure::invalid("Invalid input: expected int, received number")),
         None => Err(Failure::invalid(format!("Invalid input: expected number, received {}", params.get("seq").map_or("undefined", received)))),

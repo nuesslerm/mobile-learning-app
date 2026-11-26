@@ -12,7 +12,6 @@
         "orca-agentSession.threadGoal",
         "orca-browser.dialogAccept",
         "orca-browser.dialogDismiss",
-        "orca-browser.screencast.unsubscribe",
         "orca-git.discoverCommitMessageModels",
         "orca-github.markPRDraft",
         "orca-github.markPRReadyForReview",
@@ -132,18 +131,6 @@
       ],
       "ids": [
         "orca-agentSession.subscribeStatus"
-      ]
-    },
-    {
-      "class": "changed at steps._:s2c:*.[*].payload.error.code",
-      "severity": "drift",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.error.code changed drift",
-        "steps._:s2c:0.[0].payload.error.message changed drift",
-        "steps._:s2c:0.[0].payload.message changed drift"
-      ],
-      "ids": [
-        "orca-browser.screencast"
       ]
     },
     {

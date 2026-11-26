@@ -107,6 +107,9 @@ pub(crate) fn close(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failu
     let tab = tab_id(params)?;
     let target = orca_map_workspace::resolve(agent, selected)?;
     existing(agent, &target, tab)?;
+    if layout::kept(agent, &target.workspace)?.iter().any(|row| row["id"] == tab && row["kind"] == "browser") {
+        orca_map_browser::close_page(agent, &target.workspace, tab)?;
+    }
     if layout::close(agent, &target.workspace, tab)? {
         return Ok(json!({"closed": true}));
     }

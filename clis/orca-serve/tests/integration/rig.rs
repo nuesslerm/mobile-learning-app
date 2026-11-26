@@ -223,6 +223,10 @@ impl Phone {
         id
     }
 
+    pub fn next_binary(&mut self) -> Vec<u8> {
+        self.client.next_binary().expect("the socket stays open")
+    }
+
     /// The next frame of a stream opened by `subscribe`.
     pub fn next_frame(&mut self, id: &str) -> Value {
         self.client.next_stream_frame(id)

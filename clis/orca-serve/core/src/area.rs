@@ -40,6 +40,7 @@ fn texts(events: Vec<Value>) -> Vec<Out> {
 /// An open stream. `poll` returns the events since the last call (the first call includes the opening ones); `end` the closing ones.
 pub trait Subscription: Send {
     fn id(&self) -> &str;
+    fn acknowledge(&mut self, _sequence: u32) -> bool { false }
     fn poll(&mut self) -> Vec<Value>;
     fn end(&mut self) -> Vec<Value>;
     /// `poll` with binary frames allowed, in emission order.
@@ -74,6 +75,10 @@ pub struct Subscriptions {
 impl Subscriptions {
     pub(crate) fn add(&mut self, request_id: &str, sub: Box<dyn Subscription>) {
         self.active.push(Active { request_id: request_id.to_string(), sub, ending: false });
+    }
+
+    pub fn acknowledge(&mut self, id: &str, sequence: u32) -> bool {
+        self.active.iter_mut().find(|a| !a.ending && a.sub.id() == id).is_some_and(|a| a.sub.acknowledge(sequence))
     }
 
     /// Marks the stream to end on the next flush; false when this connection has no such stream.

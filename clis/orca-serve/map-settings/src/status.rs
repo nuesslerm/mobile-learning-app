@@ -17,7 +17,11 @@ pub(crate) fn get(ctx: &mut Ctx, params: &Value) -> Value {
     out.insert("liveLeafCount".into(), 0.into());
     out.insert("runtimeProtocolVersion".into(), RUNTIME_PROTOCOL_VERSION.into());
     out.insert("minCompatibleRuntimeClientVersion".into(), MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION.into());
-    out.insert("capabilities".into(), json!(ctx.capabilities));
+    let mut capabilities = ctx.capabilities.to_vec();
+    if capabilities.iter().any(|c| c == "browser.screencast.v1") {
+        if !orca_map_browser::available(ctx.agent) { capabilities.retain(|c| c != "browser.screencast.v1"); }
+    }
+    out.insert("capabilities".into(), json!(capabilities));
     // The host answers for itself when rca does not: the phone reads a degradation, never a dead host.
     if let Err(e) = ctx.agent.status() {
         out.insert("degradations".into(), json!([{"code": "agent_unavailable", "capability": "agent", "message": format!("rca's agent API did not answer service.status: {e}")}]));

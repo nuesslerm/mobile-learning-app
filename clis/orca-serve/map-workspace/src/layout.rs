@@ -3,7 +3,7 @@
 use crate::agent::{ask, refusal};
 use crate::files::{basename, extension, image_mime, is_binary_path, is_safe_path, plain, read_prefix};
 use crate::target::{resolve, selector, text, Target};
-use agent_api_state::SET;
+pub use agent_api_state::SET;
 use agent_api_workspace::edit::{FILE_STAT, FILE_WRITE};
 use orca_core::wire::Failure;
 use orca_core::AgentApi;
@@ -60,6 +60,11 @@ pub fn close(agent: &dyn AgentApi, workspace: &str, tab: &str) -> Result<bool, F
         keep(agent, &active_key(workspace), Value::Null)?;
     }
     Ok(true)
+}
+
+pub fn open_browser(agent: &dyn AgentApi, workspace: &str, id: &str, page: &Value) -> Result<(), Failure> {
+    let title = page["title"].as_str().filter(|s| !s.is_empty()).unwrap_or("Browser");
+    open(agent, workspace, json!({"id":id,"kind":"browser","title":title,"url":page["url"]}))
 }
 
 /// A chat's tab, opened by `agentSession.reveal`: the chat's own id names it.
@@ -137,6 +142,9 @@ fn absolute(target: &Target, relative: &str) -> String {
 pub fn project(target: &Target, record: &Value, active: Option<&str>) -> Value {
     let id = record["id"].as_str().unwrap_or_default();
     let is_active = active == Some(id);
+    if record["kind"] == "browser" {
+        return json!({"type":"browser","id":id,"browserPageId":id,"title":record["title"],"url":record["url"],"isActive":is_active,"isPinned":false,"color":null});
+    }
     if record["kind"] == "agent-session" {
         return json!({"type": "agent-session", "id": id, "title": record["title"], "sessionId": record["sessionId"], "agent": record["agent"], "color": null, "isPinned": false, "isActive": is_active});
     }
