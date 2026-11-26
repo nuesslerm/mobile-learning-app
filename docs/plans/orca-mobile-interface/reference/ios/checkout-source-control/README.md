@@ -10,6 +10,10 @@ These captures document the installed client’s layout. At capture time the RCA
 
 After correcting the adapter, the paired T3 HTTP endpoint and native Orca RPC each returned the same first 100 commits as `git log` in `native-fixture`. Native branch comparison reported the selected HEAD. The T3 endpoint returned 50 commits per page and rejected a continuation after a HEAD change with HTTP 409. [Paired gateway results](checkout-history.json)
 
+On the same iPhone, the **Commits** screen then opened with “Pack offline Tamil lesson audio” (`f5b0c44`) at the top. The screen still displayed `dev` beneath the title for this detached checkout. The first row is verified against Git. The branch caption remains an open discrepancy. [Updated Commits screenshot](detached-commits.png) · [Recording](detached-commits.mp4)
+
 ## Reproduce
 
 Use the paired Mac · Mobile Learning desktop in installed Orca, with default text size and the `native-fixture` checkout visible at the recorded position. Run [open.lua](open.lua) with `wf ios test --env out=<absolute-directory> --test-output-dir <recording-directory>` on the `rca` simulator. Once the changes list has loaded, run [tabs.lua](tabs.lua) with a separate recording directory. The second run ends on the commits screen. Wait for the first commit subject before taking its screenshot. Return to Source Control and reopen Pull request to capture the populated review and checks rows.
+
+To verify the corrected data, start on the selected checkout’s settled **Changes** screen and run [detached-commits.lua](detached-commits.lua). Compare the first displayed SHA with `git rev-parse --short HEAD` run in the same checkout.
