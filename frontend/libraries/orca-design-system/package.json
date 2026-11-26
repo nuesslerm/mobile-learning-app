@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@lib/agent-ui-contracts": "workspace:*",
+    "lowlight": "3.3.0",
     "react-native-markdown-display": "7.0.2"
   },
   "arch": {

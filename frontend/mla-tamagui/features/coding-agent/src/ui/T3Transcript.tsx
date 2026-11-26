@@ -81,7 +81,7 @@ export function T3Transcript({ snapshot, session }: { snapshot: T3Snapshot; sess
       );
     }
     const message = row.message;
-    if (message.role === 'system') return <ChatMessageText key={row.key} text={message.text} />;
+    if (message.role === 'system') return <ChatMessageText key={row.key} allowCodeWrap copyCode={copyMessage} text={message.text} />;
     const date = message.createdAt ? new Date(message.createdAt) : undefined;
     const hasTime = date !== undefined && Number.isFinite(date.getTime());
     const footer = (
@@ -94,7 +94,7 @@ export function T3Transcript({ snapshot, session }: { snapshot: T3Snapshot; sess
     return (
       <MessageBubble key={row.key} role={message.role} footer={footer}>
         {!!message.attachments?.length && <T3ChatAttachments attachments={message.attachments} session={session} />}
-        {!!message.text && <ChatMessageText text={message.text} />}
+        {!!message.text && <ChatMessageText tone={message.role} allowCodeWrap copyCode={copyMessage} text={message.text} />}
         {row.activity && <Activity group={row.activity} session={session} />}
       </MessageBubble>
     );

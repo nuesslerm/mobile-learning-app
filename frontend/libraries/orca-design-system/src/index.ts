@@ -63,3 +63,5 @@ export {
 
 export { ChatTextContext, useChatText } from './adapters/chatText';
 export { ChatSizeControl, ChatSpacingControl } from './adapters/ChatTextControls';
+
+export { useChatPalette } from './adapters/chatPalette';

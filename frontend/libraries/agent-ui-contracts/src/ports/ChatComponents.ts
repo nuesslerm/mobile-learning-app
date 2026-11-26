@@ -86,7 +86,12 @@ export interface ChatTextPreference {
   lineSpacing: 'compact' | 'default' | 'relaxed';
 }
 
-export interface ChatMessageTextProps { text: string }
+export interface ChatMessageTextProps {
+  text: string;
+  tone?: 'user' | 'assistant';
+  allowCodeWrap?: boolean;
+  copyCode?: (text: string) => Promise<boolean>;
+}
 export interface ChatMessageMetaProps {
   time?: string;
   accessibleTime?: string;

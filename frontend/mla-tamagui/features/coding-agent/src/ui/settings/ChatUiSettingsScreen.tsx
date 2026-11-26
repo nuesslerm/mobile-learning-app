@@ -1,10 +1,10 @@
+import { useCodingAgentPorts } from '../../state/ports';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import {
   ChatSizeControl,
   ChatSpacingControl,
-  homePalettes,
+  useChatPalette,
   useChatText,
-  useOrcaScheme,
 } from '@lib/orca-design-system';
 import { useState } from 'react';
 import {
@@ -38,6 +38,7 @@ const code =
   '\n\n```ts\nawait vi.waitFor(() =>\n  expect(rows).toHaveLength(3))\n```';
 
 export function ChatUiSettingsScreen() {
+  const { copyMessage } = useCodingAgentPorts();
   const { value, update, reset, stored } = useChatText();
   const {
     ChatMessageText,
@@ -45,7 +46,7 @@ export function ChatUiSettingsScreen() {
     HomeSettingsRow,
     HomeSettingsNote,
   } = useAgentComponents();
-  const colors = homePalettes[useOrcaScheme()];
+  const colors = useChatPalette();
   const { bottom } = useSafeAreaInsets();
   const [picking, setPicking] = useState(false);
   const sectionTitle = [styles.heading, { color: colors.textSecondary }];
@@ -57,21 +58,22 @@ export function ChatUiSettingsScreen() {
             styles.bubble,
             {
               backgroundColor: colors.bgRaised,
-              borderColor: colors.borderSubtle,
+              borderColor: colors.userBorder,
             },
           ]}
         >
-          <ChatMessageText text="Why is the resume test flaky?" />
+          <ChatMessageText tone="user" text="Why is the resume test flaky?" />
         </View>
         <Text
           style={{
             fontSize: value.size,
-            color: colors.textSecondary,
+            lineHeight: (20 * value.size) / 14,
+            color: colors.textMuted,
           }}
         >
           Read 3 files · Ran pnpm test
         </Text>
-        <ChatMessageText text={answer + code} />
+        <ChatMessageText text={answer + code} copyCode={copyMessage} />
       </View>
       <Text style={sectionTitle}>TEXT</Text>
       <HomeSettingsGroup separatorInset={16}>

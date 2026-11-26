@@ -1,0 +1,54 @@
+{
+  "previous": {
+    "code": {
+      "changed": 312093,
+      "total": 318373
+    },
+    "preview": {
+      "changed": 395835,
+      "total": 1112616
+    },
+    "settings": {
+      "changed": 608501,
+      "total": 2984520
+    }
+  },
+  "current": {
+    "code": {
+      "changed": 0,
+      "total": 318373
+    },
+    "preview": {
+      "changed": 0,
+      "total": 1112616
+    },
+    "settings": {
+      "changed": 136879,
+      "total": 2984520
+    }
+  },
+  "settingsCopyFeedback": {
+    "changed": 0,
+    "total": 19600
+  },
+  "settingsCopyChanged": {
+    "changed": 815,
+    "total": 19600
+  },
+  "settingsCopyReset": {
+    "changed": 0,
+    "total": 19600
+  },
+  "chatWrap": {
+    "changed": 376826,
+    "total": 1762200
+  },
+  "chatUnwrap": {
+    "changed": 0,
+    "total": 1762200
+  },
+  "chatCopyChanged": {
+    "changed": 815,
+    "total": 16250
+  }
+}

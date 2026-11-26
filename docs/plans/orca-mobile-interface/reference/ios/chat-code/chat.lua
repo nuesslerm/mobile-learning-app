@@ -1,0 +1,13 @@
+local function pauseTap(point)
+  device:tap_on({point=point})
+  sleep_ms(550)
+end
+sleep_ms(1200)
+device:take_screenshot(env.out.."/unwrapped.png")
+pauseTap("82.9%,25.1%")
+device:take_screenshot(env.out.."/wrapped.png")
+pauseTap("89.5%,25.1%")
+device:take_screenshot(env.out.."/copied.png")
+sleep_ms(1600)
+pauseTap("82.9%,25.1%")
+device:take_screenshot(env.out.."/restored.png")
