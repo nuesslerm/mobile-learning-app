@@ -8,6 +8,7 @@ pub mod forward;
 pub mod guest;
 pub mod history;
 pub mod launch;
+pub mod mobile_sessions;
 pub mod pairing;
 pub mod peers;
 pub mod pr;

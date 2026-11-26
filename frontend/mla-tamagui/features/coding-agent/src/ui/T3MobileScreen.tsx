@@ -96,7 +96,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
     );
   return (
     <ChatSurface>
-      {threadId ? <T3SessionNavigation key={threadId} api={api} pair={state.pair} id={threadId}
+      {threadId ? <T3SessionNavigation key={threadId} session={state.imageSession} api={api} pair={state.pair} id={threadId}
         title={state.snapshot?.thread.id === threadId ? state.snapshot.thread.title : 'Thread'}
         connected={state.connected} onBack={goBack} onReconnect={state.retry} /> :
         <ScreenHeader testID="MobileT3Header" title="Workspaces" onBack={goBack} />}

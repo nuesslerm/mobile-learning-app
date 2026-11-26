@@ -465,6 +465,7 @@ impl Connection {
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
             "provider.chatgpt.handoff.subscribe" => vec![self.answered(&id, tag, Err(self.svc.chatgpt_refused(payload, "handoff")))],
+            "mobile.session.openTab" => vec![self.answered(&id, tag, self.svc.open_saved_session(payload).map(Some))],
             "mobile.viewPreferences.get" | "mobile.viewPreferences.set" => {
                 let answer = match tag {
                     "mobile.viewPreferences.get" => self.svc.view_preferences(),

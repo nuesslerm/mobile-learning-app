@@ -5,7 +5,7 @@ use serde_json::{json, Map, Value};
 use std::collections::VecDeque;
 
 /// The RPCs this server answers for real; every other tag of the scope table answers `UnsupportedOperationError` (protocol.md table).
-pub const IMPLEMENTED_RPCS: [&str; 170] = [
+pub const IMPLEMENTED_RPCS: [&str; 171] = [
     "review.getBranchCommits",
     "projects.listIgnoredFiles",
     "sourceControl.star",
@@ -174,6 +174,7 @@ pub const IMPLEMENTED_RPCS: [&str; 170] = [
     "vcs.createWorktree",
     "worktreeSetup.cancel",
     "subscribeWorktreeSetup",
+    "mobile.session.openTab",
     "mobile.viewPreferences.get",
     "mobile.viewPreferences.set",
 ];

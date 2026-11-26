@@ -275,6 +275,7 @@ const TABLE: &[(&[&str], &[&str])] = &[
     // `settings:write`, so these ride on the orchestration scopes instead of a new one.
     (&["mobile.viewPreferences.get"], READ),
     (&["mobile.viewPreferences.set"], OPERATE),
+    (&["mobile.session.openTab"], &["orchestration:read", "orchestration:operate"]),
 ];
 
 /// Every RPC tag of the scope table.

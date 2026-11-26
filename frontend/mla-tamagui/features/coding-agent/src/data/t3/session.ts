@@ -238,6 +238,9 @@ export function openConversation(
   };
   return {
     close: () => close(),
+    async openTab(tabId) {
+      await call('mobile.session.openTab', { threadId, tabId });
+    },
     async send(commandId, text) {
       await call('orchestration.dispatchCommand', {
         type: 'message.dispatch',

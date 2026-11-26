@@ -59,14 +59,14 @@ export function createT3MobileApi(): T3MobilePort {
       return pairing;
     },
     async sessionContext(pair, threadId, signal) {
-      const path = '/api/orchestration/threads/' + encodeURIComponent(threadId) + '/session-context';
+      const path = '/api/orchestration/threads/' + encodeURIComponent(threadId) + '/session-context?savedTabs=1';
       const result = await json(endpoint(pair.endpoint), path, {
         signal,
         headers: { ...authorization(pair), 'x-t3-orchestration-protocol': '2' },
       });
       return z.object({
         workspace: z.string().nullable(),
-        sessions: z.array(z.object({ id: z.string(), title: z.string() })),
+        sessions: z.array(z.object({ id: z.string(), title: z.string(), needsProjection: z.boolean().optional() })),
       }).parse(result);
     },
     async shell(pair) {

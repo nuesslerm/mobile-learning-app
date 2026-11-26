@@ -17,6 +17,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("server.listTextGeneratorModels", "id:s config:o(textGenerator)? refresh:b? test:b? model:s?"),
     ("server.updateSettings", "patch:o(settingsPatch) providerInstanceMutation:o?"),
     // The patch of the phone's view preferences is checked by the handler, not here: every refusal then names the path it is at.
+    ("mobile.session.openTab", "threadId:s tabId:s"),
     ("mobile.viewPreferences.set", "version:n preferences:o(viewPreferencesPatch)"),
     ("orchestration.getWorktreeThreadIds", "worktreePath:s"),
     ("orchestration.getThreadProjection", "threadId:s"),

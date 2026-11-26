@@ -1,12 +1,13 @@
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Pairing } from '../domain/mobile';
-import type { SessionContext, T3MobilePort } from '../domain/t3Mobile';
+import type { SessionContext, T3Conversation, T3MobilePort } from '../domain/t3Mobile';
 
 export function T3SessionNavigation({
+  session,
   api,
   pair,
   id,
@@ -15,6 +16,7 @@ export function T3SessionNavigation({
   onBack,
   onReconnect,
 }: {
+  session?: T3Conversation;
   api: T3MobilePort;
   pair?: Pairing | null;
   id: string;
@@ -29,6 +31,12 @@ export function T3SessionNavigation({
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [revision, setRevision] = useState(0);
+  const selection = useRef(0);
+  useEffect(() => () => { selection.current += 1; }, [session]);
+  const dismiss = () => {
+    selection.current += 1;
+    setOpen(false);
+  };
   const refresh = () => setRevision((value) => value + 1);
   useEffect(() => {
     if (!pair || !connected) return;
@@ -53,6 +61,31 @@ export function T3SessionNavigation({
     ? tabs
     : [...tabs, { id, title }];
   const workspace = context?.workspace ?? 'Terminal';
+  async function selectTab(next: string) {
+    const request = ++selection.current;
+    if (next !== id && tabs.find((tab) => tab.id === next)?.needsProjection) {
+      if (!session) {
+        setError('Reconnect to open this tab.');
+        return;
+      }
+      try {
+        await session.openTab(next);
+      } catch (cause) {
+        Logger.withError(cause).warn('coding_agent.t3.open_tab_failed');
+        if (request === selection.current) setError('Could not open the selected tab.');
+        return;
+      }
+    }
+    if (request !== selection.current) return;
+    dismiss();
+    if (next !== id)
+      router.replace(
+        '/coding-agent/' +
+          encodeURIComponent(next) +
+          '?presentation=orca&transport=t3'
+      );
+  }
+
   return (
     <>
       <SessionHeader
@@ -77,16 +110,8 @@ export function T3SessionNavigation({
           bottomInset={bottom}
           error={error || undefined}
           onRetry={refresh}
-          onClose={() => setOpen(false)}
-          onSelect={(next) => {
-            setOpen(false);
-            if (next !== id)
-              router.replace(
-                '/coding-agent/' +
-                  encodeURIComponent(next) +
-                  '?presentation=orca&transport=t3'
-              );
-          }}
+          onClose={dismiss}
+          onSelect={(next) => { void selectTab(next); }}
         />
       )}
     </>

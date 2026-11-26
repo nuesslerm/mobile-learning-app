@@ -34,13 +34,14 @@ export type T3Snapshot = {
   turnItems?: T3TurnItem[];
   toolTextOffsets?: Record<string, number>;
 };
-export type SessionContext = { workspace: string | null; sessions: { id: string; title: string }[] };
+export type SessionContext = { workspace: string | null; sessions: { id: string; title: string; needsProjection?: boolean }[] };
 export type T3Shell = {
   projects: { id: string; title: string }[];
   threads: T3Thread[];
 };
 
 export interface T3Conversation {
+  openTab(tabId: string): Promise<void>;
   send(commandId: string, text: string): Promise<void>;
   resolveImage(attachment: T3Attachment): Promise<T3ImageSource>;
   close(): void;

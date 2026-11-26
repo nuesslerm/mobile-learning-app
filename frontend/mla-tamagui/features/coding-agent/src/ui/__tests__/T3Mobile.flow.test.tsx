@@ -15,13 +15,13 @@ const thread = {
   title: 'Review the changed files',
 };
 
-function backend() {
+function backend(openTab: (id: string) => Promise<void> = async () => {}) {
   let messages: T3Snapshot['messages'] = [];
   const port: T3MobilePort = {
     restore: async () => pair,
     sessionContext: async () => ({
       workspace: 'Mobile checkout',
-      sessions: [thread, {id: 'thread-43', title: 'Fix the parser'}],
+      sessions: [thread, {id: 'thread-43', title: 'Fix the parser', needsProjection: true}],
     }),
     pair: async () => pair,
     shell: async () => ({
@@ -31,6 +31,7 @@ function backend() {
     open: async (_pair, _id, update) => {
       update({ thread, messages });
       return {
+        openTab,
         close() {},
         async resolveImage() {
           throw new Error('No fixture image');
@@ -109,13 +110,16 @@ describe('Orca chat with the T3 transport', () => {
   });
 
   it('Given two chats in the workspace, when a reader picks its other tab, then that thread opens through the Orca T3 route', async () => {
+    const opened: string[] = [];
+    const port = backend(async (id) => { opened.push(id); });
     await app.render('/coding-agent/thread-42', {
       search: {presentation: 'orca', transport: 't3'},
-      overrides: {'coding-agent': {t3Mobile: backend()}},
+      overrides: {'coding-agent': {t3Mobile: port}},
     });
     expect(await screen.findByText('Mobile checkout')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', {name: '2 tabs'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Fix the parser'}));
+    expect(opened).toEqual(['thread-43']);
     await waitFor(() => expect(routerHarness().calls()).toContainEqual(['replace', '/coding-agent/thread-43?presentation=orca&transport=t3']));
   });
 

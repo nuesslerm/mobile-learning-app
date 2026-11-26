@@ -204,3 +204,39 @@ fn session_context_shows_only_openable_threads_in_the_same_rca_workspace() {
     assert_eq!(get("t1", "").status, 401);
     assert_eq!(get("t1", &scoped(&h, &["relay:read"])).status, 403);
 }
+
+#[test]
+fn session_context_opens_a_saved_chat_once_and_rejects_another_workspace() {
+    use t3_core::ports::Op;
+    // Given a saved tab that has no T3 projection yet
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    seed(&mut rpc);
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::ThreadList => Some(Ok(json!({"threads":[
+            {"id":"t1","workspace":"desk"},
+            {"id":"saved","workspace":"desk","driver":"opencode","model":"gpt-5"},
+            {"id":"outside","workspace":"other"}
+        ]}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "tabs.extra.desk" =>
+            Some(Ok(json!({"value":[
+                {"kind":"agent-session","sessionId":"saved","title":"Second"},
+                {"kind":"agent-session","sessionId":"outside","title":"Elsewhere"},
+                {"kind":"agent-session","sessionId":"t1","title":"First"}
+            ]}))),
+        _ => None,
+    }));
+    let token = scoped(&h, &["orchestration:read"]);
+    let context = || http(h.addr,"GET","/api/orchestration/threads/t1/session-context?savedTabs=1",
+        &[("Authorization",&token),("x-t3-orchestration-protocol","2")],"").body;
+    // When the picker opens, then it preserves the saved order within the workspace
+    let mut expected = json!([{"id":"saved","title":"Second","agent":"opencode","needsProjection":true},{"id":"t1","title":"First"}]);
+    assert_eq!(context()["sessions"], expected);
+    // When a selection is retried, then the same projected chat remains openable
+    for _ in 0..2 {
+        assert_eq!(success(&rpc.call("mobile.session.openTab",json!({"threadId":"t1","tabId":"saved"}))), &json!({"threadId":"saved"}));
+    }
+    expected[0].as_object_mut().unwrap().remove("needsProjection");
+    assert_eq!(context()["sessions"], expected);
+    failure(&rpc.call("mobile.session.openTab",json!({"threadId":"t1","tabId":"outside"})));
+}
