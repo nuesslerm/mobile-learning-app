@@ -60,7 +60,7 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
         answered(case, "browser.input", true);
         let pressed = phone.call(case, &chain, &["rpc:browser.mouseDown"], "browser.mouseDown", params(json!({"button": "left"})));
         let released = phone.call(case, &chain, &["rpc:browser.mouseUp"], "browser.mouseUp", params(json!({})));
-        let clicked = phone.call(case, &chain, &["rpc:browser.mouseClick"], "browser.mouseClick", params(json!({"x": 20, "y": 20, "modifiers": ["ctrl"]})));
+        let clicked = phone.call(case, &chain, &["rpc:browser.mouseClick"], "browser.mouseClick", params(json!({"x": 20, "y": 20, "modifiers": ["shift"]})));
         let scrolled = phone.call(case, &chain, &["rpc:browser.mouseWheel"], "browser.mouseWheel", params(json!({"dy": 300})));
         eval(&mut rca, &page, "document.getElementById('f').focus(); true");
         let typed = phone.call(case, &chain, &["rpc:browser.keyboardInsertText"], "browser.keyboardInsertText", params(json!({"text": "hello"})));

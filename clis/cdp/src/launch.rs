@@ -12,7 +12,11 @@ pub struct Launched {
 }
 
 fn chrome_in(dir: &Path) -> Option<PathBuf> {
-    ["chrome-linux/chrome", "chrome-linux64/chrome", "chrome"].iter().map(|rel| dir.join(rel)).find(|p| p.is_file())
+    #[cfg(target_os = "macos")]
+    let paths = ["chrome-mac/Chromium.app/Contents/MacOS/Chromium", "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing", "chrome-headless-shell-mac-arm64/chrome-headless-shell", "chrome-headless-shell-mac-x64/chrome-headless-shell", "chrome-mac/headless_shell", "chrome"];
+    #[cfg(not(target_os = "macos"))]
+    let paths = ["chrome-linux/chrome", "chrome-linux64/chrome", "chrome"];
+    paths.iter().map(|rel| dir.join(rel)).find(|p| p.is_file())
 }
 
 /// `WF_CHROMIUM`, else the newest Playwright-installed Chromium (`PLAYWRIGHT_BROWSERS_PATH`, `/opt/pw-browsers`,
@@ -27,11 +31,13 @@ pub fn find_chromium() -> Option<PathBuf> {
     }
     roots.push("/opt/pw-browsers".into());
     if let Some(home) = std::env::var_os("HOME") {
+        #[cfg(target_os = "macos")]
+        roots.push(Path::new(&home).join("Library/Caches/ms-playwright"));
         roots.push(Path::new(&home).join(".cache/ms-playwright"));
     }
     for root in roots {
         let Ok(entries) = std::fs::read_dir(&root) else { continue };
-        let mut dirs: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("chromium-"))).collect();
+        let mut dirs: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("chromium-") || (cfg!(target_os = "macos") && n.to_string_lossy().starts_with("chromium_headless_shell-")))).collect();
         dirs.sort();
         if let Some(exe) = dirs.iter().rev().find_map(|d| chrome_in(d)) {
             return Some(exe);

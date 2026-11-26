@@ -44,6 +44,8 @@ const SWEEP_DRAIN: Duration = Duration::from_millis(500);
 const PRUNED: [&str; 2] = [".git", "node_modules"];
 
 pub struct LocalExecutor {
+    configured_root: PathBuf,
+    configured_worktree_base: Option<PathBuf>,
     root: PathBuf,
     worktree_base: Option<PathBuf>,
     browse_allow: Vec<PathBuf>,
@@ -82,12 +84,14 @@ fn outside(path: &str) -> ExecError {
 
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
+        let configured_root = std::path::absolute(root).map_err(|e| e.to_string())?;
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), sessions: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { configured_root, configured_worktree_base: None, root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), sessions: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
     pub fn with_worktree_base(mut self, base: &Path) -> Result<LocalExecutor, String> {
+        let configured_base = std::path::absolute(base).map_err(|e| e.to_string())?;
         let existed = base.exists();
         fs::create_dir_all(base).map_err(|e| format!("worktree base {}: {e}", base.display()))?;
         let base = fs::canonicalize(base).map_err(|e| format!("worktree base {}: {e}", base.display()))?;
@@ -97,6 +101,7 @@ impl LocalExecutor {
             }
             return Err(format!("worktree base {} and root {} must not contain each other", base.display(), self.root.display()));
         }
+        self.configured_worktree_base = Some(configured_base);
         self.worktree_base = Some(base);
         Ok(self)
     }
@@ -230,7 +235,11 @@ impl LocalExecutor {
     fn resolve(&self, path: &str) -> ExecResult<PathBuf> {
         let given = Path::new(path);
         let (jail, rel) = if given.is_absolute() {
-            std::iter::once(&self.root).chain(&self.worktree_base).find_map(|j| given.strip_prefix(j).ok().map(|rel| (j, rel))).ok_or_else(|| outside(path))?
+            let mut roots = std::iter::once((&self.root, &self.configured_root))
+                .chain(self.worktree_base.iter().zip(&self.configured_worktree_base));
+            roots.find_map(|(jail, configured)| {
+                given.strip_prefix(jail).or_else(|_| given.strip_prefix(configured)).ok().map(|rel| (jail, rel))
+            }).ok_or_else(|| outside(path))?
         } else {
             (&self.root, given)
         };
