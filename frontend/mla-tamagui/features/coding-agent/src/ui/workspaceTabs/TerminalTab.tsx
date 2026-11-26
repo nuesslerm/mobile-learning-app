@@ -9,6 +9,7 @@ import {
 import {
   Button,
   Keyboard,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -260,7 +261,10 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
             paddingTop: 8,
           }}
         >
-          <View
+          <Pressable
+            accessible={false}
+            disabled={!ready}
+            onPress={() => input.current?.focus()}
             style={{
               flex: 1,
               flexDirection: 'row',
@@ -294,7 +298,13 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
                   color: c.ink,
                 }}
                 placeholderTextColor={c.muted}
-                placeholder="Tap to show keyboard"
+                placeholder={
+                  ready
+                    ? 'Tap to show keyboard'
+                    : error
+                      ? 'Terminal disconnected'
+                      : 'Connecting…'
+                }
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
                 onChangeText={type}
@@ -302,7 +312,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
                 submitBehavior="submit"
               />
             </View>
-          </View>
+          </Pressable>
           <TerminalMedia
             pair={pair}
             checkout={layout.checkout}

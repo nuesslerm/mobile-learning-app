@@ -264,15 +264,24 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
       const ws = await socket(pair, 'rpc', '/ws?orchestrationProtocol=2');
       const target = { threadId: layout.threadId, terminalId: tab.resource };
       let id = 0;
+      let openId: string;
+      let attached = false;
+      const location = {
+        cwd: layout.directory,
+        worktreePath: layout.directory,
+      };
       let size: { cols: number; rows: number } | undefined;
-      const call = (tag: string, args: object) =>
+      const call = (tag: string, args: object) => {
+        const requestId = String(++id);
         send(ws, {
           _tag: 'Request',
-          id: String(++id),
+          id: requestId,
           tag,
           payload: { ...target, ...args },
           headers: [],
         });
+        return requestId;
+      };
       ws.onmessage = ({ data }) => {
         try {
           const payload = JSON.parse(String(data));
@@ -282,12 +291,24 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
               failed(
                 'The terminal request failed. Reopen the tab to reconnect.'
               );
+            if (
+              frame._tag === 'Exit' &&
+              frame.requestId === openId &&
+              frame.exit?._tag === 'Success'
+            )
+              call('terminal.attach', location);
             if (frame._tag !== 'Chunk') continue;
             for (const event of frame.values ?? []) {
-              if (event.type === 'snapshot')
+              if (event.type === 'snapshot') {
+                attached = event.snapshot.status === 'running';
                 output(event.snapshot.history, true);
+                if (attached && size) call('terminal.resize', size);
+              }
               if (event.type === 'output') output(event.data, false);
-              if (event.type === 'exited') failed('Shell exited.');
+              if (event.type === 'exited' || event.type === 'closed') {
+                attached = false;
+                failed('Shell exited. Reconnect to start a new shell.');
+              }
             }
             send(ws, { _tag: 'Ack', requestId: frame.requestId });
           }
@@ -299,11 +320,7 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
       const close = connect(
         ws,
         () => {
-          call('terminal.attach', {
-            cwd: layout.directory,
-            worktreePath: layout.directory,
-          });
-          if (size) call('terminal.resize', size);
+          openId = call('terminal.open', { ...location, ...size });
         },
         failed
       );
@@ -311,8 +328,9 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
         close,
         write: (data) => call('terminal.write', { data }),
         resize(cols, rows) {
+          if (size?.cols === cols && size.rows === rows) return;
           size = { cols, rows };
-          call('terminal.resize', size);
+          if (attached) call('terminal.resize', size);
         },
       };
     },
