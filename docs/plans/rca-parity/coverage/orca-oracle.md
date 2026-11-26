@@ -22,7 +22,7 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 | `agent_catalog` | 2 | 3 | 2 | none | none | none | none |
 | `agent_sessions` | 7 | 6 | 21 | none | none | none | none |
 | `interrupted` | 1 | 1 | 3 | none | none | none | none |
-| `layout_vault` | 2 | 1 | 2 | none | none | none | none |
+| `layout_vault` | 3 | 1 | 2 | none | none | none | none |
 | `terminal_artifacts` | 2 | 4 | none | none | none | none | 1 |
 
 ## (a) recorded, clean or drift-only gaps: switch the row to `"oracle": "mimic"`

@@ -122,23 +122,14 @@ pub fn preview(
                     pending = false;
                     continue;
                 }
-                match viewer.input(&msg) {
-                    Ok(Some(event)) => {
-                        if ws.send(Message::text(event.to_string())).is_err() {
-                            break;
-                        }
+                let event = match viewer.input(&msg) {
+                    Ok(event) => event,
+                    Err(e) => Some(json!({"type":"error","message":e.message()})),
+                };
+                if let Some(event) = event {
+                    if ws.send(Message::text(event.to_string())).is_err() {
+                        break;
                     }
-                    Err(e) => {
-                        if ws
-                            .send(Message::text(
-                                json!({"type":"error","message":e.message()}).to_string(),
-                            ))
-                            .is_err()
-                        {
-                            break;
-                        }
-                    }
-                    _ => {}
                 }
             }
             Ok(Message::Close(_)) => break,
