@@ -1,5 +1,6 @@
 export type {
   AgentComponents,
+  PairedDesktopsProps,
   PairDesktopButtonProps,
   UnpairedHomeProps,
   NotificationChoicesProps,

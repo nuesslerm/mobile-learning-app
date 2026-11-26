@@ -200,7 +200,14 @@ export interface HomeSettingsNoteProps {
   children: ReactNode;
 }
 
+export interface PairedDesktopsProps {
+  desktop?: { name: string; summary: string };
+  onPair: () => void;
+  onOpen: () => void;
+}
+
 export interface AgentComponents {
+  PairedDesktops: ComponentType<PairedDesktopsProps>;
   WorkspaceActions: ComponentType<WorkspaceActionsProps>;
   HostWorkspaceList: ComponentType<HostWorkspaceListProps>;
   WorkspaceOptions: ComponentType<WorkspaceOptionsProps>;

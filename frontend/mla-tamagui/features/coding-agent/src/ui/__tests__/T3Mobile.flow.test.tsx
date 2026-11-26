@@ -5,8 +5,9 @@ import {
   userEvent,
   waitFor,
 } from '@lib/flow-test-harness';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { app } from '../../__tests__/flowApp';
+import { createT3MobileApi } from '../../data/t3/mobileApi';
 import type { T3MobilePort, T3Snapshot } from '../../domain/t3Mobile';
 
 const pair = { endpoint: 'https://fixture.invalid', token: 'fixture-token' };
@@ -38,6 +39,7 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
       sessions: [thread, {id: 'thread-43', title: 'Fix the parser', needsProjection: true}],
     }),
     pair: async () => pair,
+    home: async () => ({ host: { name: 'Fixture Mac', os: 'darwin' }, worktreeCount: 1 }),
     workspaces: async () => ({host:{name:'Fixture Mac',os:'darwin'}, repo:'Fixture repository',
       checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
@@ -76,9 +78,33 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
 }
 
 describe('Orca chat with the T3 transport', () => {
+  it('Given a paired host on an older server, when Feed gets a missing endpoint, then it uses the catalog and preserves authorization failures', async () => {
+    const api = createT3MobileApi();
+    const host = { name: 'Legacy desktop', os: 'linux' };
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal('fetch', fetch);
+    try {
+      fetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+      fetch.mockResolvedValueOnce(Response.json({ host, repo: 'desk', checkouts: [] }));
+      const signal = new AbortController().signal;
+      expect(await api.home(pair, signal)).toEqual({ host, worktreeCount: 0 });
+      expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+        pair.endpoint + '/api/mobile/home',
+        pair.endpoint + '/api/mobile/workspaces',
+      ]);
+      fetch.mockClear();
+      fetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
+      await expect(api.home(pair, signal)).rejects.toThrow('HTTP 403');
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('Given a paired RCA desktop without bots support, when Bots opens, then the notice names that desktop', async () => {
     await app.render('/coding-agent', { overrides: { 'coding-agent': { t3Mobile: backend() } } });
     await screen.findByRole('button', { name: 'Open Fixture Mac' });
+    expect(screen.getByText('1 worktree · macOS')).toBeTruthy();
     await userEvent.click(screen.getByRole('tab', { name: 'Bots' }));
     expect(await screen.findByRole('heading', { name: 'Update Orca on Fixture Mac' })).toBeTruthy();
     expect(screen.getByText('Its version of Orca can’t show bots on your phone yet.')).toBeTruthy();
@@ -313,13 +339,17 @@ describe('Orca chat with the T3 transport', () => {
 
   it('Given a paired desktop, when opening its checkout and sending in the saved chat, then the reply and cleared composer are visible', async () => {
     const port = backend();
+    const readCatalog = vi.fn(port.workspaces);
+    port.workspaces = readCatalog;
     await app.render('/coding-agent', {
       overrides: { 'coding-agent': { t3Mobile: port } },
     });
     await userEvent.click(await screen.findByRole('button',{name:'Open Fixture Mac'}));
+    expect(readCatalog).not.toHaveBeenCalled();
     expect(routerHarness().lastPush()).toBe('/coding-agent?host=1');
     await app.render('/coding-agent', {search:{host:'1'},overrides:{'coding-agent':{t3Mobile:port}}});
     await userEvent.click(await screen.findByRole('button',{name:'Mobile checkout'}));
+    expect(readCatalog).toHaveBeenCalledTimes(1);
     await waitFor(() =>
       expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Mobile%20checkout')
     );

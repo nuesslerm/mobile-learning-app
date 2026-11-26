@@ -6,6 +6,7 @@ import type { Pairing } from '../domain/mobile';
 import type { T3MobilePort } from '../domain/t3Mobile';
 import {
   chatRoute,
+  desktopPlatform,
   type CheckoutSessions,
   type WorkspaceCatalog,
   type CheckoutRow,
@@ -121,20 +122,11 @@ export function T3HostWorkspaces({
     rows.sort(
       (a, b) => Number(b.main) - Number(a.main) || a.name.localeCompare(b.name)
     );
-  const os =
-    (
-      {
-        darwin: 'macOS',
-        macos: 'macOS',
-        linux: 'Linux',
-        win32: 'Windows',
-      } as Record<string, string>
-    )[catalog.host.os] ?? catalog.host.os;
   return (
     <>
       <HostWorkspaceList
         title={catalog.host.name}
-        platform={os}
+        platform={desktopPlatform(catalog.host.os)}
         group={preferences?.groupBy === 'repo' ? catalog.repo : undefined}
         rows={rows.map((r) => ({
           id: r.id,

@@ -1,0 +1,7 @@
+device:assert_visible("Open Orca parity")
+device:assert_visible("22 worktrees · macOS")
+device:take_screenshot(env.out .. "/web-feed.png")
+device:tap_on("Open Orca parity")
+device:assert_visible("native-fixture")
+device:tap_on("Back")
+device:assert_visible("22 worktrees · macOS")

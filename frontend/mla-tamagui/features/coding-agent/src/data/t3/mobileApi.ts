@@ -1,4 +1,4 @@
-import { checkoutRow, checkoutSessions, workspaceCatalog } from '../../domain/workspaceCatalog';
+import { checkoutRow, checkoutSessions, homeSummary, workspaceCatalog } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
 import { z } from 'zod';
@@ -14,12 +14,15 @@ const shellSchema = z.object({
   threads: z.array(threadSchema),
 });
 
+class HttpError extends Error {
+  constructor(readonly status: number) {
+    super('The server declined the request (HTTP ' + status + ').');
+  }
+}
+
 async function json(base: string, path: string, init?: RequestInit) {
   const response = await fetch(base + path, init);
-  if (!response.ok)
-    throw new Error(
-      'The server declined the request (HTTP ' + response.status + ').'
-    );
+  if (!response.ok) throw new HttpError(response.status);
   return response.json() as Promise<unknown>;
 }
 
@@ -90,6 +93,17 @@ export function createT3MobileApi(): T3MobilePort {
         method: 'POST', headers: { ...authorization(pair), 'Content-Type': 'application/json' },
         body: JSON.stringify({ checkout, ...edit }),
       }));
+    },
+    async home(pair, signal) {
+      try {
+        return homeSummary.parse(await json(endpoint(pair.endpoint), '/api/mobile/home', {
+          headers: authorization(pair), signal,
+        }));
+      } catch (error) {
+        if (!(error instanceof HttpError && error.status === 404)) throw error;
+        const catalog = await this.workspaces(pair, signal);
+        return { host: catalog.host, worktreeCount: catalog.checkouts.length };
+      }
     },
     async workspaces(pair, signal) {
       return workspaceCatalog.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspaces', { headers: authorization(pair), signal }));

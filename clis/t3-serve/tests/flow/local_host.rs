@@ -242,6 +242,26 @@ fn session_context_opens_a_saved_chat_once_and_rejects_another_workspace() {
 }
 
 #[test]
+fn mobile_home_returns_only_host_and_count_from_the_worktree_read() {
+    use t3_core::ports::Op;
+    // Given a desktop with two worktrees and no checkout metadata available
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::WorktreeList { root } if root.is_empty() => Some(Ok(json!({"worktrees":[{}, {}]}))),
+        _ => None,
+    }));
+    // When the reader opens Feed, then it receives a compact summary and no checkout data
+    let get = |auth: &str| http(h.addr, "GET", "/api/mobile/home", &[("Authorization", auth)], "");
+    let result = get(&scoped(&h, &["orchestration:read"]));
+    assert_eq!(result.status, 200);
+    assert!(result.body["host"]["name"].is_string());
+    assert!(result.body["host"]["os"].is_string());
+    assert_eq!(result.body, json!({"host":result.body["host"], "worktreeCount":2}));
+    assert_eq!(get("").status, 401);
+    assert_eq!(get(&scoped(&h, &["relay:read"])).status, 403);
+}
+
+#[test]
 fn mobile_checkouts_open_the_saved_projected_chat_only_inside_the_selected_workspace() {
     use t3_core::ports::Op;
     // Given a detached checkout with a saved RCA chat and another executor with a projected thread

@@ -1,0 +1,56 @@
+{
+  "heading": {
+    "left": 0,
+    "top": 320,
+    "right": 1320,
+    "bottom": 405,
+    "shift": 0,
+    "different": 0,
+    "total": 112200
+  },
+  "desktopGlyph": {
+    "left": 48,
+    "top": 405,
+    "right": 215,
+    "bottom": 578,
+    "shift": 0,
+    "different": 315,
+    "total": 28891
+  },
+  "worktreeSummary": {
+    "left": 215,
+    "top": 488,
+    "right": 840,
+    "bottom": 552,
+    "shift": 0,
+    "different": 11,
+    "total": 40000
+  },
+  "chevron": {
+    "left": 1140,
+    "top": 405,
+    "right": 1272,
+    "bottom": 578,
+    "shift": 0,
+    "different": 106,
+    "total": 22836
+  },
+  "pair": {
+    "left": 0,
+    "top": 753,
+    "right": 1320,
+    "bottom": 885,
+    "shift": -174,
+    "different": 212,
+    "total": 174240
+  },
+  "returned": {
+    "left": 0,
+    "top": 180,
+    "right": 1320,
+    "bottom": 2868,
+    "shift": 0,
+    "different": 0,
+    "total": 3548160
+  }
+}

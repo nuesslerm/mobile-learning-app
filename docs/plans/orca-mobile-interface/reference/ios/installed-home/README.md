@@ -16,4 +16,4 @@ All four navigation captures are 1320 × 2868 RGBA images. The comparisons use t
 
 The [exported-browser runbook](web.lua) opened the one-host Bots notice, opened Settings, checked the menu and returned to the original host list. [Browser Bots](web-bots.png) · [Browser Settings](web-settings.png) · [Browser recording](web.mp4).
 
-The paired Feed body still differs. Installed Orca shows computer cards, tasks, an update offer for that installed version and a floating add button. The replacement currently lists its paired desktop and checkouts. Bot listing and creation on hosts that advertise those capabilities are open.
+The paired Feed body in this capture predates the desktop card change. The subsequent run matches the desktop heading and measures the worktree subtitle, connection indicator and pairing row. Tasks, the floating add button and bot listing and creation on supporting hosts remain open. [Paired Feed comparison](../paired-feed/README.md).

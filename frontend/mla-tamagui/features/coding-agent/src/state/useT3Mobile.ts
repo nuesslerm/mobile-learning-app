@@ -1,4 +1,4 @@
-import type { CheckoutRow, WorkspaceCatalog } from '../domain/workspaceCatalog';
+import type { CheckoutRow, HomeSummary, WorkspaceCatalog } from '../domain/workspaceCatalog';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Pairing } from '../domain/mobile';
@@ -8,8 +8,9 @@ import type {
   T3Snapshot,
 } from '../domain/t3Mobile';
 
-export function useT3Mobile(api: T3MobilePort, threadId?: string) {
+export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: string) {
   const [pair, setPair] = useState<Pairing | null>();
+  const [home, setHome] = useState<HomeSummary>();
   const [catalog, setCatalog] = useState<WorkspaceCatalog>();
   const [snapshot, setSnapshot] = useState<T3Snapshot>();
   const [error, setError] = useState('');
@@ -47,6 +48,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     let active = true;
     const controller = new AbortController();
     setCatalog(undefined);
+    setHome(undefined);
     setConnected(false);
     setImageSession(undefined);
     let current: T3Conversation | undefined;
@@ -66,11 +68,14 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
       if (!pair || !active) return;
       try {
         if (!threadId) {
-          const result = await api.workspaces(pair, controller.signal);
-          if (active) {
-            setCatalog(result);
-            setError('');
+          if (hostOpen) {
+            const result = await api.workspaces(pair, controller.signal);
+            if (active) setCatalog(result);
+          } else {
+            const result = await api.home(pair, controller.signal);
+            if (active) setHome(result);
           }
+          if (active) setError('');
           return;
         }
         const session = await api.open(
@@ -105,7 +110,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
       current?.close();
       connection.current = null;
     };
-  }, [pair, api, threadId, generation]);
+  }, [pair, api, threadId, hostOpen, generation]);
 
   async function connect(host: string, code: string, signal: AbortSignal) {
     const saved = await api.pair(host, code, signal);
@@ -158,6 +163,7 @@ export function useT3Mobile(api: T3MobilePort, threadId?: string) {
     snapshot,
     imageSession: connected ? imageSession : undefined,
     catalog,
+    home,
     updateCheckout(row: CheckoutRow) {
       setCatalog(current => current && {...current, checkouts:current.checkouts.map(r => r.id === row.id ? row : r)});
     },

@@ -1,4 +1,5 @@
 import { T3HostWorkspaces } from './T3HostWorkspaces';
+import { desktopSummary } from '../domain/workspaceCatalog';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -25,17 +26,13 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 }
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
-  const state = useT3Mobile(api, threadId);
-  const {
-    ChatSurface,
-    Composer,
-    HomeSettingsRow,
-    HomeSettingsGroup,
-  } = useAgentComponents();
+  const { ChatSurface, Composer, PairedDesktops, HostWorkspaceList } = useAgentComponents();
   const { host, checkout } = useLocalSearchParams<{
     host?: string;
     checkout?: string;
   }>();
+  const hostOpen = host === '1' && !threadId;
+  const state = useT3Mobile(api, hostOpen, threadId);
   const [pairing, setPairing] = useState(false);
   const goBack = () =>
     router.canGoBack() ? router.back() : router.replace('/coding-agent');
@@ -47,6 +44,17 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           await state.connect(endpoint, code, signal);
           if (!signal.aborted) setPairing(false);
         }}
+      />
+    );
+  if (hostOpen && state.pair !== null && !state.catalog)
+    return (
+      <HostWorkspaceList
+        title="Workspaces"
+        rows={[]}
+        notice={state.error || 'Loading workspaces…'}
+        retry={state.error ? state.retry : undefined}
+        onBack={goBack}
+        onSelect={() => {}}
       />
     );
   if (state.pair === null || (!threadId && state.pair === undefined)) {
@@ -74,37 +82,23 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
     return (
       <ChatSurface>
         <OrcaHome
-          computer={state.catalog?.host.name}
+          computer={state.home?.host.name}
           feed={
-            <>
-              <ScrollView contentContainerStyle={{ padding: 16 }}>
-                <Text variant="strong">Desktops</Text>
-                <HomeSettingsGroup>
-                  {state.catalog && (
-                    <HomeSettingsRow
-                      label={state.catalog.host.name}
-                      value={state.catalog.checkouts.length + ' workspaces'}
-                      navigates
-                      accessibilityLabel={'Open ' + state.catalog.host.name}
-                      onPress={() => router.push('/coding-agent?host=1')}
-                    />
-                  )}
-                  <HomeSettingsRow
-                    icon="add"
-                    label="Pair a desktop"
-                    onPress={() => setPairing(true)}
-                  />
-                </HomeSettingsGroup>
-                {state.error ? (
-                  <View>
-                    <Text role="alert">{state.error}</Text>
-                    <Button onPress={state.retry}>Try again</Button>
-                  </View>
-                ) : (
-                  !state.catalog && <Text>Loading workspaces…</Text>
-                )}
-              </ScrollView>
-            </>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 16 }}>
+              <PairedDesktops
+                desktop={state.home && { name: state.home.host.name, summary: desktopSummary(state.home) }}
+                onOpen={() => router.push('/coding-agent?host=1')}
+                onPair={() => setPairing(true)}
+              />
+              {state.error ? (
+                <View>
+                  <Text role="alert">{state.error}</Text>
+                  <Button onPress={state.retry}>Try again</Button>
+                </View>
+              ) : (
+                !state.home && <Text>Loading workspaces…</Text>
+              )}
+            </ScrollView>
           }
         />
       </ChatSurface>

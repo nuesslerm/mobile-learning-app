@@ -89,6 +89,16 @@ impl Service {
         Ok(result)
     }
 
+    pub fn mobile_home_http(&self, auth: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.home", auth)?;
+        let catalog = self.agent().run(&Op::WorktreeList { root: String::new() }).map_err(upstream)?;
+        let worktrees = catalog["worktrees"].as_array().ok_or_else(|| Refusal::bare(502))?;
+        Ok(json!({
+            "host": { "name": self.0.env.label, "os": self.0.env.os },
+            "worktreeCount": worktrees.len()
+        }))
+    }
+
     pub fn mobile_workspaces_http(
         &self,
         auth: Option<&str>,
