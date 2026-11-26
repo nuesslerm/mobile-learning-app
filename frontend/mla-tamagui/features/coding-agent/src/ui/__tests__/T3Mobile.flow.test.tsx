@@ -309,6 +309,32 @@ describe('Orca chat with the T3 transport', () => {
     expect(await screen.findByRole('radio',{name:'Compact',checked:true})).toBeTruthy();
   });
 
+  it('Given a saved chat, when the checkout resolves, then the header shows its current name and Git branch', async () => {
+    const port = backend();
+    const lookup = vi.fn(async () => ({
+      id: 'repo::/fixture', name: 'Review workspace', branch: 'fix/photo-layout', directory: '/repo/worktrees/photo-layout', main: false,
+    }));
+    await app.render('/coding-agent/thread-42', { search: { checkout: 'Old name', checkoutId: 'repo::/fixture' }, overrides: { 'coding-agent': { t3Mobile: { ...port, threadCheckout: lookup } } } });
+    const header = await screen.findByTestId('MobileT3Header');
+    await waitFor(() => expect(header.textContent).toContain('fix/photo-layout'));
+    expect(header.textContent).toContain('Review workspace');
+    await userEvent.click(screen.getByRole('button', { name: 'Review workspace' }));
+    expect((await screen.findByRole('dialog', {name:'Review workspace'})).textContent).toContain('/repo/worktrees/photo-layout');
+    await userEvent.click(screen.getByRole('button', {name:'Close workspace details'}));
+    await waitFor(() => expect(screen.queryByRole('dialog', {name:'Review workspace'})).toBeNull());
+    expect(lookup).toHaveBeenCalledWith(pair, 'thread-42', 'repo::/fixture', expect.anything());
+  });
+
+  it('Given a detached checkout, when its details arrive, then the connection label stays visible and its directory opens', async () => {
+    const port = backend();
+    port.threadCheckout = async () => ({ id: 'repo::/detached', name: 'Detached worktree', branch: null, directory: '/repo/detached', main: false });
+    await app.render('/coding-agent/thread-42', { overrides: { 'coding-agent': { t3Mobile: port } } });
+    const opener = await screen.findByRole('button', { name: 'Detached worktree' });
+    expect(opener.textContent).toContain('Connected');
+    await userEvent.click(opener);
+    expect((await screen.findByRole('dialog', { name: 'Detached worktree' })).textContent).toContain('/repo/detached');
+  });
+
   it('Given an open chat, when its source control button is pressed, then navigation carries the thread and exact checkout', async () => {
     await app.render('/coding-agent/thread-42', {search:{checkout:'Mobile checkout', checkoutId:'repo::/linked #2'}, overrides:{'coding-agent':{t3Mobile:backend()}}});
     await userEvent.click(await screen.findByRole('button',{name:'Open source control'}));

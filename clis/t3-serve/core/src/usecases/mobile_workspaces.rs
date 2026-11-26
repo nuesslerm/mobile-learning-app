@@ -231,7 +231,11 @@ impl Service {
                 AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" => Refusal::bare(404),
                 _ => upstream(e),
             })?;
-        Ok(public_row(&result))
+        let mut checkout = public_row(&result);
+        if let Some(path) = result["path"].as_str() {
+            checkout["directory"] = json!(path);
+        }
+        Ok(checkout)
     }
 
     pub fn mobile_agents_http(&self, auth: Option<&str>) -> Result<Value, Refusal> {

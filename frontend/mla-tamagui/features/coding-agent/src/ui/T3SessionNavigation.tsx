@@ -1,8 +1,8 @@
-import { chatRoute } from '../domain/workspaceCatalog';
+import { chatRoute, type CheckoutRow } from '../domain/workspaceCatalog';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
-import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Pairing } from '../domain/mobile';
 import type { SessionContext, T3Conversation, T3MobilePort } from '../domain/t3Mobile';
@@ -33,6 +33,21 @@ export function T3SessionNavigation({
   const { SessionHeader, SessionTabsSheet } = useAgentComponents();
   const { top, bottom } = useSafeAreaInsets();
   const [context, setContext] = useState<SessionContext>();
+  const [resolved, setResolved] = useState<{ thread: string; checkoutId?: string; pair: Pairing; row: CheckoutRow }>();
+  useFocusEffect(useCallback(() => {
+    if (!pair || !connected) return;
+    const request = new AbortController();
+    api.threadCheckout(pair, id, checkoutId, request.signal).then(row => {
+      if (!request.signal.aborted) setResolved({ thread: id, checkoutId, pair, row });
+    }).catch(cause => {
+      if (request.signal.aborted) return;
+      setResolved(undefined);
+      Logger.withError(cause).warn('coding_agent.t3.chat_header_checkout_failed');
+    });
+    return () => request.abort();
+  }, [api, pair, connected, id, checkoutId]));
+  const currentCheckout = resolved && resolved.thread === id && resolved.checkoutId === checkoutId && resolved.pair === pair
+    ? resolved.row : undefined;
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -65,7 +80,7 @@ export function T3SessionNavigation({
   const sessions = tabs.some((tab) => tab.id === id)
     ? tabs
     : [...tabs, { id, title }];
-  const workspace = checkout ?? context?.workspace ?? 'Terminal';
+  const workspace = currentCheckout?.name ?? checkout ?? context?.workspace ?? 'Terminal';
   async function selectTab(next: string) {
     const request = ++selection.current;
     if (next !== id && tabs.find((tab) => tab.id === next)?.needsProjection) {
@@ -94,6 +109,8 @@ export function T3SessionNavigation({
         onOpenTextSettings={() => router.push('/coding-agent/native-chat-settings')}
         workspace={workspace}
         title={sessions.find((s) => s.id === id)?.title ?? title}
+        directory={currentCheckout?.directory}
+        branch={currentCheckout?.branch}
         connected={connected}
         topInset={top}
         tabCount={sessions.length}

@@ -99,6 +99,8 @@ export interface ChatMessageMetaProps {
 }
 
 export interface SessionHeaderProps {
+  branch?: string | null;
+  directory?: string;
   onOpenSourceControl?: () => void;
   onOpenTextSettings?: () => void;
   files?: {

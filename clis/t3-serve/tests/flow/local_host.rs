@@ -250,7 +250,7 @@ fn source_control_resolves_a_projected_chat_only_for_an_orchestration_reader() {
     seed(&mut rpc);
     *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
         Op::MobileThreadCheckout { thread, selected, .. } if thread == "t1" && selected.as_deref() == Some("desk::/linked") =>
-            Some(Ok(json!({"id":"desk::/linked","name":"Review","branch":"feature","main":false,"workspace":"internal"}))),
+            Some(Ok(json!({"id":"desk::/linked","name":"Review","branch":"feature","main":false,"workspace":"internal","path":"/linked"}))),
         _ => None,
     }));
     // When the chat opens its checkout then the screen receives only the public checkout record.
@@ -259,6 +259,7 @@ fn source_control_resolves_a_projected_chat_only_for_an_orchestration_reader() {
     let resolved = get("t1",&reader);
     assert_eq!(resolved.status, 200);
     assert_eq!(resolved.body["name"], "Review");
+    assert_eq!(resolved.body["directory"], "/linked");
     assert!(resolved.body.get("workspace").is_none());
     assert_eq!(get("unknown",&reader).status,404);
     assert_eq!(get("t1","").status,401);
@@ -472,7 +473,7 @@ fn mobile_file_comparisons_require_paired_read_access_and_immutable_revisions() 
     assert_eq!(get(&args, &denied).status, 403);
     assert_eq!(get(&args, &reader).body, json!(["w", head, base, "new file", "old file"]));
     for invalid in [
-        format!("head=HEAD&path=a"),
+        "head=HEAD&path=a".to_owned(),
         format!("head={head}&base=main&path=a"),
         format!("head={head}&path=..%2Foutside"),
         format!("head={head}&path=a&oldPath=b"),

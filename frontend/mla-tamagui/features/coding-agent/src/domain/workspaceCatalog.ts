@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const checkoutRow = z.object({
   id: z.string(), name: z.string(), branch: z.string().nullable(), main: z.boolean(),
+  directory: z.string().optional(),
   automaticName: z.string().optional(), pinned: z.boolean().optional(), unread: z.boolean().optional(),
 });
 export type CheckoutRow = z.infer<typeof checkoutRow>;

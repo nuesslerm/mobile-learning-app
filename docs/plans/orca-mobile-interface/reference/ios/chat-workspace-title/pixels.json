@@ -1,0 +1,30 @@
+{
+  "dimensions": [
+    1320,
+    2868
+  ],
+  "workspaceAndBranch": {
+    "left": 420,
+    "top": 195,
+    "right": 900,
+    "bottom": 335,
+    "pixels": 67200,
+    "changed": 1079
+  },
+  "cardInterior": {
+    "left": 568,
+    "top": 365,
+    "right": 1280,
+    "bottom": 557,
+    "pixels": 136704,
+    "changed": 6803
+  },
+  "chatAfterDismiss": {
+    "left": 0,
+    "top": 180,
+    "right": 1320,
+    "bottom": 2868,
+    "pixels": 3548160,
+    "changed": 0
+  }
+}

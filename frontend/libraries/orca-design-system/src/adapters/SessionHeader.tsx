@@ -1,6 +1,7 @@
 import { ChevronLeft, GitBranch, SquareTerminal } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SessionHeaderProps } from '@lib/agent-ui-contracts';
+import { SessionWorkspaceTitle } from './SessionWorkspaceTitle';
 import { SessionFiles } from './SessionFiles';
 import { homePalettes, useOrcaScheme } from './appearance';
 
@@ -18,34 +19,7 @@ export function SessionHeader(props: SessionHeaderProps) {
       ]}
     >
       <View style={styles.header}>
-        <View style={styles.center} pointerEvents="box-none">
-          <Text numberOfLines={1} style={[styles.workspace, ink]}>
-            {props.workspace}
-          </Text>
-          <Pressable
-            disabled={props.connected}
-            onPress={props.onReconnect}
-            accessibilityRole={props.connected ? undefined : 'button'}
-            accessibilityLabel={
-              props.connected ? undefined : 'Reconnect to desktop'
-            }
-            style={styles.meta}
-          >
-            <View
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: props.connected
-                    ? colors.statusGreen
-                    : colors.statusAmber,
-                },
-              ]}
-            />
-            <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-              {props.connected ? 'Connected' : 'Connecting…'}
-            </Text>
-          </Pressable>
-        </View>
+        <SessionWorkspaceTitle {...props} />
         <Pressable
           onPress={props.onBack}
           accessibilityLabel="Back to worktrees"
@@ -112,15 +86,6 @@ export function SessionHeader(props: SessionHeaderProps) {
 const styles = StyleSheet.create({
   chrome: { borderBottomWidth: 1 },
   header: { height: 52, paddingHorizontal: 12, justifyContent: 'center' },
-  center: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 64,
-  },
-  workspace: { fontSize: 16, fontWeight: '600' },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
   back: {
     width: 36,
     height: 36,
