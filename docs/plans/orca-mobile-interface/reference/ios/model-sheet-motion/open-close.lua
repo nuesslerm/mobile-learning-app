@@ -1,0 +1,12 @@
+sleep_ms(450)
+device:tap_on({point="24%,92.2%"})
+sleep_ms(1100)
+device:take_screenshot(env.out..'/first-open.png')
+device:tap_on({point="40%,25%"})
+sleep_ms(750)
+device:take_screenshot(env.out..'/after-close.png')
+device:tap_on({point="24%,92.2%"})
+sleep_ms(1100)
+device:take_screenshot(env.out..'/second-open.png')
+
+device:take_screenshot(env.out..'/final-motion.png')

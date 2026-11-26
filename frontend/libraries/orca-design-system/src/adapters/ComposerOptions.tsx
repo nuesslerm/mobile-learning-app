@@ -1,5 +1,5 @@
 import type { ComposerOptionsProps } from '@lib/agent-ui-contracts';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Check from 'lucide-react-native/dist/esm/icons/check.mjs';
 import ChevronLeft from 'lucide-react-native/dist/esm/icons/chevron-left.mjs';
 import ChevronRight from 'lucide-react-native/dist/esm/icons/chevron-right.mjs';
@@ -8,6 +8,9 @@ import Hand from 'lucide-react-native/dist/esm/icons/hand.mjs';
 import ShieldAlert from 'lucide-react-native/dist/esm/icons/shield-alert.mjs';
 import ShieldCheck from 'lucide-react-native/dist/esm/icons/shield-check.mjs';
 import {
+  Animated,
+  Easing,
+  Platform,
   Keyboard,
   Modal,
   Pressable,
@@ -67,8 +70,40 @@ export function ComposerOptions(props: ComposerOptionsProps) {
     if (page === 'Effort') load();
     setPage('Model');
   }
+  const progress = useRef(new Animated.Value(0)).current;
+  const closing = useRef(false);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const measured = sheetHeight > 0;
+  const offset = useMemo(() => progress.interpolate({
+    inputRange: [0, 1], outputRange: [sheetHeight, 0],
+  }), [progress, sheetHeight]);
+  useEffect(() => {
+    if (!visible) {
+      progress.setValue(0);
+      closing.current = false;
+      setSheetHeight(0);
+      return;
+    }
+    if (!measured || closing.current) return;
+    const animation = Animated.timing(progress, {
+      toValue: 1,
+      duration: reducedMotion ? 160 : 320,
+      easing: Easing.bezier(0.32, 0.72, 0, 1),
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [visible, measured, reducedMotion, progress]);
+
   function close() {
-    onVisibleChange(false);
+    if (closing.current) return;
+    closing.current = true;
+    Animated.timing(progress, {
+      toValue: 0,
+      duration: reducedMotion ? 120 : 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: Platform.OS !== 'web',
+    }).start(({ finished }) => { if (finished) onVisibleChange(false); });
   }
   function select(slug: string) {
     if (busy) return;
@@ -126,20 +161,23 @@ export function ComposerOptions(props: ComposerOptionsProps) {
         <Modal
           visible
           transparent
-          animationType={reducedMotion ? 'fade' : 'slide'}
+          animationType="none"
           onRequestClose={close}
         >
           <View style={styles.overlay}>
+            <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: progress }]} />
             <Pressable
               accessibilityLabel="Dismiss"
               accessibilityRole="button"
               onPress={close}
               style={StyleSheet.absoluteFill}
             />
-            <View
+            <Animated.View
+              onLayout={event => setSheetHeight(event.nativeEvent.layout.height)}
               accessibilityViewIsModal
               style={[
                 styles.sheet,
+                { opacity: reducedMotion ? progress : measured ? 1 : 0, transform: [{ translateY: reducedMotion ? 0 : offset }] },
                 {
                   paddingBottom: bottom + 20,
                   backgroundColor: colors.sheetSurface,
@@ -312,7 +350,7 @@ export function ComposerOptions(props: ComposerOptionsProps) {
                   </>
                 )}
               </ScrollView>
-            </View>
+            </Animated.View>
           </View>
         </Modal>
       )}
@@ -335,8 +373,8 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.55)',
   },
+  backdrop: { backgroundColor: 'rgba(0,0,0,0.55)' },
   sheet: {
     maxHeight: '84%',
     paddingHorizontal: 12,
