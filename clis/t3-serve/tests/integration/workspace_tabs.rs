@@ -121,3 +121,34 @@ fn paired_server_preview_displays_desktop_content_accepts_input_and_reconnects()
         .unwrap();
     });
 }
+
+#[test]
+fn checkout_note_creation_skips_collisions_and_a_stale_writer_keeps_the_desktop_edit() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a paired checkout with an existing default note and no chat thread
+        let chain = Chain::start();
+        chain.repo.write("untitled.md", "existing");
+        let scopes: Vec<_> = t3_contracts::scopes::ALL_SCOPES.iter().map(|s| s.to_string()).collect();
+        let phone = Phone::connect_with(case, &chain, &scopes);
+        let auth = [("Authorization", phone.bearer.as_str()), ("Content-Type", "application/json")];
+        let checkout = format!("w1::{}", std::fs::canonicalize(chain.repo.path()).unwrap().display());
+        let route = "/api/mobile/notes";
+        let create = http_call(case, &chain, &[], ("POST", route, &auth, &json!({"checkout":checkout}).to_string()), 200);
+        assert_eq!(create.body, json!({"path":"untitled-2.md","content":""}));
+        let path = "untitled-2.md";
+        let save = |before: &str, content: &str| json!({"checkout":checkout,"path":path,"previous":before,"content":content}).to_string();
+        // When the phone saves and reopens, the persisted file includes its trailing newline
+        let saved = http_call(case, &chain, &[], ("PUT", route, &auth, &save("", "phone\n")), 200);
+        assert_eq!(saved.status, 200, "{:?}", saved.body);
+        let read = format!("{route}?checkout={checkout}&path={path}");
+        let reopened = http_call(case, &chain, &[], ("GET", &read, &auth, ""), 200);
+        assert_eq!(reopened.body["content"], "phone\n");
+        // Then a competing desktop save survives the phone's stale update
+        chain.repo.write(path, "desktop\n");
+        let conflict = http_call(case, &chain, &[], ("PUT", route, &auth, &save("phone\n", "unsaved draft")), 409);
+        assert_eq!(conflict.status, 409, "{:?}", conflict.body);
+        let latest = http_call(case, &chain, &[], ("GET", &read, &auth, ""), 200);
+        assert_eq!(latest.body["content"], "desktop\n");
+        assert_eq!(std::fs::read_to_string(chain.repo.path().join("untitled.md")).unwrap(), "existing");
+    });
+}

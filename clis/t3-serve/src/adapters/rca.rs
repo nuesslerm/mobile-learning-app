@@ -39,7 +39,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 156] = [
+pub const USES: [Method; 158] = [
     STATUS,
     preview::rendering::FRAME, preview::rendering::INPUT, preview::rendering::GOTO, preview::rendering::HISTORY,
     THREAD_CREATE,
@@ -81,6 +81,8 @@ pub const USES: [Method; 156] = [
     agent_api_state::SET,
     agent_api_state::COMPARE_AND_SET,
     CLIENT_ACTIVITY,
+    edit::FILE_CREATE,
+    edit::ARTIFACT_WRITE,
     edit::FILE_STAT,
     edit::FILE_READ_CHUNK,
     edit::FILE_WRITE,
@@ -363,6 +365,40 @@ impl RcaAgent {
             return Err(AgentError::Failed("Invalid checkout HEAD".into()));
         }
         Ok(row)
+    }
+
+    fn checkout_note(&self, client: &mut Client, checkout: &str, action: &t3_core::ports::NoteAction) -> Result<Value, AgentError> {
+        use t3_core::ports::NoteAction;
+        let row = self.selected_checkout(client, checkout)?;
+        if row.missing { return Err(checkout_missing()); }
+        let root = if row.is_main { "" } else { row.path.as_str() };
+        let (workspace, directory) = self.place(client, root, "")?;
+        let location = |name: &str| if directory == "." { name.to_owned() } else { under(&directory, name) };
+        match action {
+            NoteAction::Create => {
+                for index in 1..=100 {
+                    let name = if index == 1 { "untitled.md".into() } else { format!("untitled-{index}.md") };
+                    match client.call(edit::FILE_CREATE, json!({"workspace":workspace,"path":location(&name),"content":""})) {
+                        Ok(_) => return Ok(json!({"path":name,"content":""})),
+                        Err(e) if e.code == "ALREADY_EXISTS" => continue,
+                        Err(e) => return Err(refused(e)),
+                    }
+                }
+                Err(AgentError::Refused { code:"CHANGED".into(), message:"All untitled note names are in use".into() })
+            }
+            NoteAction::Read { path } => {
+                let result = client.call(edit::FILE_READ_CHUNK, json!({"workspace":workspace,"path":location(path),"length":256*1024})).map_err(refused)?;
+                let chunk: exec_fs::ChunkResult = serde_json::from_value(result).map_err(unreadable("file.readChunk"))?;
+                let text = terminal::b64::decode(&chunk.data).and_then(|b| String::from_utf8(b).ok());
+                let content = text.filter(|s| chunk.eof && !s.contains('\0') && s.len() as u64 == chunk.total_bytes)
+                    .ok_or_else(|| AgentError::Refused { code:"INVALID_ARGS".into(), message:"This note exceeds the editor limit or is not UTF-8 text".into() })?;
+                Ok(json!({"path":path,"content":content}))
+            }
+            NoteAction::Save { path, previous, content } => {
+                client.call(edit::ARTIFACT_WRITE, json!({"workspace":workspace,"path":location(path),"fingerprint":edit::artifact_fingerprint(previous.as_bytes()),"content":content})).map_err(refused)?;
+                Ok(json!({"path":path,"content":content}))
+            }
+        }
     }
 
     fn checkout_base(&self, client: &mut Client, checkout: &str) -> Result<Option<String>, AgentError> {
@@ -970,7 +1006,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateCompareAndSet { scope, key, expected, value } => (agent_api_state::COMPARE_AND_SET, json!({"scope": scope, "key": key, "expected": expected, "value": value})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::OpenServerPreview { .. } | Op::CheckoutPullRequest { .. } | Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutNote { .. } | Op::OpenServerPreview { .. } | Op::CheckoutPullRequest { .. } | Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -1028,6 +1064,9 @@ impl AgentApi for RcaAgent {
 
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
+        if let Op::CheckoutNote { checkout, action } = op {
+            return self.checkout_note(&mut client, checkout, action);
+        }
         if let Op::CheckoutPullRequest { checkout, link } = op {
             return self.checkout_pull_request(&mut client, checkout, *link);
         }

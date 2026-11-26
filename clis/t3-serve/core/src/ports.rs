@@ -281,7 +281,15 @@ pub struct ClientActivity {
 /// A request to the agent API beyond a turn's own life: the answers, the queue, the lifecycle and the device state, in the contract's words
 /// (snake_case, times in milliseconds). `run` answers the contract's result, or the refusal in the message T3 shows.
 #[derive(Debug, Clone, PartialEq)]
+pub enum NoteAction {
+    Create,
+    Read { path: String },
+    Save { path: String, previous: String, content: String },
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Op {
+    CheckoutNote { checkout: String, action: NoteAction },
     ApprovalAnswer { thread: String, approval: String, decision: String },
     InputAnswer { thread: String, request: String, answer: String },
     InputDismiss { thread: String, request: String },
@@ -437,6 +445,7 @@ impl Op {
             Op::ThreadFamily { .. } => "thread.family",
             Op::MobileWorktrees => "mobile.worktrees",
             Op::MobileAgents => "mobile.agents",
+            Op::CheckoutNote { .. } => "mobile.checkoutNote",
             Op::MobileThreadCheckout { .. } => "mobile.threadCheckout",
             Op::CheckoutBranches { .. } => "mobile.checkoutBranches",
             Op::CheckoutPullRequest { .. } => "mobile.checkoutPullRequest",

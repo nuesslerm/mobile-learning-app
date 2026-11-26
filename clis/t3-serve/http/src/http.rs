@@ -84,7 +84,7 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, &'static str> {
     let length: usize = headers.iter().find(|(k, _)| k == "content-length").and_then(|(_, v)| v.parse().ok()).unwrap_or(0);
     let upload = method == "POST" && path.starts_with(&format!("{UPLOAD_PREFIX}/"));
     let voice = method == "POST" && path == VOICE_TRANSCRIBE;
-    if length > if upload { MAX_UPLOAD_BYTES as usize } else if voice { MAX_VOICE_BYTES } else { MAX_BODY } {
+    if length > if upload { MAX_UPLOAD_BYTES as usize } else if voice { MAX_VOICE_BYTES } else if path == "/api/mobile/notes" { 4 * 1024 * 1024 } else { MAX_BODY } {
         if voice {
             return Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body: Vec::new(), oversized: true });
         }
@@ -278,7 +278,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspace-disclosure" | "/api/mobile/workspace-statuses" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/checkout" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/mobile/notes" | "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspace-disclosure" | "/api/mobile/workspace-statuses" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/checkout" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/source-control/pull-request" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -377,6 +377,28 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             let Some(thread) = param("thread").filter(|id| !id.is_empty()) else { return respond(&mut stream, 400, &json!({})); };
             match svc.thread_checkout_http(auth, thread, param("checkout")) {
                 Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("GET", "/api/mobile/notes") => {
+            let query = |key: &str| request.query.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str()).unwrap_or("");
+            let action = t3_core::ports::NoteAction::Read { path: query("path").into() };
+            match svc.checkout_note_http(auth, query("checkout"), action) {
+                Ok(doc) => respond_with(&mut stream, 200, &doc, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        (method @ ("POST" | "PUT"), "/api/mobile/notes") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            let action = if method == "POST" {
+                t3_core::ports::NoteAction::Create
+            } else if let (Some(path), Some(previous), Some(content)) = (body["path"].as_str(), body["previous"].as_str(), body["content"].as_str()) {
+                t3_core::ports::NoteAction::Save { path: path.into(), previous: previous.into(), content: content.into() }
+            } else {
+                return refused(&mut stream, Refusal::bare(422), NO_STORE);
+            };
+            match svc.checkout_note_http(auth, body["checkout"].as_str().unwrap_or(""), action) {
+                Ok(doc) => respond_with(&mut stream, 200, &doc, NO_STORE),
                 Err(r) => refused(&mut stream, r, NO_STORE),
             }
         }

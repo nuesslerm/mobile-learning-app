@@ -28,7 +28,7 @@ fn the_phone_opens_a_markdown_tab_reads_and_saves_it_and_opens_a_diff_and_the_ss
         let read = phone.call(case, &chain, &["rpc:markdown.readTab"], "markdown.readTab", json!({"worktree": WS_SELECTOR, "tabId": tab}));
         assert_eq!(read["result"]["content"], "# one\n", "{read}");
         let saved = phone.call(case, &chain, &["rpc:markdown.saveTab"], "markdown.saveTab", json!({"worktree": WS_SELECTOR, "tabId": tab, "baseVersion": read["result"]["version"], "content": "# two\n"}));
-        answered(case, "file.write");
+        answered(case, "artifact.write");
         assert_eq!(saved["result"]["content"], "# two\n", "{saved}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("notes.md")).unwrap(), "# two\n");
         // When the phone asks for the SSH targets, the state of the executor and a connect to it

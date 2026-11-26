@@ -149,6 +149,8 @@ pub fn read(args: &ArtifactRead, canonical: &Path) -> ExecResult<ChunkResult> {
 /// Replaces the file's content through a temporary file beside it and a rename, so a reader sees the old file or the new one; the target is
 /// looked at again just before the rename, so a swap in between is refused. The file must exist and be writable, and keeps its mode.
 pub fn write(args: &ArtifactWrite, canonical: &Path) -> ExecResult<ArtifactWriteResult> {
+    static WRITES: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _turn = WRITES.lock().unwrap_or_else(|e| e.into_inner());
     let (mut file, meta) = open(canonical, &args.path)?;
     if !meta.is_file() {
         return Err(ExecError::new(Code::NotAFile, format!("{} is not a regular file", args.path)));

@@ -1,6 +1,6 @@
 use super::service::{Refusal, Service};
 use crate::domain::state::is_archived;
-use crate::ports::{AgentError, Op};
+use crate::ports::{AgentError, NoteAction, Op};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use t3_contracts::wire;
@@ -53,6 +53,26 @@ fn branch_error(error: AgentError) -> Refusal {
 }
 
 impl Service {
+    pub fn checkout_note_http(&self, auth: Option<&str>, checkout: &str, action: NoteAction) -> Result<Value, Refusal> {
+        if matches!(action, NoteAction::Read { .. }) {
+            self.read_gate("mobile.checkoutNote", auth)?;
+        } else {
+            self.scope_gate("mobile.checkoutNote", auth, "orchestration:operate")?;
+        }
+        if checkout.is_empty() {
+            return Err(Refusal::bare(422));
+        }
+        if let NoteAction::Read { path } | NoteAction::Save { path, .. } = &action {
+            if path.contains(['/', '\\', '\0']) || !path.to_ascii_lowercase().ends_with(".md") {
+                return Err(Refusal::bare(422));
+            }
+        }
+        if let NoteAction::Save { content, previous, .. } = &action {
+            if content.len().max(previous.len()) > 256 * 1024 { return Err(Refusal::bare(413)); }
+        }
+        self.agent().run(&Op::CheckoutNote { checkout: checkout.into(), action }).map_err(branch_error)
+    }
+
     pub fn checkout_pull_request_http(&self, auth: Option<&str>, checkout: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("mobile.checkoutPullRequest", auth)?;
         let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;

@@ -25,7 +25,7 @@ pub use agent_api_workspace::FILE_READ;
 /// `file.stat` and `file.readChunk` of the agent API, for a mapping crate that reads a working file of any size in pieces.
 pub use agent_api_workspace::edit::{FILE_READ_CHUNK, FILE_STAT};
 
-use agent_api_workspace::edit::{ARTIFACT_READ, ARTIFACT_STAT, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE};
+use agent_api_workspace::edit::{ARTIFACT_READ, ARTIFACT_STAT, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH};
 use agent_api_proto::Method as AgentMethod;
 use agent_api_git::{FETCH, REFS};
 use agent_api_state::SET;
@@ -84,7 +84,7 @@ pub const NOTIFICATIONS_SUBSCRIBE: &str = "notifications.subscribe";
 pub const NOTIFICATIONS_UNSUBSCRIBE: &str = "notifications.unsubscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
+pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
 
 const METHODS: &[Method] = &[
     Method { name: FILES_LIST, kind: Kind::Unary },

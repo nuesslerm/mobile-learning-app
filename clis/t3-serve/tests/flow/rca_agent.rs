@@ -296,7 +296,7 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
         "state.subscribe" => vec![answer(request, json!({"values":{}}))],
         "pane.list" => vec![answer(request, json!({"panes":[]}))],
         "repo.list" => vec![answer(request, json!({"repos":[]}))],
-        "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "is_main": false}]}))],
+        "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "head":"", "is_main": false}]}))],
         "terminal.list" => vec![answer(request, json!({"workspace": "w1", "terminals": []}))],
         "terminal.attach" => vec![answer(request, json!({"workspace": "w1", "terminal": "t1.a", "after_offset": null, "start_offset": 0, "offset": 0, "reset": false, "cols": 80, "rows": 24, "status": "running", "exit_code": null}))],
         "git.subscribe" => vec![answer(request, json!({"workspace": "w1", "seq": 0})), agent_api_git::status_event(1, "w1", &json!({"branch": "main", "files": []})).to_value()],
@@ -453,6 +453,8 @@ fn every_op() -> Vec<Op> {
         Op::GitCreateRef { root: "/work/proj".into(), name: "t3code/pr-12/x".into(), from: Some("abc1234".into()), checkout: false },
         Op::GitFetch { root: "/work/proj".into(), refspecs: vec!["+refs/pull/12/head:refs/rca/pr/12/head".into()] },
         Op::GitCompare { root: "/work/proj".into(), base: "main".into(), head: "feat".into(), limit: 100 },
+        Op::CheckoutNote { checkout: "w1::/work/proj".into(), action:t3_core::ports::NoteAction::Create },
+        Op::CheckoutNote { checkout: "w1::/work/proj".into(), action:t3_core::ports::NoteAction::Save { path:"note.md".into(), previous:"a".into(), content:"b".into() } },
         Op::MobileWorktrees,
         Op::MobileThreadCheckout { thread: "t1".into(), path: Some("/work/proj".into()), selected: None },
         Op::ReadPanes { panes: vec!["thread:t1".into()] },
@@ -723,7 +725,7 @@ fn a_git_request_for_a_directory_of_a_worktree_is_asked_of_that_worktrees_worksp
     let rca = rca(Box::new(|request| match request["method"].as_str().unwrap() {
         "worktree.list" => vec![answer(request, json!({"worktrees": [
             {"path": "/work/main", "is_main": true},
-            {"path": "/work/proj", "is_main": false},
+            {"path": "/work/proj", "head":"", "is_main": false},
             {"path": "/base/wt", "is_main": false},
         ]}))],
         "repo.list" => vec![answer(request, json!({"repos": [

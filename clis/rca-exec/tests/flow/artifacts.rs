@@ -187,3 +187,30 @@ fn given_a_workspace_below_the_root_when_an_artifact_outside_it_is_asked_for_the
     assert_eq!(write.unwrap_err().code, Code::PathOutsideRoot);
     assert_eq!(std::fs::read_to_string(root.join("apps/api/b.txt")).unwrap(), "sibling");
 }
+
+#[test]
+fn competing_saves_against_the_same_note_version_preserve_one_complete_edit() {
+    // Given the version of an existing note opened by two clients
+    let (_dir, root) = dir();
+    std::fs::write(root.join("note.md"), "base").unwrap();
+    let executor = LocalExecutor::new(&root).unwrap();
+    let version = granted(&call(&executor, "artifact_stat", json!({"path":"note.md"})).unwrap());
+    let ready = std::sync::Barrier::new(2);
+    // When both clients replace that one version
+    let save = |content: &str| {
+        ready.wait();
+        call(&executor, "artifact_write", with(json!({"path":"note.md","content":content}), version.clone()))
+    };
+    let (first, second) = std::thread::scope(|scope| {
+        let peer = scope.spawn(|| save("first"));
+        let second = save("second");
+        (peer.join().unwrap(), second)
+    });
+    // Then the losing client receives a conflict and the file contains the winner's edit.
+    let disk = std::fs::read_to_string(root.join("note.md")).unwrap();
+    match (first, second) {
+        (Ok(_), Err(e)) => assert_eq!((disk.as_str(), e.code), ("first", Code::Changed)),
+        (Err(e), Ok(_)) => assert_eq!((disk.as_str(), e.code), ("second", Code::Changed)),
+        other => panic!("Expected one successful save and one conflict, got {other:?}"),
+    }
+}

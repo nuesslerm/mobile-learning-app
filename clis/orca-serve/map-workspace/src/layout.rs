@@ -4,7 +4,7 @@ use crate::agent::{ask, refusal};
 use crate::files::{basename, extension, image_mime, is_binary_path, is_safe_path, plain, read_prefix};
 use crate::target::{resolve, selector, text, Target};
 pub use agent_api_state::SET;
-use agent_api_workspace::edit::{FILE_STAT, FILE_WRITE};
+use agent_api_workspace::edit::{artifact_fingerprint, ARTIFACT_WRITE, FILE_STAT};
 use orca_core::wire::Failure;
 use orca_core::AgentApi;
 use serde_json::{json, Value};
@@ -283,7 +283,7 @@ pub(crate) fn read_tab(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fa
     Ok(result)
 }
 
-/// A save against the version the phone read: a changed file answers `conflict`; the file is re-read right before the unconditional write.
+/// A save against the version the phone read: a changed file answers `conflict`; the executor compares the previous text at replacement.
 pub(crate) fn save_tab(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let target = resolve(agent, selector(params)?)?;
     let content = params["content"].as_str().ok_or_else(|| Failure::invalid("Invalid input: content must be a string"))?;
@@ -300,10 +300,11 @@ pub(crate) fn save_tab(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fa
     if content_version(&current) != base {
         return if current == content { Ok(saved) } else { Err(plain("conflict")) };
     }
-    if disk(agent, &target, &relative, EDIT_MAX)?.0 != current {
-        return Err(plain("conflict"));
-    }
-    ask(agent, FILE_WRITE.name(), json!({"workspace": target.workspace, "path": relative, "content": content, "create_dirs": false}))?;
+    agent.request(ARTIFACT_WRITE.name(), json!({"workspace": target.workspace, "path": relative, "content": content, "fingerprint": artifact_fingerprint(current.as_bytes())}))
+        .map_err(|error| match error {
+            orca_core::AgentError::Refused { code, .. } if code == "CHANGED" => plain("conflict"),
+            error => refusal(error),
+        })?;
     Ok(saved)
 }
 
