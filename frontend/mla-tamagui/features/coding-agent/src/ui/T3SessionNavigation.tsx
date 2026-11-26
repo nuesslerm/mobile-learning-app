@@ -1,11 +1,12 @@
 import { chatRoute, type CheckoutRow } from '../domain/workspaceCatalog';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { AvailabilityNotice } from './AvailabilityNotice';
 import { Logger } from '@lib/logging';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Pairing } from '../domain/mobile';
-import type { SessionContext, T3Conversation, T3MobilePort } from '../domain/t3Mobile';
+import { WorktreeMissing, type SessionContext, type T3Conversation, type T3MobilePort } from '../domain/t3Mobile';
 
 export function T3SessionNavigation({
   session,
@@ -18,6 +19,7 @@ export function T3SessionNavigation({
   connected,
   onBack,
   onReconnect,
+  onMissingChange,
 }: {
   session?: T3Conversation;
   api: T3MobilePort;
@@ -29,23 +31,28 @@ export function T3SessionNavigation({
   connected: boolean;
   onBack: () => void;
   onReconnect: () => void;
+  onMissingChange: (missing: boolean) => void;
 }) {
   const { SessionHeader, SessionTabsSheet } = useAgentComponents();
   const { top, bottom } = useSafeAreaInsets();
   const [context, setContext] = useState<SessionContext>();
+  const [missing, setMissing] = useState(false);
   const [resolved, setResolved] = useState<{ thread: string; checkoutId?: string; pair: Pairing; row: CheckoutRow }>();
   useFocusEffect(useCallback(() => {
+    setMissing(false);
     if (!pair || !connected) return;
     const request = new AbortController();
     api.threadCheckout(pair, id, checkoutId, request.signal).then(row => {
-      if (!request.signal.aborted) setResolved({ thread: id, checkoutId, pair, row });
+      if (!request.signal.aborted) { setResolved({ thread: id, checkoutId, pair, row }); onMissingChange(false); }
     }).catch(cause => {
       if (request.signal.aborted) return;
       setResolved(undefined);
+      setMissing(cause instanceof WorktreeMissing);
+      if (cause instanceof WorktreeMissing) onMissingChange(true);
       Logger.withError(cause).warn('coding_agent.t3.chat_header_checkout_failed');
     });
     return () => request.abort();
-  }, [api, pair, connected, id, checkoutId]));
+  }, [api, pair, connected, id, checkoutId, onMissingChange]));
   const currentCheckout = resolved && resolved.thread === id && resolved.checkoutId === checkoutId && resolved.pair === pair
     ? resolved.row : undefined;
   const [error, setError] = useState('');
@@ -116,13 +123,14 @@ export function T3SessionNavigation({
         tabCount={sessions.length}
         onBack={onBack}
         onReconnect={onReconnect}
-        onOpenSourceControl={pair ? () => router.push('/coding-agent/source-control?thread=' + encodeURIComponent(id) +
+        onOpenSourceControl={pair && !missing ? () => router.push('/coding-agent/source-control?thread=' + encodeURIComponent(id) +
           (checkoutId ? '&checkoutId=' + encodeURIComponent(checkoutId) : '')) : undefined}
         onShowTabs={() => {
           setOpen(true);
           refresh();
         }}
       />
+      {missing && connected && <AvailabilityNotice missing onAction={() => router.replace('/coding-agent?host=1')} />}
       {open && (
         <SessionTabsSheet
           visible

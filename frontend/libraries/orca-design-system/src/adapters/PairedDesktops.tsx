@@ -43,7 +43,7 @@ export function PairedDesktops({
                 <View
                   style={[
                     styles.dot,
-                    { borderColor: c.bgPanel, backgroundColor: c.statusGreen },
+                    { borderColor: c.bgPanel, backgroundColor: desktop.offline ? c.statusAmber : c.statusGreen },
                   ]}
                 />
               </View>

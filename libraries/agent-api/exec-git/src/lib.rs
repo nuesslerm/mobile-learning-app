@@ -369,6 +369,8 @@ pub struct WorktreeInfo {
     pub branch: Option<String>,
     /// True for the repository's own working tree.
     pub is_main: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub missing: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -501,7 +503,7 @@ mod tests {
     fn given_the_worktree_results_and_events_when_encoded_then_they_keep_the_contract_names() {
         // Given one of each
         let added = to_value(&WorktreeAdded { path: "/w/a".into(), branch: "b".into(), head: "abc".into() }).to_string();
-        let listed = to_value(&WorktreeListed { worktrees: vec![WorktreeInfo { path: "/r".into(), head: "abc".into(), branch: None, is_main: true }] }).to_string();
+        let listed = to_value(&WorktreeListed { worktrees: vec![WorktreeInfo { path: "/r".into(), head: "abc".into(), branch: None, is_main: true, missing: false }] }).to_string();
         let event = to_value(&SetupEvent::StepOutput { step: 0, stream: "stdout".into(), data: "x".into() }).to_string();
         let started = to_value(&SetupEvent::Started { steps: 2 }).to_string();
         // Then the keys are the contract's: a detached head has no branch, and an event's kind is its dotted name

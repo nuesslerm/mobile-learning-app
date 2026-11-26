@@ -104,7 +104,17 @@ export interface T3MobilePort {
     pairing: Pairing,
     threadId: string,
     update: (snapshot: T3Snapshot) => void,
-    disconnected: (error: Error) => void
+    disconnected: (error: Error) => void,
+    checkoutId?: string,
+    signal?: AbortSignal
   ): Promise<T3Conversation>;
   newId(): string;
+}
+
+export class RcaUnavailable extends Error {
+  constructor() { super('RCA server unreachable. Check that your desktop is online and RCA is running.'); }
+}
+
+export class WorktreeMissing extends Error {
+  constructor() { super('Worktree no longer available on this desktop. It may have been deleted or moved.'); }
 }

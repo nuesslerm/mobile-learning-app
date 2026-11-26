@@ -213,6 +213,7 @@ pub fn needed_groups() -> Vec<GroupName> {
 const QUIET: Duration = Duration::from_secs(1);
 
 struct MobilePlacement {
+    missing: bool,
     path: String,
     branch: Option<String>,
     main: bool,
@@ -227,7 +228,7 @@ impl MobilePlacement {
         let title = self.branch.as_deref().unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
         let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
         json!({"id":format!("{repo}::{path}"),"name":name,"automaticName":title,
-            "pinned":meta.is_some_and(|m| m["isPinned"] == true),"branch":self.branch,"main":self.main,
+            "missing":self.missing,"pinned":meta.is_some_and(|m| m["isPinned"] == true),"branch":self.branch,"main":self.main,
             "workspace":self.owner.as_deref().unwrap_or(repo),"path":path,"workspaceStatus":meta.and_then(|m| m["workspaceStatus"].as_str()),"unread":meta.is_some_and(|m| m["isUnread"] == true)})
     }
 }
@@ -616,6 +617,7 @@ impl RcaAgent {
             let main = row["is_main"] == true;
             let owner = if main { Some(self.workspace.as_str()) } else { by_path.get(path).copied() };
             Ok(MobilePlacement {
+                missing: row["missing"] == true,
                 path: path.into(), main, owner: owner.map(str::to_owned),
                 branch: row["branch"].as_str().filter(|b| !b.is_empty()).map(str::to_owned),
             })
@@ -642,6 +644,7 @@ impl RcaAgent {
         let workspace = found["thread"]["workspace"].as_str().ok_or_else(checkout_missing)?;
         let exact = path.or(selected_path);
         let row = self.mobile_placements(client)?.into_iter().find(|p| {
+            if p.missing { return false; }
             if let Some(exact) = exact {
                 p.path == exact && (p.owner.as_deref().unwrap_or(&self.workspace) == workspace ||
                     (path.is_some() && workspace == self.workspace))

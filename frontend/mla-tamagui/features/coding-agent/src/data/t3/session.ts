@@ -1,3 +1,4 @@
+import { RcaUnavailable } from '../../domain/t3Mobile';
 import { composerCatalog, composerFiles } from './composerDiscovery';
 import { providerModels } from './providerModels';
 import { Logger } from '@lib/logging';
@@ -216,7 +217,7 @@ export function openConversation(
     );
   };
   socket.onerror = socket.onclose = () =>
-    close(new Error('The chat connection closed.'));
+    close(new RcaUnavailable());
   socket.onmessage = ({ data }) => {
     try {
       // Effect RPC may batch envelopes into a single message.

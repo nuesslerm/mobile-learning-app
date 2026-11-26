@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { RcaUnavailable, WorktreeMissing } from '../domain/t3Mobile';
 import type { Pairing } from '../domain/mobile';
 import { chatRoute, type CheckoutRow } from '../domain/workspaceCatalog';
 import { useCodingAgentPorts } from '../state/ports';
@@ -44,7 +45,7 @@ export function ChatSourceControl() {
     load().catch((cause) => {
       if (controller.signal.aborted) return;
       Logger.withError(cause).warn('coding_agent.t3.thread_checkout_failed');
-      setError('Could not load this chat’s checkout.');
+      setError(cause instanceof WorktreeMissing || cause instanceof RcaUnavailable ? cause.message : 'Could not load this chat’s checkout.');
     });
     return () => controller.abort();
   }, [api, thread, checkoutId, attempt]);

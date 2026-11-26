@@ -1,3 +1,4 @@
+import { RcaUnavailable, WorktreeMissing } from '../domain/t3Mobile';
 import { BackHandler, Linking, Platform } from 'react-native';
 import { useAgentComponents, type SourceCommit } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
@@ -167,10 +168,10 @@ export function T3SourceControl({
       }
     };
     void read()
-      .catch(() => {
+      .catch((cause) => {
         if (controller.signal.aborted) return;
         Logger.warn('coding_agent.checkout_comparison_failed');
-        setNotice('Could not load changes.');
+        setNotice(cause instanceof WorktreeMissing || cause instanceof RcaUnavailable ? cause.message : 'Could not load changes.');
       })
       .finally(() => {
         if (!controller.signal.aborted) setBusy(false);

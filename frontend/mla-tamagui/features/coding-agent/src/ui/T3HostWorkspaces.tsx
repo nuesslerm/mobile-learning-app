@@ -1,9 +1,10 @@
+import { AvailabilityNotice } from './AvailabilityNotice';
 import { useAgentComponents, type HostWorkspaceListProps } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import type { Pairing } from '../domain/mobile';
-import type { T3MobilePort } from '../domain/t3Mobile';
+import { WorktreeMissing, RcaUnavailable, type T3MobilePort } from '../domain/t3Mobile';
 import {
   chatRoute,
   resolveWorkspaceStatus,
@@ -24,6 +25,8 @@ export function T3HostWorkspaces({
   api,
   pair,
   catalog,
+  offline,
+  onReconnect,
   onUpdated,
   onCatalogUpdated,
   onBack,
@@ -31,6 +34,8 @@ export function T3HostWorkspaces({
   api: T3MobilePort;
   pair: Pairing;
   catalog: WorkspaceCatalog;
+  offline: boolean;
+  onReconnect: () => void;
   onUpdated: (row: CheckoutRow) => void;
   onCatalogUpdated: (next: WorkspaceCatalog) => void;
   onBack: () => void;
@@ -130,6 +135,7 @@ export function T3HostWorkspaces({
   }
   const [sessions, setSessions] = useState<CheckoutSessions>();
   const [error, setError] = useState('');
+  const [availability, setAvailability] = useState<'missing' | 'offline'>();
   const request = useRef<AbortController | undefined>(undefined);
   useEffect(() => () => request.current?.abort(), []);
   const open = async (id: string) => {
@@ -139,8 +145,13 @@ export function T3HostWorkspaces({
     const controller = new AbortController();
     request.current = controller;
     setSelected(row);
+    setAvailability(undefined);
     setSessions(undefined);
     setError('');
+    if (row.missing) {
+      setAvailability('missing');
+      return;
+    }
     try {
       const found = await api.checkoutSessions(pair, id, controller.signal);
       if (controller.signal.aborted) return;
@@ -148,10 +159,11 @@ export function T3HostWorkspaces({
         setSelected(undefined);
         router.push(chatRoute(found.active, row.name, row.id));
       } else setSessions(found);
-    } catch {
+    } catch (cause) {
       if (controller.signal.aborted) return;
       Logger.warn('coding_agent.t3.checkout_open_failed');
-      setError('Could not load workspace chats.');
+      setAvailability(cause instanceof WorktreeMissing ? 'missing' : cause instanceof RcaUnavailable ? 'offline' : undefined);
+      setError(cause instanceof WorktreeMissing || cause instanceof RcaUnavailable ? cause.message : 'Could not load workspace chats.');
     }
   };
   if (sourceCheckout) return <T3SourceControl api={api} pair={pair} checkout={sourceCheckout} onBack={(changed) => void returnFromSource(changed)} />;
@@ -165,17 +177,22 @@ export function T3HostWorkspaces({
           name: s.title,
         })) }]}
         notice={
-          error ||
+          availability ? undefined : error ||
           (!sessions
             ? 'Opening workspace…'
             : sessions.sessions.length
               ? undefined
               : 'No chats in this workspace.')
         }
-        retry={error ? () => void open(selected.id) : undefined}
+        availability={availability && <AvailabilityNotice missing={availability === 'missing'} onAction={() => {
+          if (availability === 'offline') void open(selected.id);
+          else { setSelected(undefined); void returnFromSource(true); }
+        }} />}
+        retry={!availability && error ? () => void open(selected.id) : undefined}
         onBack={() => {
           request.current?.abort();
           setSelected(undefined);
+          if (availability === 'missing') void returnFromSource(true);
         }}
         onSelect={(id) => router.push(chatRoute(id, selected.name, selected.id))}
       />
@@ -215,7 +232,7 @@ export function T3HostWorkspaces({
       id: row.id, name: row.name, unread: row.unread,
       project: detailed && groupByStatus ? catalog.repo : undefined,
       projectInTitle: !detailed && groupByStatus,
-      detail: detailed ? row.branch ?? undefined : undefined,
+      detail: row.missing ? 'Worktree unavailable' : detailed ? row.branch ?? undefined : undefined,
     });
   }
   if (pinned.rows.length) sections.push(pinned);
@@ -227,7 +244,9 @@ export function T3HostWorkspaces({
     <>
       <HostWorkspaceList
         title={catalog.host.name}
-        platform={desktopPlatform(catalog.host.os)}
+        platform={offline ? 'Offline' : desktopPlatform(catalog.host.os)}
+        offline={offline}
+        availability={offline && <AvailabilityNotice reconnecting onAction={onReconnect} />}
         sections={sections}
         disclosure={disclosure}
         retry={disclosure.error ? disclosure.reload : groupError ? () => setGroupRetry(n => n + 1) : undefined}

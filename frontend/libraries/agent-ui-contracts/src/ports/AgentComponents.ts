@@ -208,7 +208,7 @@ export interface HomeSettingsNoteProps {
 }
 
 export interface PairedDesktopsProps {
-  desktop?: { name: string; summary: string };
+  desktop?: { name: string; summary: string; offline?: boolean };
   onPair: () => void;
   onOpen: () => void;
 }

@@ -1,3 +1,4 @@
+import { AvailabilityNotice } from './AvailabilityNotice';
 import { T3HostWorkspaces } from './T3HostWorkspaces';
 import { desktopSummary } from '../domain/workspaceCatalog';
 import { useState } from 'react';
@@ -33,7 +34,8 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
     checkoutId?: string;
   }>();
   const hostOpen = host === '1' && !threadId;
-  const state = useT3Mobile(api, hostOpen, threadId);
+  const state = useT3Mobile(api, hostOpen, threadId, checkoutId);
+  const [checkoutMissing, setCheckoutMissing] = useState(false);
   const [pairing, setPairing] = useState(false);
   const goBack = () =>
     router.canGoBack() ? router.back() : router.replace('/coding-agent');
@@ -52,8 +54,9 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
       <HostWorkspaceList
         title="Workspaces"
         sections={[]}
-        notice={state.error || 'Loading workspaces…'}
-        retry={state.error ? state.retry : undefined}
+        notice={state.offline ? undefined : state.error || 'Loading workspaces…'}
+        availability={state.offline && <AvailabilityNotice reconnecting onAction={state.retry} />}
+        retry={!state.offline && state.error ? state.retry : undefined}
         onBack={goBack}
         onSelect={() => {}}
       />
@@ -76,6 +79,8 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           api={api}
           pair={state.pair}
           catalog={state.catalog}
+          offline={state.offline}
+          onReconnect={state.retry}
           onUpdated={state.updateCheckout}
           onCatalogUpdated={state.replaceCatalog}
           onBack={goBack}
@@ -90,11 +95,13 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           feed={
             <ScrollView contentContainerStyle={{ paddingHorizontal: 16 }}>
               <PairedDesktops
-                desktop={state.home && { name: state.home.host.name, summary: desktopSummary(state.home) }}
+                desktop={state.offline
+                  ? { name: state.home?.host.name ?? new URL(state.pair.endpoint).hostname, summary: 'Offline · Reconnecting…', offline: true }
+                  : state.home && { name: state.home.host.name, summary: desktopSummary(state.home) }}
                 onOpen={() => router.push('/coding-agent?host=1')}
                 onPair={() => setPairing(true)}
               />
-              {state.error ? (
+              {state.offline ? <AvailabilityNotice reconnecting onAction={state.retry} /> : state.error ? (
                 <View>
                   <Text role="alert">{state.error}</Text>
                   <Button onPress={state.retry}>Try again</Button>
@@ -127,6 +134,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           connected={state.connected}
           onBack={goBack}
           onReconnect={state.retry}
+          onMissingChange={setCheckoutMissing}
         />
       ) : (
         <ScreenHeader
@@ -135,9 +143,9 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
           onBack={goBack}
         />
       )}
-      {state.error ? (
-        <Text role="alert">{state.error}</Text>
-      ) : null}
+      {state.offline ? <AvailabilityNotice reconnecting onAction={state.retry} /> :
+        state.worktreeMissing ? <AvailabilityNotice missing onAction={() => router.replace('/coding-agent?host=1')} /> :
+        state.error ? <Text role="alert">{state.error}</Text> : null}
       {state.pair === undefined ? (
         <Text>Opening connection…</Text>
       ) : (
@@ -169,9 +177,9 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
             onChangeText={state.changeDraft}
             notice={state.notice}
             onPickSuggestion={state.pickSuggestion}
-            onSend={() => void state.send()}
+            onSend={() => { if (!checkoutMissing && !state.worktreeMissing) void state.send(); }}
             sendLabel="Send message"
-            canSend={state.connected && !!state.draft.trim()}
+            canSend={state.connected && !checkoutMissing && !state.worktreeMissing && !!state.draft.trim()}
             sending={state.busy}
             placeholder="Ask anything, @ to mention files, / for commands"
           />

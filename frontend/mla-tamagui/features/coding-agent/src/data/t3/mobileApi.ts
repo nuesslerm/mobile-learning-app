@@ -4,7 +4,7 @@ import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
 import { z } from 'zod';
 import type { Pairing } from '../../domain/mobile';
-import type { T3MobilePort } from '../../domain/t3Mobile';
+import { RcaUnavailable, WorktreeMissing, type T3MobilePort } from '../../domain/t3Mobile';
 import { readPairing, savePairing } from '../rca/credentials';
 import { endpoint } from '../rca/endpoint';
 import { boundedSchema, openConversation, threadSchema } from './session';
@@ -22,8 +22,33 @@ class HttpError extends Error {
 }
 
 async function json(base: string, path: string, init?: RequestInit) {
-  const response = await fetch(base + path, init);
-  if (!response.ok) throw new HttpError(response.status);
+  const controller = new AbortController();
+  const cancel = () => controller.abort();
+  const signal = init?.signal;
+  if (signal?.aborted) cancel();
+  signal?.addEventListener('abort', cancel);
+  const timeout = setTimeout(cancel, 15000);
+  let response: Response;
+  try {
+    response = await fetch(base + path, { ...init, signal: controller.signal });
+  } catch (cause) {
+    if (signal?.aborted) throw cause;
+    throw new RcaUnavailable();
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', cancel);
+  }
+  if ([502, 503, 504].includes(response.status)) throw new RcaUnavailable();
+  if (!response.ok) {
+    if (response.status === 404 && path.startsWith('/api/mobile/source-control/checkout?')) {
+      const body = await response.json().catch((cause: unknown) => {
+        if (cause instanceof SyntaxError) return null;
+        throw cause;
+      });
+      if (body?.code === 'CHECKOUT_NOT_FOUND') throw new WorktreeMissing();
+    }
+    throw new HttpError(response.status);
+  }
   return response.json() as Promise<unknown>;
 }
 
@@ -139,7 +164,15 @@ export function createT3MobileApi(): T3MobilePort {
     async threadCheckout(pair, thread, selected, signal) {
       const path = '/api/mobile/source-control/checkout?thread=' + encodeURIComponent(thread) +
         (selected ? '&checkout=' + encodeURIComponent(selected) : '');
-      return checkoutRow.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+      try {
+        return checkoutRow.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+      } catch (cause) {
+        if (cause instanceof HttpError && cause.status === 404 && selected) {
+          const catalog = await this.workspaces(pair, signal);
+          if (!catalog.checkouts.some(row => row.id === selected && !row.missing)) throw new WorktreeMissing();
+        }
+        throw cause;
+      }
     },
     async linkCheckoutPullRequest(pair, checkout, number) {
       return checkoutPullRequest.parse(await json(endpoint(pair.endpoint), '/api/mobile/source-control/pull-request', {
@@ -172,7 +205,12 @@ export function createT3MobileApi(): T3MobilePort {
     },
     async checkoutChanges(pair, id, signal) {
       const path = '/api/mobile/source-control/changes?' + new URLSearchParams({ checkout: id });
-      return checkoutChanges.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+      try {
+        return checkoutChanges.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+      } catch (cause) {
+        if (cause instanceof HttpError && cause.status === 404) throw new WorktreeMissing();
+        throw cause;
+      }
     },
     async checkoutFile(pair, id, file, signal) {
       const params = new URLSearchParams({checkout:id, head:file.head, path:file.path});
@@ -202,7 +240,12 @@ export function createT3MobileApi(): T3MobilePort {
     },
     async checkoutSessions(pair, id, signal) {
       const path = '/api/mobile/workspaces?checkout=' + encodeURIComponent(id);
-      return checkoutSessions.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+      try {
+        return checkoutSessions.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+      } catch (cause) {
+        if (cause instanceof HttpError && cause.status === 404) throw new WorktreeMissing();
+        throw cause;
+      }
     },
     async shell(pair) {
       return shellSchema.parse(
@@ -214,7 +257,7 @@ export function createT3MobileApi(): T3MobilePort {
         })
       );
     },
-    async open(pair, thread, update, disconnected) {
+    async open(pair, thread, update, disconnected, checkoutId, signal) {
       const base = endpoint(pair.endpoint);
       const initial = boundedSchema.parse(
         await json(
@@ -223,12 +266,19 @@ export function createT3MobileApi(): T3MobilePort {
             encodeURIComponent(thread) +
             '/bounded?rcaChatLayout=1',
           {
+            signal,
             headers: {
               ...authorization(pair),
               'x-t3-orchestration-protocol': '2',
             },
           }
-        )
+        ).catch(async cause => {
+          if (cause instanceof HttpError && cause.status === 404 && checkoutId) {
+            const catalog = await this.workspaces(pair, signal ?? new AbortController().signal);
+            if (!catalog.checkouts.some(row => row.id === checkoutId && !row.missing)) throw new WorktreeMissing();
+          }
+          throw cause;
+        })
       );
       const result = await json(base, '/api/auth/websocket-ticket/rpc', {
         method: 'POST',

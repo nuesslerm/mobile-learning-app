@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { app } from '../../__tests__/flowApp';
 import { createSettingsPortDoubles } from '../../testing/settingsPorts';
 import { createT3MobileApi } from '../../data/t3/mobileApi';
-import { resumeCommand } from '../../domain/t3Mobile';
+import { RcaUnavailable, WorktreeMissing, resumeCommand } from '../../domain/t3Mobile';
 import type { T3MobilePort, T3Snapshot } from '../../domain/t3Mobile';
 
 const pair = { endpoint: 'https://fixture.invalid', token: 'fixture-token' };
@@ -166,6 +166,54 @@ describe('Orca chat with the T3 transport', () => {
       fetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
       await expect(api.home(pair, signal)).rejects.toThrow('HTTP 403');
       expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('Given a saved pairing, when RCA is unreachable and then reconnects, then Feed keeps the desktop visible and restores its summary', async () => {
+    const api = backend();
+    const home = vi.fn(api.home).mockRejectedValueOnce(new RcaUnavailable());
+    await app.render('/coding-agent', { overrides: { 'coding-agent': { t3Mobile: { ...api, home } } } });
+    expect(await screen.findByText('Offline · Reconnecting…')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Open fixture.invalid' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Reconnect now' }));
+    expect(await screen.findByRole('button', { name: 'Open Fixture Mac' })).toBeTruthy();
+    expect(screen.queryByText('Offline · Reconnecting…')).toBeNull();
+  });
+
+  it('Given a stale checkout row, when its worktree has been removed, then the reader can return to the refreshed workspace list', async () => {
+    const api = backend();
+    const workspaces = vi.fn(api.workspaces).mockResolvedValueOnce(await api.workspaces(pair, new AbortController().signal))
+      .mockResolvedValue({ host: { name: 'Fixture Mac', os: 'darwin' }, repo: 'Fixture repository', checkouts: [] });
+    await app.render('/coding-agent', { search: { host: '1' }, overrides: { 'coding-agent': {
+      t3Mobile: { ...api, workspaces, checkoutSessions: async () => { throw new WorktreeMissing(); } },
+    } } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Mobile checkout' }));
+    expect(await screen.findByText(/may have been deleted or moved/)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'View workspaces' }));
+    expect(await screen.findByText('No workspaces.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Mobile checkout' })).toBeNull();
+  });
+
+  it('Given a saved checkout link, when the gateway cannot resolve it, then only a confirmed missing checkout reports removal', async () => {
+    const api = createT3MobileApi();
+    const signal = new AbortController().signal;
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal('fetch', fetch);
+    try {
+      fetch.mockResolvedValueOnce(Response.json({ code: 'CHECKOUT_NOT_FOUND' }, { status: 404 }));
+      await expect(api.threadCheckout(pair, thread.id, undefined, signal)).rejects.toBeInstanceOf(WorktreeMissing);
+      fetch.mockRejectedValueOnce(new TypeError('Network request failed'));
+      await expect(api.checkoutSessions(pair, 'gone', signal)).rejects.toBeInstanceOf(RcaUnavailable);
+      fetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
+      await expect(api.checkoutSessions(pair, 'gone', signal)).rejects.toBeInstanceOf(WorktreeMissing);
+      fetch.mockResolvedValueOnce(new Response(null, { status: 404 }))
+        .mockResolvedValueOnce(new Response(null, { status: 503 }));
+      await expect(api.threadCheckout(pair, thread.id, 'gone', signal)).rejects.toBeInstanceOf(RcaUnavailable);
+      fetch.mockResolvedValueOnce(new Response(null, { status: 404 }))
+        .mockResolvedValueOnce(Response.json({ host: { name: 'Mac', os: 'darwin' }, repo: 'repo', checkouts: [] }));
+      await expect(api.open(pair, thread.id, () => {}, () => {}, 'gone', signal)).rejects.toBeInstanceOf(WorktreeMissing);
     } finally {
       vi.unstubAllGlobals();
     }

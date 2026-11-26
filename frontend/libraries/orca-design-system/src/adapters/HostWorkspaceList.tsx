@@ -42,10 +42,11 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
         </Text>
         {props.platform && (
           <View style={styles.platform}>
-            <View style={[styles.dot, { backgroundColor: c.statusGreen }]} />
+            <View style={[styles.dot, { backgroundColor: props.offline ? c.statusAmber : c.statusGreen }]} />
             <Text style={[styles.metadata, muted]}>{props.platform}</Text>
           </View>
         )}
+        {props.availability}
         {props.sections.map(({ key, label, rows, icon }) => (
           <View key={key}>
             {label && (

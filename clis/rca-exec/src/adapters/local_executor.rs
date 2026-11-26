@@ -1234,7 +1234,9 @@ impl LocalExecutor {
         let mut out: Vec<WorktreeInfo> = Vec::new();
         for line in listing.split('\0') {
             match line.split_once(' ') {
-                Some(("worktree", path)) => out.push(WorktreeInfo { path: path.to_string(), head: String::new(), branch: None, is_main: out.is_empty() }),
+                Some(("worktree", path)) => out.push(WorktreeInfo { path: path.to_string(), head: String::new(), branch: None, is_main: out.is_empty(),
+                    missing: fs::metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound),
+                }),
                 Some(("HEAD", head)) => out.last_mut().map(|w| w.head = head.to_string()).unwrap_or_default(),
                 Some(("branch", name)) => out.last_mut().map(|w| w.branch = Some(name.strip_prefix("refs/heads/").unwrap_or(name).to_string())).unwrap_or_default(),
                 _ => {}

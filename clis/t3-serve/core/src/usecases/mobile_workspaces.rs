@@ -19,6 +19,7 @@ fn is_oid(value: &str) -> bool {
 fn public_row(row: &Value) -> Value {
     let mut result = json!({"id": row["id"], "name": row["name"], "branch": row["branch"], "main": row["main"],
         "automaticName": row["automaticName"], "pinned": row["pinned"] == true, "unread": row["unread"] == true});
+    if row["missing"] == true { result["missing"] = json!(true); }
     if let Some(status) = row["workspaceStatus"].as_str() {
         result["workspaceStatus"] = json!(status);
     }
@@ -320,7 +321,7 @@ impl Service {
         let result = self.agent().run(&Op::MobileThreadCheckout { thread: thread.into(), path, selected: selected.map(str::to_owned) })
             .map_err(|e| match &e {
                 AgentError::NoThread => Refusal::bare(404),
-                AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" => Refusal::bare(404),
+                AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" => Refusal { status: 404, body: json!({"code": "CHECKOUT_NOT_FOUND"}) },
                 _ => upstream(e),
             })?;
         let mut checkout = public_row(&result);
@@ -363,7 +364,7 @@ impl Service {
         };
         let row = rows
             .iter()
-            .find(|r| r["id"] == id)
+            .find(|r| r["id"] == id && r["missing"] != true)
             .ok_or_else(|| Refusal::bare(404))?;
         let workspace = row["workspace"]
             .as_str()

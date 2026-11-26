@@ -1,7 +1,7 @@
 import type { CheckoutRow, HomeSummary, WorkspaceCatalog } from '../domain/workspaceCatalog';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { resumeCommand, type T3ComposerEntry, type T3Effort } from '../domain/t3Mobile';
+import { RcaUnavailable, WorktreeMissing, resumeCommand, type T3ComposerEntry, type T3Effort } from '../domain/t3Mobile';
 import type { Pairing } from '../domain/mobile';
 import type {
   T3Conversation,
@@ -9,12 +9,14 @@ import type {
   T3Snapshot,
 } from '../domain/t3Mobile';
 
-export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: string) {
+export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: string, checkoutId?: string) {
   const [pair, setPair] = useState<Pairing | null>();
   const [home, setHome] = useState<HomeSummary>();
   const [catalog, setCatalog] = useState<WorkspaceCatalog>();
   const [snapshot, setSnapshot] = useState<T3Snapshot>();
   const [error, setError] = useState('');
+  const [worktreeMissing, setWorktreeMissing] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [busy, setBusy] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [effortPicker, setEffortPicker] = useState<{ instance: string; model: string; option: T3Effort }>();
@@ -73,11 +75,17 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
   }, [api]);
 
   useEffect(() => {
+    setCatalog(undefined);
+    setHome(undefined);
+    setOffline(false);
+  }, [pair]);
+
+  useEffect(() => {
     if (!pair) return;
     let active = true;
     const controller = new AbortController();
-    setCatalog(undefined);
-    setHome(undefined);
+    setWorktreeMissing(false);
+
     setConnected(false);
     setImageSession(undefined);
     let current: T3Conversation | undefined;
@@ -87,7 +95,12 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
       if (!active) return;
       setConnected(false);
       setImageSession(undefined);
+      setOffline(reason instanceof RcaUnavailable);
       setError(reason.message);
+      if (reason instanceof WorktreeMissing) {
+        setWorktreeMissing(true);
+        return;
+      }
       timer = setTimeout(
         () => void open(),
         Math.min(1000 * 2 ** failures++, 15000)
@@ -104,7 +117,12 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
             const result = await api.home(pair, controller.signal);
             if (active) setHome(result);
           }
-          if (active) setError('');
+          if (active) {
+            failures = 0;
+            setOffline(false);
+            setError('');
+            timer = setTimeout(() => void open(), 30000);
+          }
           return;
         }
         const session = await api.open(
@@ -115,9 +133,10 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
             failures = 0;
             setSnapshot(result);
             setConnected(true);
+            setOffline(false);
             setError('');
           },
-          disconnected
+          disconnected, checkoutId, controller.signal
         );
         if (!active) {
           session.close();
@@ -139,7 +158,7 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
       current?.close();
       connection.current = null;
     };
-  }, [pair, api, threadId, hostOpen, generation]);
+  }, [pair, api, threadId, hostOpen, generation, checkoutId]);
 
   async function connect(host: string, code: string, signal: AbortSignal) {
     const saved = await api.pair(host, code, signal);
@@ -233,6 +252,8 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
       setCatalog(current => current && {...current, checkouts:current.checkouts.map(r => r.id === row.id ? row : r)});
     },
     busy,
+    offline,
+    worktreeMissing,
     error,
     retry,
     send,

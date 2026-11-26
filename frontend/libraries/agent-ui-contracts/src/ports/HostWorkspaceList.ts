@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 export interface HostWorkspaceListProps {
   title: string;
   platform?: string;
+  offline?: boolean;
   sections: {
     key: string;
     label?: string;
@@ -13,6 +14,7 @@ export interface HostWorkspaceListProps {
   search?: { value: string; onChange: (value: string) => void };
   options?: ReactNode;
   notice?: string;
+  availability?: ReactNode;
   retry?: () => void;
   onBack: () => void;
   onActions?: (id: string) => void;
