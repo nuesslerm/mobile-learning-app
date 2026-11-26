@@ -170,7 +170,7 @@ impl<'a> Repo<'a> {
         match orca_map_workspace::git_checkout(agent, selector)? {
             orca_map_workspace::GitCheckout::Workspace(workspace) => Ok(Repo { agent, workspace, linked: None }),
             orca_map_workspace::GitCheckout::Linked { repo, head, branch } => match method {
-                GIT_HISTORY | GIT_BRANCH_COMPARE | GIT_COMMIT_COMPARE | GIT_BRANCH_DIFF
+                GIT_HISTORY | GIT_LOCAL_BRANCHES | GIT_BRANCH_COMPARE | GIT_COMMIT_COMPARE | GIT_BRANCH_DIFF
                 | GIT_COMMIT_DIFF | GIT_REMOTE_COMMIT_URL => {
                     if !matches!(head.len(), 40 | 64) || !head.bytes().all(|b| b.is_ascii_hexdigit()) {
                         return Err(Failure::new(RUNTIME_ERROR, "Missing checkout HEAD"));

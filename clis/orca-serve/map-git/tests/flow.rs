@@ -803,3 +803,39 @@ fn a_detached_checkout_can_read_immutable_file_diffs_without_reading_the_parent_
         .iter()
         .all(|(method, _)| method == "git.blob"));
 }
+
+#[test]
+fn linked_checkouts_list_shared_branches_and_report_their_own_selection() {
+    // Given a parent on main, a linked checkout on feature and a detached checkout.
+    let mut rig = Rig::new();
+    rig.repo.branch("feature");
+    rig.agent.reply("worktree.list", |_| {
+        Ok(json!({"worktrees":[
+            {"path":"/feature","head":"a".repeat(40),"branch":"feature","is_main":false},
+            {"path":"/detached","head":"b".repeat(40),"is_main":false}
+        ]}))
+    });
+    // When either checkout opens Switch Branch, then both see the same branch names and their own current branch.
+    let attached = rig.raw("git.localBranches", json!({"worktree":"id:main::/feature"}));
+    let detached = rig.raw(
+        "git.localBranches",
+        json!({"worktree":"id:main::/detached"}),
+    );
+    assert_eq!(attached["ok"], true, "{attached}");
+    assert_eq!(detached["ok"], true, "{detached}");
+    let (attached, detached) = (&attached["result"], &detached["result"]);
+    assert_eq!(attached["branches"], detached["branches"]);
+    assert!(attached["branches"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("feature")));
+    assert_eq!(attached["current"], "feature");
+    assert!(detached["current"].is_null());
+    // A checkout mutation still needs a workspace targeting that worktree.
+    let change = rig.raw(
+        "git.checkout",
+        json!({"worktree":"id:main::/detached","branch":"feature"}),
+    );
+    assert_eq!(change["ok"], false);
+    assert_eq!(rig.repo.current(), "main");
+}

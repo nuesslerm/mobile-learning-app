@@ -112,7 +112,12 @@ pub(crate) fn upstream_status(repo: &Repo, params: &Value) -> Result<Value, Fail
 pub(crate) fn local_branches(repo: &Repo) -> Result<Value, Failure> {
     let refs = repo.ask(REFS, json!({"kind": "branch"}))?;
     let names: Vec<Value> = refs["refs"].as_array().into_iter().flatten().filter_map(|r| r.get("name").cloned()).collect();
-    Ok(json!({"current": refs.get("current").filter(|c| c.is_string()).cloned().unwrap_or(Value::Null), "branches": names}))
+    // Local references belong to the repository. The checked-out branch belongs to the selected worktree.
+    let current = match &repo.linked {
+        Some((_, branch)) => Some(branch.as_str()).filter(|name| !name.is_empty()),
+        None => refs["current"].as_str(),
+    };
+    Ok(json!({"current": current, "branches": names}))
 }
 
 fn commit_row(c: &Value) -> Result<Value, Failure> {
