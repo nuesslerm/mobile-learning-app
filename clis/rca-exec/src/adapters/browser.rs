@@ -16,6 +16,7 @@ use std::time::{Duration, Instant};
 const CHROMIUM_ARGS: [&str; 9] = ["--disable-gpu", "--disable-dev-shm-usage", "--disable-extensions", "--mute-audio", "--window-size=1280,800", "--disable-features=OverscrollHistoryNavigation,BackForwardCache", "--proxy-bypass-list=<-loopback>", "--disable-quic", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"];
 
 struct Drive {
+    viewport: Option<exec_browser::FrameViewport>,
     page: Attached,
     x: f64,
     y: f64,
@@ -192,6 +193,20 @@ impl BrowserTable {
         })
     }
 
+    pub fn frame(&self, key: &str, viewport: exec_browser::FrameViewport, quality: u8) -> ExecResult<Shot> {
+        self.drive(key, |d| {
+            if d.viewport != Some(viewport) {
+                d.page.set_metrics(viewport.width.into(), viewport.height.into(), 1.0, viewport.mobile).map_err(io)?;
+                d.viewport = Some(viewport);
+            }
+            let jpeg = d.page.screenshot_jpeg(quality).map_err(io)?;
+            if jpeg.len() > SCREENSHOT_MAX {
+                return Err(ExecError::new(Code::Io, format!("the picture is larger than {SCREENSHOT_MAX} bytes")));
+            }
+            Ok(Shot { mime: "image/jpeg".into(), bytes: jpeg.len(), data: base64::engine::general_purpose::STANDARD.encode(jpeg) })
+        })
+    }
+
     pub fn input(&self, key: &str, input: &Input) -> ExecResult<Inputted> {
         self.drive(key, |d| {
             let pointer = |d: &mut Drive, params: serde_json::Value| d.page.mouse_event(params).map_err(io);
@@ -298,7 +313,7 @@ impl Inner {
         let mut page = Attached::attach_new(&endpoint).map_err(io)?;
         let policy = self.policy.clone();
         page.guard_requests(Arc::new(move |url| request_allowed(&policy, url))).map_err(io)?;
-        let drive = Arc::new(Mutex::new(Drive { page, x: 0.0, y: 0.0, buttons: 0 }));
+        let drive = Arc::new(Mutex::new(Drive { viewport: None, page, x: 0.0, y: 0.0, buttons: 0 }));
         state.pages.push(Entry { key: key.to_string(), drive: drive.clone(), used: Instant::now() });
         Ok(drive)
     }

@@ -16,12 +16,13 @@ pub const GOTO: Method = Method::new(GROUP, "browser.goto");
 pub const HISTORY: Method = Method::new(GROUP, "browser.history");
 pub const EVAL: Method = Method::new(GROUP, "browser.eval");
 pub const SCREENSHOT: Method = Method::new(GROUP, "browser.screenshot");
+pub const FRAME: Method = Method::new(GROUP, "browser.frame");
 pub const INPUT: Method = Method::new(GROUP, "browser.input");
 pub const CLOSE: Method = Method::new(GROUP, "browser.close");
 pub const PAGES: Method = Method::new(GROUP, "browser.pages");
 
 /// Every method of the group.
-pub const METHODS: &[Method] = &[OPEN, GOTO, HISTORY, EVAL, SCREENSHOT, INPUT, CLOSE, PAGES];
+pub const METHODS: &[Method] = &[OPEN, GOTO, HISTORY, EVAL, SCREENSHOT, FRAME, INPUT, CLOSE, PAGES];
 
 pub mod code {
     /// The service was started without the browser.
@@ -42,12 +43,13 @@ pub struct Spec {
     pub keys: &'static [&'static str],
 }
 
-pub const SPECS: [Spec; 8] = [
+pub const SPECS: [Spec; 9] = [
     Spec { method: OPEN, action: exec_browser::BROWSER_OPEN, keys: &["key", "url"] },
     Spec { method: GOTO, action: exec_browser::BROWSER_GOTO, keys: &["key", "url"] },
     Spec { method: HISTORY, action: exec_browser::BROWSER_HISTORY, keys: &["key", "direction"] },
     Spec { method: EVAL, action: exec_browser::BROWSER_EVAL, keys: &["key", "expression"] },
     Spec { method: SCREENSHOT, action: exec_browser::BROWSER_SCREENSHOT, keys: &["key"] },
+    Spec { method: FRAME, action: exec_browser::BROWSER_FRAME, keys: &["key", "width", "height", "quality", "mobile"] },
     Spec { method: INPUT, action: exec_browser::BROWSER_INPUT, keys: &["key", "kind", "x", "y", "button", "modifiers", "dx", "dy", "text"] },
     Spec { method: CLOSE, action: exec_browser::BROWSER_CLOSE, keys: &["key"] },
     Spec { method: PAGES, action: exec_browser::BROWSER_LIST, keys: &[] },

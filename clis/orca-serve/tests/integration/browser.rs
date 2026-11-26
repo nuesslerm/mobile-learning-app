@@ -76,6 +76,13 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
         assert_eq!(eval(&mut rca, &page, "document.getElementById('f').value"), json!("hello!"));
+        // When a second viewport subscribes to this page, then the executor captures JPEG pixels at the new CSS dimensions.
+        for width in [390, 520] {
+            let frame = rca.call("browser", "browser.frame", json!({"workspace":"w1","key":page,"width":width,"height":680,"quality":72,"mobile":false})).expect("the executor captures the page");
+            assert_eq!(frame["mime"], "image/jpeg");
+            assert!(frame["data"].as_str().unwrap().starts_with("/9j/"));
+            assert_eq!(eval(&mut rca, &page, "[innerWidth,innerHeight]"), json!([width,680]));
+        }
         // And a late acknowledgement of a screencast credits nothing, and the executor is left with no browser and no dev server
         let ack = phone.call(case, &chain, &["rpc:browser.screencast.ack"], "browser.screencast.ack", json!({"subscriptionId": "none", "seq": 3}));
         assert_eq!(ack["result"], json!({"credited": false}));

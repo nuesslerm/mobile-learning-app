@@ -1018,6 +1018,7 @@ impl ToolExecutor for LocalExecutor {
             BrowserOp::Goto { key, url } => exec_proto::to_value(&b.goto(key, url)?),
             BrowserOp::History { key, direction } => exec_proto::to_value(&b.history(key, *direction)?),
             BrowserOp::Eval { key, expression } => exec_proto::to_value(&b.eval(key, expression)?),
+            BrowserOp::Frame { key, viewport, quality } => exec_proto::to_value(&b.frame(key, *viewport, *quality)?),
             BrowserOp::Screenshot { key } => exec_proto::to_value(&b.screenshot(key)?),
             BrowserOp::Input { key, input } => exec_proto::to_value(&b.input(key, input)?),
             BrowserOp::Close { key } => exec_proto::to_value(&b.close(key)),

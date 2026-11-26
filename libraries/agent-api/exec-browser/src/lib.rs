@@ -17,12 +17,13 @@ pub const BROWSER_GOTO: &str = "browser_goto";
 pub const BROWSER_HISTORY: &str = "browser_history";
 pub const BROWSER_EVAL: &str = "browser_eval";
 pub const BROWSER_SCREENSHOT: &str = "browser_screenshot";
+pub const BROWSER_FRAME: &str = "browser_frame";
 pub const BROWSER_INPUT: &str = "browser_input";
 pub const BROWSER_CLOSE: &str = "browser_close";
 pub const BROWSER_LIST: &str = "browser_list";
 
 /// The actions that wait on the page or start the browser: they run beside the reader, not in it.
-pub const LONG: &[&str] = &[BROWSER_OPEN, BROWSER_GOTO, BROWSER_HISTORY, BROWSER_EVAL, BROWSER_SCREENSHOT];
+pub const LONG: &[&str] = &[BROWSER_OPEN, BROWSER_GOTO, BROWSER_HISTORY, BROWSER_EVAL, BROWSER_SCREENSHOT, BROWSER_FRAME];
 
 pub const KEY_MAX: usize = 128;
 pub const URL_MAX: usize = 2048;
@@ -70,6 +71,18 @@ pub const ACTIONS: &[Action] = &[
         about: "A PNG of the page's viewport, base64, at most 4 MiB.",
         properties: &[Property { name: "key", kind: "string", about: "The page's key" }],
         required: &["key"],
+    },
+    Action {
+        name: BROWSER_FRAME,
+        about: "One JPEG viewport frame from an open page at the requested CSS size.",
+        properties: &[
+            Property { name: "key", kind: "string", about: "The page's key" },
+            Property { name: "width", kind: "number", about: "Viewport width in CSS pixels" },
+            Property { name: "height", kind: "number", about: "Viewport height in CSS pixels" },
+            Property { name: "quality", kind: "number", about: "JPEG quality from 1 to 100" },
+            Property { name: "mobile", kind: "boolean", about: "Emulate a mobile viewport" },
+        ],
+        required: &["key", "width", "height", "quality", "mobile"],
     },
     Action {
         name: BROWSER_INPUT,
@@ -273,9 +286,27 @@ pub enum BrowserOp {
     History { key: String, direction: Direction },
     Eval { key: String, expression: String },
     Screenshot { key: String },
+    Frame { key: String, viewport: FrameViewport, quality: u8 },
     Input { key: String, input: Input },
     Close { key: String },
     List,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct FrameViewport {
+    pub width: u16,
+    pub height: u16,
+    pub mobile: bool,
+}
+
+fn frame(args: &Value) -> ExecResult<BrowserOp> {
+    let key = keyed(args)?;
+    let viewport: FrameViewport = serde_json::from_value(args.clone()).map_err(|_| ExecError::invalid_args("expected width, height and mobile"))?;
+    if !(1..=4096).contains(&viewport.width) || !(1..=4096).contains(&viewport.height) || u32::from(viewport.width) * u32::from(viewport.height) > 5_184_000 {
+        return Err(ExecError::invalid_args("frame viewport exceeds the supported dimensions"));
+    }
+    let quality = args["quality"].as_u64().filter(|n| (1..=100).contains(n)).ok_or_else(|| ExecError::invalid_args("quality must be between 1 and 100"))?;
+    Ok(BrowserOp::Frame { key, viewport, quality: quality as u8 })
 }
 
 fn keyed(args: &Value) -> ExecResult<String> {
@@ -306,6 +337,7 @@ impl BrowserOp {
                 }
                 Ok(BrowserOp::Eval { key, expression })
             }),
+            BROWSER_FRAME => frame(args),
             BROWSER_SCREENSHOT => keyed(args).map(|key| BrowserOp::Screenshot { key }),
             BROWSER_INPUT => keyed(args).and_then(|key| Ok(BrowserOp::Input { key, input: Input::parse(args)? })),
             BROWSER_CLOSE => keyed(args).map(|key| BrowserOp::Close { key }),
@@ -321,6 +353,7 @@ impl BrowserOp {
             BrowserOp::Goto { .. } => BROWSER_GOTO,
             BrowserOp::History { .. } => BROWSER_HISTORY,
             BrowserOp::Eval { .. } => BROWSER_EVAL,
+            BrowserOp::Frame { .. } => BROWSER_FRAME,
             BrowserOp::Screenshot { .. } => BROWSER_SCREENSHOT,
             BrowserOp::Input { .. } => BROWSER_INPUT,
             BrowserOp::Close { .. } => BROWSER_CLOSE,
@@ -461,7 +494,7 @@ mod tests {
     #[test]
     fn given_the_actions_when_listed_then_every_tool_is_an_op_and_names_its_own_action() {
         for action in ACTIONS {
-            let args = json!({"key": "k", "url": "https://example.com", "direction": "back", "expression": "1", "kind": "key_press", "text": "a"});
+            let args = json!({"key": "k", "url": "https://example.com", "direction": "back", "expression": "1", "kind": "key_press", "text": "a", "width": 390, "height": 680, "quality": 72, "mobile": true});
             let op = BrowserOp::parse(action.name, &args).unwrap_or_else(|| panic!("{} is no op", action.name)).unwrap();
             assert_eq!(op.action(), action.name);
             for required in action.required {

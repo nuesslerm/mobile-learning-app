@@ -14,12 +14,13 @@ use std::sync::Arc;
 #[cfg(test)]
 mod tests;
 
-pub const SERVED: [Served; 8] = [
+pub const SERVED: [Served; 9] = [
     Served::service(api::OPEN, &[exec_browser::BROWSER_OPEN]),
     Served::service(api::GOTO, &[exec_browser::BROWSER_GOTO]),
     Served::service(api::HISTORY, &[exec_browser::BROWSER_HISTORY]),
     Served::service(api::EVAL, &[exec_browser::BROWSER_EVAL]),
     Served::service(api::SCREENSHOT, &[exec_browser::BROWSER_SCREENSHOT]),
+    Served::service(api::FRAME, &[exec_browser::BROWSER_FRAME]),
     Served::service(api::INPUT, &[exec_browser::BROWSER_INPUT]),
     Served::service(api::CLOSE, &[exec_browser::BROWSER_CLOSE]),
     Served::service(api::PAGES, &[exec_browser::BROWSER_LIST]),
