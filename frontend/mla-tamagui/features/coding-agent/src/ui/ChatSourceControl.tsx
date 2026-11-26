@@ -24,7 +24,7 @@ export function ChatSourceControl() {
     setTarget(undefined);
     setError('');
     async function load() {
-      if (!api || !thread) {
+      if (!api || (!thread && !checkoutId)) {
         setError('Open Source Control from a chat.');
         return;
       }
@@ -34,12 +34,13 @@ export function ChatSourceControl() {
         setError('Pair a desktop to open Source Control.');
         return;
       }
-      const row = await api.threadCheckout(
+      const row = !thread ? (await api.workspaces(pair, controller.signal)).checkouts.find(row => row.id===checkoutId) : await api.threadCheckout(
         pair,
         thread,
         checkoutId,
         controller.signal
       );
+      if (!row || row.missing) throw new WorktreeMissing();
       if (!controller.signal.aborted) setTarget({ pair, row });
     }
     load().catch((cause) => {

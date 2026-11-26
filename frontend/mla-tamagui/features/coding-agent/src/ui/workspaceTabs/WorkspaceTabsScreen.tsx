@@ -119,6 +119,15 @@ export function WorkspaceTabsScreen({
           workspace={name}
           title={active?.title ?? name}
           connected={!!layout && !error}
+          tabs={tabs}
+          activeId={active?.id}
+          onSelectTab={(id) => void select(id)}
+          branch={tabs.length === 1 ? '1 tab' : tabs.length + ' tabs'}
+          onOpenSourceControl={() =>
+            router.push(
+              `/coding-agent/source-control?checkoutId=${encodeURIComponent(checkout)}`
+            )
+          }
           tabCount={tabs.length}
           topInset={top}
           directory={layout?.directory}
@@ -165,6 +174,7 @@ export function WorkspaceTabsScreen({
                 api={api}
                 pair={pair}
                 checkout={checkout}
+                directory={layout.directory}
                 path={active.resource}
                 color={color}
               />

@@ -5,6 +5,8 @@
 // Shape mirrors the per-package vi.mock the flow tests previously duplicated.
 module.exports = {
   __esModule: true,
+  AudioQuality: { HIGH: 96 },
+  IOSOutputFormat: { LINEARPCM: "lpcm" },
   RecordingPresets: { HIGH_QUALITY: {} },
   requestRecordingPermissionsAsync: async () => ({ granted: true }),
   setAudioModeAsync: async () => undefined,

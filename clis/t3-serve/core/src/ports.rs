@@ -289,6 +289,7 @@ pub enum NoteAction {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
+    StageTerminalImage { root: String, id: String },
     CheckoutNote { checkout: String, action: NoteAction },
     ApprovalAnswer { thread: String, approval: String, decision: String },
     InputAnswer { thread: String, request: String, answer: String },
@@ -445,6 +446,7 @@ impl Op {
             Op::ThreadFamily { .. } => "thread.family",
             Op::MobileWorktrees => "mobile.worktrees",
             Op::MobileAgents => "mobile.agents",
+            Op::StageTerminalImage { .. } => "attachment.stage",
             Op::CheckoutNote { .. } => "mobile.checkoutNote",
             Op::MobileThreadCheckout { .. } => "mobile.threadCheckout",
             Op::CheckoutBranches { .. } => "mobile.checkoutBranches",

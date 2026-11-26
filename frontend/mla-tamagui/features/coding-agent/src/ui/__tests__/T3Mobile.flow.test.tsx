@@ -937,11 +937,14 @@ describe('Orca chat with the T3 transport', () => {
     });
     await screen.findByRole('button', { name: 'Codex' });
     await userEvent.click(screen.getByRole('button', { name: 'Markdown Note' }));
-    const field = await screen.findByLabelText('Markdown note');
-    await userEvent.type(field, 'Phone edit');
+    const editor = await screen.findByTitle('Markdown note') as HTMLIFrameElement;
+    fireEvent(window, new MessageEvent('message', {
+      source: editor.contentWindow,
+      data: { editorMessage: JSON.stringify({type: 'change', markdown: 'Phone edit', generation: 0}) },
+    }));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('The desktop file changed. Your draft is saved on this device.');
-    expect((field as HTMLTextAreaElement).value).toBe('Phone edit');
+    expect(screen.getByTitle('Markdown note')).toBe(editor);
     expect(keepDraft).toHaveBeenLastCalledWith(pair, checkout, 'untitled-2.md', { previous: '', content: 'Phone edit' });
     expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy();
   });

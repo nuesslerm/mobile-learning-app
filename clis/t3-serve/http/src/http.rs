@@ -82,7 +82,7 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, &'static str> {
     let (path, query) = target.split_once('?').map_or((target, ""), |(p, q)| (p, q));
     let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_string())).collect();
     let length: usize = headers.iter().find(|(k, _)| k == "content-length").and_then(|(_, v)| v.parse().ok()).unwrap_or(0);
-    let upload = method == "POST" && path.starts_with(&format!("{UPLOAD_PREFIX}/"));
+    let upload = method == "POST" && (path.starts_with(&format!("{UPLOAD_PREFIX}/")) || path == "/api/mobile/terminal-images");
     let voice = method == "POST" && path == VOICE_TRANSCRIBE;
     if length > if upload { MAX_UPLOAD_BYTES as usize } else if voice { MAX_VOICE_BYTES } else if path == "/api/mobile/notes" { 4 * 1024 * 1024 } else { MAX_BODY } {
         if voice {
@@ -388,6 +388,13 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             } else { None };
             match svc.workspace_tabs_http(auth, checkout, mutation) {
                 Ok(layout) => respond_with(&mut stream, 200, &layout, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
+            }
+        }
+        ("POST", "/api/mobile/terminal-images") => {
+            let checkout = request.query.iter().find(|(k,_)| k=="checkout").map(|(_,v)|v.as_str()).unwrap_or("");
+            match svc.terminal_image(auth, checkout, &request.body) {
+                Ok(image) => respond_with(&mut stream, 200, &image, NO_STORE),
                 Err(r) => refused(&mut stream, r, NO_STORE),
             }
         }

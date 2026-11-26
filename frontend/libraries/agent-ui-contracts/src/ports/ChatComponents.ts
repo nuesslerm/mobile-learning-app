@@ -99,6 +99,9 @@ export interface ChatMessageMetaProps {
 }
 
 export interface SessionHeaderProps {
+  tabs?: readonly {id: string; title: string; kind?: string}[];
+  activeId?: string;
+  onSelectTab?: (id: string) => void;
   branch?: string | null;
   directory?: string;
   onOpenSourceControl?: () => void;

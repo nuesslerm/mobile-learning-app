@@ -112,8 +112,36 @@ async function rpc(
   });
 }
 
+import { voiceRecording } from '../../domain/workspaceTabs/voiceRecording';
+
 export function createWorkspaceTabsApi(): WorkspaceTabsPort {
   return {
+    async terminalImage(pair, checkout, jpeg) {
+      return z.object({ path: z.string() }).parse(
+        await json(
+          endpoint(pair.endpoint),
+          '/api/mobile/terminal-images?checkout=' +
+            encodeURIComponent(checkout),
+          {
+            method: 'POST',
+            headers: { ...authorization(pair), 'Content-Type': 'image/jpeg' },
+            body: jpeg,
+          }
+        )
+      ).path;
+    },
+    async transcribe(pair, wav) {
+      return z.object({ text: z.string() }).parse(
+        await json(endpoint(pair.endpoint), '/api/voice/transcribe', {
+          method: 'POST',
+          headers: {
+            ...authorization(pair),
+            'Content-Type': 'application/octet-stream',
+          },
+          body: voiceRecording(wav),
+        })
+      ).text;
+    },
     async agents(pair) {
       const result = z
         .object({
@@ -288,19 +316,24 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
         },
       };
     },
-    async browser(pair, layout, tab, frame, failed) {
+    async browser(pair, layout, tab, frame, failed, navigation) {
       const query = new URLSearchParams({
         threadId: layout.threadId,
         tabId: tab.resource,
+        navigation: '1',
       });
       const ws = await socket(pair, 'media', '/api/preview-stream/ws?' + query);
       ws.binaryType = 'arraybuffer';
-      let size: { width: number; height: number } | undefined;
+      let size: { width: number; height: number; mobile?: boolean } | undefined;
       const post = (type: string, args: object) => send(ws, { type, ...args });
       ws.onmessage = ({ data }) => {
         if (data instanceof ArrayBuffer) {
           frame(imageUri(data));
           post('ack', {});
+        } else if (typeof data === 'string') {
+          const event = JSON.parse(data);
+          if (event.type === 'navigation')
+            navigation?.(event.url, event.canGoBack, event.canGoForward);
         }
       };
       const close = connect(
@@ -312,7 +345,13 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
       );
       return {
         close,
-        click(x, y) {
+        reload: () => post('reload', {}),
+        wheel: (deltaX, deltaY) => post('wheel', { deltaX, deltaY }),
+        click(x, y, modifiers, button = 'left') {
+          if (modifiers?.length || button === 'right') {
+            post('mouse', { action: 'click', x, y, button, modifiers });
+            return;
+          }
           for (const action of ['down', 'up'])
             post('mouse', { action, x, y, button: 'left' });
         },
@@ -320,8 +359,8 @@ export function createWorkspaceTabsApi(): WorkspaceTabsPort {
         key: (key) => post('key', { key, action: 'down' }),
         navigate: (url) => post('navigate', { url }),
         history: (delta) => post('history', { delta }),
-        resize(width, height) {
-          size = { width, height };
+        resize(width, height, mobile) {
+          size = { width, height, mobile };
           post('resize', size);
         },
       };

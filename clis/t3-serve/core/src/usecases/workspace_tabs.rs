@@ -85,6 +85,40 @@ impl Service {
             .ok_or_else(|| QueryFailure::Error(json!({"message":"Checkout unavailable"})))
     }
 
+    fn mobile_checkout_root(&self, checkout: &str) -> Result<String, Refusal> {
+        let catalog = self.agent().run(&Op::MobileWorktrees).map_err(upstream)?;
+        let row = catalog["checkouts"]
+            .as_array()
+            .ok_or_else(|| Refusal::bare(502))?
+            .iter()
+            .find(|r| r["id"] == checkout && r["missing"] != true)
+            .ok_or_else(|| Refusal {
+                status: 404,
+                body: json!({"code":"CHECKOUT_NOT_FOUND"}),
+            })?;
+        let root = row["path"].as_str().ok_or_else(|| Refusal::bare(502))?;
+        Ok(root.to_owned())
+    }
+
+    pub fn terminal_image(&self, auth: Option<&str>, checkout: &str, jpeg: &[u8]) -> Result<Value, Refusal> {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        self.scope_gate("mobile.terminalImage", auth, "terminal:operate")?;
+        self.scope_gate("mobile.terminalImage", auth, "filesystem:write")?;
+        if !jpeg.starts_with(&[0xff, 0xd8, 0xff]) || !jpeg.ends_with(&[0xff, 0xd9]) {
+            return Err(Refusal::bare(422));
+        }
+        let root = self.mobile_checkout_root(checkout)?;
+        let id = format!("terminal-{:x}", Sha256::digest(self.0.ids.random_bytes(24)));
+        self.agent().run(&Op::Attachment {method:"upload.put",params:json!({"id":id,"name":"image.jpg","mime_type":"image/jpeg","kind":"image","data":STANDARD.encode(jpeg)})}).map_err(upstream)?;
+        let staged = self.agent().run(&Op::StageTerminalImage { root, id:id.clone() });
+        if self.agent().run(&Op::Attachment {method:"attachment.delete",params:json!({"id":id})}).is_err() {
+            self.log("terminal.image.cleanup_failed", &[]);
+        }
+        let files = staged.map_err(upstream)?;
+        let path = files["files"][0]["path"].as_str().ok_or_else(||Refusal::bare(502))?;
+        Ok(json!({"path":path}))
+    }
+
     pub fn workspace_tabs_http(
         &self,
         auth: Option<&str>,
@@ -99,17 +133,8 @@ impl Service {
         if mutation.is_some() {
             self.scope_gate("mobile.workspaceTabs", auth, "orchestration:operate")?;
         }
-        let catalog = self.agent().run(&Op::MobileWorktrees).map_err(upstream)?;
-        let row = catalog["checkouts"]
-            .as_array()
-            .ok_or_else(|| Refusal::bare(502))?
-            .iter()
-            .find(|r| r["id"] == checkout && r["missing"] != true)
-            .ok_or_else(|| Refusal {
-                status: 404,
-                body: json!({"code":"CHECKOUT_NOT_FOUND"}),
-            })?;
-        let root = row["path"].as_str().ok_or_else(|| Refusal::bare(502))?;
+        let root = self.mobile_checkout_root(checkout)?;
+        let root = root.as_str();
         let thread = context_id(checkout);
         let _turn = self
             .held()

@@ -801,7 +801,7 @@ importers:
         version: 58.0.7(expo@58.0.26)(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(supports-color@7.2.0)
       expo-updates:
         specifier: ~58.0.22
-        version: 58.0.22(expo-dev-client@57.0.18(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)))(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)(supports-color@7.2.0)
+        version: 58.0.22(expo-dev-client@57.0.18(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)))(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
       loglayer:
         specifier: ^9.2.0
         version: 9.3.0
@@ -1004,6 +1004,9 @@ importers:
       diff:
         specifier: 8.0.4
         version: 8.0.4
+      expo-audio:
+        specifier: ~58.0.12
+        version: 58.0.12(expo-asset@58.0.21(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)(typescript@7.0.2))(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
       expo-camera:
         specifier: ~58.0.14
         version: 58.0.14(@types/emscripten@1.41.6)(expo@58.0.26)(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
@@ -1019,6 +1022,9 @@ importers:
       expo-file-system:
         specifier: ~58.0.14
         version: 58.0.14(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))
+      expo-image-picker:
+        specifier: ~58.0.10
+        version: 58.0.10(expo@58.0.26)
       expo-media-library:
         specifier: ~58.0.14
         version: 58.0.14(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))
@@ -1033,7 +1039,7 @@ importers:
         version: 58.0.23(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)(typescript@7.0.2)
       expo-updates:
         specifier: ~58.0.22
-        version: 58.0.22(expo-dev-client@57.0.18(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)))(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
+        version: 58.0.22(expo-dev-client@57.0.18(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)))(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)(supports-color@7.2.0)
       prettier:
         specifier: 'catalog:'
         version: 3.8.3
@@ -5704,6 +5710,16 @@ packages:
       expo: '*'
       react: 19.3.0
       react-native: '*'
+
+  expo-image-loader@58.0.3:
+    resolution: {integrity: sha512-zlHudxC8OObyqCHmvdxJqURI7886KJ0cUJyn7R/a8FOD9fP837xKDN+u4SIt7XsSSVPNXzMd4Y7mN0pmup8NGA==}
+    peerDependencies:
+      expo: '*'
+
+  expo-image-picker@58.0.10:
+    resolution: {integrity: sha512-yqQC9UYMWSUxk6U0jaS1vE1w+b9Ru0FJmQ3KjUf9Q9oVg5xBxmg8+Ts+usazMAuPoskNIXJ++VZ+uK6br9yUGQ==}
+    peerDependencies:
+      expo: '*'
 
   expo-json-utils@57.0.1:
     resolution: {integrity: sha512-cgTe1NqzQdYs/WN+3nIY5IZg8s0pb0xaTUbhYvxQDn137GbwRfHoGM2se3m3Vsl4Qu+B9G4RPEK5WJDEU2Do7g==}
@@ -13836,6 +13852,13 @@ snapshots:
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)
 
+  expo-audio@58.0.12(expo-asset@58.0.21(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)(typescript@7.0.2))(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0):
+    dependencies:
+      expo: 58.0.26(6254db97d7321e62bb5c2f5f9798011f)
+      expo-asset: 58.0.21(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)(typescript@7.0.2)
+      react: 19.3.0
+      react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)
+
   expo-camera@58.0.14(@types/emscripten@1.41.6)(expo@58.0.26)(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0):
     dependencies:
       barcode-detector: 3.2.4(@types/emscripten@1.41.6)
@@ -13938,6 +13961,15 @@ snapshots:
       expo: 58.0.26(6254db97d7321e62bb5c2f5f9798011f)
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)
+
+  expo-image-loader@58.0.3(expo@58.0.26):
+    dependencies:
+      expo: 58.0.26(6254db97d7321e62bb5c2f5f9798011f)
+
+  expo-image-picker@58.0.10(expo@58.0.26):
+    dependencies:
+      expo: 58.0.26(6254db97d7321e62bb5c2f5f9798011f)
+      expo-image-loader: 58.0.3(expo@58.0.26)
 
   expo-json-utils@57.0.1:
     optional: true
@@ -14139,7 +14171,7 @@ snapshots:
       arg: 4.1.0
       chalk: 4.1.2
       debug: 4.4.3(supports-color@7.2.0)
-      expo: 58.0.26(6254db97d7321e62bb5c2f5f9798011f)
+      expo: 58.0.26(77ca688bbbfd051b28656f9e173dc059)
       expo-eas-client: 58.0.2
       expo-manifests: 58.0.1(expo@58.0.26)
       expo-structured-headers: 58.0.1
@@ -14164,7 +14196,7 @@ snapshots:
       arg: 4.1.0
       chalk: 4.1.2
       debug: 4.4.3(supports-color@7.2.0)
-      expo: 58.0.26(77ca688bbbfd051b28656f9e173dc059)
+      expo: 58.0.26(6254db97d7321e62bb5c2f5f9798011f)
       expo-eas-client: 58.0.2
       expo-manifests: 58.0.1(expo@58.0.26)
       expo-structured-headers: 58.0.1

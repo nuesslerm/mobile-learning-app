@@ -1,6 +1,13 @@
 import { terminalText } from '../../domain/workspaceTabs/terminalText';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Button, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  Button,
+  Keyboard,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import type { Pairing } from '../../domain/mobile';
 import type {
   TerminalConnection,
@@ -9,6 +16,10 @@ import type {
   WorkspaceTabsPort,
 } from '../../domain/workspaceTabs/tabs';
 import { Logger } from '@lib/logging';
+
+import { TerminalMedia } from './TerminalMedia';
+import { Keyboard as KeyboardIcon, Monitor } from 'lucide-react-native';
+import { TabControl, useTabColors } from './TabControls';
 
 type Props = {
   api: WorkspaceTabsPort;
@@ -64,15 +75,48 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
       stream.current = null;
     };
   }, [api, pair, layout, tab, revision]);
+  const c = useTabColors();
+  const input = useRef<ComponentRef<typeof TextInput>>(null);
+  const [mediaError, setMediaError] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [fit, setFit] = useState(true);
+  const [width, setWidth] = useState(440);
+  const pending = useRef('');
+  const fontSize = fit ? Math.min(13, width / (80 * 0.61)) : 13;
+  const lineHeight = Math.ceil(fontSize * 1.29);
+  const heightRef = useRef(0);
+  useEffect(() => {
+    if (!heightRef.current) return;
+    const cols = Math.max(10, Math.floor(width / (fontSize * 0.61)));
+    const rows = Math.max(2, Math.floor(heightRef.current / lineHeight));
+    dimensions.current = { cols, rows };
+    stream.current?.resize(cols, rows);
+  }, [width, fontSize, lineHeight]);
+  function type(value: string) {
+    const old = pending.current;
+    let prefix = 0;
+    while (
+      prefix < old.length &&
+      prefix < value.length &&
+      old[prefix] === value[prefix]
+    )
+      prefix++;
+    const bytes =
+      '\x7f'.repeat(Array.from(old.slice(prefix)).length) + value.slice(prefix);
+    if (bytes) stream.current?.write(bytes);
+    pending.current = value;
+    setCommand(value);
+  }
   function submit() {
     if (ready) {
-      stream.current?.write(command + '\r');
+      stream.current?.write('\r');
+      pending.current = '';
       setCommand('');
     }
   }
   const text = terminalText(buffer);
   return (
-    <View style={{ flex: 1, backgroundColor: '#191b26', padding: 6 }}>
+    <View style={{ flex: 1, backgroundColor: '#191b26' }}>
       <ScrollView
         ref={scroll}
         style={{ flex: 1 }}
@@ -81,9 +125,11 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
         }
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
+          heightRef.current = height;
+          setWidth(width);
           dimensions.current = {
-            cols: Math.max(10, Math.floor(width / 8.4)),
-            rows: Math.max(2, Math.floor(height / 18)),
+            cols: Math.max(10, Math.floor(width / (fontSize * 0.61))),
+            rows: Math.max(2, Math.floor(height / lineHeight)),
           };
           stream.current?.resize(
             dimensions.current.cols,
@@ -95,8 +141,8 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
           selectable
           style={{
             fontFamily: 'Menlo',
-            fontSize: 14,
-            lineHeight: 18,
+            fontSize,
+            lineHeight,
             color: '#e1e4ed',
           }}
         >
@@ -111,26 +157,129 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
           <Button title="Reconnect" onPress={() => retry((n) => n + 1)} />
         </>
       )}
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Button
-          title="Ctrl-C"
-          disabled={!ready}
-          onPress={() => stream.current?.write('\u0003')}
-        />
-        <TextInput
-          accessibilityLabel="Terminal input"
-          value={command}
-          onChangeText={setCommand}
-          editable={ready}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={{ flex: 1, padding: 10, color: 'white' }}
-          placeholderTextColor="#aaaaaa"
-          placeholder="Live input"
-          onSubmitEditing={submit}
-          blurOnSubmit={false}
-        />
-        <Button title="Enter" onPress={submit} disabled={!ready} />
+      <View
+        style={{
+          backgroundColor: c.bg,
+          paddingHorizontal: 8,
+          paddingVertical: 6,
+          gap: 6,
+        }}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+          contentContainerStyle={{ gap: 5, alignItems: 'center' }}
+        >
+          <TabControl
+            label="Toggle keyboard"
+            onPress={() =>
+              focused ? Keyboard.dismiss() : input.current?.focus()
+            }
+          >
+            <KeyboardIcon size={17} color={c.ink} />
+          </TabControl>
+          <TabControl
+            label="Fit terminal to screen"
+            onPress={() => setFit((v) => !v)}
+          >
+            <Monitor size={16} color={c.ink} />
+          </TabControl>
+          <TabControl
+            label="Paste"
+            onPress={() =>
+              void import('expo-clipboard')
+                .then((m) => m.getStringAsync())
+                .then((value) => {
+                  if (value) stream.current?.write(value);
+                })
+                .catch((e) =>
+                  Logger.withError(e).warn('coding_agent.terminal_paste_failed')
+                )
+            }
+          />
+          {Object.entries({
+            Esc: '\x1b',
+            Tab: '\t',
+            Enter: '\r',
+            'Shift+Tab': '\x1b[Z',
+            'Ctrl-C': '\x03',
+            'Ctrl-D': '\x04',
+            '↑': '\x1b[A',
+            '↓': '\x1b[B',
+            '←': '\x1b[D',
+            '→': '\x1b[C',
+          }).map(([label, bytes]) => (
+            <TabControl
+              key={label}
+              label={label}
+              disabled={!ready}
+              onPress={() => {
+                if (label === 'Enter') submit();
+                else stream.current?.write(bytes);
+              }}
+            />
+          ))}
+        </ScrollView>
+        {!!mediaError && (
+          <Text accessibilityRole="alert" style={{ color: c.ink }}>
+            {mediaError}
+          </Text>
+        )}
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              borderWidth: focused ? 2 : 1,
+              borderColor: focused ? '#3875ff' : c.border,
+              borderRadius: 12,
+              minHeight: 46,
+              paddingHorizontal: 10,
+            }}
+          >
+            <KeyboardIcon size={16} color={c.muted} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 10, fontWeight: '600', color: c.muted }}>
+                Live input
+              </Text>
+              <TextInput
+                ref={input}
+                accessibilityLabel="Terminal input"
+                value={command}
+                editable={ready}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={{
+                  padding: 0,
+                  fontSize: 14,
+                  fontFamily: 'Menlo',
+                  color: c.ink,
+                }}
+                placeholderTextColor={c.muted}
+                placeholder="Tap to show keyboard"
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onChangeText={type}
+                onSubmitEditing={submit}
+                submitBehavior="submit"
+              />
+            </View>
+          </View>
+          <TerminalMedia
+            pair={pair}
+            checkout={layout.checkout}
+            api={api}
+            editable={ready}
+            insert={(value) => {
+              setMediaError('');
+              type(pending.current + value);
+            }}
+            notify={setMediaError}
+          />
+        </View>
       </View>
     </View>
   );

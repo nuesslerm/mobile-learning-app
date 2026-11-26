@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import { Button, Text, View } from 'react-native';
 import type { Pairing } from '../../domain/mobile';
 import type {
   NoteDraft,
@@ -7,14 +7,27 @@ import type {
 } from '../../domain/workspaceTabs/tabs';
 import { Logger } from '@lib/logging';
 
+import { RichNoteEditor } from './RichNoteEditor';
+import { TabControl } from './TabControls';
+import { useCodingAgentPorts } from '../../state/ports';
+
 type Props = {
+  directory: string;
   api: WorkspaceTabsPort;
   pair: Pairing;
   checkout: string;
   path: string;
   color: string;
 };
-export function MarkdownNoteTab({ api, pair, checkout, path, color }: Props) {
+export function MarkdownNoteTab({
+  api,
+  pair,
+  checkout,
+  path,
+  color,
+  directory,
+}: Props) {
+  const { copyMessage } = useCodingAgentPorts();
   const [draft, setDraft] = useState<NoteDraft>();
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -68,21 +81,43 @@ export function MarkdownNoteTab({ api, pair, checkout, path, color }: Props) {
     }
   }
   return (
-    <View style={{ flex: 1, padding: 12 }}>
+    <View style={{ flex: 1 }}>
       {draft && (
-        <TextInput
-          accessibilityLabel="Markdown note"
-          multiline
-          editable={!saving}
-          textAlignVertical="top"
-          style={{ flex: 1, color, fontSize: 16 }}
+        <RichNoteEditor
+          key={revision}
           value={draft.content}
-          onChangeText={(content) => {
+          editable={!saving}
+          onChange={(content) => {
             const next = { ...draft, content };
             setDraft(next);
             void persist(next);
           }}
         />
+      )}
+      {draft && draft.previous === draft.content && (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            gap: 6,
+            padding: 8,
+          }}
+        >
+          <TabControl
+            label="Copy"
+            onPress={() => void copyMessage(draft.content)}
+          />
+          <TabControl
+            label="Copy path"
+            onPress={() =>
+              void copyMessage(
+                path.startsWith('/')
+                  ? path
+                  : directory.replace(/\/$/, '') + '/' + path
+              )
+            }
+          />
+        </View>
       )}
       {error ? (
         <Text accessibilityRole="alert" style={{ color }}>
@@ -95,13 +130,16 @@ export function MarkdownNoteTab({ api, pair, checkout, path, color }: Props) {
             title="Discard"
             disabled={saving}
             onPress={() => {
+              setDraft(undefined);
               void persist(null).then(() => refresh((n) => n + 1));
             }}
           />
           <Button title="Save" disabled={saving} onPress={() => void save()} />
         </View>
       ) : (
-        !!error && <Button title="Retry" onPress={() => refresh((n) => n + 1)} />
+        !!error && (
+          <Button title="Retry" onPress={() => refresh((n) => n + 1)} />
+        )
       )}
     </View>
   );

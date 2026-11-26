@@ -149,6 +149,9 @@ export function T3SessionNavigation({
         branch={currentCheckout?.branch}
         connected={connected}
         topInset={top}
+        tabs={resources.length ? [...sessions,...resources] : undefined}
+        activeId={id}
+        onSelectTab={(next)=>void selectTab(next)}
         tabCount={sessions.length + resources.length}
         onBack={onBack}
         onReconnect={onReconnect}

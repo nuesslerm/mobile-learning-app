@@ -103,7 +103,8 @@ pub fn preview(
     while !stop.load(Ordering::SeqCst) {
         if !pending && std::time::Instant::now() >= next {
             match viewer.frame() {
-                Ok(jpeg) => {
+                Ok((jpeg, navigation)) => {
+                    if navigation.is_some_and(|nav| ws.send(Message::text(nav.to_string())).is_err()) { break; }
                     if ws.send(Message::binary(jpeg)).is_err() {
                         break;
                     }

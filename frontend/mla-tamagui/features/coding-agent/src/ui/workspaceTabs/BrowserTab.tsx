@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Button, Text, TextInput, View } from 'react-native';
+import {
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Monitor,
+  RefreshCw,
+  Smartphone,
+} from 'lucide-react-native';
+import { BrowserViewport } from './BrowserViewport';
+import { TabControl, useTabColors } from './TabControls';
 import { Logger } from '@lib/logging';
 import type { Pairing } from '../../domain/mobile';
 import type {
@@ -22,8 +32,24 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [revision, retry] = useState(0);
+  const c = useTabColors();
+  const [mobile, setMobile] = useState(false);
+  const [viewport, setViewport] = useState({ width: 390, height: 680 });
+  const [history, setHistory] = useState({ back: false, forward: false });
+  const currentUrl = useRef('');
+  const editing = useRef(false);
+  const [modifiers, setModifiers] = useState<string[]>([]);
   const stream = useRef<BrowserConnection | null>(null);
-  const size = useRef({ width: 390, height: 680 });
+  const size = useRef({ width: 1280, height: 800, mobile: false });
+  const scale = mobile ? 1 : 1280 / Math.max(viewport.width, 1);
+  useEffect(() => {
+    size.current = {
+      width: Math.round(viewport.width * scale),
+      height: Math.min(4096, Math.round(viewport.height * scale)),
+      mobile,
+    };
+    stream.current?.resize(size.current.width, size.current.height, mobile);
+  }, [viewport, scale, mobile]);
   useEffect(() => {
     let live = true;
     setError('');
@@ -38,6 +64,12 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
         },
         (msg) => {
           if (live) setError(msg);
+        },
+        (url, back, forward) => {
+          if (!live) return;
+          currentUrl.current = url;
+          if (!editing.current) setAddress(url);
+          setHistory({ back, forward });
         }
       )
       .then((connection) => {
@@ -46,7 +78,11 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           return;
         }
         stream.current = connection;
-        connection.resize(size.current.width, size.current.height);
+        connection.resize(
+          size.current.width,
+          size.current.height,
+          size.current.mobile
+        );
       })
       .catch((cause) => {
         Logger.withError(cause).warn('coding_agent.browser_connect_failed');
@@ -66,57 +102,101 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
   };
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Button
-          title="‹"
-          accessibilityLabel="Back in browser"
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 2,
+          paddingHorizontal: 5,
+          height: 36,
+          borderBottomWidth: 1,
+          borderColor: c.border,
+          backgroundColor: c.bg,
+        }}
+      >
+        <TabControl
+          label="Back in browser"
+          disabled={!history.back}
           onPress={() => stream.current?.history(-1)}
-        />
-        <Button
-          title="›"
-          accessibilityLabel="Forward in browser"
+        >
+          <ChevronLeft size={15} color={color} />
+        </TabControl>
+        <TabControl
+          label="Forward in browser"
+          disabled={!history.forward}
           onPress={() => stream.current?.history(1)}
-        />
+        >
+          <ChevronRight size={15} color={color} />
+        </TabControl>
+        <TabControl label="Reload" onPress={() => stream.current?.reload()}>
+          <RefreshCw size={14} color={color} />
+        </TabControl>
         <TextInput
           accessibilityLabel="Browser address"
-          style={{ flex: 1, color, padding: 8 }}
+          selectTextOnFocus
+          style={{
+            flex: 1,
+            color,
+            borderWidth: 1,
+            borderColor: c.border,
+            borderRadius: 12,
+            paddingHorizontal: 9,
+            paddingVertical: 2,
+            fontSize: 14,
+          }}
           placeholder="Enter URL"
           value={address}
           onChangeText={setAddress}
           autoCapitalize="none"
           autoCorrect={false}
-          onSubmitEditing={() => stream.current?.navigate(address)}
+          keyboardType="url"
+          returnKeyType="go"
+          onFocus={() => {
+            editing.current = true;
+          }}
+          onBlur={() => {
+            editing.current = false;
+            setAddress(currentUrl.current);
+          }}
+          onSubmitEditing={(e) => {
+            const raw = e.nativeEvent.text.trim();
+            if (raw)
+              stream.current?.navigate(
+                /^https?:\/\//i.test(raw) ? raw : 'https://' + raw
+              );
+          }}
         />
+        <TabControl
+          label="Show web website view"
+          selected={!mobile}
+          onPress={() => setMobile(false)}
+        >
+          <Monitor size={14} color={!mobile ? c.bg : color} />
+        </TabControl>
+        <TabControl
+          label="Show mobile website view"
+          selected={mobile}
+          onPress={() => setMobile(true)}
+        >
+          <Smartphone size={14} color={mobile ? c.bg : color} />
+        </TabControl>
       </View>
-      <Pressable
-        accessibilityLabel="Desktop browser viewport"
-        style={{ flex: 1 }}
-        onLayout={(e) => {
-          const { width, height } = e.nativeEvent.layout;
-          if (width < 1 || height < 1) return;
-          size.current = {
-            width: Math.round(width),
-            height: Math.round(height),
-          };
-          stream.current?.resize(size.current.width, size.current.height);
-        }}
-        onPress={(e) =>
+      <BrowserViewport
+        key={String(mobile)}
+        uri={uri}
+        viewport={viewport}
+        onLayout={setViewport}
+        click={(x, y, right) => {
           stream.current?.click(
-            e.nativeEvent.locationX,
-            e.nativeEvent.locationY
-          )
-        }
-      >
-        {uri ? (
-          <Image
-            accessible={false}
-            pointerEvents="none"
-            style={{ width: '100%', height: '100%' }}
-            resizeMode="stretch"
-            source={{ uri }}
-          />
-        ) : null}
-      </Pressable>
+            x * scale,
+            y * scale,
+            modifiers,
+            right ? 'right' : 'left'
+          );
+          setModifiers([]);
+        }}
+        wheel={(dx, dy) => stream.current?.wheel(dx * scale, dy * scale)}
+      />
       {!!error && (
         <>
           <Text accessibilityRole="alert" style={{ color }}>
@@ -128,16 +208,70 @@ export function BrowserTab({ api, pair, layout, tab, color }: Props) {
           />
         </>
       )}
-      <View style={{ flexDirection: 'row' }}>
-        <TextInput
-          accessibilityLabel="Type on page"
-          placeholder="Type on page…"
-          value={text}
-          onChangeText={setText}
-          style={{ flex: 1, color, padding: 10 }}
-          onSubmitEditing={submit}
-        />
-        <Button title="Enter" onPress={submit} />
+      <View
+        style={{
+          backgroundColor: c.bg,
+          borderTopWidth: 1,
+          borderColor: c.border,
+          padding: 8,
+          gap: 4,
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          {['Cmd', 'Ctrl', 'Alt', 'Shift'].map((label) => (
+            <TabControl
+              key={label}
+              label={label}
+              selected={modifiers.includes(label.toLowerCase())}
+              onPress={() =>
+                setModifiers((m) =>
+                  m.includes(label.toLowerCase())
+                    ? m.filter((k) => k !== label.toLowerCase())
+                    : [...m, label.toLowerCase()]
+                )
+              }
+            />
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          {['Enter', 'Tab', 'Esc'].map((label) => (
+            <TabControl
+              key={label}
+              label={label}
+              onPress={() =>
+                stream.current?.key(label === 'Esc' ? 'Escape' : label)
+              }
+            />
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <TextInput
+            accessibilityLabel="Type on page"
+            placeholder="Type on page…"
+            value={text}
+            onChangeText={setText}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={{
+              flex: 1,
+              color,
+              borderWidth: 1,
+              borderColor: c.border,
+              borderRadius: 12,
+              paddingHorizontal: 9,
+              paddingVertical: 5,
+              fontSize: 15,
+            }}
+            onSubmitEditing={submit}
+          />
+          <TabControl
+            label="Send text to browser"
+            disabled={!text}
+            onPress={submit}
+          >
+            <ArrowUp size={18} color={color} />
+          </TabControl>
+        </View>
       </View>
     </View>
   );

@@ -12,6 +12,8 @@ pub struct Viewer {
     height: u32,
     permitted: bool,
     controlling: bool,
+    mobile: bool,
+    navigation: Option<Value>,
 }
 
 impl Service {
@@ -72,6 +74,8 @@ impl Service {
             height,
             permitted,
             controlling: false,
+            mobile: false,
+            navigation: (param("navigation") == Some("1")).then_some(Value::Null),
         };
         let unavailable = |e: AgentError| refuse(503, json!({"message":e.message()}));
         let pages = viewer.page("browser.pages", json!({})).map_err(unavailable)?;
@@ -100,16 +104,23 @@ impl Viewer {
             .run(&Op::PreviewPage { method, params })
     }
 
-    pub fn frame(&self) -> Result<Vec<u8>, AgentError> {
+    pub fn frame(&mut self) -> Result<(Vec<u8>, Option<Value>), AgentError> {
         let shot = self.page(
             "browser.frame",
-            json!({"width":self.width,"height":self.height,"quality":72,"mobile":false}),
+            json!({"width":self.width,"height":self.height,"quality":72,"mobile":self.mobile}),
         )?;
-        STANDARD
+        let jpeg = STANDARD
             .decode(shot["data"].as_str().unwrap_or_default())
             .ok()
             .filter(|b| b.starts_with(&[255, 216]))
-            .ok_or_else(|| AgentError::Failed("Executor returned an invalid preview image".into()))
+            .ok_or_else(|| AgentError::Failed("Executor returned an invalid preview image".into()))?;
+        let changed = self.navigation.as_mut().and_then(|last| {
+            let nav = shot.get("navigation")?;
+            if !nav.is_object() || *last == *nav { return None; }
+            *last = nav.clone();
+            Some(json!({"type":"navigation","url":nav["url"],"canGoBack":nav["can_go_back"],"canGoForward":nav["can_go_forward"]}))
+        });
+        Ok((jpeg, changed))
     }
 
     pub fn control(&self) -> Value {
@@ -177,8 +188,13 @@ impl Viewer {
                 if valid_dimensions(w, h) {
                     self.service.agent().run(&Op::Preview {method:"preview.resize",params:json!({"thread":self.thread,"tab":self.tab,"viewport":{"mode":"freeform","width":w,"height":h}})})?;
                     (self.width, self.height) = (w, h);
+                    self.mobile = msg["mobile"].as_bool().unwrap_or(false);
                     return Ok(Some(self.viewport()));
                 }
+            }
+            "mouse" if msg["action"] == "click" => {
+                let button = if msg["button"] == "right" { "right" } else { "left" };
+                self.page("browser.input", json!({"kind":"mouse_click","x":msg["x"],"y":msg["y"],"button":button,"modifiers":msg["modifiers"]}))?;
             }
             "mouse" => {
                 self.page(
@@ -210,7 +226,7 @@ impl Viewer {
             "key" if msg["action"] == "down" => {
                 self.page(
                     "browser.input",
-                    json!({"kind":"key_press","text":msg["key"]}),
+                    json!({"kind":"key_press","key":msg["key"]}),
                 )?;
             }
             "navigate" | "history" | "reload" => {

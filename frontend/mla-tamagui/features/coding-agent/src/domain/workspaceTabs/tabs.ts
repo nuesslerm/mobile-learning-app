@@ -31,16 +31,29 @@ export interface TerminalConnection {
   close(): void;
 }
 export interface BrowserConnection {
-  click(x: number, y: number): void;
+  click(
+    x: number,
+    y: number,
+    modifiers?: string[],
+    button?: 'left' | 'right'
+  ): void;
+  wheel(dx: number, dy: number): void;
+  reload(): void;
   text(text: string): void;
   key(key: string): void;
   navigate(url: string): void;
   history(delta: number): void;
-  resize(width: number, height: number): void;
+  resize(width: number, height: number, mobile?: boolean): void;
   close(): void;
 }
 export type TabAgent = { id: string; name: string; model: string };
 export interface WorkspaceTabsPort {
+  terminalImage(
+    pair: Pairing,
+    checkout: string,
+    jpeg: ArrayBuffer
+  ): Promise<string>;
+  transcribe(pair: Pairing, wav: ArrayBuffer): Promise<string>;
   agents(pair: Pairing): Promise<TabAgent[]>;
   startAgent(
     pair: Pairing,
@@ -82,6 +95,7 @@ export interface WorkspaceTabsPort {
     layout: WorkspaceLayout,
     tab: WorkspaceTab,
     frame: (uri: string) => void,
-    error: (message: string) => void
+    error: (message: string) => void,
+    navigation?: (url: string, back: boolean, forward: boolean) => void
   ): Promise<BrowserConnection>;
 }
