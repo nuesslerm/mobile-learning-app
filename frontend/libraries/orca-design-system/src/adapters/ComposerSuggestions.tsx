@@ -1,3 +1,4 @@
+import { BottomSheet } from './BottomSheet';
 import type {
   ComposerSuggestion,
   ComposerAddButtonProps,
@@ -8,7 +9,6 @@ import { Fragment, useEffect, useState } from 'react';
 import {
   Keyboard,
   Platform,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -52,29 +52,17 @@ export function ComposerAddButton({
       >
         <Plus size={19} color={colors.textPrimary} />
       </Pressable>
-      <Modal
+      <BottomSheet
         visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
+        onClose={() => setOpen(false)}
         onDismiss={onDismiss}
+        style={[
+          styles.sheet,
+          { backgroundColor: colors.sheetSurface, paddingBottom: bottom + 16 },
+        ]}
       >
-        <View style={styles.overlay}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss"
-            style={StyleSheet.absoluteFill}
-            onPress={() => setOpen(false)}
-          />
-          <View
-            style={[
-              styles.sheet,
-              {
-                backgroundColor: colors.sheetSurface,
-                paddingBottom: bottom + 16,
-              },
-            ]}
-          >
+        {(dismiss) => (
+          <>
             <View
               style={[styles.handle, { backgroundColor: colors.textMuted }]}
             />
@@ -92,10 +80,12 @@ export function ComposerAddButton({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={label}
-                    onPress={() => {
-                      setOpen(false);
-                      onSelect(kind);
-                    }}
+                    onPress={() =>
+                      dismiss(() => {
+                        onSelect(kind);
+                        setOpen(false);
+                      })
+                    }
                     style={styles.row}
                   >
                     <View style={styles.icon}>
@@ -112,9 +102,9 @@ export function ComposerAddButton({
                 </Fragment>
               ))}
             </View>
-          </View>
-        </View>
-      </Modal>
+          </>
+        )}
+      </BottomSheet>
     </>
   );
 }
@@ -177,12 +167,19 @@ export function ComposerSuggestionList({
   const commands = source.commands ?? [];
   const catalog = [
     ...commands,
-    ...entries.filter(row => !commands.some(command => command.token === row.token && row.kind === 'command')),
+    ...entries.filter(
+      (row) =>
+        !commands.some(
+          (command) => command.token === row.token && row.kind === 'command'
+        )
+    ),
   ];
   const matches = files
     ? entries
     : catalog.filter((row) =>
-        [row.token, ...(row.aliases ?? [])].some(name => name.toLowerCase().includes(query.toLowerCase()))
+        [row.token, ...(row.aliases ?? [])].some((name) =>
+          name.toLowerCase().includes(query.toLowerCase())
+        )
       );
   const narrowed = matches.filter(
     (row) => row.kind === (sigil === '$' ? 'skill' : kind)
@@ -223,16 +220,29 @@ export function ComposerSuggestionList({
                   accessibilityRole="button"
                   accessibilityLabel={row.token}
                   onPress={() => onPick(row)}
-                  style={({ pressed }) => [styles.suggestion, pressed && { backgroundColor: colors.bgRaised }]}
+                  style={({ pressed }) => [
+                    styles.suggestion,
+                    pressed && { backgroundColor: colors.bgRaised },
+                  ]}
                 >
-                  <Icon size={16} color={colors.textSecondary} style={styles.suggestionIcon} />
+                  <Icon
+                    size={16}
+                    color={colors.textSecondary}
+                    style={styles.suggestionIcon}
+                  />
                   <View style={styles.body}>
                     <View style={styles.nameLine}>
-                      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+                      <Text
+                        style={[styles.name, { color: colors.textPrimary }]}
+                        numberOfLines={1}
+                      >
                         {row.token}
                       </Text>
                       {!!row.hint && (
-                        <Text style={[styles.hint, { color: colors.textMuted }]} numberOfLines={1}>
+                        <Text
+                          style={[styles.hint, { color: colors.textMuted }]}
+                          numberOfLines={1}
+                        >
                           {row.hint}
                         </Text>
                       )}
@@ -240,7 +250,10 @@ export function ComposerSuggestionList({
                     {!!row.description && (
                       <Text
                         numberOfLines={2}
-                        style={[styles.description, { color: colors.textMuted }]}
+                        style={[
+                          styles.description,
+                          { color: colors.textMuted },
+                        ]}
                       >
                         {row.description}
                       </Text>
@@ -263,11 +276,6 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
     borderTopLeftRadius: 24,

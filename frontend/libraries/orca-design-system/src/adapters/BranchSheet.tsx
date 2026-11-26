@@ -1,9 +1,9 @@
+import { BottomSheet } from './BottomSheet';
 import type { SourceControlProps } from '@lib/agent-ui-contracts';
 import { Fragment } from 'react';
 import Check from 'lucide-react-native/dist/esm/icons/check.mjs';
 import {
   ActivityIndicator,
-  Modal,
   PanResponder,
   Pressable,
   ScrollView,
@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChatPalette } from './chatPalette';
-import { useReducedMotionEnabled } from './useReducedMotion';
 
 export function BranchSheet({
   branches,
@@ -28,37 +27,29 @@ export function BranchSheet({
   const colors = useChatPalette();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const reduced = useReducedMotionEnabled();
-  const handle = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gesture) => gesture.dy > 6,
-    onPanResponderRelease: (_, gesture) => {
-      if (gesture.dy > 40 || gesture.vy > 0.6) close();
-    },
-  });
+  const handle = (dismiss: () => void) =>
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => gesture.dy > 6,
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy > 40 || gesture.vy > 0.6) dismiss();
+      },
+    });
   return (
-    <Modal
-      transparent
-      animationType={reduced ? 'fade' : 'slide'}
-      onRequestClose={close}
+    <BottomSheet
+      label="Close branch picker"
+      onClose={close}
+      style={[
+        s.sheet,
+        {
+          backgroundColor: colors.sheetSurface,
+          maxHeight: height - insets.top - 16,
+          paddingBottom: insets.bottom + 16,
+        },
+      ]}
     >
-      <View style={s.anchor}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close branch picker"
-          style={s.backdrop}
-          onPress={close}
-        />
-        <View
-          style={[
-            s.sheet,
-            {
-              backgroundColor: colors.sheetSurface,
-              maxHeight: height - insets.top - 16,
-              paddingBottom: insets.bottom + 16,
-            },
-          ]}
-        >
-          <View style={s.handleArea} {...handle.panHandlers}>
+      {(dismiss) => (
+        <>
+          <View style={s.handleArea} {...handle(() => dismiss()).panHandlers}>
             <View style={[s.handle, { backgroundColor: colors.textMuted }]} />
           </View>
           <Text style={[s.title, { color: colors.textSecondary }]}>
@@ -81,7 +72,7 @@ export function BranchSheet({
                       accessibilityRole="button"
                       accessibilityLabel={name}
                       accessibilityState={{ selected: current === name }}
-                      onPress={() => select(name)}
+                      onPress={() => dismiss(() => select(name))}
                       style={[s.row, current === name && s.currentRow]}
                     >
                       <View style={s.label}>
@@ -130,15 +121,13 @@ export function BranchSheet({
           ) : (
             <ActivityIndicator style={s.note} color={colors.textMuted} />
           )}
-        </View>
-      </View>
-    </Modal>
+        </>
+      )}
+    </BottomSheet>
   );
 }
 
 const s = StyleSheet.create({
-  anchor: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.55)' },
   sheet: {
     width: '100%',
     maxWidth: 640,

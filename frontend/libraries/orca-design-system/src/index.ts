@@ -23,7 +23,10 @@ import { HomeAgentSection } from './adapters/HomeAgentSection';
 import { HomeSearchField } from './adapters/HomeSearchField';
 import { HomeActionSheet } from './adapters/HomeActionSheet';
 import { HomeSettingsRow } from './adapters/HomeSettingsRow';
-import { ComposerAddButton, ComposerSuggestionList } from './adapters/ComposerSuggestions';
+import {
+  ComposerAddButton,
+  ComposerSuggestionList,
+} from './adapters/ComposerSuggestions';
 import { ComposerOptions } from './adapters/ComposerOptions';
 import { Composer, ComposerSendButton } from './adapters/Composer';
 import { MessageBubble } from './adapters/MessageBubble';
@@ -35,19 +38,37 @@ import { NotificationChoices } from './core/NotificationChoices';
 import { OnboardingChoice } from './adapters/OnboardingChoice';
 
 export const orcaComponents: AgentComponents = {
-  SourceControl, PairedDesktops, WorkspaceActions, HostWorkspaceList, WorkspaceOptions, ComposerOptions,
-  PairingScreen, PairingCodeSheet,
+  SourceControl,
+  PairedDesktops,
+  WorkspaceActions,
+  HostWorkspaceList,
+  WorkspaceOptions,
+  ComposerOptions,
+  PairingScreen,
+  PairingCodeSheet,
   HomeSurface,
   HomeTabBar,
   HomeTabHeader,
   HomeEmptyState,
-  HomeSearchField, HomeAgentSection,
+  HomeSearchField,
+  HomeAgentSection,
   HomeActionSheet,
-  HomeSettingsRow, HomeSettingsGroup, HomeSettingsNote, HomeSettingsScreen,
+  HomeSettingsRow,
+  HomeSettingsGroup,
+  HomeSettingsNote,
+  HomeSettingsScreen,
   Composer,
-  ComposerSendButton, ComposerAddButton, ComposerSuggestionList,
-  SessionHeader, SessionTabsSheet, ChatMessageText, ChatMessageMeta, ChatToolActivity,
-  ChatSurface, ChatImage, ChatImageViewer,
+  ComposerSendButton,
+  ComposerAddButton,
+  ComposerSuggestionList,
+  SessionHeader,
+  SessionTabsSheet,
+  ChatMessageText,
+  ChatMessageMeta,
+  ChatToolActivity,
+  ChatSurface,
+  ChatImage,
+  ChatImageViewer,
   MessageBubble,
   BrandMark,
   PairDesktopButton,
@@ -64,6 +85,11 @@ export {
 } from './adapters/appearance';
 
 export { ChatTextContext, useChatText } from './adapters/chatText';
-export { ChatSizeControl, ChatSpacingControl } from './adapters/ChatTextControls';
+export {
+  ChatSizeControl,
+  ChatSpacingControl,
+} from './adapters/ChatTextControls';
 
 export { useChatPalette } from './adapters/chatPalette';
+
+export { BottomSheet } from './adapters/BottomSheet';

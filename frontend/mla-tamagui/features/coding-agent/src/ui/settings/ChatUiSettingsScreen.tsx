@@ -1,20 +1,14 @@
 import { useCodingAgentPorts } from '../../state/ports';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import {
+  BottomSheet,
   ChatSizeControl,
   ChatSpacingControl,
   useChatPalette,
   useChatText,
 } from '@lib/orca-design-system';
 import { useState } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OrcaSettingsScreen } from './OrcaSettingsScreen';
 
@@ -106,28 +100,16 @@ export function ChatUiSettingsScreen() {
         </HomeSettingsGroup>
       </View>
       {picking && (
-        <Modal
-          visible
-          transparent
-          animationType="none"
-          onRequestClose={() => setPicking(false)}
+        <BottomSheet
+          label="Dismiss Chat font"
+          onClose={() => setPicking(false)}
+          style={[
+            styles.sheet,
+            { paddingBottom: bottom + 16, backgroundColor: colors.bgRaised },
+          ]}
         >
-          <View style={styles.overlay}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Dismiss Chat font"
-              onPress={() => setPicking(false)}
-              style={StyleSheet.absoluteFill}
-            />
-            <View
-              style={[
-                styles.sheet,
-                {
-                  paddingBottom: bottom + 16,
-                  backgroundColor: colors.bgRaised,
-                },
-              ]}
-            >
+          {(dismiss) => (
+            <>
               <View
                 style={[styles.grabber, { backgroundColor: colors.textMuted }]}
               />
@@ -152,7 +134,7 @@ export function ChatUiSettingsScreen() {
                     accessibilityState={{ selected: value.font === font.value }}
                     onPress={() => {
                       update({ font: font.value });
-                      setPicking(false);
+                      dismiss();
                     }}
                     style={[
                       styles.fontRow,
@@ -186,9 +168,9 @@ export function ChatUiSettingsScreen() {
                   </Pressable>
                 ))}
               </View>
-            </View>
-          </View>
-        </Modal>
+            </>
+          )}
+        </BottomSheet>
       )}
     </OrcaSettingsScreen>
   );
@@ -215,11 +197,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 13,
     fontWeight: '500',
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
     borderTopLeftRadius: 22,

@@ -1,8 +1,7 @@
+import { BottomSheet } from './BottomSheet';
 import { useState } from 'react';
 import {
   Keyboard,
-  KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -29,32 +28,43 @@ function CodeEntry({
   const [focused, setFocused] = useState(false);
   const [hasKeyboard, setHasKeyboard] = useState(false);
   const surface = scheme === 'light' ? '#f5f5f5' : '#171717';
-  const cancel = () => { Keyboard.dismiss(); onCancel(); };
+  const cancel = () => {
+    Keyboard.dismiss();
+    onCancel();
+  };
   const valid = !!text.trim();
   const save = () => {
-    if (valid) { Keyboard.dismiss(); onSubmit(text.trim()); }
+    if (valid) {
+      Keyboard.dismiss();
+      onSubmit(text.trim());
+    }
   };
   return (
-    <Modal transparent animationType="fade" onRequestClose={cancel}>
-      <KeyboardAvoidingView
-        style={[sheet.overlay, Platform.OS === 'web' && { paddingBottom: keyboardInset }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable
-          style={sheet.backdrop}
-          accessibilityLabel="Dismiss"
-          onPress={cancel}
-        />
-        <View
-          style={[
-            sheet.panel,
-            {
+    <BottomSheet
+      avoidKeyboard
+      keyboardInset={Platform.OS === 'web' ? keyboardInset : undefined}
+      onClose={cancel}
+      style={[
+        sheet.panel,
+        {
+          backgroundColor: surface,
+          paddingBottom: Math.max(hasKeyboard ? 0 : bottomInset, 16),
+        },
+      ]}
+    >
+      {(dismiss) => (
+        <>
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: -500,
+              height: 500,
               backgroundColor: surface,
-              paddingBottom: Math.max(hasKeyboard ? 0 : bottomInset, 16),
-            },
-          ]}
-        >
-          <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: -500, height: 500, backgroundColor: surface }} />
+            }}
+          />
           <View style={[sheet.handle, { backgroundColor: colors.textMuted }]} />
           <View style={sheet.header}>
             <Text style={[sheet.title, { color: colors.textPrimary }]}>
@@ -64,14 +74,20 @@ function CodeEntry({
               Copy the code shown under the QR on your computer.
             </Text>
           </View>
-          <View style={[
-            sheet.field,
-            {
-              backgroundColor: scheme === 'light' ? colors.bgBase : '#1f1f1f',
-              borderColor: focused ? colors.accentBlue : '#737373',
-            },
-            focused && { outlineColor: colors.accentBlue, outlineStyle: 'solid', outlineWidth: 1 },
-          ]}>
+          <View
+            style={[
+              sheet.field,
+              {
+                backgroundColor: scheme === 'light' ? colors.bgBase : '#1f1f1f',
+                borderColor: focused ? colors.accentBlue : '#737373',
+              },
+              focused && {
+                outlineColor: colors.accentBlue,
+                outlineStyle: 'solid',
+                outlineWidth: 1,
+              },
+            ]}
+          >
             <TextInput
               autoFocus
               accessibilityLabel="Pairing code"
@@ -81,7 +97,9 @@ function CodeEntry({
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="done"
-              onSubmitEditing={save}
+              onSubmitEditing={() => {
+                if (valid) dismiss(save);
+              }}
               onFocus={() => {
                 setFocused(true);
                 setHasKeyboard(true);
@@ -99,7 +117,7 @@ function CodeEntry({
           <View style={sheet.actions}>
             <Pressable
               accessibilityRole="button"
-              onPress={cancel}
+              onPress={() => dismiss()}
               style={sheet.button}
             >
               <Text
@@ -115,7 +133,7 @@ function CodeEntry({
             <Pressable
               accessibilityRole="button"
               disabled={!valid}
-              onPress={save}
+              onPress={() => dismiss(save)}
               style={[
                 sheet.button,
                 {
@@ -135,18 +153,24 @@ function CodeEntry({
               </Text>
             </Pressable>
           </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        </>
+      )}
+    </BottomSheet>
   );
 }
 
 const sheet = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.55)' },
   panel: {
     borderCurve: 'continuous',
-    ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.2, shadowRadius: 10 }, android: {elevation: 8} }),
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+      },
+      android: { elevation: 8 },
+    }),
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 12,
@@ -189,5 +213,10 @@ const sheet = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
-  button: { borderCurve: 'continuous', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
+  button: {
+    borderCurve: 'continuous',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
 });

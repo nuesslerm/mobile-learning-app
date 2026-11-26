@@ -1,3 +1,4 @@
+import { BottomSheet } from '../BottomSheet';
 import type { ChatImageViewerProps } from '@lib/agent-ui-contracts';
 import { Copy, Download, Share } from 'lucide-react-native';
 import { Fragment, useEffect, useRef, useState } from 'react';
@@ -104,60 +105,60 @@ export function ViewerActions({
         </View>
       )}
       {open && (
-        <View accessibilityViewIsModal style={styles.overlay}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss image actions"
-            style={StyleSheet.absoluteFill}
-            onPress={() => setOpen(false)}
-          />
-          <View
-            style={[
-              styles.sheet,
-              {
-                paddingBottom: bottomInset + 16,
-                backgroundColor: colors.sheetSurface,
-              },
-            ]}
-          >
-            <View
-              style={[styles.handle, { backgroundColor: colors.textMuted }]}
-            />
-            <View style={[styles.group, { backgroundColor: colors.bgGroup }]}>
-              {rows
-                .filter((row) => actions[row.id])
-                .map((row, index) => (
-                  <Fragment key={row.id}>
-                    {index > 0 && (
-                      <View
-                        style={{
-                          height: StyleSheet.hairlineWidth,
-                          marginLeft: 52,
-                          backgroundColor: colors.borderSubtle,
-                        }}
-                      />
-                    )}
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => void run(row)}
-                      style={styles.row}
-                    >
-                      <View style={styles.leading}>
-                        <row.Icon
-                          size={16}
-                          strokeWidth={1.8}
-                          color={colors.textSecondary}
+        <BottomSheet
+          label="Dismiss image actions"
+          onClose={() => setOpen(false)}
+          style={[
+            styles.sheet,
+            {
+              paddingBottom: bottomInset + 16,
+              backgroundColor: colors.sheetSurface,
+            },
+          ]}
+        >
+          {(dismiss) => (
+            <>
+              <View
+                style={[styles.handle, { backgroundColor: colors.textMuted }]}
+              />
+              <View style={[styles.group, { backgroundColor: colors.bgGroup }]}>
+                {rows
+                  .filter((row) => actions[row.id])
+                  .map((row, index) => (
+                    <Fragment key={row.id}>
+                      {index > 0 && (
+                        <View
+                          style={{
+                            height: StyleSheet.hairlineWidth,
+                            marginLeft: 52,
+                            backgroundColor: colors.borderSubtle,
+                          }}
                         />
-                      </View>
-                      <Text style={{ fontSize: 15, color: colors.textPrimary }}>
-                        {row.label}
-                      </Text>
-                    </Pressable>
-                  </Fragment>
-                ))}
-            </View>
-          </View>
-        </View>
+                      )}
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => dismiss(() => void run(row))}
+                        style={styles.row}
+                      >
+                        <View style={styles.leading}>
+                          <row.Icon
+                            size={16}
+                            strokeWidth={1.8}
+                            color={colors.textSecondary}
+                          />
+                        </View>
+                        <Text
+                          style={{ fontSize: 15, color: colors.textPrimary }}
+                        >
+                          {row.label}
+                        </Text>
+                      </Pressable>
+                    </Fragment>
+                  ))}
+              </View>
+            </>
+          )}
+        </BottomSheet>
       )}
     </>
   );
@@ -171,11 +172,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
     borderTopLeftRadius: 24,

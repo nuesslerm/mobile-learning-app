@@ -1,5 +1,6 @@
+import { BottomSheet } from './BottomSheet';
 import type { ComposerOptionsProps } from '@lib/agent-ui-contracts';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import Check from 'lucide-react-native/dist/esm/icons/check.mjs';
 import ChevronLeft from 'lucide-react-native/dist/esm/icons/chevron-left.mjs';
 import ChevronRight from 'lucide-react-native/dist/esm/icons/chevron-right.mjs';
@@ -8,11 +9,7 @@ import Hand from 'lucide-react-native/dist/esm/icons/hand.mjs';
 import ShieldAlert from 'lucide-react-native/dist/esm/icons/shield-alert.mjs';
 import ShieldCheck from 'lucide-react-native/dist/esm/icons/shield-check.mjs';
 import {
-  Animated,
-  Easing,
-  Platform,
   Keyboard,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,7 +17,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useReducedMotionEnabled } from './useReducedMotion';
 import { useChatPalette } from './chatPalette';
 
 const permissionIcons = new Map([
@@ -34,7 +30,6 @@ type Choice = { slug: string; name: string };
 
 export function ComposerOptions(props: ComposerOptionsProps) {
   const colors = useChatPalette();
-  const reducedMotion = useReducedMotionEnabled();
   const { bottom } = useSafeAreaInsets();
   const [page, setPage] = useState<'Model' | 'Permissions' | 'Effort'>('Model');
   const [models, setModels] = useState<readonly Choice[]>();
@@ -64,54 +59,29 @@ export function ComposerOptions(props: ComposerOptionsProps) {
     setBusy(false);
     setError('');
     if (!opensEffort) load();
-    return () => { operation.current += 1; };
+    return () => {
+      operation.current += 1;
+    };
   }, [visible, load, opensEffort]);
   function returnToModels() {
     if (page === 'Effort') load();
     setPage('Model');
-  }
-  const progress = useRef(new Animated.Value(0)).current;
-  const closing = useRef(false);
-  const [sheetHeight, setSheetHeight] = useState(0);
-  const measured = sheetHeight > 0;
-  const offset = useMemo(() => progress.interpolate({
-    inputRange: [0, 1], outputRange: [sheetHeight, 0],
-  }), [progress, sheetHeight]);
-  useEffect(() => {
-    if (!visible) {
-      progress.setValue(0);
-      closing.current = false;
-      setSheetHeight(0);
-      return;
-    }
-    if (!measured || closing.current) return;
-    const animation = Animated.timing(progress, {
-      toValue: 1,
-      duration: reducedMotion ? 160 : 320,
-      easing: Easing.bezier(0.32, 0.72, 0, 1),
-      useNativeDriver: Platform.OS !== 'web',
-    });
-    animation.start();
-    return () => animation.stop();
-  }, [visible, measured, reducedMotion, progress]);
-
-  function close() {
-    if (closing.current) return;
-    closing.current = true;
-    Animated.timing(progress, {
-      toValue: 0,
-      duration: reducedMotion ? 120 : 200,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: Platform.OS !== 'web',
-    }).start(({ finished }) => { if (finished) onVisibleChange(false); });
   }
   function select(slug: string) {
     if (busy) return;
     setError('');
     setBusy(true);
     const request = ++operation.current;
-    const save = page === 'Effort' ? props.effort?.select : page === 'Model' ? props.setModel : props.setPermission;
-    if (!save) { setBusy(false); return; }
+    const save =
+      page === 'Effort'
+        ? props.effort?.select
+        : page === 'Model'
+          ? props.setModel
+          : props.setPermission;
+    if (!save) {
+      setBusy(false);
+      return;
+    }
     void save(slug).then(
       () => {
         if (request !== operation.current) return;
@@ -135,9 +105,18 @@ export function ComposerOptions(props: ComposerOptionsProps) {
     props.selectedModel && props.selectedModel !== 'default'
       ? (modelName ?? props.selectedModel)
       : 'Model';
-  const choices = page === 'Effort' ? props.effort?.choices : page === 'Permissions' ? props.permissions : models;
+  const choices =
+    page === 'Effort'
+      ? props.effort?.choices
+      : page === 'Permissions'
+        ? props.permissions
+        : models;
   const selected =
-    page === 'Effort' ? props.effort?.current : page === 'Permissions' ? props.permission : props.selectedModel;
+    page === 'Effort'
+      ? props.effort?.current
+      : page === 'Permissions'
+        ? props.permission
+        : props.selectedModel;
   return (
     <>
       <Pressable
@@ -158,32 +137,18 @@ export function ComposerOptions(props: ComposerOptionsProps) {
         </Text>
       </Pressable>
       {visible && (
-        <Modal
-          visible
-          transparent
-          animationType="none"
-          onRequestClose={close}
+        <BottomSheet
+          onClose={() => onVisibleChange(false)}
+          style={[
+            styles.sheet,
+            {
+              paddingBottom: bottom + 20,
+              backgroundColor: colors.sheetSurface,
+            },
+          ]}
         >
-          <View style={styles.overlay}>
-            <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: progress }]} />
-            <Pressable
-              accessibilityLabel="Dismiss"
-              accessibilityRole="button"
-              onPress={close}
-              style={StyleSheet.absoluteFill}
-            />
-            <Animated.View
-              onLayout={event => setSheetHeight(event.nativeEvent.layout.height)}
-              accessibilityViewIsModal
-              style={[
-                styles.sheet,
-                { opacity: reducedMotion ? progress : measured ? 1 : 0, transform: [{ translateY: reducedMotion ? 0 : offset }] },
-                {
-                  paddingBottom: bottom + 20,
-                  backgroundColor: colors.sheetSurface,
-                },
-              ]}
-            >
+          {(dismiss) => (
+            <>
               <View
                 style={[styles.handle, { backgroundColor: colors.textMuted }]}
               />
@@ -202,7 +167,7 @@ export function ComposerOptions(props: ComposerOptionsProps) {
                 <Pressable
                   accessibilityRole="button"
                   style={styles.done}
-                  onPress={close}
+                  onPress={() => dismiss()}
                 >
                   <Text style={[styles.heading, ink]}>Done</Text>
                 </Pressable>
@@ -350,9 +315,9 @@ export function ComposerOptions(props: ComposerOptionsProps) {
                   </>
                 )}
               </ScrollView>
-            </Animated.View>
-          </View>
-        </Modal>
+            </>
+          )}
+        </BottomSheet>
       )}
     </>
   );
@@ -370,11 +335,6 @@ const styles = StyleSheet.create({
     maxWidth: 180,
   },
   title: { fontSize: 15, fontWeight: '500' },
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: { backgroundColor: 'rgba(0,0,0,0.55)' },
   sheet: {
     maxHeight: '84%',
     paddingHorizontal: 12,

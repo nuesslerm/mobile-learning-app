@@ -1,5 +1,10 @@
 import { StyleSheet } from 'react-native';
-import { homePalettes, homeRadii, homeSpacing, useOrcaScheme } from './appearance';
+import {
+  homePalettes,
+  homeRadii,
+  homeSpacing,
+  useOrcaScheme,
+} from './appearance';
 
 function createStyles(
   colors: typeof homePalettes.light | typeof homePalettes.dark
@@ -58,19 +63,7 @@ function createStyles(
     },
     searchInput: { flex: 1, fontSize: 15, color: colors.textPrimary },
     searchClear: { padding: 4 },
-    sheetBackdrop: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    },
     sheet: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
       paddingVertical: homeSpacing.sm,
       paddingBottom: homeSpacing.xl,
       borderTopLeftRadius: homeRadii.surface,
@@ -108,8 +101,17 @@ function createStyles(
       justifyContent: 'center',
     },
     settingsLabel: { flex: 1, fontSize: 15, color: colors.textPrimary },
-    settingsValue: { fontSize: 15, color: colors.textSecondary, flexShrink: 1, maxWidth: 180 },
-    settingsAccessory: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+    settingsValue: {
+      fontSize: 15,
+      color: colors.textSecondary,
+      flexShrink: 1,
+      maxWidth: 180,
+    },
+    settingsAccessory: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
     settingsScreen: { flex: 1 },
     settingsNavBar: {
       alignItems: 'center',
@@ -128,9 +130,22 @@ function createStyles(
       alignItems: 'center',
       justifyContent: 'center',
     },
-    settingsNavTitle: { maxWidth: '62%', fontSize: 16, fontWeight: '600', color: colors.textPrimary },
-    settingsContent: { paddingHorizontal: homeSpacing.lg, paddingTop: homeSpacing.sm },
-    settingsNote: { fontSize: 13, lineHeight: 18, paddingHorizontal: homeSpacing.sm, paddingTop: homeSpacing.sm },
+    settingsNavTitle: {
+      maxWidth: '62%',
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    settingsContent: {
+      paddingHorizontal: homeSpacing.lg,
+      paddingTop: homeSpacing.sm,
+    },
+    settingsNote: {
+      fontSize: 13,
+      lineHeight: 18,
+      paddingHorizontal: homeSpacing.sm,
+      paddingTop: homeSpacing.sm,
+    },
   });
 }
 

@@ -1,10 +1,10 @@
+import { BottomSheet } from './BottomSheet';
 import type {
   WorkspaceOptionGroup,
   WorkspaceOptionsProps,
 } from '@lib/agent-ui-contracts';
 import { Fragment, useState } from 'react';
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckIcon, ChevronRightIcon, homeIcons } from './homeIcons';
 import { WorkspaceSwitch } from './WorkspaceSwitch';
 import { useChatPalette } from './chatPalette';
-import { useReducedMotionEnabled } from './useReducedMotion';
 
 function OptionGroup({
   group,
@@ -150,7 +149,6 @@ export function WorkspaceOptions(props: WorkspaceOptionsProps) {
   const colors = useChatPalette();
   const { top, bottom } = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const reduced = useReducedMotionEnabled();
   const [rootHeight, setRootHeight] = useState(0);
   const maxHeight = height - top - 12;
   const Options = homeIcons.options;
@@ -167,37 +165,27 @@ export function WorkspaceOptions(props: WorkspaceOptionsProps) {
         <Options size={20} color={colors.textPrimary} />
       </Pressable>
       {props.visible && (
-        <Modal
-          transparent
-          visible
-          animationType={reduced ? 'fade' : 'slide'}
-          onRequestClose={props.page ? props.onBack : props.onClose}
+        <BottomSheet
+          onClose={props.onClose}
+          onBack={props.page ? props.onBack : undefined}
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.sheetSurface,
+              maxHeight,
+              paddingBottom: bottom + 28,
+            },
+            props.page && rootHeight > 0
+              ? { minHeight: Math.min(rootHeight, maxHeight) }
+              : undefined,
+          ]}
+          onLayout={(event) => {
+            if (!props.page && !props.loading && props.groups.length)
+              setRootHeight(event.nativeEvent.layout.height);
+          }}
         >
-          <View style={styles.overlay}>
-            <Pressable
-              accessibilityLabel="Dismiss"
-              accessibilityRole="button"
-              style={StyleSheet.absoluteFill}
-              onPress={props.onClose}
-            />
-            <View
-              accessibilityViewIsModal
-              style={[
-                styles.sheet,
-                {
-                  backgroundColor: colors.sheetSurface,
-                  maxHeight,
-                  paddingBottom: bottom + 28,
-                },
-                props.page && rootHeight > 0
-                  ? { minHeight: Math.min(rootHeight, maxHeight) }
-                  : undefined,
-              ]}
-              onLayout={(event) => {
-                if (!props.page && !props.loading && props.groups.length)
-                  setRootHeight(event.nativeEvent.layout.height);
-              }}
-            >
+          {(dismiss) => (
+            <>
               <View
                 style={[styles.handle, { backgroundColor: colors.textMuted }]}
               />
@@ -242,7 +230,7 @@ export function WorkspaceOptions(props: WorkspaceOptionsProps) {
                 <Pressable
                   style={styles.right}
                   accessibilityRole="button"
-                  onPress={props.onClose}
+                  onPress={() => dismiss()}
                 >
                   <Text style={[styles.title, ink]}>Done</Text>
                 </Pressable>
@@ -285,9 +273,9 @@ export function WorkspaceOptions(props: WorkspaceOptionsProps) {
                   )
                 )}
               </ScrollView>
-            </View>
-          </View>
-        </Modal>
+            </>
+          )}
+        </BottomSheet>
       )}
     </>
   );
@@ -302,11 +290,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
     paddingHorizontal: 12,

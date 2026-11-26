@@ -1,11 +1,10 @@
+import { BottomSheet } from './BottomSheet';
 import type { WorkspaceActionsProps } from '@lib/agent-ui-contracts';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
   Keyboard,
-  KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -25,20 +24,16 @@ import Pencil from 'lucide-react-native/dist/esm/icons/pencil.mjs';
 import Pin from 'lucide-react-native/dist/esm/icons/pin.mjs';
 import PinOff from 'lucide-react-native/dist/esm/icons/pin-off.mjs';
 import { useChatPalette } from './chatPalette';
-import { useReducedMotionEnabled } from './useReducedMotion';
 
 export function WorkspaceActions(props: WorkspaceActionsProps) {
   const colors = useChatPalette();
   const ReadIcon = props.unread ? BellOff : Bell;
   const { bottom } = useSafeAreaInsets();
-  const reduced = useReducedMotionEnabled();
   const [renaming, setRenaming] = useState(false);
   const input = useRef<TextInputInstance>(null);
-  const backdropPressed = useRef(false);
   const [sheet, setSheet] = useState<ComponentRef<typeof View> | null>(null);
   useEffect(() => {
-    if (Platform.OS !== 'web' || !(sheet instanceof HTMLElement))
-      return;
+    if (Platform.OS !== 'web' || !(sheet instanceof HTMLElement)) return;
     const element = sheet;
     let pressed: Element | null = null;
     const control = (event: Event) =>
@@ -91,50 +86,20 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
     if (!props.saving) props.onRename(draft.trim());
   };
   return (
-    <Modal
-      visible
-      transparent
-      animationType={reduced ? 'fade' : 'slide'}
-      onRequestClose={props.onClose}
+    <BottomSheet
+      onClose={props.onClose}
+      avoidKeyboard
+      panelRef={Platform.OS === 'web' ? setSheet : undefined}
+      style={[
+        styles.sheet,
+        {
+          backgroundColor: colors.sheetSurface,
+          paddingBottom: (keyboardShowing ? 0 : bottom) + 16,
+        },
+      ]}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss"
-          onPointerDown={() => {
-            backdropPressed.current = true;
-          }}
-          onPointerCancel={() => {
-            backdropPressed.current = false;
-          }}
-          onPress={(event) => {
-            // Browsers can send the row’s trailing click to the newly opened backdrop.
-            const keyboardClick =
-              'detail' in event.nativeEvent && event.nativeEvent.detail === 0;
-            if (
-              Platform.OS !== 'web' ||
-              backdropPressed.current ||
-              keyboardClick
-            )
-              props.onClose();
-            backdropPressed.current = false;
-          }}
-          style={StyleSheet.absoluteFill}
-        />
-        <View
-          ref={Platform.OS === 'web' ? setSheet : undefined}
-          accessibilityViewIsModal
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.sheetSurface,
-              paddingBottom: (keyboardShowing ? 0 : bottom) + 16,
-            },
-          ]}
-        >
+      {(dismiss) => (
+        <>
           <View
             style={[
               styles.handle,
@@ -251,7 +216,7 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
                 <Pressable
                   disabled={props.saving}
                   accessibilityRole="button"
-                  onPress={props.onClose}
+                  onPress={() => dismiss()}
                   style={styles.button}
                 >
                   <Text style={muted}>Cancel</Text>
@@ -282,7 +247,7 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
                   accessibilityRole="button"
                   disabled={props.saving}
                   style={styles.row}
-                  onPress={props.onSourceControl}
+                  onPress={() => dismiss(props.onSourceControl)}
                 >
                   <GitBranch size={16} color={colors.textSecondary} />
                   <Text style={[styles.rowLabel, ink]}>Source Control</Text>
@@ -359,17 +324,12 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
               {props.error}
             </Text>
           )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        </>
+      )}
+    </BottomSheet>
   );
 }
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
