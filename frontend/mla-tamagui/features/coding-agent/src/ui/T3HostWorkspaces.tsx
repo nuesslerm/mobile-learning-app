@@ -1,3 +1,4 @@
+import { useCodingAgentPorts } from '../state/ports';
 import { AvailabilityNotice } from './AvailabilityNotice';
 import { useAgentComponents, type HostWorkspaceListProps } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
@@ -6,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Pairing } from '../domain/mobile';
 import { WorktreeMissing, RcaUnavailable, type T3MobilePort } from '../domain/t3Mobile';
 import {
-  chatRoute,
+  chatRoute, workspaceTabRoute,
   resolveWorkspaceStatus,
   desktopPlatform,
   type CheckoutSessions,
@@ -40,6 +41,7 @@ export function T3HostWorkspaces({
   onCatalogUpdated: (next: WorkspaceCatalog) => void;
   onBack: () => void;
 }) {
+  const { workspaceTabs } = useCodingAgentPorts();
   const { HostWorkspaceList, WorkspaceActions } = useAgentComponents();
   const [preferences, setPreferences] = useState<WorkspacePreferences>();
   const disclosure = useWorkspaceDisclosure(api, pair);
@@ -155,6 +157,15 @@ export function T3HostWorkspaces({
     try {
       const found = await api.checkoutSessions(pair, id, controller.signal);
       if (controller.signal.aborted) return;
+      if(workspaceTabs) {
+        const resourceTabs = await workspaceTabs.layout(pair, id);
+        if(controller.signal.aborted) return;
+        if(resourceTabs.active || !found.sessions.length) {
+          setSelected(undefined);
+          router.push(workspaceTabRoute(id,row.name));
+          return;
+        }
+      }
       if (found.active) {
         setSelected(undefined);
         router.push(chatRoute(found.active, row.name, row.id));

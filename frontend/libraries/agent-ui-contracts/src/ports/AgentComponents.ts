@@ -3,7 +3,7 @@ import type { HostWorkspaceListProps, WorkspaceActionsProps } from './HostWorksp
 import type { WorkspaceOptionsProps } from './WorkspaceOptions';
 import type { PairingScreenProps, PairingCodeSheetProps } from './PairingComponents';
 import type { ComponentType, ReactNode } from 'react';
-import type { ComposerOptionsProps, SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
+import type { ComposerOptionsProps, NewTabSheetProps, SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
 export interface OnboardingChoiceProps {
   label: string;
@@ -221,6 +221,7 @@ export interface AgentComponents {
   WorkspaceOptions: ComponentType<WorkspaceOptionsProps>;
   PairingScreen: ComponentType<PairingScreenProps>;
   PairingCodeSheet: ComponentType<PairingCodeSheetProps>;
+  NewTabSheet: ComponentType<NewTabSheetProps>;
   SessionTabsSheet: ComponentType<SessionTabsSheetProps>;
   SessionHeader: ComponentType<SessionHeaderProps>;
   ChatMessageText: ComponentType<ChatMessageTextProps>;

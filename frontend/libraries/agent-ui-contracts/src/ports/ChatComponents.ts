@@ -115,9 +115,21 @@ export interface SessionHeaderProps {
   onBack: () => void;
   onReconnect: () => void;
   onShowTabs: () => void;
+  onNewTab?: () => void;
+}
+
+export interface NewTabSheetProps {
+  workspace: string;
+  bottomInset: number;
+  agents: readonly { id: string; name: string }[];
+  onClose: () => void;
+  onAgent: (id: string) => void;
+  onCreate: (kind: 'terminal' | 'browser' | 'markdown', url?: string) => void;
 }
 
 export interface SessionTabsSheetProps {
+  closeableIds?: readonly string[];
+  onCloseTab?: (id: string) => void;
   visible: boolean;
   workspace: string;
   sessions: readonly { id: string; title: string }[];

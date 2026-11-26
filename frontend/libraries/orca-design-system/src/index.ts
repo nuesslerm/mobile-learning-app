@@ -3,6 +3,7 @@ import { SourceControl } from './adapters/SourceControl';
 import { WorkspaceActions } from './adapters/WorkspaceActions';
 import { HostWorkspaceList } from './adapters/HostWorkspaceList';
 import { WorkspaceOptions } from './adapters/WorkspaceOptions';
+import { NewTabSheet } from './adapters/NewTabSheet';
 import { SessionTabsSheet } from './adapters/SessionTabsSheet';
 import { SessionHeader } from './adapters/SessionHeader';
 import { ChatMessageText } from './adapters/ChatMessageText';
@@ -62,6 +63,7 @@ export const orcaComponents: AgentComponents = {
   ComposerAddButton,
   ComposerSuggestionList,
   SessionHeader,
+  NewTabSheet,
   SessionTabsSheet,
   ChatMessageText,
   ChatMessageMeta,

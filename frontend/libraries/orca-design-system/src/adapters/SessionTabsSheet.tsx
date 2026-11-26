@@ -1,6 +1,6 @@
 import { BottomSheet } from './BottomSheet';
 import type { SessionTabsSheetProps } from '@lib/agent-ui-contracts';
-import { Check, SquareTerminal } from 'lucide-react-native';
+import { Check, SquareTerminal, X } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { homePalettes, useOrcaScheme } from './appearance';
 
@@ -54,12 +54,13 @@ export function SessionTabsSheet(props: SessionTabsSheetProps) {
                       ]}
                     />
                   )}
+                  <View style={{flexDirection:"row", alignItems:"center"}}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityState={{ selected: tab.id === props.activeId }}
                     accessibilityLabel={tab.title}
                     onPress={() => dismiss(() => props.onSelect(tab.id))}
-                    style={styles.row}
+                    style={[styles.row,{flex:1}]}
                   >
                     <View
                       style={[
@@ -79,6 +80,9 @@ export function SessionTabsSheet(props: SessionTabsSheetProps) {
                       <Check size={17} color={colors.accentBlue} />
                     )}
                   </Pressable>
+                  {props.closeableIds?.includes(tab.id) && <Pressable accessibilityRole="button" accessibilityLabel={'Close ' + tab.title}
+                    style={{padding:12}} onPress={() => props.onCloseTab?.(tab.id)}><X size={16} color={colors.textSecondary}/></Pressable>}
+                  </View>
                 </View>
               ))}
             </ScrollView>

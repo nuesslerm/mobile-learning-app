@@ -1,3 +1,4 @@
+import type { WorkspaceTabsPort } from './workspaceTabs/tabs';
 import type { ChatTextPreference } from '@lib/agent-ui-contracts';
 import type { ChatImageFile, ImageActions } from './imageActions';
 import type { T3MobilePort } from './t3Mobile';
@@ -141,6 +142,7 @@ export type CodingAgentPorts = {
   copyMessage(text: string): Promise<boolean>;
   pairingCamera: PairingCameraPort;
   t3Mobile?: T3MobilePort;
+  workspaceTabs?: WorkspaceTabsPort;
   mobile?: MobilePort;
   orchestration: OrchestrationPort;
   dispatchRuns: DispatchRunsPort;

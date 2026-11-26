@@ -1,3 +1,4 @@
+import { createWorkspaceTabsApi } from '../data/t3/workspaceTabs';
 import { ChatTextGate } from './ChatTextGate';
 import { imageActionsFor } from '../data/imageActions';
 import { copyMessage } from '../data/copyMessage';
@@ -43,6 +44,7 @@ export function createDefaultPorts(
     imageActionsFor: overrides.imageActionsFor ?? imageActionsFor,
     copyMessage: overrides.copyMessage ?? copyMessage,
     pairingCamera: overrides.pairingCamera ?? pairingCamera,
+    workspaceTabs: overrides.workspaceTabs ?? (overrides.t3Mobile ? undefined : createWorkspaceTabsApi()),
     t3Mobile: overrides.t3Mobile ?? createT3MobileApi(),
     mobile:
       overrides.mobile ??

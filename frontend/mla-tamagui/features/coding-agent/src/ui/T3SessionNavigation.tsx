@@ -1,4 +1,6 @@
-import { chatRoute, type CheckoutRow } from '../domain/workspaceCatalog';
+import { useCodingAgentPorts } from '../state/ports';
+import type { WorkspaceTab } from '../domain/workspaceTabs/tabs';
+import { workspaceTabRoute, chatRoute, type CheckoutRow } from '../domain/workspaceCatalog';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { AvailabilityNotice } from './AvailabilityNotice';
 import { Logger } from '@lib/logging';
@@ -58,6 +60,21 @@ export function T3SessionNavigation({
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [revision, setRevision] = useState(0);
+  const { workspaceTabs } = useCodingAgentPorts();
+  const [resources, setResources] = useState<WorkspaceTab[]>([]);
+  const resourceCheckout = currentCheckout?.id;
+  useFocusEffect(useCallback(() => {
+    let current = true;
+    setResources([]);
+    if (workspaceTabs && pair && connected && resourceCheckout) {
+      workspaceTabs.layout(pair, resourceCheckout).then(layout => {
+        if (current) setResources(layout.tabs);
+      }).catch(cause => {
+        if (current) Logger.withError(cause).warn('coding_agent.chat_resource_tabs_failed');
+      });
+    }
+    return () => { current = false; };
+  }, [workspaceTabs, pair, connected, resourceCheckout, revision]));
   const selection = useRef(0);
   useEffect(() => () => { selection.current += 1; }, [session]);
   const dismiss = () => {
@@ -90,6 +107,18 @@ export function T3SessionNavigation({
   const workspace = currentCheckout?.name ?? checkout ?? context?.workspace ?? 'Terminal';
   async function selectTab(next: string) {
     const request = ++selection.current;
+    if (workspaceTabs && pair && resourceCheckout && resources.some(tab => tab.id === next)) {
+      try {
+        await workspaceTabs.layout(pair, resourceCheckout, { action: 'select', id: next });
+        if (request !== selection.current) return;
+        dismiss();
+        router.replace(workspaceTabRoute(resourceCheckout, workspace));
+      } catch (cause) {
+        Logger.withError(cause).warn('coding_agent.open_resource_tab_failed');
+        if (request === selection.current) setError('Could not open the selected tab.');
+      }
+      return;
+    }
     if (next !== id && tabs.find((tab) => tab.id === next)?.needsProjection) {
       if (!session) {
         setError('Reconnect to open this tab.');
@@ -120,11 +149,12 @@ export function T3SessionNavigation({
         branch={currentCheckout?.branch}
         connected={connected}
         topInset={top}
-        tabCount={sessions.length}
+        tabCount={sessions.length + resources.length}
         onBack={onBack}
         onReconnect={onReconnect}
         onOpenSourceControl={pair && !missing ? () => router.push('/coding-agent/source-control?thread=' + encodeURIComponent(id) +
           (checkoutId ? '&checkoutId=' + encodeURIComponent(checkoutId) : '')) : undefined}
+        onNewTab={currentCheckout && !missing ? () => router.push(workspaceTabRoute(currentCheckout.id, workspace, true)) : undefined}
         onShowTabs={() => {
           setOpen(true);
           refresh();
@@ -136,7 +166,7 @@ export function T3SessionNavigation({
           visible
           workspace={workspace}
           activeId={id}
-          sessions={sessions}
+          sessions={[...sessions, ...resources]}
           bottomInset={bottom}
           error={error || undefined}
           onRetry={refresh}

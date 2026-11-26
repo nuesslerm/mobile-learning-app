@@ -1,4 +1,4 @@
-import { ChevronLeft, GitBranch, SquareTerminal } from 'lucide-react-native';
+import { ChevronLeft, GitBranch, Plus, SquareTerminal } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SessionHeaderProps } from '@lib/agent-ui-contracts';
 import { SessionWorkspaceTitle } from './SessionWorkspaceTitle';
@@ -78,6 +78,9 @@ export function SessionHeader(props: SessionHeaderProps) {
             <Text style={[styles.count, ink]}>{props.tabCount}</Text>
           </View>
         </Pressable>
+        {props.onNewTab && <Pressable accessibilityRole="button" accessibilityLabel="New Tab" style={styles.countCell} onPress={props.onNewTab}>
+          <Plus size={18} color={colors.textPrimary} />
+        </Pressable>}
       </View>
     </View>
   );

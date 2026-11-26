@@ -1,3 +1,4 @@
+import { WorkspaceTabsScreen } from './workspaceTabs/WorkspaceTabsScreen';
 import { AvailabilityNotice } from './AvailabilityNotice';
 import { T3HostWorkspaces } from './T3HostWorkspaces';
 import { desktopSummary } from '../domain/workspaceCatalog';
@@ -28,11 +29,12 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
   const { ChatSurface, Composer, PairedDesktops, HostWorkspaceList } = useAgentComponents();
-  const { host, checkout, checkoutId } = useLocalSearchParams<{
-    host?: string;
+  const { workspace: workspaceMode, newTab, host, checkout, checkoutId } = useLocalSearchParams<{
+    workspace?:string; newTab?:string; host?: string;
     checkout?: string;
     checkoutId?: string;
   }>();
+  const { workspaceTabs } = useCodingAgentPorts();
   const hostOpen = host === '1' && !threadId;
   const state = useT3Mobile(api, hostOpen, threadId, checkoutId);
   const [checkoutMissing, setCheckoutMissing] = useState(false);
@@ -49,6 +51,8 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
         }}
       />
     );
+  if (workspaceMode === '1' && checkoutId && workspaceTabs && state.pair)
+    return <WorkspaceTabsScreen key={checkoutId} api={workspaceTabs} mobile={api} pair={state.pair} checkout={checkoutId} name={checkout ?? checkoutId} showNew={newTab==='1'} onBack={goBack}/>;
   if (hostOpen && state.pair !== null && !state.catalog)
     return (
       <HostWorkspaceList

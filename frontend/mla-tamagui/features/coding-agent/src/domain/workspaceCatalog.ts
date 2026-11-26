@@ -69,3 +69,7 @@ export function desktopSummary(home: HomeSummary) {
   const worktrees = count + (count === 1 ? ' worktree' : ' worktrees');
   return [worktrees, desktopPlatform(home.host.os)].filter(Boolean).join(' · ');
 }
+
+export function workspaceTabRoute(id: string, name: string, openSheet = false) {
+  return '/coding-agent?workspace=1&checkoutId=' + encodeURIComponent(id) + '&checkout=' + encodeURIComponent(name) + (openSheet ? '&newTab=1' : '');
+}

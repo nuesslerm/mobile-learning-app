@@ -1,10 +1,10 @@
+import { authorization, HttpError, json } from './http';
 import { checkoutPullRequest, checkoutBranches, checkoutFile, checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
 import { checkoutRow, checkoutSessions, desktopAgents, homeSummary, workspaceCatalog, workspaceStatuses } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
 import { z } from 'zod';
-import type { Pairing } from '../../domain/mobile';
-import { RcaUnavailable, WorktreeMissing, type T3MobilePort } from '../../domain/t3Mobile';
+import { WorktreeMissing, type T3MobilePort } from '../../domain/t3Mobile';
 import { readPairing, savePairing } from '../rca/credentials';
 import { endpoint } from '../rca/endpoint';
 import { boundedSchema, openConversation, threadSchema } from './session';
@@ -13,47 +13,6 @@ const key = 'rca.mobile.connection.t3.v2';
 const shellSchema = z.object({
   projects: z.array(z.object({ id: z.string(), title: z.string() })),
   threads: z.array(threadSchema),
-});
-
-class HttpError extends Error {
-  constructor(readonly status: number) {
-    super('The server declined the request (HTTP ' + status + ').');
-  }
-}
-
-async function json(base: string, path: string, init?: RequestInit) {
-  const controller = new AbortController();
-  const cancel = () => controller.abort();
-  const signal = init?.signal;
-  if (signal?.aborted) cancel();
-  signal?.addEventListener('abort', cancel);
-  const timeout = setTimeout(cancel, 15000);
-  let response: Response;
-  try {
-    response = await fetch(base + path, { ...init, signal: controller.signal });
-  } catch (cause) {
-    if (signal?.aborted) throw cause;
-    throw new RcaUnavailable();
-  } finally {
-    clearTimeout(timeout);
-    signal?.removeEventListener('abort', cancel);
-  }
-  if ([502, 503, 504].includes(response.status)) throw new RcaUnavailable();
-  if (!response.ok) {
-    if (response.status === 404 && path.startsWith('/api/mobile/source-control/checkout?')) {
-      const body = await response.json().catch((cause: unknown) => {
-        if (cause instanceof SyntaxError) return null;
-        throw cause;
-      });
-      if (body?.code === 'CHECKOUT_NOT_FOUND') throw new WorktreeMissing();
-    }
-    throw new HttpError(response.status);
-  }
-  return response.json() as Promise<unknown>;
-}
-
-const authorization = (pair: Pairing) => ({
-  Authorization: 'Bearer ' + pair.token,
 });
 
 const disclosureRoute = '/api/mobile/workspace-disclosure';
