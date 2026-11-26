@@ -22,18 +22,6 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const ink = { color: c.textPrimary };
   const muted = { color: c.textSecondary };
-  const pinned = props.rows.filter((row) => row.pinned);
-  const sections = [
-    ...(pinned.length
-      ? [{ key: 'pinned', label: 'Pinned', rows: pinned, Icon: Pin }]
-      : []),
-    {
-      key: 'rows',
-      label: props.group,
-      rows: props.rows.filter((row) => !row.pinned),
-      Icon: Folder,
-    },
-  ];
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: c.bgBase }]}>
       <View style={styles.nav}>
@@ -59,26 +47,31 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
             <Text style={[styles.metadata, muted]}>{props.platform}</Text>
           </View>
         )}
-        {sections.map(({ key, label, rows, Icon }) => (
+        {props.sections.map(({ key, label, rows, icon }) => (
           <View key={key}>
             {label && (
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={label + ' ' + rows.length}
                 accessibilityState={{ expanded: !collapsed[key] }}
                 style={styles.group}
                 onPress={() =>
                   setCollapsed((old) => ({ ...old, [key]: !old[key] }))
                 }
               >
-                {collapsed[key] ? (
-                  <ChevronRightIcon size={13} color={c.textMuted} />
-                ) : (
-                  <ChevronDown size={13} color={c.textMuted} />
-                )}
-                <Icon size={15} color={c.textMuted} />
-                <Text style={[styles.groupText, muted]}>
-                  {label} {rows.length}
+                <View style={styles.disclosure}>
+                  {collapsed[key] ? (
+                    <ChevronRightIcon size={12} color={c.textMuted} />
+                  ) : (
+                    <ChevronDown size={12} color={c.textMuted} />
+                  )}
+                </View>
+                {icon === 'pin' && <Pin size={12} color={c.textMuted} />}
+                {icon === 'folder' && <Folder size={15} color={c.textMuted} />}
+                <Text style={[styles.groupText, muted, icon && { marginLeft: 4 }]}>
+                  {label}
                 </Text>
+                <Text style={[styles.count, { color: c.textMuted }]}>{rows.length}</Text>
               </Pressable>
             )}
             {(!label || !collapsed[key]) &&
@@ -130,10 +123,17 @@ export function HostWorkspaceList(props: HostWorkspaceListProps) {
                     )}
                   </View>
                   <View style={[styles.body, { borderColor: c.borderSubtle }]}>
-                    <Text numberOfLines={1} style={[styles.name, ink]}>
-                      {row.name}
-                    </Text>
-                    {row.detail && (
+                    <View style={styles.nameRow}>
+                      {row.projectInTitle && <Folder size={11} color={c.textMuted} />}
+                      <Text numberOfLines={1} style={[styles.name, ink]}>{row.name}</Text>
+                    </View>
+                    {row.project ? (
+                      <View style={styles.projectDetail}>
+                        <Folder size={11} color={c.textMuted} />
+                        <Text numberOfLines={1} style={[styles.project, muted]}>{row.project}</Text>
+                        {row.detail && <Text numberOfLines={1} style={[styles.projectBranch, { color: c.textMuted }]}>{row.detail}</Text>}
+                      </View>
+                    ) : row.detail && (
                       <Text numberOfLines={1} style={[styles.branch, muted]}>
                         {row.detail}
                       </Text>
@@ -210,13 +210,17 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4 },
   metadata: { fontSize: 12 },
   group: {
-    marginHorizontal: 22,
+    marginHorizontal: 18,
     height: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
   },
+  disclosure: { width: 20, alignItems: 'center', marginRight: 8 },
   groupText: { fontSize: 13, fontWeight: '500' },
+  count: { fontSize: 13, marginLeft: 6 },
+  projectDetail: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  project: { fontSize: 11, maxWidth: 100 },
+  projectBranch: { fontSize: 11, fontFamily: 'monospace', flex: 1 },
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingLeft: 24 },
   indicators: { marginTop: 19, width: 8, alignItems: 'center' },
   rowDot: { opacity: 0.4 },
@@ -229,7 +233,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  name: { fontSize: 15, fontWeight: '600' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  name: { flexShrink: 1, fontSize: 14, fontWeight: '600' },
   branch: { fontFamily: 'monospace', fontSize: 11, marginTop: 3 },
   notice: { margin: 16, fontSize: 15 },
   toolbar: { flexDirection: 'row', alignItems: 'center', paddingRight: 14 },

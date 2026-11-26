@@ -1,4 +1,4 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useAgentComponents, type HostWorkspaceListProps } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -6,6 +6,7 @@ import type { Pairing } from '../domain/mobile';
 import type { T3MobilePort } from '../domain/t3Mobile';
 import {
   chatRoute,
+  resolveWorkspaceStatus,
   desktopPlatform,
   type CheckoutSessions,
   type WorkspaceCatalog,
@@ -44,6 +45,25 @@ export function T3HostWorkspaces({
   const [statusPicker, setStatusPicker] = useState<{ choices?: WorkspaceStatus[]; selected?: string; failed: boolean }>();
   const statusRequest = useRef<AbortController | undefined>(undefined);
   useEffect(() => () => statusRequest.current?.abort(), []);
+  const groupByStatus = preferences?.groupBy === 'workspace-status';
+  const [statusGroups, setStatusGroups] = useState<WorkspaceStatus[]>();
+  const [groupError, setGroupError] = useState(false);
+  const [groupRetry, setGroupRetry] = useState(0);
+  useEffect(() => {
+    setStatusGroups(undefined);
+    setGroupError(false);
+    if (!groupByStatus) return;
+    const controller = new AbortController();
+    api.workspaceStatuses(pair, controller.signal).then(choices => {
+      if (!controller.signal.aborted) setStatusGroups(choices);
+    }).catch(cause => {
+      if (controller.signal.aborted) return;
+      Logger.withError(cause).warn('coding_agent.t3.status_groups_failed');
+      setGroupError(true);
+    });
+    return () => controller.abort();
+  }, [api, pair, groupByStatus, groupRetry]);
+
   async function openStatuses() {
     if (!actionRow) return;
     statusRequest.current?.abort();
@@ -54,8 +74,11 @@ export function T3HostWorkspaces({
     try {
       const choices = await api.workspaceStatuses(pair, controller.signal);
       if (controller.signal.aborted) return;
-      const selected = choices.find(s => s.id === actionRow.workspaceStatus)
-        ?? choices.find(s => s.id === 'in-progress') ?? choices[0];
+      if (groupByStatus) {
+        setStatusGroups(choices);
+        setGroupError(false);
+      }
+      const selected = resolveWorkspaceStatus(choices, actionRow.workspaceStatus);
       setStatusPicker({ choices, selected: selected?.id, failed: false });
     } catch (cause) {
       if (controller.signal.aborted) return;
@@ -135,10 +158,10 @@ export function T3HostWorkspaces({
       <HostWorkspaceList
         key={selected.id}
         title={selected.name}
-        rows={(sessions?.sessions ?? []).map((s) => ({
+        sections={[{ key: 'chats', rows: (sessions?.sessions ?? []).map((s) => ({
           id: s.id,
           name: s.title,
-        }))}
+        })) }]}
         notice={
           error ||
           (!sessions
@@ -172,22 +195,39 @@ export function T3HostWorkspaces({
     rows.sort(
       (a, b) => Number(b.main) - Number(a.main) || a.name.localeCompare(b.name)
     );
+  type Section = HostWorkspaceListProps['sections'][number];
+  const sections: Section[] = [];
+  const pinned: Section = { key: 'pinned', label: 'Pinned', icon: 'pin', rows: [] };
+  const byStatus = new Map<string, Section>();
+  for (const status of statusGroups ?? []) {
+    byStatus.set(status.id, { key: 'workspace-status:' + status.id, label: status.label, rows: [] });
+  }
+  const projectGroup = preferences?.groupBy === 'repo';
+  const other: Section = { key: 'rows', label: projectGroup ? catalog.repo : undefined,
+    icon: projectGroup ? 'folder' : undefined, rows: [] };
+  for (const row of rows) {
+    const status = groupByStatus && statusGroups && resolveWorkspaceStatus(statusGroups, row.workspaceStatus);
+    const section = row.pinned ? pinned : (status && byStatus.get(status.id)) || other;
+    const detailed = preferences?.cardLayout !== 'compact';
+    section.rows.push({
+      id: row.id, name: row.name, unread: row.unread,
+      project: detailed && groupByStatus ? catalog.repo : undefined,
+      projectInTitle: !detailed && groupByStatus,
+      detail: detailed ? row.branch ?? undefined : undefined,
+    });
+  }
+  if (pinned.rows.length) sections.push(pinned);
+  for (const section of byStatus.values()) {
+    if (section.rows.length) sections.push(section);
+  }
+  if (other.rows.length || projectGroup) sections.push(other);
   return (
     <>
       <HostWorkspaceList
         title={catalog.host.name}
         platform={desktopPlatform(catalog.host.os)}
-        group={preferences?.groupBy === 'repo' ? catalog.repo : undefined}
-        rows={rows.map((r) => ({
-          id: r.id,
-          name: r.name,
-          pinned: r.pinned,
-          unread: r.unread,
-          detail:
-            preferences?.cardLayout === 'compact'
-              ? undefined
-              : (r.branch ?? undefined),
-        }))}
+        sections={sections}
+        retry={groupError ? () => setGroupRetry(n => n + 1) : undefined}
         onActions={(id) => {
           setMutationError('');
           statusRequest.current?.abort();
@@ -196,7 +236,7 @@ export function T3HostWorkspaces({
         }}
         onSelect={(id) => void open(id)}
         notice={
-          catalogError ?? (rows.length
+          catalogError ?? (groupError ? 'Could not load status groups.' : undefined) ?? (rows.length
             ? undefined
             : query
               ? 'No matching workspaces.'

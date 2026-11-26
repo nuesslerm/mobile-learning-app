@@ -51,7 +51,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
     return (
       <HostWorkspaceList
         title="Workspaces"
-        rows={[]}
+        sections={[]}
         notice={state.error || 'Loading workspaces…'}
         retry={state.error ? state.retry : undefined}
         onBack={goBack}

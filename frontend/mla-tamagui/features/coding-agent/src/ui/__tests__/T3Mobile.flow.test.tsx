@@ -551,6 +551,44 @@ describe('Orca chat with the T3 transport', () => {
     expect(edit).toHaveBeenCalledWith(expect.anything(), 'repo::/fixture', { workspaceStatus: 'review' });
   });
 
+  it('Given saved Status grouping, when the reader collapses and searches, then host-ordered nonempty groups count only visible unpinned checkouts', async () => {
+    const port = backend();
+    const preferences = await port.workspacePreferences(pair, new AbortController().signal);
+    const rows = [
+      { name: 'Core changes', workspaceStatus: 'review' },
+      { name: 'Core tests' },
+      { name: 'Docs', workspaceStatus: 'retired' },
+      { name: 'Pinned tests', pinned: true },
+    ];
+    await app.render('/coding-agent', { search: { host: '1' }, overrides: { 'coding-agent': {
+      t3Mobile: {
+        ...port,
+        workspacePreferences: async () => ({ ...preferences, groupBy: 'workspace-status' }),
+        workspaceStatuses: async () => [
+          { id: 'review', label: 'Peer review' }, { id: 'in-progress', label: 'Building' },
+          { id: 'done', label: 'Shipped' },
+        ],
+        workspaces: async () => ({
+          host: { name: 'Fixture Mac', os: 'darwin' }, repo: 'Fixture repository',
+          checkouts: rows.map(row => ({ id: row.name, main: false, branch: null, ...row })),
+        }),
+      },
+    } } });
+    const building = await screen.findByRole('button', { name: 'Building 2' });
+    const review = screen.getByRole('button', { name: 'Peer review 1' });
+    expect(review.compareDocumentPosition(building) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText('Shipped')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pinned 1' })).toBeTruthy();
+    await userEvent.click(building);
+    expect(screen.queryByRole('button', { name: 'Docs' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Core tests' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Core changes' })).toBeTruthy();
+    await userEvent.click(building);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search workspaces' }), 'Core');
+    expect(await screen.findByRole('button', { name: 'Building 1' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Pinned 1' })).toBeNull();
+  });
+
   it('Given a checkout, when the reader marks it unread and then read, then the reopened menu offers the reverse action', async () => {
     const port = backend();
     await app.render('/coding-agent', {search:{host:'1'}, overrides:{'coding-agent':{t3Mobile:port}}});

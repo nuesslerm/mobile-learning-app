@@ -3,8 +3,12 @@ import type { ReactNode } from 'react';
 export interface HostWorkspaceListProps {
   title: string;
   platform?: string;
-  group?: string;
-  rows: { id: string; name: string; detail?: string; pinned?: boolean; unread?: boolean }[];
+  sections: {
+    key: string;
+    label?: string;
+    icon?: 'pin' | 'folder';
+    rows: { id: string; name: string; detail?: string; project?: string; projectInTitle?: boolean; unread?: boolean }[];
+  }[];
   search?: { value: string; onChange: (value: string) => void };
   options?: ReactNode;
   notice?: string;

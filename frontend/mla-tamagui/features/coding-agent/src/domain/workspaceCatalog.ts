@@ -11,6 +11,12 @@ export type CheckoutEdit = { displayName: string } | { isPinned: boolean } | { i
 export const workspaceStatuses = z.array(z.object({ id: z.string(), label: z.string() }));
 export type WorkspaceStatus = z.infer<typeof workspaceStatuses>[number];
 
+export function resolveWorkspaceStatus(statuses: WorkspaceStatus[], id?: string) {
+  return statuses.find(status => status.id === id)
+    ?? statuses.find(status => status.id === 'in-progress')
+    ?? statuses[0];
+}
+
 const desktopHost = z.object({ name: z.string(), os: z.string() });
 export const homeSummary = z.object({
   host: desktopHost,

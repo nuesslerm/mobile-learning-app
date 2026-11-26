@@ -1,0 +1,50 @@
+{
+  "expo": [
+    {
+      "state": "expanded",
+      "bounds": [
+        35,
+        574,
+        485,
+        645
+      ],
+      "pixels": 31950,
+      "changed": 4748
+    },
+    {
+      "state": "collapsed",
+      "bounds": [
+        35,
+        574,
+        485,
+        645
+      ],
+      "pixels": 31950,
+      "changed": 4758
+    }
+  ],
+  "tuned": [
+    {
+      "state": "expanded",
+      "bounds": [
+        35,
+        574,
+        485,
+        645
+      ],
+      "pixels": 31950,
+      "changed": 2747
+    },
+    {
+      "state": "collapsed",
+      "bounds": [
+        35,
+        574,
+        485,
+        645
+      ],
+      "pixels": 31950,
+      "changed": 2743
+    }
+  ]
+}
