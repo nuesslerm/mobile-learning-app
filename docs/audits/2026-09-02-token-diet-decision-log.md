@@ -3832,3 +3832,5 @@ Same iPhone 15 Pro preset, focused Expo chat, 852 CSS px viewport. The software 
 ### 2026-11-26 — Holding a checkout on the RCA iPhone
 
 One 800 ms stationary gesture on the same checkout in the installed Orca app took 826 ms through idb swipe and left the list visible. The iOS bridge sent a touch held for the same duration through idb tap in 824 ms and opened the checkout menu. Use a held touch for identical endpoints. [Runbook and captures](../plans/orca-mobile-interface/reference/ios/checkout-settings/README.md).
+
+2026-11-26 — Hosted CI check names. PR #103 showed three successful shard 2/6 core checks with one distinct name. Applying the six hosted workflows’ existing area_phase prefixes to that sample gives three distinct names. Keep the short prefix on caller jobs and the stage and shard on the called jobs.
