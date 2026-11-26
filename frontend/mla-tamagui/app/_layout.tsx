@@ -121,7 +121,7 @@ export default function RootLayout() {
             <DeviceRunnerRoot>
             <PreparedEditorPages getSource={editorPageSource}>
             <ThemeProvider value={navigationTheme}>
-            <Stack>
+            <Stack screenOptions={{ orientation: 'portrait' }}>
               {/* `title` even though the header is hidden: a child route's
                   back button labels itself from its PARENT's title, so without
                   it the button reads "(app)" -- the route-group directory name

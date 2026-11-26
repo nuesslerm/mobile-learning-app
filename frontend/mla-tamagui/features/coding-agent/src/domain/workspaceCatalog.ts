@@ -49,11 +49,11 @@ export type WorkspaceCatalog = z.infer<typeof workspaceCatalog>;
 export type CheckoutSessions = z.infer<typeof checkoutSessions>;
 
 export function chatRoute(thread: string, checkout?: string, checkoutId?: string) {
-  const route = '/coding-agent/' + encodeURIComponent(thread);
+  const route = `/coding-agent/${encodeURIComponent(thread)}` as const;
   const params = [];
   if (checkout) params.push('checkout=' + encodeURIComponent(checkout));
   if (checkoutId) params.push('checkoutId=' + encodeURIComponent(checkoutId));
-  return params.length ? route + '?' + params.join('&') : route;
+  return params.length ? `${route}?${params.join('&')}` as const : route;
 }
 
 const platformNames: Record<string, string> = {
@@ -71,5 +71,5 @@ export function desktopSummary(home: HomeSummary) {
 }
 
 export function workspaceTabRoute(id: string, name: string, openSheet = false) {
-  return '/coding-agent?workspace=1&checkoutId=' + encodeURIComponent(id) + '&checkout=' + encodeURIComponent(name) + (openSheet ? '&newTab=1' : '');
+  return `/coding-agent?workspace=1&checkoutId=${encodeURIComponent(id)}&checkout=${encodeURIComponent(name)}${openSheet ? '&newTab=1' : ''}` as const;
 }

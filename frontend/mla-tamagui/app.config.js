@@ -31,7 +31,7 @@ function expoConfig(_config) {
       name: 'mla-tamagui',
       slug: 'mla-tamagui',
       version: pkg.version,
-      orientation: 'portrait',
+      orientation: 'default',
       icon: './assets/images/icon.png',
       scheme: 'mla-tamagui',
       userInterfaceStyle: 'automatic',

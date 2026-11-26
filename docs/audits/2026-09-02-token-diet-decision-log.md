@@ -3838,3 +3838,7 @@ One 800 ms stationary gesture on the same checkout in the installed Orca app too
 ## 2026-11-26 · Mimic preview viewer upgrade
 
 One T3 0.1.9 preview viewer per build, through the loopback recording proxy. The original build recorded six interactions and a failed viewer handshake. The revised build recorded seven interactions, including the second WebSocket with two JPEG frames and one client acknowledgement. The local proxy flow suite passed 15 cases in 2.22 s. Keep the upstream upgrade deadline separate from the 100 ms frame polling interval.
+
+### Workspace browser rotation on iOS
+
+One landscape rotation on the booted rca simulator took 0.41 seconds through the active XCTest session. The Expo accessibility tree measured 956 × 440 points and the desktop browser fixture remained visible. Keep the session operation for device rotation checks.

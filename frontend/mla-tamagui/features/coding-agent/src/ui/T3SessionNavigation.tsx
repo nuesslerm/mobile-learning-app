@@ -152,8 +152,7 @@ export function T3SessionNavigation({
         tabCount={sessions.length + resources.length}
         onBack={onBack}
         onReconnect={onReconnect}
-        onOpenSourceControl={pair && !missing ? () => router.push('/coding-agent/source-control?thread=' + encodeURIComponent(id) +
-          (checkoutId ? '&checkoutId=' + encodeURIComponent(checkoutId) : '')) : undefined}
+        onOpenSourceControl={pair && !missing ? () => router.push(`/coding-agent/source-control?thread=${encodeURIComponent(id)}${checkoutId ? '&checkoutId=' + encodeURIComponent(checkoutId) : ''}`) : undefined}
         onNewTab={currentCheckout && !missing ? () => router.push(workspaceTabRoute(currentCheckout.id, workspace, true)) : undefined}
         onShowTabs={() => {
           setOpen(true);

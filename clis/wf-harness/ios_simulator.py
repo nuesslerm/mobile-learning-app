@@ -289,6 +289,7 @@ def main():
     target.add_argument("--stop-automation", metavar="UDID")
     target.add_argument("--build-input", action="store_true")
     target.add_argument("--fresh", metavar="NAME")
+    prepare_verb.add_argument("--orientation", choices=("portrait", "landscape-left", "landscape-right"))
     prepare_verb.add_argument("--apps-from", metavar="DEVICE")
     prepare_verb.add_argument("--app", action="append", default=[], metavar="BUNDLE")
     prepare_verb.add_argument("--scheme", action="append", default=[], metavar="SCHEME=BUNDLE")
@@ -300,6 +301,14 @@ def main():
     args = parser.parse_args()
     if args.verb == "prepare":
         sys.path.insert(0, str(Path(__file__).resolve().parent / "src/ios"))
+        if args.orientation:
+            if not args.device:
+                parser.error("--orientation requires --device UDID")
+            import xcui
+            session = json.loads(xcui.state_file(args.device).read_text())
+            xcui.call(Path(session["folder"]), "orientation", value=args.orientation)
+            print(json.dumps({"device": args.device, "orientation": args.orientation}))
+            return 0
         if args.stop_automation:
             import xcui
             xcui.stop(args.stop_automation)

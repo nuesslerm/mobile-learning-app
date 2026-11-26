@@ -51,6 +51,12 @@ final class InputTests: XCTestCase {
                     let found = button.exists
                     if found { button.tap() }
                     result = ["value": found]
+                case "orientation":
+                    let orientations: [String: UIDeviceOrientation] = [
+                        "portrait": .portrait, "landscape-left": .landscapeLeft, "landscape-right": .landscapeRight,
+                    ]
+                    XCUIDevice.shared.orientation = try XCTUnwrap(orientations[message["value"] ?? ""])
+                    result = ["value": true]
                 case "text":
                     typeText(try XCTUnwrap(message["text"]))
                     result = ["value": true]
