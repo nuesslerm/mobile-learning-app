@@ -74,6 +74,9 @@ fn serve(mut stream: TcpStream, log: Arc<Mutex<Vec<Seen>>>) {
     let target = parts.next().unwrap_or("/").to_string();
     let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_lowercase(), v.trim().to_string())).collect();
     if headers.iter().any(|(k, v)| k == "upgrade" && v.eq_ignore_ascii_case("websocket")) {
+        if target == "/slow-preview" {
+            std::thread::sleep(Duration::from_millis(350));
+        }
         let _ = write!(stream, "HTTP/1.1 101 Switching Protocols\r\nupgrade: websocket\r\nconnection: Upgrade\r\nsec-websocket-accept: fixture\r\n\r\n");
         socket(stream, rest);
         return;
@@ -378,6 +381,18 @@ fn a_request_that_closes_the_connection_and_names_no_length_is_answered() {
     assert_eq!(request["method"], json!("GET"));
     assert_eq!(request["route"], json!("/health"));
     assert_eq!(request["body"], json!({"kind": "empty"}));
+}
+
+#[test]
+fn given_a_preview_that_starts_before_upgrade_when_the_client_connects_then_the_proxy_records_its_socket() {
+    let dir = tempfile::tempdir().unwrap();
+    let fixture = start_fixture();
+    let mut proxy = Proxy::start(fixture.addr, dir.path());
+    let mut client = Client::open(proxy.addr, "/slow-preview");
+    client.close();
+    proxy.wait_for(|lines| !of_kind(lines, "ws.open").is_empty());
+    proxy.stop();
+    assert_eq!(of_kind(&proxy.lines(), "ws.open")[0]["status"], 101);
 }
 
 #[test]

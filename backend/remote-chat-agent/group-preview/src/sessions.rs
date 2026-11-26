@@ -102,6 +102,7 @@ impl Previews {
             return Err(Previews::limit(message::thread_limit(&p.thread)));
         }
         let view = SessionView {
+            runtime: p.runtime,
             thread: p.thread,
             tab: self.ids.id("tab"),
             nav: p.url.map_or(Nav::Idle {}, |url| Nav::Loading { url, title: String::new() }),

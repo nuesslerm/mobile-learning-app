@@ -89,7 +89,7 @@
       }
     },
     {
-      "name": "refuses a field it does not know, such as the runtime of another app",
+      "name": "returns the selected server runtime in the tab snapshot",
       "request": {
         "id": 1,
         "method": "preview.open",
@@ -100,9 +100,21 @@
       },
       "response": {
         "id": 1,
-        "error": {
-          "code": "INVALID_PARAMS",
-          "message": "unknown field `runtime`, expected one of `thread`, `url`, `viewport`, `profile`, `reveal`"
+        "result": {
+          "session": {
+            "thread": "t1",
+            "runtime": "server",
+            "tab": "tab-2",
+            "nav": {
+              "state": "idle"
+            },
+            "can_go_back": false,
+            "can_go_forward": false,
+            "viewport": {
+              "mode": "fill"
+            },
+            "updated_ms": 1
+          }
         }
       }
     }

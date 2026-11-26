@@ -19,6 +19,7 @@ const OP_PING: u8 = 9;
 const OP_PONG: u8 = 10;
 /// How long a read of an ordinary exchange waits for the other side. A slow client is a broken one.
 const READ_TIMEOUT: Duration = Duration::from_secs(5);
+const UPGRADE_TIMEOUT: Duration = Duration::from_secs(60);
 /// How long a socket's read waits before the pump looks at the stop flag.
 const PUMP_TIMEOUT: Duration = Duration::from_millis(100);
 
@@ -205,7 +206,8 @@ fn socket(
             return Ok(());
         }
     };
-    up.set_read_timeout(Some(PUMP_TIMEOUT))?;
+    // A preview server can start Chromium before it accepts the upgrade.
+    up.set_read_timeout(Some(UPGRADE_TIMEOUT))?;
     up.set_write_timeout(Some(READ_TIMEOUT))?;
     let skip = |k: &str| matches!(k, "host" | "connection" | "sec-websocket-extensions");
     up.write_all(&whole(format!("{}Host: {upstream}\r\nConnection: Upgrade\r\n\r\n", head.text(&skip)), &rest))?;
@@ -227,6 +229,7 @@ fn socket(
     sink(Event::WsOpen { connection, target, status });
     let skip = |k: &str| matches!(k, "connection" | "keep-alive");
     client.write_all(format!("{}Connection: Upgrade\r\n\r\n", answer.text(&skip)).as_bytes())?;
+    up.set_read_timeout(Some(PUMP_TIMEOUT))?;
     client.set_read_timeout(Some(PUMP_TIMEOUT))?;
     client.set_write_timeout(Some(READ_TIMEOUT))?;
     let (mut client_in, mut up_in) = (client.try_clone()?, up.try_clone()?);
@@ -237,6 +240,7 @@ fn socket(
         let _ = up_in.shutdown(Shutdown::Write);
     });
     let _ = pump(&mut up, &mut client, early, Dir::S2c, to_client, stop, connection);
+    let _ = client.shutdown(Shutdown::Write);
     sink(Event::WsClose { connection, direction: None, code: None });
     let _ = service.join();
     Ok(())

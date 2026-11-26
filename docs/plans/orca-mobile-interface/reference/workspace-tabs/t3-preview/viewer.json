@@ -1,0 +1,143 @@
+{
+  "effects": [],
+  "id": "c02",
+  "input": {
+    "connection": "c2",
+    "seq": 16
+  },
+  "op": "ws",
+  "outcome": {
+    "status": "ok"
+  },
+  "row": "ws:/api/preview-stream/ws",
+  "steps": [
+    {
+      "channel": "ws:open",
+      "dir": "s2c",
+      "kind": "json",
+      "payload": {
+        "path": "/api/preview-stream/ws?threadId=278c5395-e353-4139-a4c4-ee513b7cc56f&tabId=tab_6_df5887d4-b940-4503-b596-57974e07a32e&maxWidth=390&maxHeight=680&wsTicket=fx-ticket-2",
+        "status": 101
+      }
+    },
+    {
+      "channel": "ws",
+      "dir": "s2c",
+      "kind": "json",
+      "payload": {
+        "canOperate": true,
+        "controller": "you",
+        "dialog": null,
+        "generation": 1,
+        "type": "control"
+      }
+    },
+    {
+      "channel": "ws",
+      "dir": "s2c",
+      "kind": "json",
+      "payload": {
+        "height": 800,
+        "type": "viewport",
+        "width": 1280
+      }
+    },
+    {
+      "channel": "ws",
+      "dir": "s2c",
+      "kind": "binary",
+      "len": 883,
+      "payload": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAD0AYYDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/ALMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/2Q=="
+    },
+    {
+      "channel": "ws",
+      "dir": "c2s",
+      "kind": "json",
+      "payload": {
+        "type": "ack"
+      }
+    },
+    {
+      "channel": "ws",
+      "dir": "s2c",
+      "kind": "binary",
+      "len": 883,
+      "payload": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAD0AYYDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/ALMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/2Q=="
+    },
+    {
+      "channel": "ws:close",
+      "dir": "c2s",
+      "kind": "json",
+      "payload": {
+        "code": null,
+        "reason": "",
+        "tcp": false
+      }
+    },
+    {
+      "channel": "ws:close",
+      "dir": "s2c",
+      "kind": "json",
+      "payload": {
+        "code": null,
+        "reason": "",
+        "tcp": false
+      }
+    },
+    {
+      "channel": "ws:close",
+      "dir": "s2c",
+      "kind": "json",
+      "payload": {
+        "code": null,
+        "reason": "",
+        "tcp": true
+      }
+    }
+  ],
+  "mimicCapture": {
+    "source": "Loopback reverse proxy against packaged T3 0.1.9",
+    "events": [
+      {
+        "direction": "s2c",
+        "payload": {
+          "canOperate": true,
+          "controller": "you",
+          "dialog": null,
+          "generation": 1,
+          "type": "control"
+        }
+      },
+      {
+        "direction": "s2c",
+        "payload": {
+          "height": 800,
+          "type": "viewport",
+          "width": 1280
+        }
+      },
+      {
+        "direction": "s2c",
+        "payload": {
+          "format": "jpeg",
+          "length": 883,
+          "sha256": "69251b64ce903b0947590e4ef79d1b6a4720b9b717eb345443ad709e2323e691"
+        }
+      },
+      {
+        "direction": "c2s",
+        "payload": {
+          "type": "ack"
+        }
+      },
+      {
+        "direction": "s2c",
+        "payload": {
+          "format": "jpeg",
+          "length": 883,
+          "sha256": "69251b64ce903b0947590e4ef79d1b6a4720b9b717eb345443ad709e2323e691"
+        }
+      }
+    ]
+  }
+}

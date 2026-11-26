@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn given_the_kinds_of_event_when_built_then_each_names_the_tab_the_epoch_and_the_revision_it_is() {
-        let view = SessionView { thread: "t".into(), tab: "tab-1".into(), nav: Nav::Idle {}, can_go_back: false, can_go_forward: false, viewport: Viewport::Fill {}, color_scheme: None, zoom: None, profile: None, reveal: None, updated_ms: 5 };
+        let view = SessionView { runtime: None, thread: "t".into(), tab: "tab-1".into(), nav: Nav::Idle {}, can_go_back: false, can_go_forward: false, viewport: Viewport::Fill {}, color_scheme: None, zoom: None, profile: None, reveal: None, updated_ms: 5 };
         let opened = session_event(2, kind::OPENED, "e1", &view, None).to_value();
         assert_eq!((opened["event"]["type"].clone(), opened["event"]["revision"].clone(), opened["event"]["epoch"].clone(), opened["event"]["session"]["tab"].clone()), (json!("preview.opened"), json!(2), json!("e1"), json!("tab-1")));
         assert!(opened["event"].get("request").is_none());

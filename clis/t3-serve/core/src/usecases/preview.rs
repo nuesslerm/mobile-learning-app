@@ -98,7 +98,7 @@ pub fn snapshot_from_agent(session: &Value) -> Value {
         "canGoBack": session["can_go_back"], "canGoForward": session["can_go_forward"], "viewport": viewport_from_agent(&session["viewport"]),
         "updatedAt": iso(session["updated_ms"].as_i64().unwrap_or(0)),
     });
-    for (from, to) in [("color_scheme", "colorScheme"), ("zoom", "zoomFactor"), ("profile", "profileId"), ("reveal", "reveal")] {
+    for (from, to) in [("runtime", "runtime"), ("color_scheme", "colorScheme"), ("zoom", "zoomFactor"), ("profile", "profileId"), ("reveal", "reveal")] {
         if !session[from].is_null() {
             out[to] = session[from].clone();
         }
@@ -167,7 +167,7 @@ impl Service {
         if let Some(viewport) = payload.get("viewport").filter(|v| !v.is_null()) {
             params["viewport"] = viewport_to_agent(viewport)?;
         }
-        for (from, to) in [("profileId", "profile"), ("reveal", "reveal")] {
+        for (from, to) in [("runtime", "runtime"), ("profileId", "profile"), ("reveal", "reveal")] {
             if let Some(value) = payload.get(from).filter(|v| !v.is_null()) {
                 params[to] = value.clone();
             }

@@ -145,10 +145,19 @@ pub enum Clear {
     Cache,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Runtime {
+    Desktop,
+    Server,
+}
+
 /// A tab, as `preview.open`, `preview.resize`, `preview.adjust` and `preview.list` answer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SessionView {
     pub thread: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime: Option<Runtime>,
     pub tab: String,
     pub nav: Nav,
     pub can_go_back: bool,
@@ -171,6 +180,8 @@ pub struct SessionView {
 pub struct OpenParams {
     #[serde(default)]
     pub thread: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime: Option<Runtime>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -356,7 +367,8 @@ mod tests {
     fn given_open_and_adjust_params_when_read_then_unknown_fields_bad_zoom_and_missing_threads_are_refused() {
         assert_eq!(OpenParams::parse(&json!({"thread": "t", "url": "http://a.test/", "viewport": {"mode": "fill"}})).unwrap().viewport, Some(Viewport::Fill {}));
         assert_eq!(OpenParams::parse(&json!({"url": "http://a.test/"})).unwrap_err().0, "thread must be 1 to 128 characters");
-        assert!(OpenParams::parse(&json!({"thread": "t", "runtime": "server"})).unwrap_err().0.contains("unknown field `runtime`"));
+        assert_eq!(OpenParams::parse(&json!({"thread": "t", "runtime": "server"})).unwrap().runtime, Some(Runtime::Server));
+        assert!(OpenParams::parse(&json!({"thread": "t", "runtime": "other"})).is_err());
         assert_eq!(AdjustParams::parse(&json!({"thread": "t", "tab": "a", "zoom": 1.3})).unwrap_err().0, "zoom must be one of the zoom levels");
         assert_eq!(AdjustParams::parse(&json!({"thread": "t", "tab": "a", "zoom": 1.25, "clear": "cache"})).unwrap().clear, Some(Clear::Cache));
         assert!(ReportParams::parse(&json!({"thread": "t", "tab": "a", "nav": {"state": "loading", "url": "data:x"}, "can_go_back": false, "can_go_forward": false})).is_err());
@@ -364,7 +376,7 @@ mod tests {
 
     #[test]
     fn given_a_session_when_encoded_then_the_fields_keep_the_contract_names_and_unset_ones_are_absent() {
-        let view = SessionView { thread: "t".into(), tab: "tab-1".into(), nav: Nav::Idle {}, can_go_back: false, can_go_forward: false, viewport: Viewport::Fill {}, color_scheme: None, zoom: None, profile: None, reveal: None, updated_ms: 9 };
+        let view = SessionView { runtime: None, thread: "t".into(), tab: "tab-1".into(), nav: Nav::Idle {}, can_go_back: false, can_go_forward: false, viewport: Viewport::Fill {}, color_scheme: None, zoom: None, profile: None, reveal: None, updated_ms: 9 };
         assert_eq!(serde_json::to_string(&view).unwrap(), r#"{"thread":"t","tab":"tab-1","nav":{"state":"idle"},"can_go_back":false,"can_go_forward":false,"viewport":{"mode":"fill"},"updated_ms":9}"#);
         assert_eq!(METHODS.len(), 6);
     }

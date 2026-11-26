@@ -34,7 +34,7 @@ fn previews() -> (Arc<Previews>, Arc<FakeClock>) {
 }
 
 fn open(p: &Previews, thread: &str, url: Option<&str>) -> tabs::SessionView {
-    p.open(OpenParams { thread: thread.into(), url: url.map(str::to_string), viewport: None, profile: None, reveal: None }).unwrap()
+    p.open(OpenParams { runtime: None, thread: thread.into(), url: url.map(str::to_string), viewport: None, profile: None, reveal: None }).unwrap()
 }
 
 #[test]
@@ -159,11 +159,11 @@ fn given_as_many_tabs_as_allowed_when_one_more_is_opened_then_it_is_refused_for_
         open(&p, "t", None);
     }
     // When it opens one more, and other threads fill the service
-    let thread_full = p.open(OpenParams { thread: "t".into(), url: None, viewport: None, profile: None, reveal: None }).unwrap_err();
+    let thread_full = p.open(OpenParams { runtime: None, thread: "t".into(), url: None, viewport: None, profile: None, reveal: None }).unwrap_err();
     for n in 0..(tabs::MAX_TABS - tabs::MAX_TABS_PER_THREAD) {
         open(&p, &format!("u{}", n / tabs::MAX_TABS_PER_THREAD), None);
     }
-    let service_full = p.open(OpenParams { thread: "v".into(), url: None, viewport: None, profile: None, reveal: None }).unwrap_err();
+    let service_full = p.open(OpenParams { runtime: None, thread: "v".into(), url: None, viewport: None, profile: None, reveal: None }).unwrap_err();
     // Then each refusal is PREVIEW_SESSION_LIMIT with its reason
     assert_eq!((thread_full.code.as_str(), thread_full.message.as_str()), ("PREVIEW_SESSION_LIMIT", "thread t already has 16 preview tabs"));
     assert_eq!(service_full.message, "the service already holds 128 preview tabs");
