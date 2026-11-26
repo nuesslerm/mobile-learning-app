@@ -356,9 +356,19 @@ impl RcaAgent {
         let base = self.checkout_base(client, checkout)?;
         let comparison = match base {
             Some(base) => {
-                let diff = self.compare_checkout(client, &base, &row.head)?;
+                let mut diff = self.compare_checkout(client, &base, &row.head)?;
+                let base_oid = match diff.merge_base.clone() {
+                    Some(oid) => oid,
+                    None => {
+                        // Unrelated histories compare directly to the base commit.
+                        let log = Self::call(client, git::HISTORY, json!({"workspace":self.workspace,"rev":base,"limit":1}))?;
+                        let pinned = log["commits"][0]["sha"].as_str().ok_or_else(|| AgentError::Failed("Missing comparison base".into()))?;
+                        diff = self.compare_checkout(client, pinned, &row.head)?;
+                        diff.merge_base.clone().unwrap_or_else(|| pinned.to_owned())
+                    }
+                };
                 let limited = diff.files.len() >= exec_git::vcs::STATUS_FILES_CAP;
-                json!({"base":base,"ahead":diff.ahead,"files":diff.files,"limited":limited})
+                json!({"base":base,"baseOid":base_oid,"ahead":diff.ahead,"files":diff.files,"limited":limited})
             }
             None => Value::Null,
         };
@@ -372,6 +382,54 @@ impl RcaAgent {
             json!({"workspace":self.workspace,"base":base,"head":head,"limit":1}),
         )?;
         serde_json::from_value(value).map_err(|_| AgentError::Failed("Invalid Git comparison".into()))
+    }
+
+    fn checkout_file(
+        &self,
+        client: &mut Client,
+        checkout: &str,
+        head: &str,
+        base: Option<&str>,
+        path: &str,
+        old_path: Option<&str>,
+    ) -> Result<Value, AgentError> {
+        self.selected_checkout(client, checkout)?;
+        let mut read = |revision: &str, path: &str| -> Result<Option<exec_git::vcs::BlobResult>, AgentError> {
+            let params = json!({"workspace":self.workspace,"rev":revision,"path":path,"max_bytes":8 << 20});
+            match client.call(git::BLOB, params) {
+                Ok(value) => serde_json::from_value(value)
+                    .map(Some)
+                    .map_err(|_| AgentError::Failed("Invalid Git blob".into())),
+                Err(e) if e.from_service() && e.code == "NOT_FOUND" => Ok(None),
+                Err(e) => Err(refused(e)),
+            }
+        };
+        let original = match base {
+            Some(base) => read(base, old_path.unwrap_or(path))?,
+            None => None,
+        };
+        let modified = read(head, path)?;
+        if original.is_none() && modified.is_none() {
+            return Err(AgentError::Refused {
+                code: "FILE_NOT_FOUND".into(),
+                message: "File absent in both revisions".into(),
+            });
+        }
+        let sides = [original.as_ref(), modified.as_ref()];
+        if sides.iter().flatten().any(|blob| blob.truncated) || sides.iter().flatten().map(|blob| blob.size).sum::<u64>() > 4 * 1024 * 1024 {
+            return Ok(json!({"kind":"tooLarge"}));
+        }
+        if sides.iter().flatten().any(|blob| blob.binary) {
+            return Ok(json!({"kind":"binary"}));
+        }
+        let text = |side: Option<exec_git::vcs::BlobResult>| -> Result<Option<String>, AgentError> {
+            side.map(|blob| {
+                let bytes = terminal::b64::decode(&blob.data).ok_or_else(|| AgentError::Failed("Invalid Git blob encoding".into()))?;
+                Ok(String::from_utf8_lossy(&bytes).into_owned())
+            })
+            .transpose()
+        };
+        Ok(json!({"kind":"text","original":text(original)?,"modified":text(modified)?}))
     }
 
     fn checkout_commit(&self, client: &mut Client, checkout: &str, sha: &str) -> Result<Value, AgentError> {
@@ -768,7 +826,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -828,6 +886,9 @@ impl AgentApi for RcaAgent {
         let mut client = self.connect()?;
         if let Op::CheckoutChanges { checkout } = op {
             return self.checkout_changes(&mut client, checkout);
+        }
+        if let Op::CheckoutFile {checkout, head, base, path, old_path} = op {
+            return self.checkout_file(&mut client, checkout, head, base.as_deref(), path, old_path.as_deref());
         }
         if let Op::CheckoutCommit { checkout, sha } = op {
             return self.checkout_commit(&mut client, checkout, sha);

@@ -376,9 +376,11 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
             Err(r) => refused(&mut stream, r, NO_STORE),
         },
-        ("GET", path @ ("/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes")) => {
+        ("GET", path @ ("/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file")) => {
             let param = |key: &str| request.query.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str());
-            let result = if path.ends_with("/commit") {
+            let result = if path.ends_with("/file") {
+                svc.checkout_file_http(auth, param("checkout"), param("head"), param("base"), param("path"), param("oldPath"))
+            } else if path.ends_with("/commit") {
                 svc.checkout_commit_http(auth, param("checkout"), param("sha"))
             } else if path.ends_with("/changes") {
                 svc.checkout_changes_http(auth, param("checkout"))

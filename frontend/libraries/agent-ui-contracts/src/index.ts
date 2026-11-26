@@ -37,4 +37,4 @@ export type { WorkspaceOptionGroup, WorkspaceOptionRow, WorkspaceOptionsProps } 
 
 export type { HostWorkspaceListProps, WorkspaceActionsProps } from './ports/HostWorkspaceList';
 
-export type { SourceControlProps, SourceCommit, SourceFile } from './ports/SourceControl';
+export type { SourceControlProps, SourceCommit, SourceFile, SourceCodeLine, SourceFileReview } from './ports/SourceControl';

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackIcon, ChevronRightIcon } from './homeIcons';
+import { FileReview } from './FileReview';
 import { useChatPalette } from './chatPalette';
 
 const mono = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
@@ -88,13 +89,18 @@ function FileStats({ added, removed }: { added?: number; removed?: number }) {
   );
 }
 
-function FileRow({ file }: { file: SourceFile }) {
+function FileRow({ file, onPress }: { file: SourceFile; onPress: () => void }) {
   const c = useChatPalette();
   const pos = file.path.lastIndexOf('/');
   const status =
     file.status === 'type_changed' ? 'T' : file.status[0]?.toUpperCase();
   return (
-    <View style={[s.file, { borderColor: c.borderSubtle }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={file.path}
+      onPress={onPress}
+      style={[s.file, { borderColor: c.borderSubtle }]}
+    >
       <Text
         style={[
           s.stats,
@@ -124,7 +130,7 @@ function FileRow({ file }: { file: SourceFile }) {
         )}
       </View>
       <FileStats added={file.additions} removed={file.deletions} />
-    </View>
+    </Pressable>
   );
 }
 
@@ -245,73 +251,78 @@ export function SourceControl(props: SourceControlProps) {
       style={[s.screen, { backgroundColor: c.bgBase }]}
       edges={['top', 'left', 'right']}
     >
-      <View style={[s.nav, { borderColor: c.borderSubtle }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={backLabel}
-          onPress={props.onBack}
-          style={[s.back, { backgroundColor: c.bgRaised }]}
-        >
-          <BackIcon size={20} color={c.textPrimary} />
-        </Pressable>
-        <View style={s.heading}>
-          <Text accessibilityRole="header" style={[s.title, text]}>
-            {title}
-          </Text>
-          {subtitle && <Text style={[s.subtitle, muted]}>{subtitle}</Text>}
+      <View style={props.review ? { display: 'none' } : s.flex}>
+        <View style={[s.nav, { borderColor: c.borderSubtle }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={backLabel}
+            onPress={props.onBack}
+            style={[s.back, { backgroundColor: c.bgRaised }]}
+          >
+            <BackIcon size={20} color={c.textPrimary} />
+          </Pressable>
+          <View style={s.heading}>
+            <Text accessibilityRole="header" style={[s.title, text]}>
+              {title}
+            </Text>
+            {subtitle && <Text style={[s.subtitle, muted]}>{subtitle}</Text>}
+          </View>
         </View>
-      </View>
-      {page !== 'changes' && (
-        <View style={page === 'detail' ? { display: 'none' } : s.flex}>
+        {page !== 'changes' && (
+          <View style={page === 'detail' ? { display: 'none' } : s.flex}>
+            <FlatList
+              key="commits"
+              data={props.commits}
+              keyExtractor={(item) => item.sha}
+              renderItem={({ item, index }) => (
+                <CommitRow
+                  commit={item}
+                  first={index === 0}
+                  last={index === props.commits.length - 1 && !props.onLoadMore}
+                  onPress={() => props.openCommit(item)}
+                />
+              )}
+              onEndReached={
+                page !== 'commits' ||
+                props.error ||
+                props.loading ||
+                props.loadingMore
+                  ? undefined
+                  : props.onLoadMore
+              }
+              onEndReachedThreshold={0.5}
+              refreshing={props.loading && props.commits.length > 0}
+              onRefresh={props.onRefresh}
+              ListEmptyComponent={
+                notice ?? <Text style={[s.notice, muted]}>No commits.</Text>
+              }
+              ListFooterComponent={
+                props.loadingMore ? (
+                  <ActivityIndicator color={c.textSecondary} />
+                ) : props.commits.length && props.error ? (
+                  (notice ?? undefined)
+                ) : undefined
+              }
+            />
+          </View>
+        )}
+        {page !== 'commits' && (
           <FlatList
-            key="commits"
-            data={props.commits}
-            keyExtractor={(item) => item.sha}
+            key={page}
+            data={files ?? []}
+            keyExtractor={(f) => f.path}
+            contentContainerStyle={s.fileList}
             renderItem={({ item, index }) => (
-              <CommitRow
-                commit={item}
-                first={index === 0}
-                last={index === props.commits.length - 1 && !props.onLoadMore}
-                onPress={() => props.openCommit(item)}
-              />
+              <FileRow file={item} onPress={() => props.openFile(index)} />
             )}
-            onEndReached={
-              page !== 'commits' ||
-              props.error ||
-              props.loading ||
-              props.loadingMore
-                ? undefined
-                : props.onLoadMore
-            }
-            onEndReachedThreshold={0.5}
-            refreshing={props.loading && props.commits.length > 0}
+            refreshing={props.loading && !!files}
             onRefresh={props.onRefresh}
-            ListEmptyComponent={
-              notice ?? <Text style={[s.notice, muted]}>No commits.</Text>
-            }
-            ListFooterComponent={
-              props.loadingMore ? (
-                <ActivityIndicator color={c.textSecondary} />
-              ) : props.commits.length && props.error ? (
-                (notice ?? undefined)
-              ) : undefined
-            }
+            ListHeaderComponent={header}
+            ListFooterComponent={notice ?? undefined}
           />
-        </View>
-      )}
-      {page !== 'commits' && (
-        <FlatList
-          key={page}
-          data={files ?? []}
-          keyExtractor={(f) => f.path}
-          contentContainerStyle={s.fileList}
-          renderItem={({ item }) => <FileRow file={item} />}
-          refreshing={props.loading && !!files}
-          onRefresh={props.onRefresh}
-          ListHeaderComponent={header}
-          ListFooterComponent={notice ?? undefined}
-        />
-      )}
+        )}
+      </View>
+      {props.review && <FileReview review={props.review} />}
     </SafeAreaView>
   );
 }

@@ -23,6 +23,7 @@ export class CheckoutHeadChanged extends Error {}
 const changedFile = z.object({
   path: z.string(),
   status: z.string(),
+  orig_path: z.string().optional(),
   additions: z.number().optional(),
   deletions: z.number().optional(),
   binary: z.boolean(),
@@ -33,6 +34,7 @@ export const checkoutChanges = z.object({
   comparison: z
     .object({
       base: z.string(),
+      baseOid: z.string().optional(),
       ahead: z.number(),
       limited: z.boolean(),
       files: z.array(changedFile),
@@ -47,3 +49,20 @@ export const checkoutCommit = z.object({
 });
 export type CheckoutChanges = z.infer<typeof checkoutChanges>;
 export type CheckoutCommit = z.infer<typeof checkoutCommit>;
+
+export const checkoutFile = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('text'),
+    original: z.string().nullable(),
+    modified: z.string().nullable(),
+  }),
+  z.object({ kind: z.literal('binary') }),
+  z.object({ kind: z.literal('tooLarge') }),
+]);
+export type CheckoutFile = z.infer<typeof checkoutFile>;
+export type CheckoutFileRequest = {
+  head: string;
+  base?: string;
+  path: string;
+  oldPath?: string;
+};

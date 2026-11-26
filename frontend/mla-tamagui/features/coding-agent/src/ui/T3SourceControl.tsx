@@ -1,14 +1,16 @@
 import { BackHandler, Platform } from 'react-native';
 import { useAgentComponents, type SourceCommit } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckoutHeadChanged,
+  type CheckoutFile,
   type CheckoutChanges,
   type CheckoutCommit,
   type CheckoutHistory,
   type HistoryCursor,
 } from '../domain/checkoutHistory';
+import { buildMobileDiffLines } from '../domain/diff/mobile-diff-lines';
 import type { Pairing } from '../domain/mobile';
 import type { T3MobilePort } from '../domain/t3Mobile';
 import type { CheckoutRow } from '../domain/workspaceCatalog';
@@ -32,11 +34,76 @@ export function T3SourceControl({
   const [busy, setBusy] = useState(true);
   const [notice, setNotice] = useState<string>();
   const [refreshNumber, refresh] = useState(0);
+  const [fileIndex, selectFile] = useState<number>();
+  const [viewed, setViewed] = useState<Set<string>>(new Set());
+  const [fileData, setFileData] = useState<CheckoutFile>();
+  const [fileError, setFileError] = useState(false);
+  const [retryNumber, retryFile] = useState(0);
+  const files = page === 'detail' ? detail?.files : changes?.comparison?.files;
+  const file = fileIndex === undefined ? undefined : files?.[fileIndex];
+  const head = page === 'detail' ? selected?.sha : changes?.head;
+  const base =
+    page === 'detail' ? selected?.parent : changes?.comparison?.baseOid;
+  const scope = page === 'detail' ? selected?.sha : changes?.head;
+  const viewedKey = (path: string) => JSON.stringify([scope, base, path]);
+  function openFile(index: number) {
+    if (index === fileIndex) return;
+    setFileData(undefined);
+    setFileError(false);
+    selectFile(index);
+  }
+  useEffect(() => {
+    if (!file) return;
+    if (!head || (page === 'changes' && !base)) {
+      setFileError(true);
+      return;
+    }
+    const controller = new AbortController();
+    void api
+      .checkoutFile(
+        pair,
+        checkout.id,
+        {
+          head,
+          base: base ?? undefined,
+          path: file.path,
+          oldPath: file.orig_path,
+        },
+        controller.signal
+      )
+      .then((data) => {
+        if (!controller.signal.aborted) setFileData(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          Logger.warn('coding_agent.checkout_file_failed');
+          setFileError(true);
+        }
+      });
+    return () => controller.abort();
+  }, [api, pair, checkout.id, file, head, base, page, retryNumber]);
+  const lines = useMemo(
+    () =>
+      fileData?.kind === 'text'
+        ? buildMobileDiffLines(fileData.original ?? '', fileData.modified ?? '')
+            .lines
+        : undefined,
+    [fileData]
+  );
+  function mark(path: string, value: boolean) {
+    setViewed((previous) => {
+      const next = new Set(previous);
+      if (value) next.add(viewedKey(path));
+      else next.delete(viewedKey(path));
+      return next;
+    });
+  }
   const back = useCallback(() => {
-    if (page === 'detail') setPage('commits');
+    if (fileIndex !== undefined) selectFile(undefined);
+    else if (page === 'detail') setPage('commits');
     else if (page === 'commits') setPage('changes');
     else onBack();
-  }, [page, onBack]);
+  }, [fileIndex, page, onBack]);
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const subscription = BackHandler.addEventListener(
@@ -157,6 +224,44 @@ export function T3SourceControl({
       : null;
   return (
     <SourceControl
+      openFile={openFile}
+      review={
+        file && files && fileIndex !== undefined
+          ? {
+              files,
+              index: fileIndex,
+              branch: page === 'changes',
+              viewed: new Set(
+                files
+                  .filter((f) => viewed.has(viewedKey(f.path)))
+                  .map((f) => f.path)
+              ),
+              lines,
+              loading: !fileData && !fileError,
+              message: fileError
+                ? 'Could not load file diff.'
+                : fileData?.kind === 'binary'
+                  ? 'Binary file'
+                  : fileData?.kind === 'tooLarge'
+                    ? 'File is too large to preview.'
+                    : undefined,
+              retry: fileError
+                ? () => {
+                    setFileError(false);
+                    retryFile((n) => n + 1);
+                  }
+                : undefined,
+              back,
+              select: openFile,
+              toggleViewed: () =>
+                mark(file.path, !viewed.has(viewedKey(file.path))),
+              advance: () => {
+                if (page === 'changes') mark(file.path, true);
+                openFile((fileIndex + 1) % files.length);
+              },
+            }
+          : undefined
+      }
       page={page}
       selected={selected}
       detail={detail}

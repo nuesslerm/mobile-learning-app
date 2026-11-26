@@ -1,0 +1,46 @@
+{
+  "branch-file": {
+    "first": {
+      "region": {
+        "left": 0,
+        "top": 165,
+        "rightExclusive": 1320,
+        "bottomExclusive": 2760
+      },
+      "comparedPixels": 3425400,
+      "differentPixels": 252450
+    },
+    "published": {
+      "region": {
+        "left": 0,
+        "top": 165,
+        "rightExclusive": 1320,
+        "bottomExclusive": 2760
+      },
+      "comparedPixels": 3425400,
+      "differentPixels": 163738
+    }
+  },
+  "commit-file": {
+    "first": {
+      "region": {
+        "left": 0,
+        "top": 165,
+        "rightExclusive": 1320,
+        "bottomExclusive": 2760
+      },
+      "comparedPixels": 3425400,
+      "differentPixels": 1213636
+    },
+    "published": {
+      "region": {
+        "left": 0,
+        "top": 165,
+        "rightExclusive": 1320,
+        "bottomExclusive": 2760
+      },
+      "comparedPixels": 3425400,
+      "differentPixels": 732980
+    }
+  }
+}

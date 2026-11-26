@@ -389,3 +389,46 @@ fn checkout_changes_and_commit_details_share_the_read_grant_and_validate_the_sel
     assert_eq!(get("commit?checkout=r%3A%3A%2Fwt&sha=HEAD",&reader).status,422);
     assert_eq!(get("changes",&reader).status,422);
 }
+
+#[test]
+fn mobile_file_comparisons_require_paired_read_access_and_immutable_revisions() {
+    use t3_core::ports::Op;
+    // Given a paired reader and a renamed file.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::CheckoutFile {
+            checkout,
+            head,
+            base,
+            path,
+            old_path,
+        } => Some(Ok(json!([checkout, head, base, path, old_path]))),
+        _ => None,
+    }));
+    let head = "a".repeat(40);
+    let base = "b".repeat(40);
+    let reader = scoped(&h, &["orchestration:read"]);
+    let denied = scoped(&h, &["relay:read"]);
+    let get = |args: &str, auth: &str| {
+        http(
+            h.addr,
+            "GET",
+            &format!("/api/mobile/source-control/file?checkout=w&{args}"),
+            &[("Authorization", auth)],
+            "",
+        )
+    };
+    let args = format!("head={head}&base={base}&path=new%20file&oldPath=old%20file");
+    // When the selected rename is requested, then both paths survive decoding and every guard runs before dispatch.
+    assert_eq!(get(&args, "").status, 401);
+    assert_eq!(get(&args, &denied).status, 403);
+    assert_eq!(get(&args, &reader).body, json!(["w", head, base, "new file", "old file"]));
+    for invalid in [
+        format!("head=HEAD&path=a"),
+        format!("head={head}&base=main&path=a"),
+        format!("head={head}&path=..%2Foutside"),
+        format!("head={head}&path=a&oldPath=b"),
+    ] {
+        assert_eq!(get(&invalid, &reader).status, 422);
+    }
+}

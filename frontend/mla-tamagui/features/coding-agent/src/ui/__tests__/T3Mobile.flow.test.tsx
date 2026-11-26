@@ -47,6 +47,7 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
       automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned, unread:'isUnread' in edit && edit.isUnread}),
     checkoutChanges: async () => ({branch:null,head:null,comparison:null}),
+    checkoutFile: async () => ({kind:'text',original:null,modified:'created'}),
     checkoutCommit: async () => ({body:'', initial:true, files:[], limited:false}),
     checkoutHistory: async () => ({ head: null, branch: null, commits: [], nextOffset: null }),
     checkoutSessions: async () => ({active:thread.id, sessions:[thread]}),
@@ -275,23 +276,45 @@ describe('Orca chat with the T3 transport', () => {
     const check = (id:string) => expect(id).toBe('repo::/fixture');
     port.checkoutChanges = async (_pair, id) => {
       check(id);
-      return {head:sha, branch:null, comparison:{base:'main',ahead:1,files:[file],limited:false}};
+      return {head:sha, branch:null, comparison:{base:'main',baseOid:'c'.repeat(40),ahead:1,files:[file],limited:false}};
     };
     port.checkoutHistory = async (_pair, id) => { check(id); return {head:sha,branch:null,commits:[commit],nextOffset:null}; };
     port.checkoutCommit = async (_pair, id, revision) => {
       check(id); expect(revision).toBe(sha);
       return {body:'Changed the renderer.',initial:false,limited:false,files:[file]};
     };
+    const seen: string[] = [];
+    port.checkoutFile = async (_pair,id,request) => {
+      check(id);expect(request.path).toBe(file.path); expect(request.head).toBe(sha);
+      seen.push(request.base!);
+      const prefix = ['zero','one','two','three','four','five','six','seven','eight'].join('\n')+'\n';
+      return {kind:'text',original:prefix+'before\n',modified:prefix+'after\n'};
+    };
     await app.render('/coding-agent',{search:{host:'1'},overrides:{'coding-agent':{t3Mobile:port}}});
     await userEvent.pointer({keys:'[MouseRight]',target:await screen.findByRole('button',{name:'Mobile checkout'})});
     await userEvent.click(await screen.findByRole('button',{name:'Source Control'}));
     expect(await screen.findByText('changed.ts')).toBeTruthy();
     expect(screen.getAllByText('aaaaaaa')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button',{name:file.path}));
+    expect(await screen.findByText('1 of 1 · 0 viewed')).toBeTruthy();
+    await userEvent.click(await screen.findByRole('button',{name:'Expand 6 unchanged lines'}));
+    expect(await screen.findByText('zero')).toBeTruthy();
+    await userEvent.click(screen.getByRole('checkbox',{name:'Viewed'}));
+    expect(screen.getByText('1 of 1 · 1 viewed')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:'Back to changed files'}));
     await userEvent.click(screen.getByRole('button',{name:'Commits'}));
     await userEvent.click(await screen.findByRole('button',{name:'Selected change'}));
     expect(await screen.findByText('Changed the renderer.')).toBeTruthy();
     expect(await screen.findByText('1 file')).toBeTruthy();
     expect(screen.getByText('Developer')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:file.path}));
+    expect(await screen.findByText('1 of 1 in this commit')).toBeTruthy();
+    expect(await screen.findByRole('button',{name:'Expand 6 unchanged lines'})).toBeTruthy();
+    expect(seen).toEqual(['c'.repeat(40),commit.parent]);
+    await userEvent.click(screen.getByRole('button',{name:'Next file'}));
+    expect(screen.getByText('1 of 1 in this commit')).toBeTruthy();
+    expect(screen.getByRole('button',{name:'Expand 6 unchanged lines'})).toBeTruthy();
+    await userEvent.click(screen.getByRole('button',{name:'Back to changed files'}));
     await userEvent.click(screen.getByRole('button',{name:'Back to commits'}));
     expect(await screen.findByRole('button',{name:'Selected change'})).toBeTruthy();
     await userEvent.click(screen.getByRole('button',{name:'Back to source control'}));

@@ -802,7 +802,7 @@ fn mobile_changes_use_the_checkouts_pinned_base_and_commit_details_use_the_first
             "worktree.list" => json!({"worktrees":[{"path":"/linked","is_main":false,"head":sha}]}),
             "state.get" => json!({"value":{"baseRef":"release"}}),
             "git.history" => json!({"truncated":false,"commits":[{"sha":sha,"short":"aaaaaaa","subject":"Merge","author_name":"Dev","author_email":"dev@example.org","authored_ms":1,"parents":["b".repeat(40),"c".repeat(40)],"body":"Merge details"}]}),
-            "git.compare" => json!({"base":request["params"]["base"],"head":sha,"ahead":2,"behind":1,"files":[{"path":"src/a.rs","status":"modified","additions":3,"deletions":2,"binary":false}],"commits":[],"truncated":true}),
+            "git.compare" => json!({"base":request["params"]["base"],"head":sha,"merge_base":"e".repeat(40),"ahead":2,"behind":1,"files":[{"path":"src/a.rs","status":"modified","additions":3,"deletions":2,"binary":false}],"commits":[],"truncated":true}),
             _ => json!({}),
         };
         vec![answer(request, reply)]
@@ -815,10 +815,48 @@ fn mobile_changes_use_the_checkouts_pinned_base_and_commit_details_use_the_first
     // Then the comparisons use the selected revisions and the phone receives file counts without fetching patches.
     assert_eq!(changes["head"],sha);
     assert_eq!(changes["comparison"]["base"],"release");
+    assert_eq!(changes["comparison"]["baseOid"],"e".repeat(40));
     assert_eq!(changes["comparison"]["ahead"],2);
     assert_eq!(commit["body"],"Merge details");
     assert_eq!(commit["files"],changes["comparison"]["files"]);
     assert_eq!(commit["files"][0]["additions"],3);
     assert_eq!(rca.asked("git.compare"), [json!({"workspace":WORKSPACE,"base":"release","head":sha,"limit":1}),json!({"workspace":WORKSPACE,"base":"b".repeat(40),"head":sha,"limit":1})]);
     assert!(rca.asked("git.diff").is_empty() && rca.asked("git.refs").is_empty());
+}
+
+#[test]
+fn a_linked_checkout_reads_both_sides_of_a_rename_by_object_id_and_only_that_file() {
+    // Given two immutable objects and a linked checkout whose current HEAD has advanced.
+    let rca = rca(Box::new(|request| {
+        let p = &request["params"];
+        let reply = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/linked","is_main":false,"head":"f".repeat(40)}]}),
+            "git.blob" => {
+                json!({"data": if p["path"]=="old" {"b2xk"} else {"bmV3"}, "path":p["path"],"rev":p["rev"], "size":3,"truncated":false,"binary":false})
+            }
+            _ => panic!("Unexpected file request"),
+        };
+        vec![answer(request, reply)]
+    }));
+    let base = "b".repeat(40);
+    let head = "a".repeat(40);
+    // When the phone opens the previously selected rename, then each side comes from the requested path and revision.
+    let result = rca
+        .agent()
+        .run(&Op::CheckoutFile {
+            checkout: "w1::/linked".into(),
+            head: head.clone(),
+            base: Some(base.clone()),
+            path: "new".into(),
+            old_path: Some("old".into()),
+        })
+        .unwrap();
+    assert_eq!(result, json!({"kind":"text","original":"old","modified":"new"}));
+    assert_eq!(
+        rca.asked("git.blob"),
+        [
+            json!({"workspace":WORKSPACE,"rev":base,"path":"old","max_bytes":8 << 20}),
+            json!({"workspace":WORKSPACE,"rev":head,"path":"new","max_bytes":8 << 20})
+        ]
+    );
 }

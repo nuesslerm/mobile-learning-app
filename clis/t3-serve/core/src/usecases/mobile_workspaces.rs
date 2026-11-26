@@ -42,6 +42,37 @@ impl Service {
             })
     }
 
+    pub fn checkout_file_http(
+        &self,
+        auth: Option<&str>,
+        checkout: Option<&str>,
+        head: Option<&str>,
+        base: Option<&str>,
+        path: Option<&str>,
+        old_path: Option<&str>,
+    ) -> Result<Value, Refusal> {
+        self.read_gate("mobile.checkoutFile", auth)?;
+        let valid_path = |path: &str| !path.contains('\0') && path.split('/').all(|part| !matches!(part, "" | "." | ".."));
+        let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;
+        let head = head.filter(|id| is_oid(id)).ok_or_else(|| Refusal::bare(422))?;
+        let path = path.filter(|path| valid_path(path)).ok_or_else(|| Refusal::bare(422))?;
+        if base.is_some_and(|id| !is_oid(id)) || old_path.is_some_and(|path| !valid_path(path) || base.is_none()) {
+            return Err(Refusal::bare(422));
+        }
+        self.agent()
+            .run(&Op::CheckoutFile {
+                checkout: checkout.into(),
+                head: head.to_ascii_lowercase(),
+                base: base.map(str::to_ascii_lowercase),
+                path: path.into(),
+                old_path: old_path.map(str::to_owned),
+            })
+            .map_err(|error| match &error {
+                AgentError::Refused { code, .. } if code == "CHECKOUT_NOT_FOUND" || code == "FILE_NOT_FOUND" => Refusal::bare(404),
+                _ => upstream(error),
+            })
+    }
+
     pub fn checkout_commit_http(&self, auth: Option<&str>, checkout: Option<&str>, sha: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("mobile.checkoutCommit", auth)?;
         let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;

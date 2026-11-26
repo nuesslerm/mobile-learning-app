@@ -29,6 +29,7 @@
     "@lib/orca-design-system": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "diff": "8.0.4",
     "expo-camera": "~58.0.14",
     "expo-clipboard": "~58.0.4",
     "expo-constants": "~58.0.16",

@@ -1,4 +1,4 @@
-import { checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
+import { checkoutFile, checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
 import { checkoutRow, checkoutSessions, homeSummary, workspaceCatalog } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
@@ -112,6 +112,12 @@ export function createT3MobileApi(): T3MobilePort {
     async checkoutChanges(pair, id, signal) {
       const path = '/api/mobile/source-control/changes?' + new URLSearchParams({ checkout: id });
       return checkoutChanges.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+    },
+    async checkoutFile(pair, id, file, signal) {
+      const params = new URLSearchParams({checkout:id, head:file.head, path:file.path});
+      if (file.base) params.set('base',file.base);
+      if (file.oldPath) params.set('oldPath',file.oldPath);
+      return checkoutFile.parse(await json(endpoint(pair.endpoint), '/api/mobile/source-control/file?'+params.toString(), {headers:authorization(pair),signal}));
     },
     async checkoutCommit(pair, id, sha, signal) {
       const path = '/api/mobile/source-control/commit?' + new URLSearchParams({ checkout: id, sha });
