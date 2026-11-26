@@ -101,7 +101,7 @@ export function MarkdownNoteTab({ api, pair, checkout, path, color }: Props) {
           <Button title="Save" disabled={saving} onPress={() => void save()} />
         </View>
       ) : (
-        error && <Button title="Retry" onPress={() => refresh((n) => n + 1)} />
+        !!error && <Button title="Retry" onPress={() => refresh((n) => n + 1)} />
       )}
     </View>
   );

@@ -16,6 +16,7 @@ import type {
   WorkspaceTabsPort,
 } from '../../domain/workspaceTabs/tabs';
 import { useWorkspaceTabs } from '../../state/workspaceTabs/useWorkspaceTabs';
+import { ChatKeyboardArea } from '../ChatKeyboardArea';
 import { AvailabilityNotice } from '../AvailabilityNotice';
 import { TerminalTab } from './TerminalTab';
 import { BrowserTab } from './BrowserTab';
@@ -87,6 +88,7 @@ export function WorkspaceTabsScreen({
   const active = layout?.tabs.find((t) => t.id === layout.active);
   const tabs = [...chats, ...(layout?.tabs ?? [])];
   const select = async (id: string) => {
+    setSheet(undefined);
     if (layout?.tabs.some((t) => t.id === id)) {
       await run({ action: 'select', id });
       return;
@@ -95,6 +97,7 @@ export function WorkspaceTabsScreen({
       router.replace(chatRoute(id, name, checkout));
   };
   const startAgent = async (id: string) => {
+    setSheet(undefined);
     const agent = agents.find((a) => a.id === id);
     if (!agent || !layout) return;
     try {
@@ -136,7 +139,7 @@ export function WorkspaceTabsScreen({
         </Text>
       ) : null}
       {active && layout && foreground && !(error instanceof WorktreeMissing) ? (
-        <>
+        <ChatKeyboardArea>
           {active.kind === 'terminal' && (
             <TerminalTab api={api} pair={pair} layout={layout} tab={active} />
           )}
@@ -159,7 +162,7 @@ export function WorkspaceTabsScreen({
               color={color}
             />
           )}
-        </>
+        </ChatKeyboardArea>
       ) : layout && !active && !error ? (
         <View
           style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
@@ -178,14 +181,15 @@ export function WorkspaceTabsScreen({
           bottomInset={bottom}
           onClose={() => setSheet(undefined)}
           onAgent={(id) => void startAgent(id)}
-          onCreate={(kind, url) =>
+          onCreate={(kind, url) => {
+            setSheet(undefined);
             void run({
               action: 'create',
               kind,
               url,
               id: mobile.newId().replace(/-/g, '').slice(0, 20),
-            })
-          }
+            });
+          }}
         />
       )}
       {sheet === 'tabs' && (

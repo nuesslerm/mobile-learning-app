@@ -8,6 +8,8 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { app } from '../../__tests__/flowApp';
 import { createSettingsPortDoubles } from '../../testing/settingsPorts';
+import { createWorkspaceTabsApi } from '../../data/t3/workspaceTabs';
+import type { WorkspaceLayout, WorkspaceTabsPort } from '../../domain/workspaceTabs/tabs';
 import { createT3MobileApi } from '../../data/t3/mobileApi';
 import { RcaUnavailable, WorktreeMissing, resumeCommand } from '../../domain/t3Mobile';
 import type { T3MobilePort, T3Snapshot } from '../../domain/t3Mobile';
@@ -907,6 +909,41 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Fix the parser'}));
     expect(opened).toEqual(['thread-43']);
     await waitFor(() => expect(routerHarness().calls()).toContainEqual(['replace', '/coding-agent/thread-43']));
+  });
+
+  it('Given a paired checkout, when a new note conflicts with a desktop edit, then the phone keeps the draft and offers to discard it', async () => {
+    const mobile = backend();
+    const checkout = 'repo::/fixture';
+    let layout: WorkspaceLayout = { checkout, directory: '/fixture', threadId: 'scope', tabs: [], active: null };
+    const keepDraft = vi.fn(async () => {});
+    const workspaceTabs: WorkspaceTabsPort = {
+      ...createWorkspaceTabsApi(),
+      agents: async () => [{ id: 'codex', name: 'Codex', model: 'test' }],
+      layout: async (_pair, _checkout, action) => {
+        if (action?.action === 'create') {
+          const tab = { id: action.id, kind: action.kind, resource: 'untitled-2.md', title: 'untitled-2.md' };
+          layout = { ...layout, active: tab.id, tabs: [tab] };
+        }
+        return layout;
+      },
+      read: async () => ({ path: 'untitled-2.md', content: '' }),
+      draft: async () => null,
+      keepDraft,
+      save: async () => { throw new Error('The desktop file changed. Your draft is saved on this device.'); },
+    };
+    await app.render('/coding-agent', {
+      search: { workspace: '1', checkoutId: checkout, checkout: 'Mobile checkout', newTab: '1' },
+      overrides: { 'coding-agent': { t3Mobile: mobile, workspaceTabs } },
+    });
+    await screen.findByRole('button', { name: 'Codex' });
+    await userEvent.click(screen.getByRole('button', { name: 'Markdown Note' }));
+    const field = await screen.findByLabelText('Markdown note');
+    await userEvent.type(field, 'Phone edit');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('The desktop file changed. Your draft is saved on this device.');
+    expect((field as HTMLTextAreaElement).value).toBe('Phone edit');
+    expect(keepDraft).toHaveBeenLastCalledWith(pair, checkout, 'untitled-2.md', { previous: '', content: 'Phone edit' });
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy();
   });
 
   it('Given a paired desktop, when opening its checkout and sending in the saved chat, then the reply and cleared composer are visible', async () => {
