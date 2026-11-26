@@ -227,7 +227,7 @@ impl MobilePlacement {
         let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
         json!({"id":format!("{repo}::{path}"),"name":name,"automaticName":title,
             "pinned":meta.is_some_and(|m| m["isPinned"] == true),"branch":self.branch,"main":self.main,
-            "workspace":self.owner.as_deref().unwrap_or(repo),"path":path,"unread":meta.is_some_and(|m| m["isUnread"] == true)})
+            "workspace":self.owner.as_deref().unwrap_or(repo),"path":path,"workspaceStatus":meta.and_then(|m| m["workspaceStatus"].as_str()),"unread":meta.is_some_and(|m| m["isUnread"] == true)})
     }
 }
 

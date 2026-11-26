@@ -10,6 +10,7 @@ import {
   type CheckoutSessions,
   type WorkspaceCatalog,
   type CheckoutRow,
+  type WorkspaceStatus,
   type CheckoutEdit,
 } from '../domain/workspaceCatalog';
 import type { WorkspacePreferences } from '../domain/workspacePreferences';
@@ -40,6 +41,28 @@ export function T3HostWorkspaces({
   const [actionRow, setActionRow] = useState<CheckoutRow>();
   const [sourceCheckout, setSourceCheckout] = useState<CheckoutRow>();
   const [mutationError, setMutationError] = useState('');
+  const [statusPicker, setStatusPicker] = useState<{ choices?: WorkspaceStatus[]; selected?: string; failed: boolean }>();
+  const statusRequest = useRef<AbortController | undefined>(undefined);
+  useEffect(() => () => statusRequest.current?.abort(), []);
+  async function openStatuses() {
+    if (!actionRow) return;
+    statusRequest.current?.abort();
+    const controller = new AbortController();
+    statusRequest.current = controller;
+    setStatusPicker({ failed: false });
+    setMutationError('');
+    try {
+      const choices = await api.workspaceStatuses(pair, controller.signal);
+      if (controller.signal.aborted) return;
+      const selected = choices.find(s => s.id === actionRow.workspaceStatus)
+        ?? choices.find(s => s.id === 'in-progress') ?? choices[0];
+      setStatusPicker({ choices, selected: selected?.id, failed: false });
+    } catch (cause) {
+      if (controller.signal.aborted) return;
+      Logger.withError(cause).warn('coding_agent.t3.workspace_statuses_failed');
+      setStatusPicker({ failed: true });
+    }
+  }
   const [catalogError, setCatalogError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const pending = useRef(false);
@@ -167,6 +190,8 @@ export function T3HostWorkspaces({
         }))}
         onActions={(id) => {
           setMutationError('');
+          statusRequest.current?.abort();
+          setStatusPicker(undefined);
           setActionRow(catalog.checkouts.find((r) => r.id === id));
         }}
         onSelect={(id) => void open(id)}
@@ -200,11 +225,16 @@ export function T3HostWorkspaces({
             setSourceCheckout(actionRow);
             setActionRow(undefined);
           }}
+          statusPicker={statusPicker}
+          onOpenStatuses={() => void openStatuses()}
+          onStatus={id => void edit({ workspaceStatus: id })}
           onToggleRead={() => void edit({ isUnread: !actionRow.unread })}
           saving={saving}
           error={mutationError}
           onClose={() => {
-            if (!pending.current) setActionRow(undefined);
+            if (pending.current) return;
+            statusRequest.current?.abort();
+            setActionRow(undefined);
           }}
           onPin={() => void edit({ isPinned: !actionRow.pinned })}
           onRename={(name) =>

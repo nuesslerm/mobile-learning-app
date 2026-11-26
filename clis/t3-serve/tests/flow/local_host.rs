@@ -376,6 +376,9 @@ fn mobile_workspace_edits_preserve_other_metadata_and_require_operate_scope() {
         Op::MobileWorktrees => Some(Ok(json!({"repo":"desk","checkouts":[
             {"id":"desk::/one","name":"main","automaticName":"main","branch":"main","main":true,"unreadPanes":["thread:done"]}
         ]}))),
+        Op::StateGet {scope,key} if scope == "orca" && key == "ui" => Some(Ok(json!({"value":{
+            "workspaceStatuses":[{"id":"review","label":"Needs QA","icon":"flag"},{"id":"release","label":"Release"}]
+        }}))),
         Op::StateGet {scope,key} if scope == "orca" && key == "orca.worktree.desk::/one" => Some(Ok(json!({"value":saved.lock().unwrap().clone()}))),
         Op::StateSet {scope,key,value} if scope == "orca" && key == "orca.worktree.desk::/one" => {
             *saved.lock().unwrap() = value.clone(); Some(Ok(json!({})))
@@ -403,6 +406,16 @@ fn mobile_workspace_edits_preserve_other_metadata_and_require_operate_scope() {
     assert_eq!(*state.lock().unwrap(), json!({"comment":"kept", "isPinned":true, "isUnread":false}));
     assert_eq!(edit(&writer, json!({"checkout":"desk::/one", "isUnread":true})).body["unread"], true);
     assert_eq!(edit(&reader, json!({"checkout":"desk::/one", "isUnread":false})).status, 403);
+    // When the desktop uses custom statuses, then a reader sees them in order and only an operator can assign one.
+    let choices = |token: &str| http(h.addr,"GET","/api/mobile/workspace-statuses",&[("Authorization",token)],"");
+    assert_eq!(choices(&reader).body, json!([{"id":"review","label":"Needs QA"},{"id":"release","label":"Release"}]));
+    assert_eq!(choices(&scoped(&h, &["relay:read"])).status, 403);
+    let status = |id: &str| json!({"checkout":"desk::/one","workspaceStatus":id});
+    assert_eq!(edit(&reader,status("review")).status, 403);
+    assert_eq!(edit(&writer,status("gone")).status, 422);
+    assert!(state.lock().unwrap().get("workspaceStatus").is_none());
+    assert_eq!(edit(&writer,status("review")).body["workspaceStatus"], "review");
+    assert_eq!(*state.lock().unwrap(), json!({"comment":"kept","isPinned":true,"isUnread":true,"workspaceStatus":"review"}));
 }
 
 #[test]

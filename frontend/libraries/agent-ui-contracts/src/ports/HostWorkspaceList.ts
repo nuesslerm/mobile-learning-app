@@ -27,4 +27,11 @@ export interface WorkspaceActionsProps {
   onPin: () => void;
   onSourceControl: () => void;
   onToggleRead: () => void;
+  statusPicker?: {
+    choices?: { id: string; label: string }[];
+    selected?: string;
+    failed: boolean;
+  };
+  onOpenStatuses: () => void;
+  onStatus: (id: string) => void;
 }

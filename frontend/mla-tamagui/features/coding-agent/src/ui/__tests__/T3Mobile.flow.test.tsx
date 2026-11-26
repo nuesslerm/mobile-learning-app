@@ -42,6 +42,7 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
     }),
     pair: async () => pair,
     home: async () => ({ host: { name: 'Fixture Mac', os: 'darwin' }, worktreeCount: 1 }),
+    workspaceStatuses: async () => [{ id: 'in-progress', label: 'In progress' }],
     workspaces: async () => ({host:{name:'Fixture Mac',os:'darwin'}, repo:'Fixture repository',
       checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
@@ -525,6 +526,31 @@ describe('Orca chat with the T3 transport', () => {
     expect(await screen.findByRole('button',{name:'Mobile checkout'})).toBeTruthy();
   });
 
+  it('Given custom checkout statuses, when an operator selects one, then its saved label is checked on reopening the menu', async () => {
+    const port = backend();
+    const statuses = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue([
+      { id: 'in-progress', label: 'Building' }, { id: 'review', label: 'QA review' },
+    ]);
+    const edit = vi.fn(async (_pair: typeof pair, id: string, patch: import('../../domain/workspaceCatalog').CheckoutEdit) => ({
+      id, name: 'Mobile checkout', main: false, branch: null, workspaceStatus: 'workspaceStatus' in patch ? patch.workspaceStatus : undefined,
+    }));
+    await app.render('/coding-agent', { search: { host: '1' }, overrides: { 'coding-agent': {
+      t3Mobile: { ...port, workspaceStatuses: statuses, editWorkspace: edit },
+    } } });
+    const open = async () => {
+      await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: 'Mobile checkout' }) });
+      await userEvent.click(await screen.findByRole('button', { name: 'Move to Status' }));
+    };
+    expect(statuses).not.toHaveBeenCalled();
+    await open();
+    await userEvent.click(await screen.findByRole('button', { name: 'Could not load statuses. Retry' }));
+    expect(await screen.findByRole('radio', { name: 'Building', checked: true })).toBeTruthy();
+    await userEvent.click(screen.getByRole('radio', { name: 'QA review' }));
+    await open();
+    expect(await screen.findByRole('radio', { name: 'QA review', checked: true })).toBeTruthy();
+    expect(edit).toHaveBeenCalledWith(expect.anything(), 'repo::/fixture', { workspaceStatus: 'review' });
+  });
+
   it('Given a checkout, when the reader marks it unread and then read, then the reopened menu offers the reverse action', async () => {
     const port = backend();
     await app.render('/coding-agent', {search:{host:'1'}, overrides:{'coding-agent':{t3Mobile:port}}});
@@ -539,11 +565,14 @@ describe('Orca chat with the T3 transport', () => {
 
   it('Given a checkout, when the reader renames it from its context menu, then the host list shows the saved label', async () => {
     const port = backend();
-    await app.render('/coding-agent', {search:{host:'1'}, overrides:{'coding-agent':{t3Mobile:port}}});
+    const edit = vi.fn(port.editWorkspace);
+    await app.render('/coding-agent', {search:{host:'1'}, overrides:{'coding-agent':{t3Mobile:{ ...port, editWorkspace: edit }}}});
     const checkout = await screen.findByRole('button', {name:'Mobile checkout'});
     await userEvent.pointer({keys:'[MouseRight]', target:checkout});
     const backdrop = await screen.findByRole('button', {name:'Dismiss'});
     fireEvent.click(backdrop, { detail: 1 });
+    fireEvent.click(screen.getByRole('button', { name: 'Pin' }), { detail: 1 });
+    expect(edit).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button',{name:'Rename'}));
     const field = screen.getByRole('textbox',{name:'Workspace name'});
     await userEvent.clear(field);

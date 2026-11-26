@@ -1,6 +1,8 @@
 import type { WorkspaceActionsProps } from '@lib/agent-ui-contracts';
-import { useEffect, useRef, useState } from 'react';
+import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  ScrollView,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -13,6 +15,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Check from 'lucide-react-native/dist/esm/icons/check.mjs';
+import Circle from 'lucide-react-native/dist/esm/icons/circle.mjs';
+import Columns3 from 'lucide-react-native/dist/esm/icons/columns-3.mjs';
 import Bell from 'lucide-react-native/dist/esm/icons/bell.mjs';
 import BellOff from 'lucide-react-native/dist/esm/icons/bell-off.mjs';
 import GitBranch from 'lucide-react-native/dist/esm/icons/git-branch.mjs';
@@ -30,6 +35,39 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
   const [renaming, setRenaming] = useState(false);
   const input = useRef<TextInputInstance>(null);
   const backdropPressed = useRef(false);
+  const [sheet, setSheet] = useState<ComponentRef<typeof View> | null>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !(sheet instanceof HTMLElement))
+      return;
+    const element = sheet;
+    let pressed: Element | null = null;
+    const control = (event: Event) =>
+      event.target instanceof Element
+        ? event.target.closest('[role="button"], [role="radio"], button, input')
+        : null;
+    const down = (event: PointerEvent) => {
+      pressed = control(event);
+    };
+    const cancel = () => {
+      pressed = null;
+    };
+    const click = (event: MouseEvent) => {
+      // A touch held on a checkout can release over a newly mounted menu action.
+      if (event.detail > 0 && (!pressed || pressed !== control(event))) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      pressed = null;
+    };
+    element.addEventListener('pointerdown', down, true);
+    element.addEventListener('pointercancel', cancel, true);
+    element.addEventListener('click', click, true);
+    return () => {
+      element.removeEventListener('pointerdown', down, true);
+      element.removeEventListener('pointercancel', cancel, true);
+      element.removeEventListener('click', click, true);
+    };
+  }, [sheet]);
   const [focused, setFocused] = useState(false);
   const [keyboardShowing, setKeyboardShowing] = useState(false);
   useEffect(() => {
@@ -87,6 +125,7 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
           style={StyleSheet.absoluteFill}
         />
         <View
+          ref={Platform.OS === 'web' ? setSheet : undefined}
           accessibilityViewIsModal
           style={[
             styles.sheet,
@@ -97,9 +136,74 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
           ]}
         >
           <View
-            style={[styles.handle, { backgroundColor: colors.textMuted }]}
+            style={[
+              styles.handle,
+              props.statusPicker && styles.statusHandle,
+              { backgroundColor: colors.textMuted },
+            ]}
           />
-          {renaming ? (
+          {props.statusPicker ? (
+            <>
+              <Text style={[styles.statusTitle, muted]}>Move to Status</Text>
+              <ScrollView
+                bounces={false}
+                style={[styles.statusList, { backgroundColor: colors.bgGroup }]}
+              >
+                {props.statusPicker.failed ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={props.onOpenStatuses}
+                    style={styles.row}
+                  >
+                    <Text style={ink}>Could not load statuses. Retry</Text>
+                  </Pressable>
+                ) : !props.statusPicker.choices ? (
+                  <ActivityIndicator
+                    accessibilityLabel="Loading statuses"
+                    style={styles.row}
+                    color={colors.textSecondary}
+                  />
+                ) : (
+                  props.statusPicker.choices.map((status, index) => (
+                    <View key={status.id}>
+                      {index > 0 && (
+                        <View
+                          style={[
+                            styles.statusRule,
+                            { backgroundColor: colors.borderSubtle },
+                          ]}
+                        />
+                      )}
+                      <Pressable
+                        accessibilityRole="radio"
+                        accessibilityLabel={status.label}
+                        aria-checked={
+                          props.statusPicker?.selected === status.id
+                        }
+                        accessibilityState={{
+                          checked: props.statusPicker?.selected === status.id,
+                          disabled: props.saving,
+                        }}
+                        onPress={() => props.onStatus(status.id)}
+                        disabled={props.saving}
+                        style={[styles.row, styles.statusRow]}
+                      >
+                        <Circle size={16} color={colors.textSecondary} />
+                        <Text
+                          style={[styles.rowLabel, styles.statusLabel, ink]}
+                        >
+                          {status.label}
+                        </Text>
+                        {props.statusPicker?.selected === status.id && (
+                          <Check size={18} color={colors.textPrimary} />
+                        )}
+                      </Pressable>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            </>
+          ) : renaming ? (
             <>
               <Text accessibilityRole="header" style={[styles.title, ink]}>
                 Rename Workspace
@@ -232,6 +336,21 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
                     {props.pinned ? 'Unpin' : 'Pin'}
                   </Text>
                 </Pressable>
+                <View
+                  style={[
+                    styles.rule,
+                    { backgroundColor: colors.borderSubtle },
+                  ]}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={props.onOpenStatuses}
+                  disabled={props.saving}
+                  style={styles.row}
+                >
+                  <Columns3 size={16} color={colors.textSecondary} />
+                  <Text style={[styles.rowLabel, ink]}>Move to Status</Text>
+                </Pressable>
               </View>
             </>
           )}
@@ -285,6 +404,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rowLabel: { fontSize: 15 },
+  statusHandle: { height: 5, marginTop: 8, opacity: 0.5 },
+  statusTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginHorizontal: 16,
+    marginBottom: 9,
+  },
+  statusRow: { paddingHorizontal: 20, gap: 16, minHeight: 48 },
+  statusRule: { height: StyleSheet.hairlineWidth, marginLeft: 52 },
+  statusLabel: { flex: 1 },
+  statusList: { maxHeight: '80%', flexGrow: 0, borderRadius: 16 },
   rule: { height: StyleSheet.hairlineWidth, marginLeft: 42 },
   buttons: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import { checkoutPullRequest, checkoutBranches, checkoutFile, checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
-import { checkoutRow, checkoutSessions, desktopAgents, homeSummary, workspaceCatalog } from '../../domain/workspaceCatalog';
+import { checkoutRow, checkoutSessions, desktopAgents, homeSummary, workspaceCatalog, workspaceStatuses } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
 import { z } from 'zod';
@@ -108,6 +108,9 @@ export function createT3MobileApi(): T3MobilePort {
         const catalog = await this.workspaces(pair, signal);
         return { host: catalog.host, worktreeCount: catalog.checkouts.length };
       }
+    },
+    async workspaceStatuses(pair, signal) {
+      return workspaceStatuses.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspace-statuses', { headers: authorization(pair), signal }));
     },
     async workspaces(pair, signal) {
       return workspaceCatalog.parse(await json(endpoint(pair.endpoint), '/api/mobile/workspaces', { headers: authorization(pair), signal }));

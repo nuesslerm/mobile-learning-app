@@ -17,8 +17,12 @@ fn is_oid(value: &str) -> bool {
 }
 
 fn public_row(row: &Value) -> Value {
-    json!({"id": row["id"], "name": row["name"], "branch": row["branch"], "main": row["main"],
-        "automaticName": row["automaticName"], "pinned": row["pinned"] == true, "unread": row["unread"] == true})
+    let mut result = json!({"id": row["id"], "name": row["name"], "branch": row["branch"], "main": row["main"],
+        "automaticName": row["automaticName"], "pinned": row["pinned"] == true, "unread": row["unread"] == true});
+    if let Some(status) = row["workspaceStatus"].as_str() {
+        result["workspaceStatus"] = json!(status);
+    }
+    result
 }
 
 #[derive(Deserialize)]
@@ -28,6 +32,7 @@ struct CheckoutEdit {
     display_name: Option<String>,
     is_pinned: Option<bool>,
     is_unread: Option<bool>,
+    workspace_status: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -161,10 +166,33 @@ impl Service {
             })
     }
 
+    fn workspace_statuses(&self) -> Result<Vec<Value>, Refusal> {
+        let state = self.agent().run(&Op::StateGet { scope: "orca".into(), key: "ui".into() }).map_err(upstream)?;
+        let ui = &state["value"];
+        if !ui.is_null() && !ui.is_object() { return Err(Refusal::bare(502)); }
+        let definitions = &ui["workspaceStatuses"];
+        if definitions.is_null() || definitions.as_array().is_some_and(Vec::is_empty) {
+            return Ok([("todo", "Todo"), ("in-progress", "In progress"), ("in-review", "In review"), ("completed", "Done")]
+                .into_iter().map(|(id, label)| json!({"id": id, "label": label})).collect());
+        }
+        let mut statuses = Vec::new();
+        for entry in definitions.as_array().ok_or_else(|| Refusal::bare(502))? {
+            let id = entry["id"].as_str().filter(|s| !s.is_empty()).ok_or_else(|| Refusal::bare(502))?;
+            let label = entry["label"].as_str().filter(|s| !s.is_empty()).ok_or_else(|| Refusal::bare(502))?;
+            statuses.push(json!({"id":id,"label":label}));
+        }
+        Ok(statuses)
+    }
+
+    pub fn workspace_statuses_http(&self, auth: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.workspaceStatuses", auth)?;
+        self.workspace_statuses().map(Value::Array)
+    }
+
     pub fn edit_mobile_workspace(&self, auth: Option<&str>, body: Value) -> Result<Value, Refusal> {
         self.scope_gate("mobile.workspaces.edit", auth, "orchestration:operate")?;
         let edit: CheckoutEdit = serde_json::from_value(body).map_err(|_| Refusal::bare(422))?;
-        if edit.display_name.is_none() && edit.is_pinned.is_none() && edit.is_unread.is_none() {
+        if edit.display_name.is_none() && edit.is_pinned.is_none() && edit.is_unread.is_none() && edit.workspace_status.is_none() {
             return Err(Refusal::bare(422));
         }
         let _guard = self
@@ -204,11 +232,21 @@ impl Service {
         if let Some(pinned) = edit.is_pinned {
             meta.insert("isPinned".into(), json!(pinned));
         }
+        if let Some(status) = &edit.workspace_status {
+            let definitions = self.workspace_statuses()?;
+            if !definitions.iter().any(|choice| choice["id"].as_str() == Some(status)) {
+                return Err(Refusal::bare(422));
+            }
+            meta.insert("workspaceStatus".into(), json!(status));
+        }
         let pending = row["unreadPanes"].as_array().map(Vec::as_slice).unwrap_or_default();
         if let Some(unread) = edit.is_unread {
             meta.insert("isUnread".into(), json!(unread));
         }
         let mut result = public_row(row);
+        if let Some(status) = meta.get("workspaceStatus").and_then(Value::as_str) {
+            result["workspaceStatus"] = json!(status);
+        }
         result["unread"] = json!(meta.get("isUnread") == Some(&Value::Bool(true)) || (edit.is_unread != Some(false) && !pending.is_empty()));
         result["name"] = meta
             .get("displayName")
