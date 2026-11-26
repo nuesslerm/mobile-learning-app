@@ -14,6 +14,17 @@ export const homeSummary = z.object({
 });
 export type HomeSummary = z.infer<typeof homeSummary>;
 
+export const desktopAgents = z.object({
+  repo: z.string(),
+  checkouts: z.record(z.string(), z.object({ id: z.string(), name: z.string() })),
+  agents: z.array(z.object({
+    threadId: z.string(), title: z.string(), workspace: z.string(),
+    status: z.enum(['working', 'waiting', 'blocked', 'done', 'failed', 'interrupted']),
+    updatedAt: z.number(), unread: z.boolean(), clearable: z.boolean(),
+  })),
+});
+export type DesktopAgents = z.infer<typeof desktopAgents>;
+
 export const workspaceCatalog = z.object({
   host: desktopHost,
   repo: z.string(),

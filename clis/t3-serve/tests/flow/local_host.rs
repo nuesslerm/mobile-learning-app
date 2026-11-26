@@ -242,6 +242,30 @@ fn session_context_opens_a_saved_chat_once_and_rejects_another_workspace() {
 }
 
 #[test]
+fn paired_agents_require_an_orchestration_reader_and_forward_host_failure() {
+    use t3_core::ports::{AgentError, Op};
+    // Given a desktop with no activities.
+    let h = Harness::start();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileAgents => Some(Ok(json!({"repo":"desk","checkouts":{},"agents":[]}))),
+        _ => None,
+    }));
+    // When requests arrive with different scopes, then only the reader receives this desktop's list.
+    let get = |token: &str| http(h.addr, "GET", "/api/mobile/agents", &[("Authorization", token)], "");
+    assert_eq!(get("").status, 401);
+    assert_eq!(get(&scoped(&h, &["relay:read"])).status, 403);
+    let reader = scoped(&h, &["orchestration:read"]);
+    let response = get(&reader);
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body, json!({"repo":"desk","checkouts":{},"agents":[]}));
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::MobileAgents => Some(Err(AgentError::Failed("desktop unavailable".into()))),
+        _ => None,
+    }));
+    assert_eq!(get(&reader).status, 502);
+}
+
+#[test]
 fn mobile_home_returns_only_host_and_count_from_the_worktree_read() {
     use t3_core::ports::Op;
     // Given a desktop with two worktrees and no checkout metadata available

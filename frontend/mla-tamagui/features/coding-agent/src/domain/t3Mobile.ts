@@ -1,5 +1,5 @@
 import type { CheckoutBranches, CheckoutFile, CheckoutFileRequest, CheckoutChanges, CheckoutCommit, CheckoutHistory, HistoryCursor } from './checkoutHistory';
-import type { HomeSummary, CheckoutSessions, WorkspaceCatalog, CheckoutRow, CheckoutEdit } from './workspaceCatalog';
+import type { DesktopAgents, HomeSummary, CheckoutSessions, WorkspaceCatalog, CheckoutRow, CheckoutEdit } from './workspaceCatalog';
 import type { WorkspacePatch, WorkspacePreferences } from './workspacePreferences';
 import type { Pairing } from './mobile';
 
@@ -83,6 +83,7 @@ export interface T3MobilePort {
   pair(endpoint: string, code: string, signal?: AbortSignal): Promise<Pairing>;
   sessionContext(pairing: Pairing, threadId: string, signal: AbortSignal): Promise<SessionContext>;
   editWorkspace(pairing: Pairing, checkout: string, edit: CheckoutEdit): Promise<CheckoutRow>;
+  agents(pairing: Pairing, signal: AbortSignal): Promise<DesktopAgents>;
   home(pairing: Pairing, signal: AbortSignal): Promise<HomeSummary>;
   workspaces(pairing: Pairing, signal: AbortSignal): Promise<WorkspaceCatalog>;
   checkoutBranches(pairing: Pairing, id: string, signal: AbortSignal): Promise<CheckoutBranches>;

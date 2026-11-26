@@ -749,7 +749,7 @@ fn given_registered_and_unmanaged_checkouts_when_listing_read_state_then_only_th
         let pane = |id: &str, workspace: &str, unread: bool| json!({"pane":format!("thread:{id}"),"thread":id,"title":id,"workspace":workspace,"state":"done","listed":true,"unread":unread,"clearable":true,"sort_at_ms":5,"state_started_at_ms":1});
         let reply = match request["method"].as_str().unwrap() {
             "worktree.list" => json!({"worktrees":[{"path":"/main","is_main":true},{"path":"/wt","is_main":false},{"path":"/other"},{"path":"/flag"}]}),
-            "repo.list" => json!({"repos":[{"path":"/wt","kind":"worktree","workspace":"wt"}]}),
+            "repo.list" => json!({"repos":[{"workspace":WORKSPACE,"kind":"root","executor":"desk"},{"path":"/wt","kind":"worktree","workspace":"wt","executor":"desk"}]}),
             "state.subscribe" => json!({"values":{format!("orca.worktree.{WORKSPACE}::/flag"):{"isUnread":true}}}),
             "pane.list" => json!({"panes":[pane("a",WORKSPACE,true),pane("b","wt",false)]}),
             _ => json!({}),
@@ -761,6 +761,36 @@ fn given_registered_and_unmanaged_checkouts_when_listing_read_state_then_only_th
     let rows = catalog["checkouts"].as_array().unwrap();
     assert_eq!(rows.iter().map(|r| r["unread"].as_bool().unwrap()).collect::<Vec<_>>(), [true, false, false, true]);
     assert_eq!(rows[0]["unreadPanes"], json!(["thread:a"]));
+    assert_eq!(rca.asked("pane.list"), [json!({})]);
+}
+
+#[test]
+fn agents_are_scoped_to_registered_checkouts_and_sorted_by_the_last_pane_change() {
+    // Given a renamed linked checkout, an unmanaged path, and cleared, idle and unrelated panes.
+    let rca = rca(Box::new(|request| {
+        let pane = |id: &str, workspace: &str, state: &str, listed: bool, time: u64| {
+            json!({"pane":format!("thread:{id}"),"thread":id,"title":format!("Chat {id}"),"workspace":workspace,
+                "state":state,"listed":listed,"unread":state=="done","clearable":state=="done","sort_at_ms":time,"state_started_at_ms":1})
+        };
+        let result = match request["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/main","branch":"dev","is_main":true},{"path":"/linked","branch":"feature"},{"path":"/unmanaged"}]}),
+            "repo.list" => json!({"repos":[{"workspace":WORKSPACE,"kind":"root","executor":"desk"},
+                {"path":"/linked","kind":"worktree","workspace":"linked","executor":"desk"},
+                {"path":"/linked","kind":"worktree","workspace":"unrelated","executor":"elsewhere"}]}),
+            "state.subscribe" => json!({"values":{format!("orca.worktree.{WORKSPACE}::/linked"):{"displayName":"Review"}}}),
+            "pane.list" => json!({"panes":[pane("main",WORKSPACE,"done",true,5),pane("new","linked","working",true,9),
+                pane("clear","linked","done",false,10),pane("unused",WORKSPACE,"idle",true,11),pane("other","unrelated","done",true,12)]}),
+            other => panic!("Unexpected call: {other}"),
+        };
+        vec![answer(request, result)]
+    }));
+    // When the mobile app requests all agents for its paired desktop.
+    let result = rca.agent().run(&Op::MobileAgents).unwrap();
+    // Then only the two visible agents are exposed, in activity order, without reading any thread histories.
+    assert_eq!(result, json!({"repo":WORKSPACE,"checkouts":{"linked":{"id":format!("{WORKSPACE}::/linked"),"name":"Review"},WORKSPACE:{"id":format!("{WORKSPACE}::/main"),"name":"dev"}},"agents":[
+        {"threadId":"new","title":"Chat new","status":"working","updatedAt":9,"unread":false,"clearable":false,"workspace":"linked"},
+        {"threadId":"main","title":"Chat main","status":"done","updatedAt":5,"unread":true,"clearable":true,"workspace":WORKSPACE}
+    ]}));
     assert_eq!(rca.asked("pane.list"), [json!({})]);
 }
 

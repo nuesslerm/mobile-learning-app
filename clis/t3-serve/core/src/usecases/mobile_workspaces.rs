@@ -219,6 +219,11 @@ impl Service {
         Ok(result)
     }
 
+    pub fn mobile_agents_http(&self, auth: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.agents", auth)?;
+        self.agent().run(&Op::MobileAgents).map_err(upstream)
+    }
+
     pub fn mobile_home_http(&self, auth: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("mobile.home", auth)?;
         let catalog = self.agent().run(&Op::WorktreeList { root: String::new() }).map_err(upstream)?;

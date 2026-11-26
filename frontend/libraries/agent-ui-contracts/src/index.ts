@@ -12,7 +12,7 @@ export type {
   HomeTabHeaderAction,
   HomeTabHeaderProps,
   HomeEmptyStateProps,
-  HomeSearchFieldProps,
+  HomeSearchFieldProps, HomeAgentSectionProps,
   HomeActionSheetAction,
   HomeActionSheetProps,
   HomeSettingsRowProps,

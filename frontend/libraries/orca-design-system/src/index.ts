@@ -19,6 +19,7 @@ import { ChatSurface, ChatImage, ChatImageViewer } from './adapters/ChatImages';
 import { HomeTabBar } from './adapters/HomeTabBar';
 import { HomeTabHeader } from './adapters/HomeTabHeader';
 import { HomeEmptyState } from './adapters/HomeEmptyState';
+import { HomeAgentSection } from './adapters/HomeAgentSection';
 import { HomeSearchField } from './adapters/HomeSearchField';
 import { HomeActionSheet } from './adapters/HomeActionSheet';
 import { HomeSettingsRow } from './adapters/HomeSettingsRow';
@@ -40,7 +41,7 @@ export const orcaComponents: AgentComponents = {
   HomeTabBar,
   HomeTabHeader,
   HomeEmptyState,
-  HomeSearchField,
+  HomeSearchField, HomeAgentSection,
   HomeActionSheet,
   HomeSettingsRow, HomeSettingsGroup, HomeSettingsNote, HomeSettingsScreen,
   Composer,

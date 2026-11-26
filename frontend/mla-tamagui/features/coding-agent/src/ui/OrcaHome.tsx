@@ -4,13 +4,15 @@ import { BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useHomeNavigation } from '../state/useHomeNavigation';
+import type { Pairing } from '../domain/mobile';
+import type { T3MobilePort } from '../domain/t3Mobile';
 import { OrcaAgentsTab } from './home/OrcaAgentsTab';
 import { OrcaAutomationsTab } from './home/OrcaAutomationsTab';
 import { router } from 'expo-router';
 import { OrcaBotsTab } from './home/OrcaBotsTab';
 import { OrcaUsageTab } from './home/OrcaUsageTab';
 
-export function OrcaHome({ feed, computer }: { feed: ReactNode; computer: string | null | undefined }) {
+export function OrcaHome({ feed, computer, api, pair }: { feed: ReactNode; computer: string | null | undefined; api?: T3MobilePort; pair?: Pairing }) {
   const { HomeSurface, HomeTabBar, HomeTabHeader } = useAgentComponents();
   const { bottom } = useSafeAreaInsets();
   const { entries, active, visited, select } = useHomeNavigation();
@@ -44,7 +46,7 @@ export function OrcaHome({ feed, computer }: { feed: ReactNode; computer: string
             ) : entry.id === 'bots' ? (
               <OrcaBotsTab computer={computer} />
             ) : entry.id === 'agents' ? (
-              <OrcaAgentsTab />
+              <OrcaAgentsTab active={active === entry.id} api={api} pair={pair} computer={computer} />
             ) : entry.id === 'usage' ? (
               <OrcaUsageTab />
             ) : (

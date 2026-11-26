@@ -1,5 +1,8 @@
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { useState } from 'react';
+import type { Pairing } from '../../domain/mobile';
+import type { T3MobilePort } from '../../domain/t3Mobile';
+import { PairedAgents } from './PairedAgents';
 import { ScrollView } from 'react-native';
 
 /**
@@ -9,7 +12,7 @@ import { ScrollView } from 'react-native';
  * empty state and the tools that shape the list once there is one: the search
  * field and the options sheet.
  */
-export function OrcaAgentsTab() {
+export function OrcaAgentsTab({ active, api, pair, computer }: {active: boolean; api?: T3MobilePort; pair?: Pairing; computer?: string | null}) {
   const { HomeTabHeader, HomeEmptyState, HomeSearchField, HomeActionSheet } =
     useAgentComponents();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -94,7 +97,9 @@ export function OrcaAgentsTab() {
         />
       ) : null}
       <ScrollView keyboardShouldPersistTaps="handled">
-        {trimmed ? (
+        {api && pair ? (
+          <PairedAgents active={active} api={api} pair={pair} computer={computer} query={trimmed} unreadOnly={unreadOnly} groupBy={groupBy} />
+        ) : trimmed ? (
           <HomeEmptyState
             icon="agents"
             title={`No agents match “${trimmed}”`}

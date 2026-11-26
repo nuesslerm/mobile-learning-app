@@ -46,6 +46,7 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
       checkouts:[{id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false}]}),
     editWorkspace: async (_pair, id, edit) => ({id, name: 'displayName' in edit ? edit.displayName || 'Mobile checkout' : 'Mobile checkout', branch:null,main:false,
       automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned, unread:'isUnread' in edit && edit.isUnread}),
+    agents: async () => ({repo:'Fixture repository', checkouts:{}, agents:[]}),
     checkoutBranches: async () => ({ current: null, branches: [], truncated: false }),
     switchCheckoutBranch: async (_pair, _id, branch) => ({ branch, head: 'a'.repeat(40) }),
     checkoutChanges: async () => ({branch:null,head:null,comparison:null}),
@@ -166,6 +167,43 @@ describe('Orca chat with the T3 transport', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Bots' }));
     expect(await screen.findByRole('heading', { name: 'Update Orca on Fixture Mac' })).toBeTruthy();
     expect(screen.getByText('Its version of Orca can’t show bots on your phone yet.')).toBeTruthy();
+  });
+
+  it('Given a connected desktop, when opening Agents and selecting a search result, then the saved chat opens in its checkout', async () => {
+    const port = backend();
+    const read = vi.fn(async () => ({
+      repo: 'Demo', checkouts: { main: { id: 'repo::/main', name: 'Mobile checkout' } },
+      agents: [
+        {threadId:thread.id, title:'Investigate sync', status:'done' as const, workspace:'main', updatedAt:5, unread:true, clearable:true},
+        {threadId:'other', title:'Build docs', status:'working' as const, workspace:'main', updatedAt:6, unread:false, clearable:false},
+      ],
+    }));
+    await app.render('/coding-agent', {overrides:{'coding-agent':{t3Mobile:{...port,agents:read}}}});
+    await screen.findByText('Fixture Mac');
+    expect(read).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('tab', {name:'Agents'}));
+    expect(await screen.findByText('Build docs')).toBeTruthy();
+    expect(screen.getByText('Investigate sync')).toBeTruthy();
+    expect(screen.queryByText('Pair a desktop to see its agents here.')).toBeNull();
+    await userEvent.click(screen.getByRole('button',{name:'Search agents'}));
+    await userEvent.type(screen.getByPlaceholderText('Search agents'),'sync');
+    expect(screen.queryByText('Build docs')).toBeNull();
+    await userEvent.click(screen.getByRole('button',{name:'Investigate sync, Mobile checkout'}));
+    await waitFor(() => expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Mobile%20checkout'));
+  });
+
+  it('Given an agent pane without a projected chat, when selected, then its own checkout opens the saved session', async () => {
+    const port = backend();
+    const lookup = vi.fn(port.checkoutSessions);
+    await app.render('/coding-agent', { overrides:{'coding-agent':{t3Mobile:{...port,checkoutSessions:lookup,agents:async () => ({
+      repo:'Demo',checkouts:{ linked:{id:'demo::/linked',name:'Linked review'} },
+      agents:[{threadId:'unresolved',title:'Native pane',workspace:'linked',status:'interrupted',updatedAt:5,unread:false,clearable:true}],
+    })}}}});
+    await screen.findByText('Fixture Mac');
+    await userEvent.click(screen.getByRole('tab',{name:'Agents'}));
+    await userEvent.click(await screen.findByRole('button',{name:'Native pane, Linked review'}));
+    expect(lookup.mock.calls[0]?.[1]).toBe('demo::/linked');
+    await waitFor(() => expect(routerHarness().lastPush()).toBe('/coding-agent/thread-42?checkout=Linked%20review'));
   });
 
   it('Given an unpaired desktop, when retrying a bad invite and pasting the T3 link, then only the valid grant is exchanged and its project appears', async () => {

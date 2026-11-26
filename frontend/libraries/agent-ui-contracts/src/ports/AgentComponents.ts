@@ -125,6 +125,12 @@ export interface HomeEmptyStateProps {
   titleGap?: number;
 }
 
+export interface HomeAgentSectionProps {
+  title: string;
+  rows: {id: string; title: string; place: string; age: string; unread: boolean; status: 'working' | 'waiting' | 'blocked' | 'done' | 'failed' | 'interrupted'}[];
+  onSelect: (id: string) => void;
+}
+
 export interface HomeSearchFieldProps {
   value: string;
   onChangeText: (value: string) => void;
@@ -236,6 +242,7 @@ export interface AgentComponents {
   HomeTabBar: ComponentType<HomeTabBarProps>;
   HomeTabHeader: ComponentType<HomeTabHeaderProps>;
   HomeEmptyState: ComponentType<HomeEmptyStateProps>;
+  HomeAgentSection: ComponentType<HomeAgentSectionProps>;
   HomeSearchField: ComponentType<HomeSearchFieldProps>;
   HomeActionSheet: ComponentType<HomeActionSheetProps>;
   HomeSettingsRow: ComponentType<HomeSettingsRowProps>;

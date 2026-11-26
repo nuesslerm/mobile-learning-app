@@ -9,6 +9,7 @@ use agent_api_agent::{code as thread_code, CreateParams, FinishReason, HistoryPa
 use agent_api_client::{Client, Config, Error, Subscribe};
 use agent_api_proto::{thread_topic, Event, GroupName, Method, PROTOCOL};
 use agent_api_service::activity::ClientActivityParams;
+use agent_api_service::panes::{PaneState, PaneView};
 use agent_api_service::{StatusResult, CLIENT_ACTIVITY, STATUS};
 use agent_api_accounts as accounts;
 use agent_api_catalog as catalog;
@@ -208,6 +209,11 @@ pub fn needed_groups() -> Vec<GroupName> {
 
 /// How long a followed thread waits for its next event before it looks again; a silent CLI is not an error.
 const QUIET: Duration = Duration::from_secs(1);
+
+struct MobileInventory {
+    checkouts: Vec<(Value, Option<String>)>,
+    panes: Vec<PaneView>,
+}
 
 fn checkout_missing() -> AgentError {
     AgentError::Refused { code: "CHECKOUT_NOT_FOUND".into(), message: "Checkout not found".into() }
@@ -525,7 +531,7 @@ impl RcaAgent {
         Ok(json!({"branch": branch, "head": head, "commits": items, "nextOffset": next}))
     }
 
-    fn mobile_worktrees(&self, client: &mut Client) -> Result<Value, AgentError> {
+    fn mobile_inventory(&self, client: &mut Client) -> Result<MobileInventory, AgentError> {
         let listed = Self::call(client, worktrees::WORKTREE_LIST, json!({"workspace": self.workspace}))?;
         let registrations = Self::call(client, REPO_LIST, json!({}))?;
         // One scope snapshot supplies the saved labels and pins for every checkout on this short-lived connection.
@@ -533,16 +539,13 @@ impl RcaAgent {
         let metadata = snapshot["values"].as_object().ok_or_else(|| AgentError::Failed("Missing RCA workspace metadata.".into()))?;
         let rows = listed["worktrees"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA worktrees.".into()))?;
         let repos = registrations["repos"].as_array().ok_or_else(|| AgentError::Failed("Missing RCA repositories.".into()))?;
+        let executor = repos.iter().find(|r| r["workspace"] == self.workspace).and_then(|r| r["executor"].as_str());
         let by_path: std::collections::HashMap<_, _> = repos.iter()
-            .filter(|r| r["kind"] == "worktree")
+            .filter(|r| r["kind"] == "worktree" && executor.is_some_and(|owner| r["executor"] == owner))
             .filter_map(|r| Some((r["path"].as_str()?, r["workspace"].as_str()?)))
             .collect();
         let pane_list = Self::call(client, agent_api_service::panes::LIST, json!({}))?;
-        let panes: Vec<agent_api_service::panes::PaneView> = serde_json::from_value(pane_list["panes"].clone()).map_err(|_| AgentError::Failed("Invalid RCA pane list.".into()))?;
-        let mut unread_panes = std::collections::HashMap::<String, Vec<String>>::new();
-        for pane in panes.into_iter().filter(|p| p.unread && p.listed && p.state != agent_api_service::panes::PaneState::Idle) {
-            if let Some(workspace) = pane.workspace { unread_panes.entry(workspace).or_default().push(pane.pane); }
-        }
+        let panes: Vec<PaneView> = serde_json::from_value(pane_list["panes"].clone()).map_err(|_| AgentError::Failed("Invalid RCA pane list.".into()))?;
         let mut checkouts = Vec::with_capacity(rows.len());
         for row in rows {
             let path = row["path"].as_str().ok_or_else(|| AgentError::Failed("Missing checkout path.".into()))?;
@@ -550,14 +553,45 @@ impl RcaAgent {
             let title = branch.unwrap_or_else(|| path.trim_end_matches('/').rsplit('/').next().unwrap_or(path));
             let workspace = by_path.get(path).copied().unwrap_or(&self.workspace);
             let owner = if row["is_main"] == true { Some(self.workspace.as_str()) } else { by_path.get(path).copied() };
-            let alerts = owner.and_then(|w| unread_panes.get(w)).map(Vec::as_slice).unwrap_or_default();
             let id = format!("{}::{path}", self.workspace);
             let meta = metadata.get(&format!("orca.worktree.{id}"));
             let name = meta.and_then(|m| m["displayName"].as_str()).filter(|s| !s.is_empty()).unwrap_or(title);
-            checkouts.push(json!({"id": id, "name": name, "automaticName": title, "pinned": meta.is_some_and(|m| m["isPinned"] == true), "branch": branch,
-                "main": row["is_main"] == true, "workspace": workspace, "path": path, "unreadPanes": alerts, "unread": !alerts.is_empty() || meta.is_some_and(|m| m["isUnread"] == true)}));
+            checkouts.push((json!({"id": id, "name": name, "automaticName": title, "pinned": meta.is_some_and(|m| m["isPinned"] == true), "branch": branch,
+                "main": row["is_main"] == true, "workspace": workspace, "path": path, "unread": meta.is_some_and(|m| m["isUnread"] == true)}), owner.map(str::to_owned)));
         }
+        Ok(MobileInventory { checkouts, panes })
+    }
+
+    fn mobile_worktrees(&self, client: &mut Client) -> Result<Value, AgentError> {
+        let inventory = self.mobile_inventory(client)?;
+        let mut unread = std::collections::HashMap::<String, Vec<String>>::new();
+        for pane in inventory.panes.into_iter().filter(|p| p.unread && p.listed && p.state != PaneState::Idle) {
+            if let Some(workspace) = pane.workspace { unread.entry(workspace).or_default().push(pane.pane); }
+        }
+        let checkouts = inventory.checkouts.into_iter().map(|(mut row, owner)| {
+            let alerts = owner.as_ref().and_then(|key| unread.get(key)).map(Vec::as_slice).unwrap_or_default();
+            row["unread"] = json!(!alerts.is_empty() || row["unread"] == true);
+            row["unreadPanes"] = json!(alerts);
+            row
+        }).collect::<Vec<_>>();
         Ok(json!({"repo": self.workspace, "checkouts": checkouts}))
+    }
+
+    fn mobile_agents(&self, client: &mut Client) -> Result<Value, AgentError> {
+        let MobileInventory { checkouts, mut panes } = self.mobile_inventory(client)?;
+        let owned: std::collections::HashMap<_, _> = checkouts.into_iter()
+            .filter_map(|(checkout, owner)| Some((owner?, checkout))).collect();
+        panes.sort_by(|a, b| b.sort_at_ms.cmp(&a.sort_at_ms).then_with(|| a.thread.cmp(&b.thread)));
+        let mut places = serde_json::Map::new();
+        let mut agents = Vec::new();
+        for pane in panes.into_iter().filter(|p| p.listed && p.state != PaneState::Idle) {
+            let Some(workspace) = pane.workspace else { continue };
+            let Some(checkout) = owned.get(&workspace) else { continue };
+            places.entry(workspace.clone()).or_insert_with(|| json!({"id":checkout["id"],"name":checkout["name"]}));
+            agents.push(json!({"threadId":pane.thread,"title":pane.title,"status":pane.state,
+                "updatedAt":pane.sort_at_ms,"unread":pane.unread,"clearable":pane.clearable,"workspace":workspace}));
+        }
+        Ok(json!({"repo": self.workspace, "checkouts":places, "agents":agents}))
     }
 
     /// Use a separate workspace only when RCA registered the Git worktree.
@@ -831,7 +865,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -911,6 +945,7 @@ impl AgentApi for RcaAgent {
         if let Op::CheckoutHistory { checkout, expected_head, base, offset } = op {
             return self.checkout_history(&mut client, checkout, expected_head.as_deref(), base.as_deref(), *offset);
         }
+        if matches!(op, Op::MobileAgents) { return self.mobile_agents(&mut client); }
         if matches!(op, Op::MobileWorktrees) { return self.mobile_worktrees(&mut client); }
         if let Op::ReadPanes { panes } = op {
             for keys in panes.chunks(agent_api_service::panes::MAX_MARKED) {

@@ -84,6 +84,8 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
       <ChatSurface>
         <OrcaHome
           computer={state.home?.host.name}
+          api={api}
+          pair={state.pair}
           feed={
             <ScrollView contentContainerStyle={{ paddingHorizontal: 16 }}>
               <PairedDesktops

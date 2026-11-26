@@ -278,7 +278,7 @@ fn route_name(path: &str) -> &str {
         "/api/auth/session" | "/api/auth/websocket-ticket" | "/api/connect/link-proof" |
         "/api/connect/link-state" | "/api/connect/preferences" | "/api/connect/reachability" |
         "/api/connect/relay-config" | "/api/connect/unlink" | "/api/guest/messages" |
-        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/workspaces" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
+        "/api/guest/redeem" | "/api/mobile/home" | "/api/mobile/agents" | "/api/mobile/workspaces" | "/api/mobile/source-control/history" | "/api/mobile/source-control/commit" | "/api/mobile/source-control/changes" | "/api/mobile/source-control/file" | "/api/mobile/source-control/branches" | "/api/mobile/workspace-preferences" | "/api/orchestration/shell" | "/api/projects" |
         "/api/projects/mutate" | "/api/pull-requests/diff" | "/api/t3-connect/health" |
         "/api/t3-connect/mint-credential" | "/api/voice/acceleration" | "/api/voice/cloud/keys" |
         "/api/voice/cloud/openrouter/models" | "/api/voice/model-unload-timeout" | "/api/voice/models" |
@@ -372,6 +372,10 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
         ("GET" | "POST" | "PUT" | "PATCH", path) if path.strip_prefix(HOOKS).and_then(|rest| rest.split_once('/')).is_some_and(|(a, b)| !a.is_empty() && !b.is_empty() && !b.contains('/')) => {
             respond_with(&mut stream, 404, &json!({"error": "hook_not_found"}), "x-t3-hook-outcome: not_found\r\n")
         }
+        ("GET", "/api/mobile/agents") => match svc.mobile_agents_http(auth) {
+            Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
+            Err(r) => refused(&mut stream, r, NO_STORE),
+        },
         ("GET", "/api/mobile/home") => match svc.mobile_home_http(auth) {
             Ok(body) => respond_with(&mut stream, 200, &body, NO_STORE),
             Err(r) => refused(&mut stream, r, NO_STORE),
