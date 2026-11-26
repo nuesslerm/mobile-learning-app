@@ -309,6 +309,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
                 onBlur={() => setFocused(false)}
                 onChangeText={type}
                 onSubmitEditing={submit}
+                blurOnSubmit={false}
                 submitBehavior="submit"
               />
             </View>

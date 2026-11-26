@@ -195,6 +195,7 @@ export function WorkspaceTabsScreen({
             >
               {active.kind === 'terminal' && (
                 <TerminalTab
+                  key={active.id}
                   api={api}
                   pair={pair}
                   layout={layout}
