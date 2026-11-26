@@ -299,7 +299,9 @@ impl Service {
         let number = Self::number(payload)?;
         let key = Self::guide_key(&target, number);
         let pr = self.view("reviewGuide", &target, number)?;
-        Ok(json!({"guide": self.stored_guide(&key), "run": self.run_of(&key), "currentHeadSha": text(&pr, "head_sha")}))
+        // The writer persists the guide before clearing its run. Read the run first so completion cannot hide both.
+        let run = self.run_of(&key);
+        Ok(json!({"guide": self.stored_guide(&key), "run": run, "currentHeadSha": text(&pr, "head_sha")}))
     }
 
     /// `pullRequests.generateReviewGuide`: starts the run (a second ask for the same head while it goes starts none) and answers at once.

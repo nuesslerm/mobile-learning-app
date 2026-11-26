@@ -47,6 +47,20 @@ fn branch_error(error: AgentError) -> Refusal {
 }
 
 impl Service {
+    pub fn checkout_pull_request_http(&self, auth: Option<&str>, checkout: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("mobile.checkoutPullRequest", auth)?;
+        let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;
+        self.agent().run(&Op::CheckoutPullRequest { checkout: checkout.into(), link: None }).map_err(branch_error)
+    }
+
+    pub fn link_checkout_pull_request_http(&self, auth: Option<&str>, body: Value) -> Result<Value, Refusal> {
+        self.scope_gate("mobile.linkCheckoutPullRequest", auth, "orchestration:operate")?;
+        let checkout = body["checkout"].as_str().filter(|s| !s.is_empty()).ok_or_else(|| Refusal::bare(422))?;
+        let number = body["number"].as_u64().filter(|n| *n > 0).ok_or_else(|| Refusal::bare(422))?;
+        let _guard = self.held().workspace_edits.lock().unwrap_or_else(|p| p.into_inner());
+        self.agent().run(&Op::CheckoutPullRequest { checkout: checkout.into(), link: Some(number) }).map_err(branch_error)
+    }
+
     pub fn checkout_branches_http(&self, auth: Option<&str>, checkout: Option<&str>) -> Result<Value, Refusal> {
         self.read_gate("mobile.checkoutBranches", auth)?;
         let checkout = checkout.filter(|id| !id.is_empty()).ok_or_else(|| Refusal::bare(422))?;

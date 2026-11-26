@@ -242,6 +242,31 @@ fn session_context_opens_a_saved_chat_once_and_rejects_another_workspace() {
 }
 
 #[test]
+fn a_reader_can_inspect_a_checkout_pull_request_and_only_an_operator_can_link_it() {
+    use t3_core::ports::Op;
+    // Given a paired mobile reader, operator and a checkout recognized by the gateway.
+    let h=Harness::start();
+    *h.agent.responder.lock().unwrap()=Some(Box::new(|op| match op {
+        Op::CheckoutPullRequest {checkout,link} if checkout=="desk::/topic" =>
+            Some(Ok(json!({"branch":"topic","pullRequest":link.map(|n| json!({"number":n}))}))),
+        _ => None,
+    }));
+    let path="/api/mobile/source-control/pull-request";
+    let query=format!("{path}?checkout=desk%3A%3A%2Ftopic");
+    let reader=scoped(&h,&["orchestration:read"]);
+    let operator=scoped(&h,&["orchestration:operate"]);
+    let post=|token:&str, number:u64| http(h.addr,"POST",path,&[("Authorization",token),("Content-Type","application/json")],&json!({"checkout":"desk::/topic","number":number}).to_string());
+    // When reading the panel, credentials and a concrete checkout are required.
+    assert_eq!(http(h.addr,"GET",&query,&[],"").status,401);
+    assert_eq!(http(h.addr,"GET",path,&[("Authorization",&reader)],"").status,422);
+    assert_eq!(http(h.addr,"GET",&query,&[("Authorization",&reader)],"").body,json!({"branch":"topic","pullRequest":null}));
+    // Then linking rejects a reader and a zero number, and forwards exactly the requested PR.
+    assert_eq!(post(&reader,17).status,403);
+    assert_eq!(post(&operator,0).status,422);
+    assert_eq!(post(&operator,17).body["pullRequest"]["number"],17);
+}
+
+#[test]
 fn source_control_resolves_a_projected_chat_only_for_an_orchestration_reader() {
     use t3_core::ports::Op;
     // Given a projected chat and a desktop with a differently named linked checkout.

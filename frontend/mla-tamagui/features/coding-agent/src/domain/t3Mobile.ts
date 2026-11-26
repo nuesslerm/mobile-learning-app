@@ -89,6 +89,8 @@ export interface T3MobilePort {
   threadCheckout(pairing: Pairing, thread: string, selected: string | undefined, signal: AbortSignal): Promise<CheckoutRow>;
   checkoutBranches(pairing: Pairing, id: string, signal: AbortSignal): Promise<CheckoutBranches>;
   switchCheckoutBranch(pairing: Pairing, id: string, branch: string, signal: AbortSignal): Promise<{ branch: string; head: string }>;
+  linkCheckoutPullRequest(pairing: Pairing, id: string, number: number): Promise<import('./checkoutHistory').CheckoutPullRequest>;
+  checkoutPullRequest(pairing: Pairing, id: string, signal: AbortSignal): Promise<import('./checkoutHistory').CheckoutPullRequest>;
   checkoutChanges(pairing: Pairing, id: string, signal: AbortSignal): Promise<CheckoutChanges>;
   checkoutFile(pairing: Pairing, id: string, file: CheckoutFileRequest, signal: AbortSignal): Promise<CheckoutFile>;
   checkoutCommit(pairing: Pairing, id: string, sha: string, signal: AbortSignal): Promise<CheckoutCommit>;

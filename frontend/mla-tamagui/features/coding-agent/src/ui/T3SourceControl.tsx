@@ -1,9 +1,11 @@
-import { BackHandler, Platform } from 'react-native';
+import { BackHandler, Linking, Platform } from 'react-native';
 import { useAgentComponents, type SourceCommit } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckoutHeadChanged,
+  parsePullRequestReference,
+  type CheckoutPullRequest,
   type CheckoutFile,
   type CheckoutBranches,
   type CheckoutChanges,
@@ -31,6 +33,24 @@ export function T3SourceControl({
 }) {
   const { SourceControl } = useAgentComponents();
   const [page, setPage] = useState<'changes' | 'commits' | 'detail'>('changes');
+  const [tab, setTab] = useState<'changes' | 'pr'>('changes');
+  const [pullRequest, setPullRequest] = useState<CheckoutPullRequest>();
+  const [prError, setPrError] = useState<string>();
+  const [prRevision, reloadPr] = useState(0);
+  useEffect(() => {
+    if (tab !== 'pr') return;
+    const controller = new AbortController();
+    setPullRequest(undefined);
+    setPrError(undefined);
+    api.checkoutPullRequest(pair, checkout.id, controller.signal).then(result => {
+      if (!controller.signal.aborted) setPullRequest(result);
+    }).catch(cause => {
+      if (controller.signal.aborted) return;
+      Logger.withError(cause).warn('coding_agent.checkout_pull_request_failed');
+      setPrError('Could not load pull request.');
+    });
+    return () => controller.abort();
+  }, [api, pair, checkout.id, tab, prRevision]);
   const [selected, setSelected] = useState<SourceCommit>();
   const [changes, setChanges] = useState<CheckoutChanges>();
   const [detail, setDetail] = useState<CheckoutCommit>();
@@ -293,6 +313,35 @@ export function T3SourceControl({
   return (
     <SourceControl
       backLabel={backLabel}
+      tab={tab}
+      selectTab={next => {
+        if (next !== tab) {
+          setPullRequest(undefined);
+          setPrError(undefined);
+          setTab(next);
+        }
+      }}
+      prPanel={{
+        result: pullRequest,
+        parseReference: parsePullRequestReference,
+        link: async number => {
+          try {
+            await api.linkCheckoutPullRequest(pair, checkout.id, number);
+          } catch (cause) {
+            Logger.withError(cause).warn('coding_agent.checkout_link_pull_request_failed');
+            throw cause;
+          }
+          reloadPr(n => n + 1);
+        },
+        error: prError,
+        refresh: () => reloadPr(n => n + 1),
+        open: url => {
+          Linking.openURL(url).catch(cause => {
+            Logger.withError(cause).warn('coding_agent.checkout_pull_request_open_failed');
+            setPrError('Could not open pull request.');
+          });
+        },
+      }}
       openFile={openFile}
       openBranches={() => void openBranches()}
       switchingBranch={switching}

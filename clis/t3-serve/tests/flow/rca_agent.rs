@@ -767,6 +767,46 @@ fn given_registered_and_unmanaged_checkouts_when_listing_read_state_then_only_th
 }
 
 #[test]
+fn checkout_pull_requests_follow_the_selected_branch_or_link_and_preserve_checkout_metadata() {
+    use std::sync::{Arc, Mutex};
+    // Given a named checkout with a suppressed PR and a separate detached checkout.
+    let meta = Arc::new(Mutex::new(json!({"displayName":"Review checkout","isPinned":true,"suppressedGitHubPR":2})));
+    let stored = meta.clone();
+    let rca = rca(Box::new(move |q| {
+        let params = &q["params"];
+        let value = match q["method"].as_str().unwrap() {
+            "worktree.list" => json!({"worktrees":[{"path":"/topic","head":"a".repeat(40),"branch":"topic","is_main":false},{"path":"/detached","head":"b".repeat(40),"is_main":false}]}),
+            "state.get" if params["key"] == "orca.worktree.w1::/topic" => json!({"value":stored.lock().unwrap().clone()}),
+            "state.get" => json!({"value":null}),
+            "state.set" => { *stored.lock().unwrap()=params["value"].clone(); json!({"ok":true}) },
+            "pr.list" => {
+                assert_eq!(params["head"],"topic");
+                json!({"prs":[{"number":1,"state":"closed","head_ref":"topic"},{"number":2,"state":"open","head_ref":"topic"},
+                    {"number":3,"state":"open","head_ref":"another"},{"number":4,"state":"open","head_ref":"topic"}]})
+            }
+            "pr.view" => json!({"pr":{"number":params["number"],"title":"Code review","state":"open","head_ref":"topic",
+                "base_ref":"main","url":"https://github.com/org/project/pull/4","author":"reader","body":"Review notes",
+                "mergeable":"mergeable","changed_files":3,"additions":12,"deletions":5}}),
+            "pr.checks" => json!({"pass":10,"pending":2,"fail":1,"checks":[{"name":"internal provider record"}]}),
+            method => panic!("Unexpected call {method}"),
+        }; vec![answer(q,value)]
+    }));
+    let lookup=|id:&str,link| rca.agent().run(&Op::CheckoutPullRequest{checkout:id.into(),link});
+    // When read, the open matching unsuppressed PR wins. Only its aggregate check counts go to the phone.
+    let first=lookup("w1::/topic",None).unwrap();
+    assert_eq!(first["pullRequest"]["number"],4);
+    assert_eq!(first["pullRequest"]["checks"],json!({"passing":10,"pending":2,"failing":1}));
+    assert!(lookup("w1::/detached",None).unwrap()["pullRequest"].is_null());
+    assert!(lookup("other::/topic",None).is_err());
+    // Then a manual link skips branch discovery, clears suppression and survives the next read.
+    assert_eq!(lookup("w1::/topic",Some(7)).unwrap()["pullRequest"]["number"],7);
+    assert_eq!(lookup("w1::/topic",None).unwrap()["pullRequest"]["number"],7);
+    assert_eq!(*meta.lock().unwrap(),json!({"displayName":"Review checkout","isPinned":true,"linkedPR":7}));
+    assert_eq!(rca.asked("pr.list").len(),1);
+    assert_eq!(rca.asked("pr.checks").len(),2);
+}
+
+#[test]
 fn a_chat_resolves_its_exact_checkout_without_reading_other_threads_panes_or_checkout_metadata() {
     // Given same-named checkouts, an unmanaged path, and another executor registered at the linked path.
     let rca = rca(Box::new(|q| {

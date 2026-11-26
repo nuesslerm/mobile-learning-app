@@ -1,4 +1,4 @@
-import { checkoutBranches, checkoutFile, checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
+import { checkoutPullRequest, checkoutBranches, checkoutFile, checkoutChanges, checkoutCommit, checkoutHistory, CheckoutHeadChanged } from '../../domain/checkoutHistory';
 import { checkoutRow, checkoutSessions, desktopAgents, homeSummary, workspaceCatalog } from '../../domain/workspaceCatalog';
 import { workspacePreferences } from '../../domain/workspacePreferences';
 import { randomUUID } from 'expo-crypto';
@@ -116,6 +116,15 @@ export function createT3MobileApi(): T3MobilePort {
       const path = '/api/mobile/source-control/checkout?thread=' + encodeURIComponent(thread) +
         (selected ? '&checkout=' + encodeURIComponent(selected) : '');
       return checkoutRow.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
+    },
+    async linkCheckoutPullRequest(pair, checkout, number) {
+      return checkoutPullRequest.parse(await json(endpoint(pair.endpoint), '/api/mobile/source-control/pull-request', {
+        method: 'POST', headers: { ...authorization(pair), 'Content-Type': 'application/json' }, body: JSON.stringify({checkout,number}),
+      }));
+    },
+    async checkoutPullRequest(pair, id, signal) {
+      const path = '/api/mobile/source-control/pull-request?checkout=' + encodeURIComponent(id);
+      return checkoutPullRequest.parse(await json(endpoint(pair.endpoint), path, { headers: authorization(pair), signal }));
     },
     async checkoutBranches(pair, id, signal) {
       const path = '/api/mobile/source-control/branches?checkout=' + encodeURIComponent(id);

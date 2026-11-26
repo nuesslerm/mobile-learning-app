@@ -48,6 +48,8 @@ function backend(openTab: (id: string) => Promise<void> = async () => {}) {
       automaticName:'Mobile checkout', pinned:'isPinned' in edit && edit.isPinned, unread:'isUnread' in edit && edit.isUnread}),
     agents: async () => ({repo:'Fixture repository', checkouts:{}, agents:[]}),
     threadCheckout: async () => ({ id:'repo::/fixture', name:'Mobile checkout', branch:null, main:false }),
+    linkCheckoutPullRequest: async (_pair:typeof pair, _id:string, _number:number): Promise<import('../../domain/checkoutHistory').CheckoutPullRequest> => ({ branch:'feature', pullRequest:null }),
+    checkoutPullRequest: async (): Promise<import('../../domain/checkoutHistory').CheckoutPullRequest> => ({ branch:'feature', pullRequest:null }),
     checkoutBranches: async () => ({ current: null, branches: [], truncated: false }),
     switchCheckoutBranch: async (_pair, _id, branch) => ({ branch, head: 'a'.repeat(40) }),
     checkoutChanges: async () => ({branch:null,head:null,comparison:null}),
@@ -339,6 +341,51 @@ describe('Orca chat with the T3 transport', () => {
     await app.render('/coding-agent/thread-42', {search:{checkout:'Mobile checkout', checkoutId:'repo::/linked #2'}, overrides:{'coding-agent':{t3Mobile:backend()}}});
     await userEvent.click(await screen.findByRole('button',{name:'Open source control'}));
     expect(routerHarness().lastPush()).toBe('/coding-agent/source-control?thread=thread-42&checkoutId=repo%3A%3A%2Flinked%20%232');
+  });
+
+  it('Given a checkout with no matching PR, when a reader links an existing PR, then its current details appear in the selected tab', async () => {
+    const port = backend();
+    const pr = { number: 27, title: 'Keep the existing draft', state: 'open' as const, draft: true, head: 'draft', base: 'main',
+      author: 'Mei', url: 'https://github.com/example/app/pull/27', description: 'Restore the saved draft.', mergeable: 'mergeable',
+      reviewDecision: null, files: 4, additions: 10, deletions: 2, checks: { passing: 3, failing: 0, pending: 1 } };
+    let linked = false;
+    const result = () => ({ branch: 'topic', pullRequest: linked ? pr : null });
+    const read = vi.fn(async () => result());
+    const link = vi.fn(async () => { linked = true; return result(); });
+    await app.render('/coding-agent/source-control', { search: { thread:'thread-42' }, overrides: { 'coding-agent': {
+      t3Mobile: { ...port, checkoutPullRequest: read, linkCheckoutPullRequest: link },
+    } } });
+    await screen.findByRole('tab', { name: 'Changes', selected: true });
+    expect(read).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('tab', { name: 'Pull request' }));
+    await screen.findByText('No pull request yet');
+    await userEvent.click(screen.getByRole('button', { name: 'Link an existing pull request' }));
+    const input = screen.getByRole('textbox', { name: 'PR number or GitHub URL' });
+    await userEvent.type(input, 'https://github.com/example/app/issues/27');
+    expect(screen.getByRole('button', { name: 'Link pull request' }).getAttribute('aria-disabled') === 'true' ||
+      screen.getByRole('button', { name: 'Link pull request' }).hasAttribute('disabled')).toBe(true);
+    await userEvent.clear(input);
+    await userEvent.type(input, 'https://github.com/example/app/pull/27');
+    await userEvent.click(screen.getByRole('button', { name: 'Link #27' }));
+    await screen.findByText('Restore the saved draft.');
+    expect(link).toHaveBeenCalledWith(pair, 'repo::/fixture', 27);
+    expect(screen.getByText('1 check running')).toBeTruthy();
+    expect(screen.getByText('4 files changed')).toBeTruthy();
+    await userEvent.click(screen.getByRole('tab', { name:'Changes' }));
+    expect(screen.getByRole('button', {name:'Switch Branch'})).toBeTruthy();
+  });
+
+  it('Given a provider error, when the pull request tab retries, then only a successful empty result shows the link form entry', async () => {
+    const port = backend();
+    const read = vi.fn(port.checkoutPullRequest).mockRejectedValueOnce(new Error('provider offline'));
+    await app.render('/coding-agent/source-control', { search: { thread:'thread-42' }, overrides: {
+      'coding-agent': { t3Mobile: { ...port, checkoutPullRequest: read } },
+    } });
+    await userEvent.click(await screen.findByRole('tab', {name:'Pull request'}));
+    await screen.findByText('Could not load pull request.');
+    expect(screen.queryByText('No pull request yet')).toBeNull();
+    await userEvent.click(screen.getByRole('button', {name:'Retry'}));
+    await screen.findByText('No pull request yet');
   });
 
   it('Given a direct chat source control link, when lookup is retried, then changes load only for the resolved checkout', async () => {

@@ -1,0 +1,7 @@
+device:take_screenshot(env.out..'/verified-dev.png')
+device:tap_on({point='26%,15%'})
+sleep_ms(350)
+device:take_screenshot(env.out..'/verified-changes-dev.png')
+device:tap_on({point='6.5%,9.2%'})
+sleep_ms(1500)
+device:take_screenshot(env.out..'/verified-rows.png')

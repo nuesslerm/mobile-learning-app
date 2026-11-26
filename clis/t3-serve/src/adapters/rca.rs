@@ -380,6 +380,54 @@ impl RcaAgent {
         Ok(default.map(str::to_owned).or(refs.current))
     }
 
+    fn checkout_pull_request(&self, client: &mut Client, checkout: &str, link: Option<u64>) -> Result<Value, AgentError> {
+        let row = self.selected_checkout(client, checkout)?;
+        let meta = Self::call(client, agent_api_state::GET, json!({"scope":"orca","key":format!("orca.worktree.{checkout}")}))?;
+        let metadata = &meta["value"];
+        let number = if let Some(linked) = link.or_else(|| metadata["linkedPR"].as_u64().filter(|n| *n > 0)) {
+            Some(linked)
+        } else if let Some(branch) = row.branch.as_deref().filter(|s| !s.is_empty()) {
+            let listed = Self::call(client, hosted::pr::LIST, json!({"workspace":self.workspace,"provider":"github","head":branch,"state":"all","limit":20}))?;
+            let rows = listed["prs"].as_array().ok_or_else(|| AgentError::Failed("Missing pull request list.".into()))?;
+            let eligible = || rows.iter().filter(|p| p["head_ref"] == branch && p["number"] != metadata["suppressedGitHubPR"]);
+            eligible().find(|p| p["state"] == "open").or_else(|| eligible().next())
+                .map(|p| p["number"].as_u64().filter(|n| *n > 0).ok_or_else(|| AgentError::Failed("Invalid pull request number.".into()))).transpose()?
+        } else {
+            None
+        };
+        let summary = number.map(|number| -> Result<Value, AgentError> {
+            let params = json!({"workspace":self.workspace,"provider":"github","number":number});
+            let view = Self::call(client, hosted::pr::VIEW, params.clone())?;
+            let p = &view["pr"];
+            let malformed = || AgentError::Failed("Invalid pull request summary.".into());
+            if p["number"].as_u64() != Some(number) { return Err(malformed()); }
+            let title = p["title"].as_str().ok_or_else(malformed)?;
+            let state = p["state"].as_str().filter(|s| matches!(*s,"open"|"closed"|"merged")).ok_or_else(malformed)?;
+            let checks = if link.is_none() {
+                match client.call(hosted::pr::CHECKS, params).map_err(refused) {
+                    Ok(result) => Some(json!({"passing":result["pass"],"failing":result["fail"],"pending":result["pending"]})),
+                    Err(AgentError::Refused { .. }) => None,
+                    Err(other) => return Err(other),
+                }
+            } else { None };
+            Ok(json!({"number":number,"title":title,"state":state,"draft":p["draft"]==true,
+                "base":p["base_ref"],"head":p["head_ref"],"author":p["author"],"url":p["url"],
+                "description":p["body"],"mergeable":p["mergeable"],"reviewDecision":p["review_decision"],
+                "files":p["changed_files"],"additions":p["additions"],"deletions":p["deletions"],"checks":checks}))
+        }).transpose()?;
+        if let Some(number) = link {
+            let mut value = match metadata {
+                Value::Object(obj) => obj.clone(),
+                Value::Null => serde_json::Map::new(),
+                _ => return Err(AgentError::Failed("Invalid checkout metadata.".into())),
+            };
+            value.insert("linkedPR".into(), json!(number));
+            value.remove("suppressedGitHubPR");
+            Self::call(client, agent_api_state::SET, json!({"scope":"orca","key":format!("orca.worktree.{checkout}"),"value":value}))?;
+        }
+        Ok(json!({"branch":row.branch,"pullRequest":summary}))
+    }
+
     fn checkout_changes(&self, client: &mut Client, checkout: &str) -> Result<Value, AgentError> {
         let row = self.selected_checkout(client, checkout)?;
         if row.head.is_empty() || row.head.bytes().all(|b| b == b'0') {
@@ -907,7 +955,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::CheckoutPullRequest { .. } | Op::CheckoutBranches { .. } | Op::SwitchCheckoutBranch { .. } | Op::CheckoutFile { .. } | Op::CheckoutChanges { .. } | Op::CheckoutCommit { .. } | Op::CheckoutHistory { .. } | Op::ReadPanes { .. } | Op::MobileWorktrees | Op::MobileAgents | Op::MobileThreadCheckout { .. } | Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -965,6 +1013,9 @@ impl AgentApi for RcaAgent {
 
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
+        if let Op::CheckoutPullRequest { checkout, link } = op {
+            return self.checkout_pull_request(&mut client, checkout, *link);
+        }
         if let Op::CheckoutBranches { checkout } = op {
             let row = self.selected_checkout(&mut client, checkout)?;
             let value = Self::call(&mut client, git::REFS, json!({"workspace":self.workspace,"kind":"branch","limit":exec_git::vcs::REFS_MAX}))?;

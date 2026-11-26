@@ -1,0 +1,36 @@
+{
+  "screen": [
+    1320,
+    2868
+  ],
+  "tabTrack": {
+    "bounds": [
+      34,
+      363,
+      1286,
+      493
+    ],
+    "pixels": 162760,
+    "differences": 2495
+  },
+  "tabLabels": {
+    "bounds": [
+      95,
+      387,
+      1224,
+      463
+    ],
+    "pixels": 85804,
+    "differences": 2495
+  },
+  "tabRegion": {
+    "bounds": [
+      0,
+      346,
+      1320,
+      514
+    ],
+    "pixels": 221760,
+    "differences": 2495
+  }
+}

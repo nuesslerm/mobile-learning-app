@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackIcon, ChevronRightIcon } from './homeIcons';
+import { PullRequestPanel, SourceControlTabs } from './SourceControlTabs';
 import { BranchSheet } from './BranchSheet';
 import { FileReview } from './FileReview';
 import { useChatPalette } from './chatPalette';
@@ -273,6 +274,8 @@ export function SourceControl(props: SourceControlProps) {
             {subtitle && <Text style={[s.subtitle, muted]}>{subtitle}</Text>}
           </View>
         </View>
+        {page === 'changes' && <SourceControlTabs selected={props.tab} select={props.selectTab} />}
+        {page === 'changes' && props.tab === 'pr' && <PullRequestPanel panel={props.prPanel} />}
         {page !== 'changes' && (
           <View style={page === 'detail' ? { display: 'none' } : s.flex}>
             <FlatList
@@ -311,7 +314,7 @@ export function SourceControl(props: SourceControlProps) {
             />
           </View>
         )}
-        {page !== 'commits' && (
+        {page !== 'commits' && (page !== 'changes' || props.tab === 'changes') && (
           <FlatList
             key={page}
             data={files ?? []}

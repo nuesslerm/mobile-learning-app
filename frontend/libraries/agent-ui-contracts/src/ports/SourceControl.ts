@@ -9,6 +9,22 @@ export interface SourceCommit {
 
 export interface SourceControlProps {
   backLabel?: string;
+  tab: 'changes' | 'pr';
+  selectTab: (tab: 'changes' | 'pr') => void;
+  prPanel: {
+    result?: { branch: string | null; pullRequest: {
+      number: number; title: string; state: 'open' | 'merged' | 'closed'; draft: boolean;
+      base: string; head: string; author: string; url: string;
+      description: string; mergeable: string | null; reviewDecision: string | null;
+      files: number | null; additions: number | null; deletions: number | null;
+      checks: { passing: number; failing: number; pending: number } | null;
+    } | null };
+    error?: string;
+    refresh: () => void;
+    open: (url: string) => void;
+    parseReference: (text: string) => number | null;
+    link: (number: number) => Promise<void>;
+  };
   page: 'changes' | 'commits' | 'detail';
   comparison?: {
     base: string;

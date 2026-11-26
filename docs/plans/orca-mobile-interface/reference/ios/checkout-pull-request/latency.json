@@ -1,0 +1,12 @@
+[
+  {
+    "branch": "main",
+    "milliseconds": 3164,
+    "pullRequest": null
+  },
+  {
+    "branch": "dev",
+    "milliseconds": 4116,
+    "pullRequest": 103
+  }
+]
