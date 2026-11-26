@@ -2,6 +2,44 @@ import { describe, expect, it, vi } from 'vitest';
 import { openConversation } from '../session';
 
 describe('T3 subscription and image requests', () => {
+  it.each([
+    [[{id: 'other', value: true}, {id: 'depth', value: 'low'}], [{id: 'other', value: true}, {id: 'depth', value: 'high'}]],
+    [{other: true, depth: 'low'}, {other: true, depth: 'high'}],
+  ])('Given a saved model selection, when changing its advertised effort, then the dispatch preserves other options', async (options, expected) => {
+    const outgoing = vi.fn();
+    const ws = {send: (raw: string) => outgoing(JSON.parse(raw)), close: vi.fn()} as unknown as WebSocket;
+    const chat = openConversation(ws, 'https://fixture.test', 'thread', vi.fn(), vi.fn());
+    function receive(frame: unknown) {
+      ws.onmessage?.call(ws, {data: JSON.stringify(frame)} as MessageEvent);
+    }
+    receive({_tag: 'Chunk', requestId: '1', values: [{ kind: 'snapshot', snapshotSequence: 1, projection: {
+      thread: {id: 'thread', projectId: 'repo', title: 'Review', modelSelection: {instanceId: 'driver', model: 'm', options}},
+      messages: [],
+    } }]});
+    const models = chat.models('driver');
+    const request = outgoing.mock.lastCall?.[0];
+    expect(request.tag).toBe('server.getConfig');
+    receive({_tag: 'Exit', requestId: request.id, exit: {_tag: 'Success', value: {providers: [{instanceId: 'driver', models: [
+      {slug: 'm', name: 'Example', capabilities: {optionDescriptors: [
+        {type: 'boolean', id: 'other'}, {type: 'select', id: 'depth', role: 'reasoning', options: [{id: 'high', label: 'High'}]},
+      ]}},
+      {slug: 'basic', name: 'Basic', capabilities: null},
+    ]}]}}});
+    expect(await models).toEqual([
+      {slug: 'm', name: 'Example', effort: {id: 'depth', current: 'low', choices: [{slug: 'high', name: 'High'}]}},
+      {slug: 'basic', name: 'Basic'},
+    ]);
+    const save = chat.setModel('change', 'driver', 'm', {id: 'depth', value: 'high'});
+    const dispatch = outgoing.mock.lastCall?.[0];
+    expect(dispatch.payload).toEqual({type: 'thread.model-selection.set', commandId: 'change', threadId: 'thread',
+      modelSelection: {instanceId: 'driver', model: 'm', options: expected}});
+    receive({_tag: 'Exit', requestId: dispatch.id, exit: {_tag: 'Success', value: {}}});
+    await save;
+    await expect(chat.setModel('stale', 'driver', 'old', {id: 'depth', value: 'high'})).rejects.toThrow('model changed');
+    expect(outgoing.mock.lastCall?.[0]).toBe(dispatch);
+    chat.close();
+  });
+
   it('Given split history and two images, when responses arrive in reverse order, then each image gets its own signed URL', async () => {
     const outbound: { id: string; tag: string; payload: unknown }[] = [];
     const ws = {

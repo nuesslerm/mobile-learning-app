@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useAgentComponents } from '@lib/agent-ui-contracts';
 import type {
   T3Conversation,
+  T3Effort,
   T3RuntimeMode,
   T3Thread,
 } from '../domain/t3Mobile';
@@ -18,9 +19,11 @@ export function T3ComposerOptions({
   session,
   newId,
   visible,
+  effortPicker,
   onVisibleChange,
 }: {
   visible: boolean;
+  effortPicker?: { instance: string; model: string; option: T3Effort };
   onVisibleChange: (visible: boolean) => void;
   thread: T3Thread;
   session: T3Conversation;
@@ -44,6 +47,11 @@ export function T3ComposerOptions({
   return (
     <ComposerOptions
       visible={visible}
+      effort={effortPicker && {
+        current: effortPicker.option.current,
+        choices: effortPicker.option.choices,
+        select: value => session.setModel(newId(), effortPicker.instance, effortPicker.model, { id: effortPicker.option.id, value }),
+      }}
       onVisibleChange={onVisibleChange}
       provider={provider}
       selectedModel={thread.modelSelection?.model}

@@ -112,6 +112,11 @@ export interface SessionTabsSheetProps {
 
 export interface ComposerOptionsProps {
   visible: boolean;
+  effort?: {
+    choices: readonly { slug: string; name: string }[];
+    current?: string;
+    select: (value: string) => Promise<void>;
+  };
   onVisibleChange: (visible: boolean) => void;
   provider: string;
   selectedModel?: string;

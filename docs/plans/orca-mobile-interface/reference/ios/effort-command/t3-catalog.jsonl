@@ -1,0 +1,2 @@
+{"provider":"claudeAgent","model":"claude-opus-4-6","choices":[{"slug":"low","name":"Low"},{"slug":"medium","name":"Medium"},{"slug":"high","name":"High"},{"slug":"max","name":"Max"},{"slug":"ultrathink","name":"Ultrathink"}]}
+{"provider":"fx","model":"default","choices":[{"slug":"auto","name":"Auto"},{"slug":"low","name":"Low"},{"slug":"medium","name":"Medium"},{"slug":"high","name":"High"},{"slug":"xhigh","name":"Extra High"},{"slug":"max","name":"Max"}]}

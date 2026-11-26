@@ -314,6 +314,44 @@ describe('Orca chat with the T3 transport', () => {
     expect(field.value).toBe('/resume');
   });
 
+  it('Given effort support changes with the model, when submitting /effort, then unavailable drafts survive and supported choices use the model option', async () => {
+    const port = backend();
+    const open = port.open;
+    const setModel = vi.fn().mockResolvedValue(undefined);
+    const send = vi.fn();
+    const option = { id: 'agent-intensity', current: 'medium', choices: [{slug: 'max', name: 'Extra high'}] };
+    const models = vi.fn().mockResolvedValueOnce([]).mockResolvedValue([{slug: 'model-a', name: 'Model A', effort: option}]);
+    port.open = async (pair, id, update, disconnected) => {
+      const session = await open(pair, id, snapshot => update({
+        ...snapshot,
+        thread: {...snapshot.thread, modelSelection: {instanceId: 'opencode', model: 'model-a'}},
+      }), disconnected);
+      return {...session, models, setModel, send};
+    };
+    await app.render('/coding-agent/thread-42', {overrides: {'coding-agent': {t3Mobile: port}}});
+    const field = await screen.findByPlaceholderText('Ask anything, @ to mention files, / for commands') as HTMLTextAreaElement;
+    await userEvent.type(field, '/effort');
+    const submit = screen.getByRole('button', {name: 'Send message'});
+    await userEvent.click(submit);
+    expect(await screen.findByText('Could not open the effort picker.')).toBeTruthy();
+    expect(field.value).toBe('/effort');
+    await userEvent.click(submit);
+    const choice = await screen.findByRole('button', {name: 'Extra high'});
+    expect(field.value).toBe('');
+    await userEvent.click(choice);
+    expect(setModel).toHaveBeenCalledWith('new-message', 'opencode', 'model-a', {id: 'agent-intensity', value: 'max'});
+    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+    await userEvent.type(field, '/effort EXTRA HIGH');
+    await userEvent.click(submit);
+    expect(setModel).toHaveBeenCalledTimes(2);
+    expect(field.value).toBe('');
+    await userEvent.type(field, '/effort impossible');
+    await userEvent.click(submit);
+    expect(await screen.findByText('Could not apply effort impossible.')).toBeTruthy();
+    expect(field.value).toBe('/effort impossible');
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it('Given a model display name, when its command is refused and retried, then the draft stays until the selected model is saved', async () => {
     const port = backend();
     const connect = port.open;

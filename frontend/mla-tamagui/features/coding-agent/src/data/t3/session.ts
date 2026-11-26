@@ -1,4 +1,5 @@
 import { composerCatalog, composerFiles } from './composerDiscovery';
+import { providerModels } from './providerModels';
 import { Logger } from '@lib/logging';
 import { z } from 'zod';
 import { resumeCommand } from '../../domain/t3Mobile';
@@ -9,7 +10,13 @@ export const threadSchema = z.object({
   projectId: z.string(),
   worktreePath: z.string().nullish(),
   providerInstanceId: z.string().nullish(),
-  modelSelection: z.object({ instanceId: z.string(), model: z.string() }).nullish().catch(null),
+  modelSelection: z.object({
+    instanceId: z.string(), model: z.string(),
+    options: z.union([
+      z.array(z.object({ id: z.string(), value: z.union([z.string(), z.boolean()]) })),
+      z.record(z.string(), z.unknown()),
+    ]).optional(),
+  }).nullish().catch(null),
   runtimeMode: z.enum(['approval-required', 'auto-accept-edits', 'auto', 'full-access']).nullish(),
   title: z.string(),
 });
@@ -258,7 +265,11 @@ export function openConversation(
     get commands() {
       const thread = snapshot?.thread;
       return thread?.modelSelection?.instanceId || thread?.providerInstanceId
-        ? [{ kind: 'command' as const, token: '/model', description: 'Choose the model' }, resumeCommand]
+        ? [
+            { kind: 'command' as const, token: '/model', description: 'Choose the model' },
+            { kind: 'command' as const, token: '/effort', description: 'Choose reasoning effort' },
+            resumeCommand,
+          ]
         : [];
     },
     async files(query) {
@@ -269,15 +280,18 @@ export function openConversation(
       return provider ? composerCatalog(call, await checkoutPath(), provider) : [];
     },
     async models(instanceId) {
-      const config = z.object({ providers: z.array(z.object({
-        instanceId: z.string(),
-        models: z.array(z.object({ slug: z.string(), name: z.string() })),
-      })) }).parse(await call('server.getConfig', {}));
-      return config.providers.find((provider) => provider.instanceId === instanceId)?.models ?? [];
+      return providerModels(await call('server.getConfig', {}), instanceId, snapshot?.thread.modelSelection);
     },
-    async setModel(commandId, instanceId, model) {
+    async setModel(commandId, instanceId, model, option) {
+      const selection = snapshot?.thread.modelSelection;
+      if (option && (selection?.instanceId !== instanceId || selection.model !== model))
+        throw new Error('The model changed. Reopen the effort picker.');
+      const previous = selection?.options;
+      const options = option && (previous && !Array.isArray(previous)
+        ? { ...previous, [option.id]: option.value }
+        : [...(previous ?? []).filter(row => row.id !== option.id), option]);
       await call('orchestration.dispatchCommand', {
-        type: 'thread.model-selection.set', commandId, threadId, modelSelection: { instanceId, model },
+        type: 'thread.model-selection.set', commandId, threadId, modelSelection: { instanceId, model, options },
       });
     },
     async setRuntimeMode(commandId, runtimeMode) {

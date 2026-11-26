@@ -33,12 +33,13 @@ export function ComposerOptions(props: ComposerOptionsProps) {
   const colors = useChatPalette();
   const reducedMotion = useReducedMotionEnabled();
   const { bottom } = useSafeAreaInsets();
-  const [page, setPage] = useState<'Model' | 'Permissions'>('Model');
+  const [page, setPage] = useState<'Model' | 'Permissions' | 'Effort'>('Model');
   const [models, setModels] = useState<readonly Choice[]>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const operation = useRef(0);
   const { visible, loadModels, onVisibleChange } = props;
+  const opensEffort = Boolean(props.effort);
   const ink = { color: colors.textPrimary };
   const load = useCallback(() => {
     setError('');
@@ -56,11 +57,16 @@ export function ComposerOptions(props: ComposerOptionsProps) {
   useEffect(() => {
     if (!visible) return;
     Keyboard.dismiss();
-    setPage('Model');
+    setPage(opensEffort ? 'Effort' : 'Model');
     setBusy(false);
-    load();
+    setError('');
+    if (!opensEffort) load();
     return () => { operation.current += 1; };
-  }, [visible, load]);
+  }, [visible, load, opensEffort]);
+  function returnToModels() {
+    if (page === 'Effort') load();
+    setPage('Model');
+  }
   function close() {
     onVisibleChange(false);
   }
@@ -69,12 +75,13 @@ export function ComposerOptions(props: ComposerOptionsProps) {
     setError('');
     setBusy(true);
     const request = ++operation.current;
-    const save = page === 'Model' ? props.setModel : props.setPermission;
+    const save = page === 'Effort' ? props.effort?.select : page === 'Model' ? props.setModel : props.setPermission;
+    if (!save) { setBusy(false); return; }
     void save(slug).then(
       () => {
         if (request !== operation.current) return;
         setBusy(false);
-        setPage('Model');
+        returnToModels();
       },
       () => {
         if (request !== operation.current) return;
@@ -93,9 +100,9 @@ export function ComposerOptions(props: ComposerOptionsProps) {
     props.selectedModel && props.selectedModel !== 'default'
       ? (modelName ?? props.selectedModel)
       : 'Model';
-  const choices = page === 'Permissions' ? props.permissions : models;
+  const choices = page === 'Effort' ? props.effort?.choices : page === 'Permissions' ? props.permissions : models;
   const selected =
-    page === 'Permissions' ? props.permission : props.selectedModel;
+    page === 'Effort' ? props.effort?.current : page === 'Permissions' ? props.permission : props.selectedModel;
   return (
     <>
       <Pressable
@@ -143,12 +150,12 @@ export function ComposerOptions(props: ComposerOptionsProps) {
                 style={[styles.handle, { backgroundColor: colors.textMuted }]}
               />
               <View style={styles.header}>
-                {page === 'Permissions' && (
+                {page !== 'Model' && (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Back to models"
                     style={styles.back}
-                    onPress={() => setPage('Model')}
+                    onPress={returnToModels}
                   >
                     <ChevronLeft size={20} color={colors.textPrimary} />
                   </Pressable>

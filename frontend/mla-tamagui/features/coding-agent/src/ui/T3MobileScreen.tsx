@@ -155,6 +155,7 @@ function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
                   session={state.imageSession}
                   newId={api.newId}
                   visible={state.modelPickerOpen}
+                  effortPicker={state.effortPicker}
                   onVisibleChange={state.setModelPickerOpen}
                 />
               )

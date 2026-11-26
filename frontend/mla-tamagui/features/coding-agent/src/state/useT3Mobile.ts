@@ -1,7 +1,7 @@
 import type { CheckoutRow, HomeSummary, WorkspaceCatalog } from '../domain/workspaceCatalog';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { resumeCommand, type T3ComposerEntry } from '../domain/t3Mobile';
+import { resumeCommand, type T3ComposerEntry, type T3Effort } from '../domain/t3Mobile';
 import type { Pairing } from '../domain/mobile';
 import type {
   T3Conversation,
@@ -17,6 +17,7 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [effortPicker, setEffortPicker] = useState<{ instance: string; model: string; option: T3Effort }>();
   const [connected, setConnected] = useState(false);
   const [imageSession, setImageSession] = useState<T3Conversation>();
   const connection = useRef<T3Conversation | null>(null);
@@ -30,9 +31,9 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
     if (!draft) pickedSkill.current = undefined;
   }, [draft]);
 
-  function showResumeNotice() {
+  function showNotice(message: string) {
     clearTimeout(noticeTimer.current);
-    setNotice(resumeCommand.description);
+    setNotice(message);
     noticeTimer.current = setTimeout(() => setNotice(''), 4000);
   }
 
@@ -43,7 +44,7 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
 
   function pickSuggestion(row: T3ComposerEntry, leading: boolean) {
     if (row.kind === 'command' && row.token === resumeCommand.token) {
-      showResumeNotice();
+      showNotice(resumeCommand.description);
       return true;
     }
     if (leading) pickedSkill.current = row.kind === 'skill' ? row.token : undefined;
@@ -154,7 +155,7 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
     const isPickedSkill = leading === pickedSkill.current;
     if (!isPickedSkill && leading.toLowerCase() === resumeCommand.token &&
         session.commands?.some(row => row.token === resumeCommand.token)) {
-      showResumeNotice();
+      showNotice(resumeCommand.description);
       return;
     }
     clearTimeout(noticeTimer.current);
@@ -164,13 +165,39 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
     if (pending.current?.text !== text)
       pending.current = { text, id: api.newId() };
     try {
-      const modelCommand = /^\/model(?:\s+([^\r\n\u2028\u2029]+))?$/i.exec(draft.trimEnd());
-      if (modelCommand && !isPickedSkill) {
+      const optionCommand = /^\/(model|effort)(?:\s+([^\r\n\u2028\u2029]+))?$/i.exec(draft.trimEnd());
+      if (optionCommand && !isPickedSkill) {
         const thread = snapshot?.thread;
         const provider = thread?.modelSelection?.instanceId ?? thread?.providerInstanceId;
-        if (!provider) throw new Error('The model picker is unavailable for this chat.');
-        const argument = modelCommand[1]?.trim();
-        if (argument) {
+        const argument = optionCommand[2]?.trim();
+        if (optionCommand[1].toLowerCase() === 'effort') {
+          const selection = thread?.modelSelection;
+          let failure = argument ? `Could not apply effort ${argument}.` : 'Could not open the effort picker.';
+          try {
+            const models = selection && await session.models(selection.instanceId);
+            if (connection.current !== session) return;
+            const effort = models?.find(row => row.slug === selection?.model)?.effort;
+            if (!effort || !selection) {
+              showNotice(failure);
+              return;
+            }
+            if (argument) {
+              const name = argument.toLowerCase();
+              const choice = effort.choices.find(row => row.slug.toLowerCase() === name || row.name.toLowerCase() === name);
+              failure = `Could not apply effort ${choice?.name ?? argument}.`;
+              if (!choice) { showNotice(failure); return; }
+              await session.setModel(pending.current.id, selection.instanceId, selection.model, { id: effort.id, value: choice.slug });
+            } else {
+              setEffortPicker({ instance: selection.instanceId, model: selection.model, option: effort });
+              setModelPickerOpen(true);
+            }
+          } catch {
+            Logger.warn('coding_agent.t3.effort_command_failed');
+            if (connection.current === session) showNotice(failure);
+            return;
+          }
+        } else if (!provider) throw new Error('The model picker is unavailable for this chat.');
+        else if (argument) {
           const choices = await session.models(provider);
           if (connection.current !== session) return;
           const name = argument.toLowerCase();
@@ -209,7 +236,11 @@ export function useT3Mobile(api: T3MobilePort, hostOpen: boolean, threadId?: str
     retry,
     send,
     modelPickerOpen,
-    setModelPickerOpen,
+    effortPicker,
+    setModelPickerOpen(open: boolean) {
+      if (!open) setEffortPicker(undefined);
+      setModelPickerOpen(open);
+    },
     draft,
     notice,
     pickSuggestion,
