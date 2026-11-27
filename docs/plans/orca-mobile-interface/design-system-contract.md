@@ -115,10 +115,14 @@ Each rule lands with a list of the files that still break it. A list only shrink
 
 ## Steps
 
-### 0. Turn the compiler back on, before any skin work
+### 0. Upgrade Tamagui and turn the compiler back on, before any skin work
+
+Upgrade first, as its own batch: every `tamagui` and `@tamagui/*` dependency goes from 2.7.7 to the latest release (3.3.3 on 27 Nov 2026), a major version. Read the v3 migration notes before touching code. The v3 Expo guide wires the compiler through `withTamagui` from `@tamagui/cli/metro` and does not mention `@tamagui/babel-plugin`, so expect the babel plugin entry to go away. Run `pnpm run audit`. Gate: typecheck, all flow tests, the web export's routes and the 22 iOS baselines pass with golden updates disabled; nothing else changes in that batch. If v3 cannot land cleanly, record why in issue #102 and continue on 2.7.7.
+
+Then the compiler, on whichever version landed:
 
 1. Reproduce the failure that made `disableExtraction: true` necessary (elements with a theme token missing from the web export), with Metro's cache cleared.
-2. Suspects to test, one at a time: the babel plugin lists `components: ['tamagui']` while Metro's `withTamagui` lists `['tamagui', '@lib/tamagui-design-system']`, so two compiler passes run with different settings; the app imports from single `@tamagui/*` packages, not the `tamagui` barrel; the installed 2.7.7 against the current release.
+2. Suspects to test, one at a time: the babel plugin lists `components: ['tamagui']` while Metro's `withTamagui` lists `['tamagui', '@lib/tamagui-design-system']`, so two compiler passes run with different settings; the app imports from single `@tamagui/*` packages, not the `tamagui` barrel. On v3 the docs say a component from any package is discovered on first use and `components` is only a warm-up list, which may remove the cause.
 3. Gate: extraction on, `expo export --platform web` renders every route (`e2e/app-routes.lua`), the 22 iOS baselines pass, and the plugin's timing log reports optimised and flattened elements on the LeetCode list.
 4. Record render time and bundle size as the baseline every later step is compared with.
 
