@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { fileToken, suggestionTrigger } from './ComposerSuggestions';
 import {
+  useComposerEditing,
   useSkin,
   type ComposerProps,
-  type ComposerSuggestion,
   type ComposerSendButtonProps,
 } from '@lib/skin';
 import { ArrowUp } from 'lucide-react-native';
@@ -14,7 +12,6 @@ import {
   Text,
   TextInput,
   type TextInputInstance,
-  Platform,
   View,
 } from 'react-native';
 import { useChatPalette } from './chatPalette';
@@ -77,41 +74,8 @@ export function Composer({
     ComposerAddButton,
     ComposerSuggestionList,
   } = useSkin();
-  const field = useRef<TextInputInstance>(null);
-  useEffect(() => {
-    if (notice && Platform.OS === 'ios') field.current?.blur();
-  }, [notice]);
-  const refocus = useRef(false);
-  const [caret, setCaret] = useState(value.length);
-  const [selection, setSelection] = useState<{ start: number; end: number }>();
-  const [kind, setKind] = useState<ComposerSuggestion['kind'] | null>(null);
-  const end = Math.min(caret, value.length);
-  const trigger = suggestionTrigger(value, end);
-  function insert(text: string, position: number) {
-    onChangeText(text);
-    setCaret(position);
-    setSelection({ start: position, end: position });
-  }
-  function open(kind: ComposerSuggestion['kind']) {
-    setKind(kind);
-    if (kind === 'file') {
-      const before = value.slice(0, end);
-      const lead = before && !/\s$/.test(before) ? ' @' : '@';
-      insert(before + lead + value.slice(end), end + lead.length);
-    } else {
-      insert(value.trimStart() ? '/ ' + value.trimStart() : '/', 1);
-    }
-    if (Platform.OS === 'ios') refocus.current = kind !== 'command';
-    else field.current?.focus();
-  }
-  function pick(row: ComposerSuggestion) {
-    if (!trigger || onPickSuggestion?.(row, !value.slice(0, trigger.start).trim())) return;
-    const token = row.kind === 'file' ? fileToken(row.token) : row.token;
-    const before = value.slice(0, trigger.start) + token + ' ';
-    insert(before + value.slice(end).replace(/^ /, ''), before.length);
-    setKind(null);
-    field.current?.focus();
-  }
+  const { field, selection, trigger, kind, selectionChanged, textChanged, open, pick, addDismissed } =
+    useComposerEditing<TextInputInstance>({ value, notice, onChangeText, onPickSuggestion });
   return (
     <>
       {!!notice && (
@@ -142,15 +106,9 @@ export function Composer({
             <TextInput
               ref={field}
               selection={selection}
-              onSelectionChange={({ nativeEvent }) => {
-                setCaret(nativeEvent.selection.end);
-                setSelection(undefined);
-              }}
+              onSelectionChange={({ nativeEvent }) => selectionChanged(nativeEvent.selection)}
               value={value}
-              onChangeText={(text) => {
-                if (!text.startsWith('/')) setKind(null);
-                onChangeText(text);
-              }}
+              onChangeText={textChanged}
               placeholder={placeholder}
               placeholderTextColor={colors.textMuted}
               selectionColor={colors.accentBlue}
@@ -164,10 +122,7 @@ export function Composer({
               {suggestions && (
                 <ComposerAddButton
                   onSelect={open}
-                  onDismiss={() => {
-                    if (refocus.current) field.current?.focus();
-                    refocus.current = false;
-                  }}
+                  onDismiss={addDismissed}
                 />
               )}
               {leadingControls}

@@ -1,11 +1,11 @@
 import { BottomSheet } from './BottomSheet';
-import type {
-  ComposerSuggestion,
-  ComposerAddButtonProps,
-  ComposerSuggestionListProps,
+import {
+  useComposerSuggestionRows,
+  type ComposerAddButtonProps,
+  type ComposerSuggestionListProps,
 } from '@lib/skin';
 import { AtSign, FileText, Package, Plus, Terminal } from 'lucide-react-native';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   Keyboard,
   Platform,
@@ -29,7 +29,6 @@ const choices = [
   { kind: 'skill', label: 'Skills', Icon: Package },
   { kind: 'command', label: 'Commands', Icon: Terminal },
 ] as const;
-const headings = { file: 'Files', command: 'Commands', skill: 'Skills' };
 const icons = { file: FileText, skill: Package, command: Terminal };
 
 export function ComposerAddButton({
@@ -109,25 +108,6 @@ export function ComposerAddButton({
   );
 }
 
-export function suggestionTrigger(text: string, caret: number) {
-  const before = text.slice(0, caret);
-  const match =
-    before.match(/(?:^|\s)(@)(\S*)$/) ??
-    before.match(/(?:^|\s)([/$])([^\s/@$]*)$/);
-  if (!match) return null;
-  return {
-    sigil: match[1],
-    query: match[2],
-    start: caret - match[2].length - 1,
-  };
-}
-
-export function fileToken(path: string) {
-  if (!/[\s@]/.test(path)) return '@' + path;
-  if (path.includes('"') && !path.includes("'")) return "@'" + path + "'";
-  return '@"' + path.replaceAll('"', '\\"') + '"';
-}
-
 export function ComposerSuggestionList({
   source,
   sigil,
@@ -135,57 +115,9 @@ export function ComposerSuggestionList({
   kind,
   onPick,
 }: ComposerSuggestionListProps) {
-  const [entries, setEntries] = useState<readonly ComposerSuggestion[]>([]);
-  const [error, setError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
   const colors = useChatPalette();
-  const files = sigil === '@';
-  const requestedQuery = files ? query : '';
-  useEffect(() => {
-    let active = true;
-    setEntries([]);
-    setError(false);
-    const timer = setTimeout(
-      () => {
-        const load = files ? source.files(requestedQuery) : source.catalog();
-        void load.then(
-          (rows) => {
-            if (active) setEntries(rows);
-          },
-          () => {
-            if (active) setError(true);
-          }
-        );
-      },
-      files && requestedQuery ? 120 : 0
-    );
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [source, files, requestedQuery, attempt]);
-  const commands = source.commands ?? [];
-  const catalog = [
-    ...commands,
-    ...entries.filter(
-      (row) =>
-        !commands.some(
-          (command) => command.token === row.token && row.kind === 'command'
-        )
-    ),
-  ];
-  const matches = files
-    ? entries
-    : catalog.filter((row) =>
-        [row.token, ...(row.aliases ?? [])].some((name) =>
-          name.toLowerCase().includes(query.toLowerCase())
-        )
-      );
-  const narrowed = matches.filter(
-    (row) => row.kind === (sigil === '$' ? 'skill' : kind)
-  );
-  const shown = narrowed.length || sigil === '$' ? narrowed : matches;
-  if (!error && !shown.length) return null;
+  const { error, empty, retry, groups } = useComposerSuggestionRows(source, sigil, query, kind);
+  if (empty) return null;
   return (
     <View
       style={[
@@ -196,7 +128,7 @@ export function ComposerSuggestionList({
       <ScrollView style={{ maxHeight: 300 }} keyboardShouldPersistTaps="always">
         {error && (
           <Pressable
-            onPress={() => setAttempt((n) => n + 1)}
+            onPress={retry}
             accessibilityRole="button"
             style={styles.suggestion}
           >
@@ -205,14 +137,12 @@ export function ComposerSuggestionList({
             </Text>
           </Pressable>
         )}
-        {(['file', 'command', 'skill'] as const).map((group) => {
-          const rows = shown.filter((row) => row.kind === group).slice(0, 10);
-          if (!rows.length) return null;
+        {groups.map(({ group, heading, rows }) => {
           const Icon = icons[group];
           return (
             <Fragment key={group}>
               <Text style={[styles.heading, { color: colors.textMuted }]}>
-                {headings[group]}
+                {heading}
               </Text>
               {rows.map((row) => (
                 <Pressable

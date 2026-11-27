@@ -1,13 +1,14 @@
 {
   "platform": "browser",
   "step": 9,
-  "last_action": "open_link{link='http://127.0.0.1:61628/mla-tamagui/gallery?section=suggestions&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:64595/mla-tamagui/gallery?section=suggestions&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:61628/mla-tamagui/gallery?section=suggestions&scheme=light",
+    "url": "http://127.0.0.1:64595/mla-tamagui/gallery?section=suggestions&scheme=light",
     "title": "",
     "testids": [
-      "SkinGallery-suggestions"
+      "SkinGallery-suggestions",
+      "skin-composer-suggestion"
     ],
     "text": "COMMANDS\n/review\nReview the current diff\nSKILLS\n/simplify\nskill\nSimplify recent changes"
   },
@@ -16,8 +17,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 20315,
-    "capture_ms": 107
+    "since_start_ms": 20560,
+    "capture_ms": 98
   },
   "tolerance": {
     "threshold": 0.1,
