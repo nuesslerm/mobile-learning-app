@@ -104,3 +104,12 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 pinned 0.1.9, latest 0.1.11. Run 45395025359 (2026-11-24 12:35 UTC) failed in "Check the pins" with a different cause: the `rca-core` registry error is gone (the runner now builds `wf`, joins the tailnet and runs the plan), and the step ends at the "The marker was refused" branch (exit 1) of the plan. Cause of the refusal not read from the plan output (it is in the step's JSON, not in the failed-log lines). Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
+
+## 2026-11-27 (covers the ticks of 2026-11-26 and 2026-11-27)
+
+- The tick of 2026-11-26 04:41 UTC was queued and delivered only together with the tick of 2026-11-27 (both arrived at 2026-11-27 04:42 UTC), so no entry was written on 2026-11-26. This entry reads the last two verdicts.
+- Verdicts: run 45605004655 (2026-11-25 11:30 UTC), `ok: false`, 530 findings, 46 hard (all `should-have-hit`), 484 `replayed-nothing`; run 45808306989 (2026-11-26 11:11 UTC, about 17 h old), `ok: false`, 756 findings, 113 hard (all `should-have-hit`), 643 `replayed-nothing`. Up from 18 hard on 2026-11-25 (240 findings) and growing two nights in a row. Largest waste both nights: `crate-t3-serve:replay-t3-core-core` (498 s; 564 s and 548 s), then `replay-t3-core-pull_requests` (167 s). Both audit jobs ran about 70 min.
+- Fixes landed: none. The cause of the `should-have-hit` misses is still not traced; the recurring stage is `crate-t3-serve:replay-t3-core-core`. `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 pinned 0.1.9, latest 0.1.13 (four releases behind). The last track-contracts runs 45806423876 (2026-11-26), 45604322745 (2026-11-25) and 45395025359 (2026-11-24) all failed in "Check the pins" after about 3 min (the registry error is gone, see 2026-11-25; the cause past that point is not read). Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
