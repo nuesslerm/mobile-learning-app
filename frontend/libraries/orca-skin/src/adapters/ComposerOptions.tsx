@@ -1,6 +1,6 @@
 import { BottomSheet } from './BottomSheet';
-import type { ComposerOptionsProps } from '@lib/skin';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useComposerOptions, type ComposerOptionsProps } from '@lib/skin';
+import { Fragment } from 'react';
 import Check from 'lucide-react-native/dist/esm/icons/check.mjs';
 import ChevronLeft from 'lucide-react-native/dist/esm/icons/chevron-left.mjs';
 import ChevronRight from 'lucide-react-native/dist/esm/icons/chevron-right.mjs';
@@ -9,7 +9,6 @@ import Hand from 'lucide-react-native/dist/esm/icons/hand.mjs';
 import ShieldAlert from 'lucide-react-native/dist/esm/icons/shield-alert.mjs';
 import ShieldCheck from 'lucide-react-native/dist/esm/icons/shield-check.mjs';
 import {
-  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,97 +25,13 @@ const permissionIcons = new Map([
   ['full-access', ShieldAlert],
 ]);
 
-type Choice = { slug: string; name: string };
 
 export function ComposerOptions(props: ComposerOptionsProps) {
   const colors = useChatPalette();
   const { bottom } = useSafeAreaInsets();
-  const [page, setPage] = useState<'Model' | 'Permissions' | 'Effort'>('Model');
-  const [models, setModels] = useState<readonly Choice[]>();
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const operation = useRef(0);
-  const { visible, loadModels, onVisibleChange } = props;
-  const opensEffort = Boolean(props.effort);
+  const { page, setPage, error, busy, load, returnToModels, select, permission, label, choices, selected } = useComposerOptions(props);
+  const { visible, onVisibleChange } = props;
   const ink = { color: colors.textPrimary };
-  const load = useCallback(() => {
-    setError('');
-    setModels(undefined);
-    const request = ++operation.current;
-    void loadModels().then(
-      (choices) => {
-        if (request === operation.current) setModels(choices);
-      },
-      () => {
-        if (request === operation.current) setError('Could not load models.');
-      }
-    );
-  }, [loadModels]);
-  useEffect(() => {
-    if (!visible) return;
-    Keyboard.dismiss();
-    setPage(opensEffort ? 'Effort' : 'Model');
-    setBusy(false);
-    setError('');
-    if (!opensEffort) load();
-    return () => {
-      operation.current += 1;
-    };
-  }, [visible, load, opensEffort]);
-  function returnToModels() {
-    if (page === 'Effort') load();
-    setPage('Model');
-  }
-  function select(slug: string) {
-    if (busy) return;
-    setError('');
-    setBusy(true);
-    const request = ++operation.current;
-    const save =
-      page === 'Effort'
-        ? props.effort?.select
-        : page === 'Model'
-          ? props.setModel
-          : props.setPermission;
-    if (!save) {
-      setBusy(false);
-      return;
-    }
-    void save(slug).then(
-      () => {
-        if (request !== operation.current) return;
-        setBusy(false);
-        returnToModels();
-      },
-      () => {
-        if (request !== operation.current) return;
-        setError('Could not save this choice.');
-        setBusy(false);
-      }
-    );
-  }
-  const permission = props.permissions.find(
-    (item) => item.slug === props.permission
-  );
-  const modelName = models?.find(
-    (item) => item.slug === props.selectedModel
-  )?.name;
-  const label =
-    props.selectedModel && props.selectedModel !== 'default'
-      ? (modelName ?? props.selectedModel)
-      : 'Model';
-  const choices =
-    page === 'Effort'
-      ? props.effort?.choices
-      : page === 'Permissions'
-        ? props.permissions
-        : models;
-  const selected =
-    page === 'Effort'
-      ? props.effort?.current
-      : page === 'Permissions'
-        ? props.permission
-        : props.selectedModel;
   return (
     <>
       <Pressable

@@ -1,10 +1,10 @@
 {
   "platform": "browser",
   "step": 8,
-  "last_action": "open_link{link='http://127.0.0.1:64595/mla-tamagui/gallery?section=chat&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:64083/mla-tamagui/gallery?section=chat&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:64595/mla-tamagui/gallery?section=chat&scheme=light",
+    "url": "http://127.0.0.1:64083/mla-tamagui/gallery?section=chat&scheme=light",
     "title": "",
     "testids": [
       "SkinGallery-chat",
@@ -18,8 +18,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 18327,
-    "capture_ms": 120
+    "since_start_ms": 18507,
+    "capture_ms": 109
   },
   "tolerance": {
     "threshold": 0.1,
