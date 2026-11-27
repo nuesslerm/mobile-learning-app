@@ -13,6 +13,7 @@ export function createExpoTamilAudio(): TamilAudioPort {
     playback += 1;
     cleanup?.();
     cleanup = undefined;
+    current?.pause();
     current?.remove();
     current = undefined;
   }
