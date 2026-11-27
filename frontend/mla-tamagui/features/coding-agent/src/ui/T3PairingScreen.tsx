@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet } from 'react-native';
-import { useKeyboardFrame } from '@lib/tamagui-design-system';
+import { useKeyboardFrame } from '@lib/keyboard';
 import { CameraView } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {

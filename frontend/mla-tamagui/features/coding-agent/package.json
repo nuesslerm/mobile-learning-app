@@ -25,6 +25,7 @@
     "@lib/skin": "workspace:*",
     "@lib/app-config": "workspace:*",
     "@lib/app-di": "workspace:*",
+    "@lib/keyboard": "workspace:*",
     "@lib/logging": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",

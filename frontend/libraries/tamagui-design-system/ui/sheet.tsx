@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { X } from '../icons';
 import { useOpenSheetStore } from '../lib/openSheetStore';
-import { useKeyboardFrame } from '../lib/keyboard/useKeyboardFrame';
+import { useKeyboardFrame } from '@lib/keyboard';
 import { useTheme } from '../primitives';
 
 import { Icon } from './icon';

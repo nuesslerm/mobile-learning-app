@@ -52,7 +52,7 @@ function emit(name: string, event: unknown) {
 async function freshStore() {
   vi.resetModules();
   listeners.clear();
-  const { useKeyboardStore } = await import('../lib/keyboardStore');
+  const { useKeyboardStore } = await import('../src/core/keyboardStore');
   return useKeyboardStore;
 }
 
@@ -64,7 +64,7 @@ describe('given the native keyboard source', () => {
 
   it('when the keyboard shows, then the store carries its height and transition', async () => {
     const store = await freshStore();
-    const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource');
+    const { startKeyboardSource } = await import('../src/adapters/keyboardSource');
     const stop = startKeyboardSource();
 
     emit('keyboardWillShow', {
@@ -83,7 +83,7 @@ describe('given the native keyboard source', () => {
     // a screen that mounts while the keyboard is up (or after a stop that missed the hide) would otherwise read a store that is stale
     alreadyUp = { height: 291 };
     const store = await freshStore();
-    const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource');
+    const { startKeyboardSource } = await import('../src/adapters/keyboardSource');
     const stop = startKeyboardSource();
 
     expect(store.getState().visible).toBe(true);
@@ -93,7 +93,7 @@ describe('given the native keyboard source', () => {
 
   it('when the keyboard hides, then the store reports it hidden', async () => {
     const store = await freshStore();
-    const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource');
+    const { startKeyboardSource } = await import('../src/adapters/keyboardSource');
     const stop = startKeyboardSource();
 
     emit('keyboardWillShow', { endCoordinates: { height: 336 }, duration: 250, easing: null });
@@ -108,7 +108,7 @@ describe('given the native keyboard source', () => {
     // The teardown matters: the hook ref-counts installs, so a leaked listener
     // would keep writing after the last consumer unmounted.
     const store = await freshStore();
-    const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource');
+    const { startKeyboardSource } = await import('../src/adapters/keyboardSource');
     startKeyboardSource()();
 
     emit('keyboardWillShow', { endCoordinates: { height: 336 }, duration: 250, easing: null });
@@ -118,7 +118,7 @@ describe('given the native keyboard source', () => {
 
   it('when the suggestions row changes the open keyboard frame, then the store follows its height', async () => {
     const store = await freshStore();
-    const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource');
+    const { startKeyboardSource } = await import('../src/adapters/keyboardSource');
     const stop = startKeyboardSource();
 
     emit('keyboardWillShow', { endCoordinates: { height: 291 }, duration: 250 });
@@ -168,7 +168,7 @@ describe('given the web keyboard source', () => {
     (globalThis as any).window = setup.win;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto for document
     (globalThis as any).document = setup.doc;
-    const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource.web');
+    const { startKeyboardSource } = await import('../src/adapters/keyboardSource.web');
     return { store, stop: startKeyboardSource() };
   }
 

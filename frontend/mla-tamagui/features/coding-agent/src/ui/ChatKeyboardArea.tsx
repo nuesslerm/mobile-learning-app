@@ -1,4 +1,4 @@
-import { useKeyboardFrame } from '@lib/tamagui-design-system';
+import { useKeyboardFrame } from '@lib/keyboard';
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 

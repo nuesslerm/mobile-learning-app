@@ -1,7 +1,7 @@
 import { Logger } from '@lib/logging';
 import { Keyboard, Platform, type KeyboardEvent } from 'react-native';
 
-import { useKeyboardStore } from '../keyboardStore';
+import { useKeyboardStore } from '../core/keyboardStore';
 
 /**
  * Native keyboard source: React Native's own Keyboard events into the store.

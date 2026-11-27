@@ -15,7 +15,7 @@ import type { ScrollViewInstance, ScrollViewProps, TextStyle, ViewStyle } from '
 import { Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useKeyboardFrame } from '../../lib/keyboard/useKeyboardFrame';
+import { useKeyboardFrame } from '@lib/keyboard';
 import { useOpenSheetStore } from '../../lib/openSheetStore';
 import { XStack, YStack } from '../../primitives';
 import { Icon, type IconProps } from '../../ui/icon';

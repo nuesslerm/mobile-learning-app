@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 
-import { useKeyboardStore } from '../keyboardStore';
+import { useKeyboardStore } from '../core/keyboardStore';
 
 import { startKeyboardSource } from './keyboardSource';
-import type { KeyboardFrame } from './types';
+import type { KeyboardFrame } from '../ports/KeyboardFrame';
 
 // Ref-counted so the source is installed exactly once no matter how many
 // components read the frame, and torn down when the last one unmounts.

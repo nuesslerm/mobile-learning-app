@@ -1,6 +1,6 @@
 import { Logger } from '@lib/logging';
 
-import { useKeyboardStore } from '../keyboardStore';
+import { useKeyboardStore } from '../core/keyboardStore';
 
 declare global {
   interface Window {
