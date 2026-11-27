@@ -46,3 +46,5 @@ export { AppearancePreferenceContextProvider, useAppearancePreference } from './
 export { ChatTextContext, useChatText } from './core/chatText';
 export type { BottomSheetProps } from './ports/BottomSheet';
 export type { WorkspaceTabControlProps } from './ports/WorkspaceTabComponents';
+export type { SkinPreference, SkinPreferenceValue } from './core/skinPreference';
+export { ActiveSkinThemeProvider, SkinPreferenceProvider, SkinThemeBoundary, useSkinPreference } from './core/skinPreference';

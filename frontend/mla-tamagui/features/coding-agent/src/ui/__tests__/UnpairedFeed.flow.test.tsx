@@ -1,3 +1,4 @@
+import { SkinHarness } from '../../testing/SkinHarness';
 import { createFlowApp, screen, userEvent } from '@lib/flow-test-harness';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -12,6 +13,7 @@ describe('Unpaired Orca feed', () => {
     const requestPairing = vi.fn();
     const app = createFlowApp({
       basePath: '/coding-agent',
+  wrapper: SkinHarness,
       routesRoot: '../routes/',
       routes: {
         '../routes/index.tsx': {

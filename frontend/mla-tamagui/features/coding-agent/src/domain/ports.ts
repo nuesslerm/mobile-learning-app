@@ -90,17 +90,12 @@ export type TokenStorePort = {
 /** The theme a device asks for; "system" follows the device's own setting. */
 export type AppearancePreference = 'system' | 'light' | 'dark';
 
-/** Which design system draws the coding agent. */
-export type SkinPreference = 'tamagui' | 'orca';
-
 /** The settings this app keeps on the device. */
 export interface SettingsPreferencesPort {
   readChatText(): Promise<Partial<ChatTextPreference> | null>;
   writeChatText(value: ChatTextPreference | null): Promise<void>;
   readAppearance(): Promise<AppearancePreference>;
   writeAppearance(preference: AppearancePreference): Promise<void>;
-  readSkin(): Promise<SkinPreference>;
-  writeSkin(preference: SkinPreference): Promise<void>;
   /** Whether the user asked for agent notifications. */
   readNotificationsEnabled(): Promise<boolean>;
   writeNotificationsEnabled(enabled: boolean): Promise<void>;

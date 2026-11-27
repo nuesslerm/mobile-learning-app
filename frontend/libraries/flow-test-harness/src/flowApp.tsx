@@ -51,6 +51,8 @@ export type CreateFlowAppConfig = {
   routesRoot: string;
   basePath?: string;
   includeRootLayout?: boolean;
+  /** What the app's root provides to every route, when the routes under test are not the whole app. */
+  wrapper?: ComponentType<{ children: ReactNode }>;
 };
 
 type ParsedRoute = {
@@ -190,6 +192,8 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
     };
   };
 
+  const withRoot = (children: ReactNode) => (cfg.wrapper ? <cfg.wrapper>{children}</cfg.wrapper> : children);
+
   return {
     async render(path, opts: FlowRenderOptions = {}) {
       const resolved = resolveRoute(routes, splitPath(path), includeRootLayout);
@@ -200,7 +204,7 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
       ]);
       const Wrapper = ({ children }: { children: ReactNode }) => (
         <DependencyOverridesProvider overrides={opts.overrides ?? {}}>
-          {children}
+          {withRoot(children)}
         </DependencyOverridesProvider>
       );
       const routeOpts = {
@@ -224,7 +228,7 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
         wrapper: ({ children }) => (
           <FlowProviders>
             <DependencyOverridesProvider overrides={opts.overrides ?? {}}>
-              {Wrapper ? <Wrapper>{children}</Wrapper> : children}
+              {withRoot(Wrapper ? <Wrapper>{children}</Wrapper> : children)}
             </DependencyOverridesProvider>
           </FlowProviders>
         ),

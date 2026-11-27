@@ -7,10 +7,10 @@ module.exports = {
   forbidden: [
     ...base.forbidden,
     {
-      name: 'only-di-picks-a-skin',
-      comment: 'screens read components and colors through @lib/skin; di/ alone names a design system',
+      name: 'only-the-root-names-a-skin',
+      comment: 'the app root provides the skin; here only the test harness names one',
       severity: 'error',
-      from: { path: '^src/', pathNot: ['^src/di/'] },
+      from: { path: '^src/', pathNot: ['^src/testing/SkinHarness\\.tsx$'] },
       to: { path: '(^|/)(orca-skin|tamagui-skin)/' },
     },
   ],

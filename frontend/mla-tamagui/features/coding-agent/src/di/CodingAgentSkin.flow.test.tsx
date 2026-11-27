@@ -1,3 +1,4 @@
+import { SkinHarness } from '../testing/SkinHarness';
 import {
   useSkin,
   type OnboardingChoiceProps,
@@ -61,6 +62,7 @@ const app = createFlowApp({
   routes: { '../routes/index.tsx': { default: TestRoute } },
   routesRoot: '../routes/',
   basePath: '/coding-agent',
+  wrapper: SkinHarness,
 });
 
 describe('Notification choices in the coding-agent container', () => {
@@ -97,6 +99,7 @@ it('Given two mounted Expo route stacks, when one changes the device chat font, 
     routes: { '../routes/index.tsx': {default: Stacks} },
     routesRoot: '../routes/',
     basePath: '/coding-agent',
+  wrapper: SkinHarness,
   });
   await stacks.render('/coding-agent');
   await userEvent.click(screen.getAllByRole('button', {name: 'Font, System'})[0]);

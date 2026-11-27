@@ -4,7 +4,6 @@ import type {
   AppInfoPort,
   AppUpdateCheck,
   AppUpdatePort,
-  SkinPreference,
   ExternalLinksPort,
   SettingsPreferencesPort,
 } from '../domain/ports';
@@ -17,7 +16,6 @@ export interface SettingsPortDoubles {
   /** What the doubles were asked to do, so a test can assert it. */
   recorded: {
     appearance: AppearancePreference;
-    skin: SkinPreference;
     notificationsEnabled: boolean;
     lastUpdateCheckAt: number | null;
     checks: number;
@@ -28,12 +26,11 @@ export interface SettingsPortDoubles {
 
 /** The settings ports as in-memory doubles that record what they were asked to do. */
 export function createSettingsPortDoubles(
-  options: { update?: AppUpdateCheck; skin?: SkinPreference } = {}
+  options: { update?: AppUpdateCheck } = {}
 ): SettingsPortDoubles {
   let chatText: ChatTextPreference | null = null;
   const recorded: SettingsPortDoubles['recorded'] = {
     appearance: 'system',
-    skin: options.skin ?? 'tamagui',
     notificationsEnabled: false,
     lastUpdateCheckAt: null,
     checks: 0,
@@ -46,10 +43,6 @@ export function createSettingsPortDoubles(
     readAppearance: async () => recorded.appearance,
     writeAppearance: async (preference) => {
       recorded.appearance = preference;
-    },
-    readSkin: async () => recorded.skin,
-    writeSkin: async (preference) => {
-      recorded.skin = preference;
     },
     readNotificationsEnabled: async () => recorded.notificationsEnabled,
     writeNotificationsEnabled: async (enabled) => {

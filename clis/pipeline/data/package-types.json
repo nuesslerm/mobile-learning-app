@@ -194,7 +194,7 @@
       "requiredAnyOf": [["ui"], ["routes"]],
       "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],
       "forbiddenDirs": ["domain", "data", "di"],
-      "mayDependOn": [],
+      "mayDependOn": ["component-library"],
       "mayDevDependOn": []
     },
     "component-library": {

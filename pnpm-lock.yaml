@@ -797,9 +797,18 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../libraries/logging
+      '@lib/orca-skin':
+        specifier: workspace:*
+        version: link:../libraries/orca-skin
+      '@lib/skin':
+        specifier: workspace:*
+        version: link:../libraries/skin
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../libraries/tamagui-design-system
+      '@lib/tamagui-skin':
+        specifier: workspace:*
+        version: link:../libraries/tamagui-skin
       '@lib/voice-edit-dsl':
         specifier: workspace:*
         version: link:../libraries/voice-edit-dsl
@@ -1056,12 +1065,6 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../../../libraries/logging
-      '@lib/orca-skin':
-        specifier: workspace:*
-        version: link:../../../libraries/orca-skin
-      '@lib/tamagui-skin':
-        specifier: workspace:*
-        version: link:../../../libraries/tamagui-skin
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../../../libraries/tamagui-design-system
@@ -1153,6 +1156,12 @@ importers:
       '@lib/lint-rules':
         specifier: workspace:*
         version: link:../../../libraries/lint-rules
+      '@lib/orca-skin':
+        specifier: workspace:*
+        version: link:../../../libraries/orca-skin
+      '@lib/tamagui-skin':
+        specifier: workspace:*
+        version: link:../../../libraries/tamagui-skin
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.2.7(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1247,6 +1256,9 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../../../libraries/logging
+      '@lib/skin':
+        specifier: workspace:*
+        version: link:../../../libraries/skin
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../../../libraries/tamagui-design-system

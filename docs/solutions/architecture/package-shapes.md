@@ -33,7 +33,7 @@ The table below is generated from the manifest: edit the manifest, then run `wf 
 | `rust-single-hexagon` | rust | no | domain; adapters -> domain; bin -> domain, adapters | `lib.rs`, `domain or domain.rs`, `adapters`, `bin` | `lib.rs` | none | `rust-contract`, `library` | `rust-testkit` |
 | `rust-testkit` | rust | no | none | `lib.rs` | `*.rs`, `bin` | none | `rust-contract`, `rust-testkit` | none |
 | `hexagonal-feature` | ts | no | domain; data -> domain; state -> domain; ui -> domain, state; di -> domain, data, state; routes -> di, ui; testing -> domain, data, state, ui, di, routes | `index.ts or index.tsx`, `domain`, `state`, `ui`, `di`, `routes` | `index.ts`, `index.tsx`, `__tests__`, `__mocks__`, `project.json` | none | `component-library` | none |
-| `presentation-feature` | ts | no | state; ui -> state; routes -> ui | `index.ts or index.tsx`, `ui`, `routes` | `index.ts`, `index.tsx`, `__tests__`, `__mocks__`, `project.json` | `domain`, `data`, `di` | none | none |
+| `presentation-feature` | ts | no | state; ui -> state; routes -> ui | `index.ts or index.tsx`, `ui`, `routes` | `index.ts`, `index.tsx`, `__tests__`, `__mocks__`, `project.json` | `domain`, `data`, `di` | `component-library` | none |
 | `component-library` | ts | no | ports; core -> ports; adapters -> core, ports | `index.ts`, `core` | `index.ts` | none | `component-library` | none |
 | `hexagonal-library` | ts | no | ports; core -> ports; adapters -> core, ports; testing -> core, ports, adapters | `index.ts`, `core` | `index.ts` | none | `hexagonal-library` | none |
 <!-- END generated:shape-table -->

@@ -1,3 +1,4 @@
+import { SkinHarness } from '../testing/SkinHarness';
 import { createFlowApp } from '@lib/flow-test-harness';
 import { useLocalSearchParams } from 'expo-router';
 import type { ComponentType } from 'react';
@@ -17,5 +18,6 @@ export const app = createFlowApp({
   },
   routesRoot: '../routes/',
   basePath: '/coding-agent',
+  wrapper: SkinHarness,
   includeRootLayout: true,
 });

@@ -15,9 +15,6 @@ import type {
 export const CODING_AGENT_SETTINGS_STORAGE_KEY = 'coding-agent.settings';
 
 const APPEARANCE_KEY = 'appearance';
-const SKIN_KEY = 'skin';
-// The name this choice was stored under before it was called a skin.
-const LEGACY_SKIN_KEY = 'componentSet';
 const NOTIFICATIONS_KEY = 'notificationsEnabled';
 const LAST_UPDATE_CHECK_KEY = 'lastUpdateCheckAt';
 
@@ -80,19 +77,6 @@ export function createAsyncStorageSettingsPreferences(
     },
     async writeAppearance(preference) {
       await write(APPEARANCE_KEY, preference);
-    },
-    async readSkin() {
-      const stored = await read(SKIN_KEY);
-      if (stored !== null) return stored === 'orca' ? 'orca' : 'tamagui';
-      const legacy = await read(LEGACY_SKIN_KEY);
-      if (legacy === null) return 'tamagui';
-      const skin = legacy === 'orca' ? 'orca' : 'tamagui';
-      await write(SKIN_KEY, skin);
-      await storage.removeItem(`${CODING_AGENT_SETTINGS_STORAGE_KEY}.${LEGACY_SKIN_KEY}`);
-      return skin;
-    },
-    async writeSkin(preference) {
-      await write(SKIN_KEY, preference);
     },
     async readNotificationsEnabled() {
       return (await read(NOTIFICATIONS_KEY)) === 'true';

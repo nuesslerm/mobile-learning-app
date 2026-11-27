@@ -21,6 +21,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { FullWindowOverlay } from 'react-native-screens';
 import { buoyEnabled } from '../app-shell/buoyEnabled';
+import { SkinRoot } from '../app-shell/skin/SkinRoot';
 import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
 import { DeviceRunnerRoot, editorPageSource, PreparedEditorPages } from '@/features/leetcode';
@@ -118,6 +119,7 @@ export default function RootLayout() {
                 and header buttons via Stack.Screen -- the editor's Info button
                 is the only way into the problem description. Only the drawer
                 group hides its header, because its screens carry their own. */}
+            <SkinRoot>
             <DeviceRunnerRoot>
             <PreparedEditorPages getSource={editorPageSource}>
             <ThemeProvider value={navigationTheme}>
@@ -152,6 +154,7 @@ export default function RootLayout() {
             </ThemeProvider>
             </PreparedEditorPages>
             </DeviceRunnerRoot>
+            </SkinRoot>
             <NativeChromeBridge />
             <RouteLogger />
             {Platform.OS !== 'web' && appConfig.initialRoute && appConfig.initialRoute !== '/' &&

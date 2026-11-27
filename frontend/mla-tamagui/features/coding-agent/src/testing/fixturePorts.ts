@@ -1,11 +1,7 @@
 import type { ChatTextPreference } from '@lib/skin';
 import { createFixtureDispatchRunsGateway } from './fixtureDispatchRuns';
 import { createFixtureGateway } from './fixtureGateway';
-import type {
-  AppearancePreference,
-  CodingAgentPorts,
-  SkinPreference,
-} from '../domain/ports';
+import type { AppearancePreference, CodingAgentPorts } from '../domain/ports';
 
 const FIXTURE_DASHBOARD_BASE_URL = 'http://vm-ops-api-main:8080';
 
@@ -14,7 +10,6 @@ export function createFixturePorts(): CodingAgentPorts {
   let token: string | null = null;
   let chatText: ChatTextPreference | null = null;
   let appearance: AppearancePreference = 'system';
-  let skin: SkinPreference = 'tamagui';
   let notificationsEnabled = false;
   let lastUpdateCheckAt: number | null = null;
   return {
@@ -44,10 +39,6 @@ export function createFixturePorts(): CodingAgentPorts {
       readAppearance: async () => appearance,
       writeAppearance: async (next) => {
         appearance = next;
-      },
-      readSkin: async () => skin,
-      writeSkin: async (next) => {
-        skin = next;
       },
       readNotificationsEnabled: async () => notificationsEnabled,
       writeNotificationsEnabled: async (next) => {

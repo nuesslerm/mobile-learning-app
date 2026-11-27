@@ -5,15 +5,12 @@ import { copyMessage } from '../data/copyMessage';
 import { pairingCamera } from '../data/pairingCamera';
 import { createT3MobileApi } from '../data/t3/mobileApi';
 import {
-  SkinProvider,
   AppearancePreferenceContextProvider,
+  SkinProvider,
+  SkinThemeBoundary,
+  useSkin,
   type Skin,
 } from '@lib/skin';
-import { OrcaThemeProvider, orcaSkin } from '@lib/orca-skin';
-import {
-  TamaguiThemeProvider,
-  tamaguiSkin,
-} from '@lib/tamagui-skin';
 import { appConfig } from '@lib/app-config';
 import { overrideKey, useDependencyOverrides } from '@lib/app-di';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -26,12 +23,7 @@ import { createAsyncStorageSettingsPreferences } from '../data/settingsPreferenc
 import { createAsyncStorageTokenStore } from '../data/tokenStore';
 import { createMobileApi } from '../data/rca/mobileApi';
 import { createWsOrchestration } from '../data/wsOrchestration';
-import type {
-  AppearancePreference,
-  CodingAgentPorts,
-  SkinPreference,
-} from '../domain/ports';
-import { SkinPreferenceProvider, useSkinPreference } from '../state/skinPreference';
+import type { AppearancePreference, CodingAgentPorts } from '../domain/ports';
 import { CodingAgentPortsProvider, useCodingAgentPorts } from '../state/ports';
 
 export const CODING_AGENT_OVERRIDES =
@@ -67,26 +59,19 @@ export function createDefaultPorts(
   };
 }
 
-const SKINS = {
-  tamagui: { components: tamaguiSkin, Theme: TamaguiThemeProvider },
-  orca: { components: orcaSkin, Theme: OrcaThemeProvider },
-};
-
 /** A device choice: read once, then kept in step with what the user picks. */
 function useStoredPreference<T>(
   initial: T,
   read: () => Promise<T>,
   write: (next: T) => Promise<void>
-): { preference: T; loaded: boolean; select: (next: T) => void } {
+): { preference: T; select: (next: T) => void } {
   const [preference, setPreference] = useState(initial);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     void read().then((stored) => {
       if (active) {
         setPreference(stored);
-        setLoaded(true);
       }
     });
     return () => {
@@ -102,10 +87,10 @@ function useStoredPreference<T>(
     [write]
   );
 
-  return { preference, loaded, select };
+  return { preference, select };
 }
 
-/** Hands the theme and design choices to the screens, once the ports are in place. */
+/** Hands the theme choice to the skin, once the ports are in place. */
 function AppearanceGate({ children }: { children: ReactNode }) {
   const { preferences } = useCodingAgentPorts();
   const appearance = useStoredPreference<AppearancePreference>(
@@ -113,16 +98,9 @@ function AppearanceGate({ children }: { children: ReactNode }) {
     preferences.readAppearance,
     preferences.writeAppearance
   );
-  const skin = useStoredPreference<SkinPreference>(
-    'tamagui',
-    preferences.readSkin,
-    preferences.writeSkin
-  );
   return (
     <AppearancePreferenceContextProvider value={appearance}>
-      <SkinPreferenceProvider value={skin}>
-        {skin.loaded ? children : null}
-      </SkinPreferenceProvider>
+      <SkinThemeBoundary>{children}</SkinThemeBoundary>
     </AppearancePreferenceContextProvider>
   );
 }
@@ -141,19 +119,10 @@ export function CodingAgentContainer({ children }: { children: ReactNode }) {
   );
 }
 
+/** The app's skin, with the entries a test replaces. */
 function SkinGate({ children }: { children: ReactNode }) {
-  const { preference } = useSkinPreference();
-  const { components: base, Theme } = SKINS[preference];
-  const uiOverrides = useDependencyOverrides(CODING_AGENT_UI_OVERRIDES);
-  const components = useMemo(
-    () => ({ ...base, ...uiOverrides }),
-    [base, uiOverrides]
-  );
-  return (
-    <Theme>
-      <SkinProvider value={components}>
-        {children}
-      </SkinProvider>
-    </Theme>
-  );
+  const skin = useSkin();
+  const overrides = useDependencyOverrides(CODING_AGENT_UI_OVERRIDES);
+  const withOverrides = useMemo(() => ({ ...skin, ...overrides }), [skin, overrides]);
+  return <SkinProvider value={withOverrides}>{children}</SkinProvider>;
 }
