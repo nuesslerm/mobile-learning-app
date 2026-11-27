@@ -1,27 +1,35 @@
 {
   "platform": "browser",
-  "step": 32,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-new-tab&scheme=dark'}",
+  "step": 39,
+  "last_action": "open_link{link='http://127.0.0.1:56203/mla-tamagui/gallery?section=sheet-new-tab&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-new-tab&scheme=dark",
+    "url": "http://127.0.0.1:56203/mla-tamagui/gallery?section=sheet-new-tab&scheme=dark",
     "title": "",
     "testids": [
-      "SkinGallery-sheet-new-tab"
+      "SkinGallery-sheet-new-tab",
+      "skin-new-tab",
+      "skin-new-tab-agents",
+      "skin-new-tab-agent",
+      "skin-new-tab-kinds",
+      "skin-new-tab-terminal",
+      "skin-new-tab-browser",
+      "skin-new-tab-markdown",
+      "skin-new-tabHandle"
     ],
-    "text": "New Tab\nmobile-app\nAgents\nClaude\nCodex\nOpenCode\nTerminal\nBrowser\nMarkdown Note"
+    "text": "New Tab\nmobile-app\nAGENTS\nClaude\nCodex\nOpenCode\nTerminal\nBrowser\nMarkdown Note"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 82691,
-    "capture_ms": 114
+    "since_start_ms": 99256,
+    "capture_ms": 108
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-dark-sheet-new-tab",

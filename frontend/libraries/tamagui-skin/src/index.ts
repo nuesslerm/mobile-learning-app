@@ -12,6 +12,8 @@ import { HomeActionSheet, HomeAgentSection, HomeEmptyState, HomeSearchField } fr
 import { ChatTextPreview, HomeSettingsSectionTitle, HomeSettingsSpacer, OptionSheet } from './adapters/home/settingsExtras';
 import { Composer, ComposerAddButton, ComposerSendButton, ComposerSuggestionList } from './adapters/chat/composer';
 import { ChatMessageMeta, ChatMessageText, ChatSurface, ChatToolActivity, MessageBubble } from './adapters/chat/messages';
+import { NewTabSheet } from './adapters/chat/newTab';
+import { ChatImage, SessionTabsSheet } from './adapters/chat/sessionTabs';
 import { ChatSizeControl, ChatSpacingControl } from './adapters/chat/textControls';
 import { Row, Stack, Text } from './adapters/layout/layout';
 import { BrandMark } from './adapters/pairing/BrandMark';
@@ -47,6 +49,9 @@ export const tamaguiSkin: Skin = {
   ComposerAddButton,
   ComposerSuggestionList,
   ComposerSendButton,
+  SessionTabsSheet,
+  NewTabSheet,
+  ChatImage,
   HomeSettingsGroup,
   HomeSettingsNote,
   HomeSettingsRow,
