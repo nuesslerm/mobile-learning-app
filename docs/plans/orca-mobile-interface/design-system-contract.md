@@ -31,6 +31,15 @@ Goal: every screen in the app is built only from components injected through one
 10. Parity proof is every flow test run under both skins, plus a gallery of every entry. There is no separate conformance suite.
 11. Order: the coding agent first, then settings, Tamil, dashboards and service report, LeetCode, app shell. The lint rules land app-wide on day one with shrinking file lists.
 
+## Running without a human
+
+- Before step 0, root-cause and fix the 7 app flow tests that fail on `dev` today (cold deep links list, responder warning, BetterStack forwarder twice, crash handler, root theme, showcase), so every later gate is green.
+- Spike rule (step 1.6): up to 10% slower render on the LeetCode list, continue. Worse: `Row` and `Stack` leave the contract, `XStack`/`YStack` and tokens stay importable from one public layout module of the design system, and only real components are injected. Record which branch was taken in issue #102. No stop.
+- Orca looks for screens with no stock reference: the agent reviews its own screenshots, saves the baselines and posts one gallery per feature in issue #102. Review happens afterwards and never blocks.
+- The work stays in the shared `dev` worktree. Stage and commit by path only (`git commit -o <paths>`), never `git add -A`; wait for `index.lock` instead of removing it; when another session's staged files block a rebase, fetch and push only if `dev` has not moved, otherwise wait.
+- A failed upgrade or a compiler that cannot be made correct is recorded and skipped, not a stop.
+- Real stops: under 1.2 GB free disk, exhausted credits, or a batch that cannot pass its gate after its root cause is understood. Each is written to the Blocked section of issue #102.
+
 ## Names
 
 | Today | Becomes |
@@ -135,7 +144,7 @@ If extraction cannot be made correct on this version, say so in issue #102 and c
 3. Run every coding-agent flow file under both skins.
 4. Add the three import rules app-wide with their file lists; seal both packages' exports.
 5. Add the gallery route; capture Orca and Tamagui gallery baselines in light and dark.
-6. Spike: add `Row`, `Stack` and `Text`, convert the LeetCode list screen only, and compare render time and bundle size with before. Record the numbers in `docs/audits/2026-09-02-token-diet-decision-log.md`. A regression stops the plan for a decision.
+6. Spike: add `Row`, `Stack` and `Text`, convert the LeetCode list screen only, and compare render time and bundle size with before. Record the numbers in `docs/audits/2026-09-02-token-diet-decision-log.md`. Apply the spike rule from Running without a human.
 
 ### 2. Coding agent
 
