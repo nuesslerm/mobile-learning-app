@@ -1,0 +1,11 @@
+Usage: wf ios <command> [options]
+
+The iOS harness: one booted iOS simulator, driven through idb and an XCTest session. Every verb needs the simulator
+named with --device <UDID>; `wf test prepare-ios` provisions or verifies one (`--fresh NAME --apps-from DEVICE` copies
+a simulator of its own for one piece of work). Every verb prints one JSON line: {ok, command, platform, device, ms,
+result} with exit 0; a failure {ok:false, ..., error, next} with exit 1; a usage error {ok:false, error, usage} with
+exit 2. `wf ios <command> --help` prints one in full.
+
+Tests:
+  test <file.lua> --device <UDID> [options]
+                         runs a Lua test on the simulator (`wf ios test --api` lists the script API)

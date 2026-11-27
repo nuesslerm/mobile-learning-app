@@ -4,7 +4,7 @@
   "last_action": "tap_on{id='ConsoleChip-3'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:61393/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgaWYgZ2xvYmFscygpLmdldCgnSEFORycpOgogICAgICAgICAgICB3aGlsZSBUcnVlOgogICAgICAgICAgICAgICAgcGFzcwogICAgICAgIHBhaXJzID0geycpJzogJygnLCAnXSc6ICdbJywgJ30nOiAneyd9CiAgICAgICAgc3RhY2sgPSBbXQogICAgICAgIGZvciBjIGluIHM6CiAgICAgICAgICAgIGlmIGMgaW4gcGFpcnM6CiAgICAgICAgICAgICAgICBpZiBub3Qgc3RhY2sgb3Igc3RhY2sucG9wKCkgIT0gcGFpcnNbY106CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIEZhbHNlCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICBzdGFjay5hcHBlbmQoYykKICAgICAgICByZXR1cm4gbm90IHN0YWNrCg",
+    "url": "http://127.0.0.1:58339/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgaWYgZ2xvYmFscygpLmdldCgnSEFORycpOgogICAgICAgICAgICB3aGlsZSBUcnVlOgogICAgICAgICAgICAgICAgcGFzcwogICAgICAgIHBhaXJzID0geycpJzogJygnLCAnXSc6ICdbJywgJ30nOiAneyd9CiAgICAgICAgc3RhY2sgPSBbXQogICAgICAgIGZvciBjIGluIHM6CiAgICAgICAgICAgIGlmIGMgaW4gcGFpcnM6CiAgICAgICAgICAgICAgICBpZiBub3Qgc3RhY2sgb3Igc3RhY2sucG9wKCkgIT0gcGFpcnNbY106CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIEZhbHNlCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICBzdGFjay5hcHBlbmQoYykKICAgICAgICByZXR1cm4gbm90IHN0YWNrCg",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
@@ -75,8 +75,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 7254,
-    "capture_ms": 128
+    "since_start_ms": 7513,
+    "capture_ms": 113
   },
   "tolerance": {
     "threshold": 0.1,

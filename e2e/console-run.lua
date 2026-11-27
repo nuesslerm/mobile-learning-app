@@ -202,7 +202,8 @@ local ok, failure = pcall(function()
   end)
 
   run_flow("the rail's Run above the keyboard lowers it and runs", function()
-    device:tap_on({css='.cm-content'})
+    -- the first line: the open result sheet covers the middle of the editor
+    device:tap_on({css='.cm-line'})
     device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=15000, label='the rail'}
     device:extended_wait_until{not_visible={id='ConsoleSheet'}, timeout=15000, label='the sheet closed for the editor'}
     local run, rail = bounds('ConsoleBarRun'), bounds('EditorHelperRails')
@@ -236,7 +237,7 @@ local ok, failure = pcall(function()
   end)
 
   run_flow("a run that never ends ends in Time Limit Exceeded", function()
-    device:tap_on({css='.cm-content'})
+    device:tap_on({css='.cm-line'})
     device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=15000, label='the rail'}
     device:press_key('Ctrl+End')
     device:input_text('\nHANG = True')

@@ -78,7 +78,7 @@ fn wf_in(state: &Path, args: &[&str]) -> RunResult {
 /// A help text without the device verbs `wf browser|android --help` generate from the command table after the committed text.
 fn committed<'a>(entry: &HelpEntry, out: &'a str) -> &'a str {
     match entry.path.as_slice() {
-        [noun] if noun == "browser" || noun == "android" => {
+        [noun] if noun == "browser" || noun == "android" || noun == "ios" => {
             let (text, verbs) = out.split_at(out.find("\nDevice commands").unwrap_or(out.len()));
             assert!(verbs.contains("  tap-on ") && verbs.contains("  extended-wait-until "), "wf {noun}: no generated device verbs in {out}");
             text
@@ -120,7 +120,7 @@ fn a_new_caller_learns_the_commands_from_the_version_and_the_help_of_every_comma
     assert_eq!(top.exit_code, 0);
     assert!(top.stdout.contains("Usage: wf") && top.stdout.contains("Dev workflow CLI"), "{}", top.stdout);
     let names: Vec<&str> = top.stdout.lines().skip_while(|l| *l != "Commands:").skip(1).filter_map(|l| l.strip_prefix("  ")).filter(|l| !l.starts_with(' ')).filter_map(|l| l.split_whitespace().next()).collect();
-    assert_eq!(names, ["check", "ship", "rca", "flow", "test", "ci", "android", "browser", "vm", "secret", "agent-config", "bench", "knowledge", "cache", "lib", "t3", "exec", "mimic", "help"]);
+    assert_eq!(names, ["check", "ship", "rca", "flow", "test", "ci", "ios", "android", "browser", "vm", "secret", "agent-config", "bench", "content", "knowledge", "cache", "lib", "rca-serve", "t3", "exec", "mimic", "help"]);
 
     // When every command of the table is asked for its help
     for entry in &table {
@@ -278,7 +278,7 @@ fn a_caller_with_a_retired_or_malformed_command_line_is_refused_with_the_reason(
     }
 
     // When an earlier top-level name or a verb-first alias runs
-    for old in ["verify", "deploy", "work", "status", "dispatch", "agents", "secrets", "auth", "vm-ops", "tailscale", "report-health", "cli-bench", "cm6", "visual", "metro", "ios", "app"] {
+    for old in ["verify", "deploy", "work", "status", "dispatch", "agents", "secrets", "auth", "vm-ops", "tailscale", "report-health", "cli-bench", "cm6", "visual", "metro", "app"] {
         let r = wf(&[old, "--help"]);
         // Then it is an unknown command with exit 1
         assert_eq!(r.exit_code, 1, "{old}: {}{}", r.stdout, r.stderr);

@@ -2905,6 +2905,27 @@ Options:
 
 </details>
 
+## content
+
+### `wf content`
+
+Generate the bundled offline Tamil course from the approved Anki deck.
+
+Usage: `wf content import-tamil <deck.apkg> [--check]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf content import-tamil <deck.apkg> [--check]
+
+Generate the bundled offline Tamil course from the approved Anki deck.
+Use --check to compare the checked-in curriculum and Tamil audio byte for byte.
+Prints JSON with notes, topics, tamilAudio and audioBytes.
+Requires Python 3.11 or newer.
+```
+
+</details>
+
 ## device commands
 
 The device verbs of `wf browser` and `wf android`, Maestro's commands in kebab-case, generated from the command table (`clis/harness-core/src/device/api.rs`): `wf <noun> <verb> --help` prints one in full, `wf <noun> test --api` the Lua side (`--json` the table itself). Each prints one JSON line: `{ok, command, platform, device, ms, result}` and exit 0; a failure `{ok:false, error, evidence, verdict, met_after_ms, next}` and exit 1; a usage error exit 2; an Android lease conflict exit 3. The browser's own verbs (devices, hierarchy, check-taps, the debugger, the tailnet and the daemon) are under [browser](#browser), Android's (devices, hierarchy, lease, adb) under [android](#android).
@@ -3130,6 +3151,32 @@ each screenshot to <report dir>/out/<suite>/<name>.<scheme>.actual.png and compa
 
 Output: {"ok","scheme","report","counts":{match,updated,mismatch,missing,errors},"unused":[..],"errors":[..],
 "goldens":[{"name","verdict","ok","message","golden","actual","expected","diff","differing_pixels","ratio"}],"next"}
+```
+
+</details>
+
+## ios
+
+### `wf ios`
+
+The iOS harness: one booted iOS simulator, driven through idb and an XCTest session.
+
+Usage: `wf ios <command> [options]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ios <command> [options]
+
+The iOS harness: one booted iOS simulator, driven through idb and an XCTest session. Every verb needs the simulator
+named with --device <UDID>; `wf test prepare-ios` provisions or verifies one (`--fresh NAME --apps-from DEVICE` copies
+a simulator of its own for one piece of work). Every verb prints one JSON line: {ok, command, platform, device, ms,
+result} with exit 0; a failure {ok:false, ..., error, next} with exit 1; a usage error {ok:false, error, usage} with
+exit 2. `wf ios <command> --help` prints one in full.
+
+Tests:
+  test <file.lua> --device <UDID> [options]
+                         runs a Lua test on the simulator (`wf ios test --api` lists the script API)
 ```
 
 </details>
@@ -5744,6 +5791,25 @@ Render the .agents/ contract into every tool config
 
 Options:
   --check     Only report whether the generated files are current
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf agent-config save-memory`
+
+Encrypt local Basic Memory Markdown notes into .agents/basic-memory.enc for Git.
+
+Usage: `wf agent-config save-memory`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf agent-config save-memory
+
+Encrypt local Basic Memory Markdown notes into .agents/basic-memory.enc for Git.
+
+Options:
   -h, --help  display help for command
 ```
 

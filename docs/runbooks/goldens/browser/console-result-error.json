@@ -1,17 +1,19 @@
 {
   "platform": "browser",
-  "step": 31,
+  "step": 27,
   "last_action": "tap_on{id='ConsoleBarRun'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:38745/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignYm9vbScpCg",
+    "url": "http://127.0.0.1:58339/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignYm9vbScpCg",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemEditorScreen",
@@ -20,9 +22,16 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "CodeEditorText",
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ConsoleSheet",
       "ConsoleTabs",
       "SegmentedThumb",
@@ -47,15 +56,15 @@
       "ConsoleSheetHandle",
       "PyodideHostWebView"
     ],
-    "text": "Valid Parentheses\nStack · Easy\nPython\nTestcase\nRun Result\nRuntime Error\nValueError: boom\nLine 3 (Solution.py)\nLast Executed Input\nOpen Testcase\ns =\n\"()\"\nReset\nSubmit"
+    "text": "Valid Parentheses\nStack · Easy\nclass Solution:\n    def isValid(self, s: str) -> bool:\n        raise ValueError('boom')\n\nPython\nConsole\nSubmit\nTestcase\nRun Result\nRuntime Error\nValueError: boom\nLine 3 (Solution.py)\nLast Executed Input\nOpen Testcase\ns =\n\"()\"\nReset\nSubmit"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 37360,
-    "capture_ms": 266
+    "since_start_ms": 26757,
+    "capture_ms": 141
   },
   "tolerance": {
     "threshold": 0.1,

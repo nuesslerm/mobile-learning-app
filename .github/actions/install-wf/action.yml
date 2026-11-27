@@ -26,8 +26,8 @@ runs:
         rm -f node_modules/.bin/wf
         root=$RUNNER_TOOL_CACHE/clis; sudo=$([ "$(id -u)" = 0 ] || echo sudo)
         dir=$root/$tree
-        # wf runs `t3`, `exec` and `mimic` as the binaries beside it (clis/wf/src/external.rs); each is also its package's name
-        bins="t3-serve rca-exec wf-mimic wf"
+        # wf runs `t3`, `rca-serve`, `exec` and `mimic` as the binaries beside it (clis/wf/src/external.rs); each is also its package's name
+        bins="t3-serve rca-serve rca-exec wf-mimic wf"
         complete=true; for bin in $bins; do [ -x "$dir/$bin" ] || complete=false; done
         if [ "$complete" = false ]; then
           target=$(uname -m)-unknown-linux-musl

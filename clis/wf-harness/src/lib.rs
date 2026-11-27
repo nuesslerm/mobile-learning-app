@@ -1,6 +1,7 @@
 //! The device test harness as the verbs mount it: `wf android` and `wf browser` (one command table and one Lua script API over two
 //! drivers) from `harness-android` and `harness-browser`, on the run engine and goldens of `harness-core`. This crate names them
 //! together: the thin binary, the cross-platform flow tests, and the paths the crates above have always used.
+mod help_table;
 pub mod ios;
 mod ios_visual;
 
@@ -32,5 +33,5 @@ pub fn run_test(rest: &[String]) -> Option<i32> {
     }
 }
 
-/// The help text of both nouns.
-pub const HELP: [&[(&str, bool, &str)]; 2] = [harness_android::HELP, harness_browser::HELP];
+/// The help text of the three nouns.
+pub const HELP: [&[(&str, bool, &str)]; 3] = [harness_android::HELP, harness_browser::HELP, help_table::HELP];
