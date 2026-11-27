@@ -1,13 +1,13 @@
 import { useRouteNavigation } from './useRouteAction';
 import type { Blind75Problem, Difficulty } from '../domain';
 import { Logger } from '@lib/logging';
-import { Badge, Button, IconButton, InsetGroup, ListItem, Text, View } from '@lib/tamagui-design-system';
+import { useSkin } from '@lib/skin';
+import { Badge, Button, IconButton, InsetGroup, ListItem } from '@lib/tamagui-design-system';
 import { CollapsingHeader } from '@lib/tamagui-design-system/composites/collapsing-header';
 import { useNavigation } from 'expo-router';
 import { Menu } from '@lib/tamagui-design-system/icons';
 import { Fragment, useCallback, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
@@ -35,23 +35,23 @@ function AuthRow({ pushRoute }: { pushRoute: ReturnType<typeof useRouteNavigatio
   const isLoggedIn = useLeetCodeAuthStore((s) => s.isLoggedIn);
   const username = useLeetCodeAuthStore((s) => s.username);
   const clearCredentials = useLeetCodeAuthStore((s) => s.clearCredentials);
+  const { Row, Stack, Text } = useSkin();
 
   return (
-    <XStack
-      items="center"
-      justify="space-between"
-      gap="$3"
-      mt="$3"
-      mx="$4"
-      px="$3.5"
-      py="$3"
-      rounded="$4"
-      borderWidth={1}
-      borderColor="$borderColor"
-      bg="$background"
+    <Row
+      align="center"
+      justify="between"
+      gap="md"
+      marginTop="md"
+      marginX="lg"
+      paddingX={14}
+      paddingY="md"
+      radius="md"
+      bordered
+      surface="base"
       testID="LeetcodeListAuthRow"
     >
-      <YStack flex={1}>
+      <Stack grow>
         <Text variant="muted" testID="LeetcodeListAuthLabel">
           {isLoggedIn ? 'Signed in as' : 'Not signed in'}
         </Text>
@@ -63,7 +63,7 @@ function AuthRow({ pushRoute }: { pushRoute: ReturnType<typeof useRouteNavigatio
             ? username
             : 'Sign in to LeetCode to unlock account features.'}
         </Text>
-      </YStack>
+      </Stack>
       {isLoggedIn ? (
         <Button
           variant="outline"
@@ -87,11 +87,12 @@ function AuthRow({ pushRoute }: { pushRoute: ReturnType<typeof useRouteNavigatio
           Sign in
         </Button>
       )}
-    </XStack>
+    </Row>
   );
 }
 
 function ProblemRow({ problem, pushRoute }: { problem: Blind75Problem; pushRoute: ReturnType<typeof useRouteNavigation>['pushRoute'] }) {
+  const { Row, Text } = useSkin();
   return (
     <ListItem
       testID="LeetcodeListItem"
@@ -106,8 +107,8 @@ function ProblemRow({ problem, pushRoute }: { problem: Blind75Problem; pushRoute
         pushRoute(`/leetcode/${problem.id}`);
       }}
     >
-      <XStack items="center" gap="$3">
-        <Text flex={1} numberOfLines={1} testID="LeetcodeListItemTitle">
+      <Row align="center" gap="md">
+        <Text grow numberOfLines={1} testID="LeetcodeListItemTitle">
           {problem.leetcodeId}. {problem.title}
         </Text>
         <Badge
@@ -116,7 +117,7 @@ function ProblemRow({ problem, pushRoute }: { problem: Blind75Problem; pushRoute
         >
           {problem.difficulty.toUpperCase()}
         </Badge>
-      </XStack>
+      </Row>
     </ListItem>
   );
 }
@@ -128,18 +129,13 @@ function HeroChip({
   children: React.ReactNode;
   testID: string;
 }) {
+  const { Stack, Text } = useSkin();
   return (
-    <YStack
-      px="$2.5"
-      py="$1"
-      rounded="$10"
-      bg="rgba(255,255,255,0.2)"
-      testID={testID}
-    >
-      <Text variant="small" color="white" testID={`${testID}Text`}>
+    <Stack paddingX={10} paddingY="xs" radius="pill" surface="onAccent" testID={testID}>
+      <Text variant="small" tone="onAccent" testID={`${testID}Text`}>
         {children}
       </Text>
-    </YStack>
+    </Stack>
   );
 }
 
@@ -150,6 +146,7 @@ export function ProblemListScreen(): React.ReactElement {
   const categories = useMemo(() => ProblemCatalog.getCategories(), []);
   const total = useMemo(() => ProblemCatalog.getAll().length, []);
   const navigation = useNavigation();
+  const { Row, Stack, Text } = useSkin();
 
   // This screen sits one level inside the drawer's own Stack, so the Stack's
   // navigation parent is the Drawer navigator. `{ type: 'OPEN_DRAWER' }` is
@@ -160,13 +157,7 @@ export function ProblemListScreen(): React.ReactElement {
   }, [navigation]);
 
   const expanded = (
-    <YStack
-      bg="$blue9"
-      px="$4"
-      pb="$5"
-      pt={insets.top + 12}
-      testID="LeetcodeListHero"
-    >
+    <Stack surface="accent" paddingX="lg" paddingBottom="xl" paddingTop={insets.top + 12} testID="LeetcodeListHero">
       <IconButton
         icon={Menu}
         variant="ghost"
@@ -174,34 +165,21 @@ export function ProblemListScreen(): React.ReactElement {
         aria-label="Open menu"
         testID="LeetcodeListMenuButton"
       />
-      <XStack items="center" gap="$2" mt="$2">
+      <Row align="center" gap="sm" marginTop="sm">
         <HeroChip testID="LeetcodeListHeroLive">🟢 LIVE</HeroChip>
         <HeroChip testID="LeetcodeListHeroCount">{total} PROBLEMS</HeroChip>
-      </XStack>
-      <Text variant="h1" color="white" mt="$3" testID="LeetcodeListHeroTitle">
+      </Row>
+      <Text variant="title" tone="onAccent" marginTop="md" testID="LeetcodeListHeroTitle">
         Blind 75
       </Text>
-      <Text
-        color="white"
-        opacity={0.85}
-        mt="$1"
-        testID="LeetcodeListHeroSubtitle"
-      >
+      <Text tone="onAccent" dimmed marginTop="xs" testID="LeetcodeListHeroSubtitle">
         Master the patterns. Ace the interview. 🚀
       </Text>
-    </YStack>
+    </Stack>
   );
 
   const compact = (
-    <XStack
-      bg="$blue9"
-      items="center"
-      gap="$2"
-      px="$4"
-      pb="$3"
-      pt={insets.top + 6}
-      testID="LeetcodeListCompactBar"
-    >
+    <Row surface="accent" align="center" gap="sm" paddingX="lg" paddingBottom="md" paddingTop={insets.top + 6} testID="LeetcodeListCompactBar">
       <IconButton
         icon={Menu}
         variant="ghost"
@@ -209,21 +187,15 @@ export function ProblemListScreen(): React.ReactElement {
         aria-label="Open menu"
         testID="LeetcodeListMenuButtonCompact"
       />
-      <Text
-        variant="large"
-        color="white"
-        flex={1}
-        numberOfLines={1}
-        testID="LeetcodeListCompactTitle"
-      >
+      <Text variant="large" tone="onAccent" grow numberOfLines={1} testID="LeetcodeListCompactTitle">
         Blind 75
       </Text>
       <HeroChip testID="LeetcodeListCompactCount">{total}</HeroChip>
-    </XStack>
+    </Row>
   );
 
   return (
-    <View flex={1} bg="$background" testID="LeetcodeListScreen">
+    <Stack grow surface="base" testID="LeetcodeListScreen">
       <CollapsingHeader
         expanded={expanded}
         compact={compact}
@@ -238,12 +210,7 @@ export function ProblemListScreen(): React.ReactElement {
         <BlockViewSettingRow />
         {categories.map((category) => (
           <Fragment key={category.id}>
-            <Text
-              variant="h3"
-              mt="$5"
-              mb="$2"
-              testID="LeetcodeListSectionTitle"
-            >
+            <Text variant="heading" marginTop="xl" marginBottom="sm" testID="LeetcodeListSectionTitle">
               {category.title}
             </Text>
             <InsetGroup testID="LeetcodeListSection">
@@ -254,6 +221,6 @@ export function ProblemListScreen(): React.ReactElement {
           </Fragment>
         ))}
       </CollapsingHeader>
-    </View>
+    </Stack>
   );
 }

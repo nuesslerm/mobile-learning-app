@@ -3858,3 +3858,18 @@ The render numbers are jsdom on a Mac, n=5 after warm-up: good for a before/afte
 Tamagui 3.3.3 (n=1 attempt). It typechecks and passes flow (938) and unit (1,683) tests, but 9 of 21 exported routes still moved elements against 2.7.7 after three fixes, so it did not land. Decision: stay on 2.7.7; the attempt is kept as a patch.
 
 Extraction on 2.7.7 (n=3 exports). With `components: ['tamagui']`, turning extraction on is a no-op: the same 17,180,380 bytes. Naming the modules the screens import from engages the compiler and the static render then fails with `ReferenceError: Cannot access 'h' before initialization`. Decision: extraction stays off.
+
+## 2026-11-27 · Skin layout spike ([#106](https://github.com/nuesslerm/mobile-learning-app/issues/106), S5)
+
+Question: what does it cost to take `Row`, `Stack` and `Text` from the skin at run time instead of importing Tamagui's stacks? One screen converted, the Blind 75 list (`/blind75`: 76 rows, each a row and a text).
+
+| Measure | Before | After | Change |
+|---|---|---|---|
+| Warm render, median of 15, three runs | 81.2, 70.9, 72.7 ms | 76.1, 79.3, 75.7 ms | middle run 72.7 to 76.1 ms, +4.7% |
+| Warm render, 25th percentile | 66.5, 67.9, 68.6 ms | 70.1, 71.1, 70.7 ms | +4.3% |
+| Web export, all JS | 17,198,172 bytes | 17,203,755 bytes | +5,583 bytes |
+| Screen under the Tamagui skin | | | byte-identical screenshot, 0 of 62 elements moved |
+
+Method as in the baseline entry above (flow harness in jsdom on a Mac, first 2 of 17 renders dropped). Run-to-run spread is about 10%, as large as the effect, so the 4 to 5% is an upper estimate rather than a measurement. Extraction is off, so no compile-time optimisation was lost.
+
+Decision (rule 12 of the issue: up to 10% slower, continue): layout goes through the contract. `Row`, `Stack` and `Text` stay entries.

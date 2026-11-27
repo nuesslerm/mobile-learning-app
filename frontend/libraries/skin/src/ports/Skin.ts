@@ -5,6 +5,7 @@ import type { PairingScreenProps, PairingCodeSheetProps } from './PairingCompone
 import type { ComponentType, ReactNode } from 'react';
 import type { BottomSheetProps } from './BottomSheet';
 import type { WorkspaceTabControlProps } from './WorkspaceTabComponents';
+import type { LayoutProps, TextProps } from './Layout';
 import type { ComposerOptionsProps, NewTabSheetProps, SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
 export interface OnboardingChoiceProps {
@@ -258,4 +259,9 @@ export interface Skin {
   ChatSizeControl: ComponentType<{ label: string }>;
   ChatSpacingControl: ComponentType<{ label?: boolean }>;
   WorkspaceTabControl: ComponentType<WorkspaceTabControlProps>;
+  /** Lays its children out side by side. */
+  Row: ComponentType<LayoutProps>;
+  /** Lays its children out one under the other. */
+  Stack: ComponentType<LayoutProps>;
+  Text: ComponentType<TextProps>;
 }

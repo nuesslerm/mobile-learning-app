@@ -53,6 +53,9 @@ export const GALLERY_ENTRIES = {
   WorkspaceOptions: 'sheet-workspace-options',
   BottomSheet: 'sheet-plain',
   ChatImageViewer: 'image-viewer',
+  Row: 'layout',
+  Stack: 'layout',
+  Text: 'layout',
 } as const satisfies Record<keyof Skin, string>;
 
 export type GallerySection = (typeof GALLERY_ENTRIES)[keyof Skin];
@@ -378,6 +381,48 @@ function SourceControlSection() {
   );
 }
 
+function Layout() {
+  const { HomeSurface, Row, Stack, Text } = useSkin();
+  return (
+    <HomeSurface>
+      <Stack padding="lg" gap="lg">
+        <Stack gap="xs">
+          <Text variant="title">Title</Text>
+          <Text variant="heading">Heading</Text>
+          <Text variant="large">Large</Text>
+          <Text variant="strong">Strong</Text>
+          <Text>Body text in the default tone.</Text>
+          <Text variant="muted">Muted text for a secondary line.</Text>
+          <Text variant="small">SMALL LABEL</Text>
+        </Stack>
+        <Row gap="sm" align="center">
+          {(['base', 'group', 'raised'] as const).map((surface) => (
+            <Stack key={surface} grow padding="md" radius="md" surface={surface} bordered>
+              <Text variant="small">{surface}</Text>
+            </Stack>
+          ))}
+        </Row>
+        <Stack padding="lg" gap="sm" radius="lg" surface="accent">
+          <Row gap="sm">
+            <Stack paddingX="sm" paddingY="xs" radius="pill" surface="onAccent">
+              <Text variant="small" tone="onAccent">ON ACCENT</Text>
+            </Stack>
+          </Row>
+          <Text variant="large" tone="onAccent">An accent surface</Text>
+          <Text tone="onAccent" dimmed>With a dimmed second line.</Text>
+        </Stack>
+        <Row justify="between" align="center" padding="md" radius="md" surface="group" bordered>
+          <Stack grow>
+            <Text variant="muted">A row</Text>
+            <Text variant="strong" numberOfLines={1}>with its ends pushed apart</Text>
+          </Stack>
+          <Text variant="small">END</Text>
+        </Row>
+      </Stack>
+    </HomeSurface>
+  );
+}
+
 function TabControls() {
   const { WorkspaceTabControl } = useSkin();
   const { tabs } = useSkinTheme();
@@ -596,6 +641,9 @@ export function SkinGallery({ section, topInset, bottomInset, onOpen }: Insets &
       break;
     case 'source-control':
       body = <SourceControlSection />;
+      break;
+    case 'layout':
+      body = <Layout />;
       break;
     case 'tab-controls':
       body = <TabControls />;

@@ -12,7 +12,7 @@ features: *
 local base = env.base or "http://127.0.0.1:8800/mla-tamagui"
 
 local SECTIONS = {
-  "settings", "home", "unpaired", "onboarding", "pairing", "chat", "suggestions", "workspaces", "source-control", "tab-controls",
+  "settings", "home", "unpaired", "onboarding", "pairing", "chat", "suggestions", "workspaces", "source-control", "tab-controls", "layout",
   "sheet-home-actions", "sheet-new-tab", "sheet-session-tabs", "sheet-composer-options",
   "sheet-workspace-actions", "sheet-workspace-options", "sheet-plain", "image-viewer",
 }

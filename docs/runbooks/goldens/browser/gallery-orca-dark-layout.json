@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 72,
+  "last_action": "open_link{link='http://127.0.0.1:56694/mla-tamagui/gallery?section=layout&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:56694/mla-tamagui/gallery?section=layout&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-layout"
+    ],
+    "text": "Title\nHeading\nLarge\nStrong\nBody text in the default tone.\nMuted text for a secondary line.\nSMALL LABEL\nbase\ngroup\nraised\nON ACCENT\nAn accent surface\nWith a dimmed second line.\nA row\nwith its ends pushed apart\nEND"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 184126,
+    "capture_ms": 99
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-dark-layout",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}
