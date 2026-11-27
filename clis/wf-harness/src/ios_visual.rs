@@ -43,7 +43,8 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     if (ratio.is_some() || args.val("capture").is_some()) && reference.is_none() {
         return Err("--max-diff-ratio and --capture require --reference".into());
     }
-    let max_ratio = ratio.map(parse_ratio).transpose()?;
+    // refused before the capture; compare_reference reads it again
+    ratio.map(parse_ratio).transpose()?;
     let (bytes, meta) = if let Some(path) = args.val("capture") {
         if args.val("device").is_some() || args.val("expect").is_some() {
             return Err("--capture replaces --device and --expect".into());
@@ -69,7 +70,7 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     let out = args.val("out").map(PathBuf::from).unwrap_or_else(|| root.join(".agents/tmp/runs").join(format!("ios-visual-{stamp}-{}", std::process::id())));
     if let Some(reference) = reference {
         let run = out.join(format!("{name}-{stamp}-{}", std::process::id()));
-        return compare_reference(args, name, reference, &run, &bytes, &img, meta, max_ratio);
+        return compare_reference(args, name, reference, &run, &bytes, &img, meta);
     }
     let mut ignore = vec![(0, 0, img.width, img.height * 7 / 100)];
     ignore.extend(ignore_rectangles(args, &img)?);
@@ -85,7 +86,8 @@ fn parse_ratio(value: &str) -> Result<f64, String> {
         .ok_or_else(|| "--max-diff-ratio expects a value from 0 to 1".into())
 }
 
-fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, bytes: &[u8], native: &golden::Image, mut meta: Value, max_ratio: Option<f64>) -> Result<Outcome, String> {
+fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, bytes: &[u8], native: &golden::Image, mut meta: Value) -> Result<Outcome, String> {
+    let max_ratio = args.val("max-diff-ratio").map(parse_ratio).transpose()?;
     let reference_image = golden::decode(&std::fs::read(reference).map_err(|e| format!("cannot read {}: {e}", reference.display()))?)?;
     let aspect_ratio = reference_image.width as f64 * native.height as f64 / (reference_image.height as f64 * native.width as f64);
     if !(0.99..=1.01).contains(&aspect_ratio) {

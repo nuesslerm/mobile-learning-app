@@ -209,14 +209,23 @@ pub fn save(name: &str, img: &Image, out_stem: &Path, meta: Value) -> Result<Out
 }
 
 pub fn check(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bool, tol: &Tolerance, meta: Value) -> Result<Outcome, String> {
-    check_image(name, img, golden, out_stem, update, tol, meta, false)
+    check_image(name, img, golden, out_stem, if update { Check::Update } else { Check::Compare }, tol, meta)
 }
 
 pub fn check_reference(name: &str, img: &Image, golden: &Path, out_stem: &Path, tol: &Tolerance, meta: Value) -> Result<Outcome, String> {
-    check_image(name, img, golden, out_stem, false, tol, meta, true)
+    check_image(name, img, golden, out_stem, Check::Reference, tol, meta)
 }
 
-fn check_image(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bool, tol: &Tolerance, meta: Value, reference: bool) -> Result<Outcome, String> {
+/// What a capture is checked against: its golden, the golden it rewrites, or a reference image compared exactly outside its masks.
+#[derive(Clone, Copy, PartialEq)]
+enum Check {
+    Compare,
+    Update,
+    Reference,
+}
+
+fn check_image(name: &str, img: &Image, golden: &Path, out_stem: &Path, how: Check, tol: &Tolerance, meta: Value) -> Result<Outcome, String> {
+    let (update, reference) = (how == Check::Update, how == Check::Reference);
     let bytes = encode(img)?;
     let actual = sibling(out_stem, ".actual.png");
     write(&actual, &bytes)?;
