@@ -4,20 +4,23 @@
 
 The coding agent can be drawn by two component sets, Orca and Tamagui, chosen in `di/CodingAgentContainer.tsx`. Three gaps keep the swap from being rigorous:
 
-- The contract (`@lib/agent-ui-contracts`) covers 41 composite components but no plain controls, so screens reach for React Native's own: `Button` in 5 production files, `TextInput` in 3, `ActivityIndicator` in 1. Those draw the platform's look under both sets.
+- The contract (`@lib/agent-ui-contracts`) covers 41 composite components but no plain controls, so screens reach for React Native's own: `Button` in 5 production files, `TextInput` in 3, `ActivityIndicator` in 1, `Text` in 11. Those draw the platform's look under both sets.
 - 28 production files in the feature import `@lib/tamagui-design-system` directly. Those screens look the same under both sets.
 - Nothing proves the two sets behave alike. The first Tamagui settings screens copied Orca's layout instead of using the design system's own row and header, and no test would have noticed either way.
 
-Goal: every control and every styled surface of a coding-agent screen comes from the contract, both sets implement every contract entry, and a shared conformance suite plus a gallery prove parity and show both looks.
+Goal: every control and every styled surface of a coding-agent screen comes from the contract, both sets implement every contract entry, the existing flow tests run under both sets, and a gallery shows both looks.
 
 ## Decisions
 
-1. Scope is the coding-agent feature. LeetCode, Tamil, settings and the app shell keep importing `@lib/tamagui-design-system` directly; they have no second set. Extending the contract app-wide is a later decision.
-2. "Private" means three things: each set's package exports only its component set and theme provider; only `di/` of the feature may import a set; `@lib/tamagui-design-system` is importable from `tamagui-agent-components` but not from the feature.
-3. The contract gains only the controls the design system already has: `Button`, `TextField`, `Switch`, `Spinner` (the sheet is already an entry). There are no layout primitives: `View`, `Text`, `ScrollView`, `FlatList`, `Pressable` and `Image` stay allowed for arranging contract components, with colors read from `useAgentTheme()`.
-4. The Tamagui set is built from the design system's existing composites (`ListItem`, `InsetGroup`, screen header, `Sheet`, `TextField`), and its reference for "looks good" is the app's own `/settings` and LeetCode screens, not Orca's metrics.
-5. The Orca set stays pixel-identical to stock Orca. Its parity baselines are the gate for every step.
-6. Non-visual `react-native` APIs stay allowed in the feature: `Platform`, `Keyboard`, `Dimensions`, `useWindowDimensions`, `PanResponder`, and types.
+1. Both designs ship for good as a user setting, so parity is enforced by tests permanently and every new screen is built for both.
+2. Scope is the coding-agent feature. LeetCode, Tamil, settings and the app shell keep importing `@lib/tamagui-design-system` directly; they have no second set. Extending the contract app-wide is a later decision.
+3. "Private" means three things: each set's package exports only its component set and theme provider; only `di/` of the feature may import a set; `@lib/tamagui-design-system` is importable from `tamagui-agent-components` but not from the feature.
+4. The contract gains only what the design system already has: `Button`, `TextField`, `Switch`, `Spinner`, `Text` (the sheet is already an entry). There are no layout primitives: `View`, `ScrollView`, `FlatList`, `Pressable` and `Image` stay allowed for arranging contract components, with colors read from `useAgentTheme()`.
+5. The Tamagui set is built from the design system's existing composites (`ListItem`, `InsetGroup`, screen header, `Sheet`, `TextField`), and its reference for "looks good" is the app's own `/settings` and LeetCode screens, not Orca's metrics.
+6. The Orca set stays pixel-identical to stock Orca. Its parity baselines are the gate for every step.
+7. Non-visual `react-native` APIs stay allowed in the feature: `Platform`, `Keyboard`, `Dimensions`, `useWindowDimensions`, `PanResponder`, and types.
+8. The 28 files that import the Tamagui design system directly (thread, feed, dispatch runs) move behind the contract, each with an Orca and a Tamagui version.
+9. Parity proof is the existing coding-agent flow tests run under both sets, plus a gallery. There is no separate conformance suite.
 
 ## Final state
 
@@ -25,27 +28,25 @@ Goal: every control and every styled surface of a coding-agent screen comes from
 frontend/libraries/
   agent-ui-contracts/src/
     ports/
-      Controls.ts              NEW  Button, TextField, Switch, Spinner
+      Controls.ts              NEW  Button, TextField, Switch, Spinner, Text
       AgentComponents.ts       composites; every entry documented with its behavior
       WorkspaceTabComponents.ts  grows: tab strip, terminal keys and input, browser bar, note toolbar
       AgentTheme.ts            (unchanged)
     core/                      contexts and preference state (unchanged)
     testing/
-      conformance.tsx          NEW  one behavior spec per contract entry, run against any set
       gallery.tsx              NEW  every entry with fixed props, for both sets
   orca-design-system/
     package.json               exports "." only
     src/index.ts               orcaComponents, OrcaThemeProvider; nothing else
     src/adapters/controls/     NEW
-    tests/conformance.test.tsx NEW  runs the shared suite
   tamagui-agent-components/
     package.json               exports "." only; no dependency on orca-design-system
     src/index.ts               tamaguiComponents, TamaguiThemeProvider; nothing else
     src/adapters/{controls,home,pairing,chat,composer,workspaces,sourceControl,workspaceTabs}/
-    tests/conformance.test.tsx NEW  runs the shared suite
 
 frontend/mla-tamagui/features/coding-agent/src/
-  ui/        contract components for every control; no design system; no react-native control
+  ui/        contract components for every control and all text; no design system
+  testing/   the flow app renders under a named set; every flow file runs under both
   di/        the one place that names a set
   routes/gallery.tsx  NEW  dev-only route: the gallery under the selected set
 ```
@@ -56,10 +57,10 @@ frontend/mla-tamagui/features/coding-agent/src/
 |---|---|---|
 | `only-di-picks-a-component-set` (exists) | feature depcruise | either set outside `di/` |
 | `feature-reads-no-design-system` | feature depcruise | `@lib/tamagui-design-system`, `tamagui`, `@tamagui/*`, `lucide-react-native` outside `di/` |
-| `no-react-native-controls` | `.oxlintrc.json` override for `features/coding-agent/src/{ui,routes,state}/**` | `Button`, `TextInput`, `Switch`, `ActivityIndicator`, `Modal`, `Touchable*` from `react-native`, each with a message naming the contract entry to use |
+| `no-react-native-controls` | `.oxlintrc.json` override for `features/coding-agent/src/{ui,routes,state}/**` | `Button`, `TextInput`, `Switch`, `ActivityIndicator`, `Modal`, `Text`, `Touchable*` from `react-native`, each with a message naming the contract entry to use |
 | sets are sealed | each set's `package.json` `exports` and a unit test | deep imports; an export other than the set and its theme provider |
 | sets are complete | TypeScript (`AgentComponents` has no optional entry) and a unit test | a set that falls back to the other set |
-| sets behave alike | shared conformance suite | a set whose entry misses a role, label, callback or disabled state |
+| sets behave alike | every coding-agent flow test runs under both sets | a set that breaks a journey: a missing role, label, callback or disabled state |
 
 Each rule lands with a list of the files that still break it. The list only shrinks; a rule is done when its list is empty and deleted.
 
@@ -67,16 +68,16 @@ Each rule lands with a list of the files that still break it. The list only shri
 
 ### 1. Seal and prove (no visual change)
 
-1. Write `testing/conformance.tsx`: for each of the 41 entries, Given fixed props, When rendered and driven by role and label, Then the same callbacks fire and the same accessible names exist. Run it in both packages. Expect the Tamagui set to pass for free where it still reuses Orca entries.
+1. Make the feature's flow app take the component set, and run all 18 flow files (109 tests) under both sets, as the settings file already does.
 2. Restrict both packages' `exports` to `.`; add the sealed-set unit test.
-3. Add the three lint rules with their file lists (9 files with a React Native control, 28 design-system files).
+3. Add the three lint rules with their file lists (about 20 files with a React Native control or `Text`, 28 design-system files).
 4. Add the gallery and its dev route; capture light and dark baselines of the Orca gallery.
 
 ### 2. Controls
 
-1. Define `Controls.ts`: `Button`, `TextField`, `Switch`, `Spinner`, with the props the design system's own versions take, minus anything Tamagui-specific.
-2. Implement in both sets; add conformance specs and gallery entries. The Tamagui set wraps the design system's components; the Orca set wraps what its composites already use.
-3. Replace the React Native controls in the 9 files. The Orca parity baselines move only where a platform button was drawn; recapture those against stock Orca.
+1. Define `Controls.ts`: `Button`, `TextField`, `Switch`, `Spinner`, `Text`, with the props the design system's own versions take, minus anything Tamagui-specific.
+2. Implement in both sets; add gallery entries. The Tamagui set wraps the design system's components; the Orca set wraps what its composites already use.
+3. Replace the React Native controls and `Text` in about 20 files. The Orca parity baselines move only where a platform button was drawn; recapture those against stock Orca.
 
 ### 3. Empty the lists, one area per batch
 
@@ -97,7 +98,7 @@ Delete the empty rule lists, the spread, and any legacy screen that no route rea
 ## Verification, per batch
 
 1. Unit: sealed-set and completeness tests.
-2. Flow: the conformance suite under both sets; `pnpm --filter mla-tamagui run test:flow` with the area's journeys parameterised on the set.
+2. Flow: `pnpm --filter mla-tamagui run test:flow`, every coding-agent flow file under both sets.
 3. Orca unchanged: `wf test ios-visual` against the Orca parity baselines and the Orca gallery baseline, golden updates disabled.
 4. Other screens unchanged: the 22 LeetCode and Tamil iOS baselines, golden updates disabled.
 5. Tamagui looks right: gallery and area screens in light and dark on a fresh simulator, reviewed side by side with `/settings` and a LeetCode screen, then saved as baselines.
