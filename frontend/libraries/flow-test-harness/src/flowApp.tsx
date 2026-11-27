@@ -41,7 +41,7 @@ export type FlowApp = {
 type StaticParams = Record<string, string | string[]>;
 type RouteModule = {
   default: ComponentType;
-  generateStaticParams?: (props: { params?: StaticParams }) => StaticParams[];
+  generateStaticParams?: (props: { params?: StaticParams }) => StaticParams[] | Promise<StaticParams[]>;
 };
 type RouteLoader = () => Promise<RouteModule>;
 type RouteValue = RouteLoader | RouteModule;
@@ -175,10 +175,10 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
   };
 
   // The page the export holds for a path: the route's own when `generateStaticParams` lists its params, else the template.
-  const exportedPage = (resolved: Resolved, mod: RouteModule, path: string): ServerPage => {
+  const exportedPage = async (resolved: Resolved, mod: RouteModule, path: string): Promise<ServerPage> => {
     const { pattern } = resolved.screen;
     const names = pattern.filter(isDynamic).map((segment) => segment.slice(1, -1));
-    const listed = mod.generateStaticParams?.({ params: {} }) ?? [];
+    const listed = (await mod.generateStaticParams?.({ params: {} })) ?? [];
     if (names.length === 0 || listed.some((entry) => names.every((name) => entry[name] === resolved.params[name]))) {
       return { params: resolved.params, pathname: normalizePathname(path) };
     }
@@ -213,7 +213,7 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
       };
       const prerender = opts.prerender ?? true;
       if (prerender) {
-        const server = prerender === 'export' ? exportedPage(resolved, screen, path) : undefined;
+        const server = prerender === 'export' ? await exportedPage(resolved, screen, path) : undefined;
         return act(async () => createSession(await prerenderRoute(routeOpts, server)));
       }
       return act(() => createSession(renderRoute(routeOpts)));
