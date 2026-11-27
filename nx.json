@@ -146,7 +146,8 @@
         { "env": "EXPO_EXPORT_FLAGS" },
         { "env": "EXPO_EXPORT_PLATFORM_FLAGS" },
         { "env": "EXPO_PUBLIC_INITIAL_ROUTE" },
-        { "env": "EXPO_PUBLIC_APP_ENV" }
+        { "env": "EXPO_PUBLIC_APP_ENV" },
+        { "env": "EXPO_PUBLIC_BUOY_KEY" }
       ],
       "outputs": [
         "{projectRoot}/dist"

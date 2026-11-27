@@ -63,7 +63,7 @@ export function BuoyPreviewTools() {
   const accountOnly = !__DEV__ && !isLicensed;
   return (
     <>
-      <FloatingDevTools signIn={!__DEV__} headless={accountOnly} zustandStores={stores} />
+      <FloatingDevTools licenseKey={process.env.EXPO_PUBLIC_BUOY_KEY || undefined} signIn={!__DEV__} headless={accountOnly} zustandStores={stores} />
       {accountOnly && <BuoyAccountControl />}
     </>
   );

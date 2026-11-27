@@ -120,6 +120,18 @@ const exportEnv = {
   EXPO_PUBLIC_INITIAL_ROUTE: initialRoute,
 };
 
+// An explicit empty value also takes precedence over Expo's local dotenv files.
+exportEnv.EXPO_PUBLIC_BUOY_KEY = '';
+if (branch === 'dev' && ['development', 'staging'].includes(appEnv) &&
+    (process.env.EAS_UPDATE_ENVIRONMENT || 'preview') !== 'production') {
+  const key = process.env.BUOY_LICENSE_KEY || execFileSync(
+    'wf', ['secret', 'get', 'BUOY_LICENSE_KEY', '--backend', 'bitwarden'],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }
+  ).trim();
+  if (!key) throw new Error('Missing Buoy license for the dev preview');
+  exportEnv.EXPO_PUBLIC_BUOY_KEY = key;
+}
+
 console.log(`[publish:eas] cold-start initial route: ${initialRoute}`);
 console.log(`[publish:eas] appEnv earmark: ${appEnv}`);
 
