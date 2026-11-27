@@ -1,4 +1,4 @@
-import { useAgentTheme } from '@lib/agent-ui-contracts';
+import { useSkinTheme } from '@lib/skin';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export function AvailabilityNotice({ missing, reconnecting, onAction }: {
@@ -6,7 +6,7 @@ export function AvailabilityNotice({ missing, reconnecting, onAction }: {
   reconnecting?: boolean;
   onAction: () => void;
 }) {
-  const { colors } = useAgentTheme();
+  const { colors } = useSkinTheme();
   return (
     <View style={[styles.card, { backgroundColor: colors.bgRaised }]}>
       <View accessibilityLiveRegion="polite" accessibilityRole="alert">

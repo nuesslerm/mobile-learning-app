@@ -5,7 +5,7 @@ import { desktopSummary } from '../domain/workspaceCatalog';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { Button, ScreenHeader, Text, View } from '@lib/tamagui-design-system';
 import type { T3MobilePort } from '../domain/t3Mobile';
 import { useCodingAgentPorts } from '../state/ports';
@@ -28,7 +28,7 @@ export function T3MobileScreen({ threadId }: { threadId?: string }) {
 }
 
 function Session({ api, threadId }: { api: T3MobilePort; threadId?: string }) {
-  const { ChatSurface, Composer, PairedDesktops, HostWorkspaceList } = useAgentComponents();
+  const { ChatSurface, Composer, PairedDesktops, HostWorkspaceList } = useSkin();
   const { workspace: workspaceMode, newTab, host, checkout, checkoutId } = useLocalSearchParams<{
     workspace?:string; newTab?:string; host?: string;
     checkout?: string;

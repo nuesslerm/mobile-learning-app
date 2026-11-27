@@ -265,7 +265,7 @@ importers:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
 
-  frontend/libraries/agent-ui-contracts:
+  frontend/libraries/skin:
     dependencies:
       react:
         specifier: 19.3.0
@@ -517,11 +517,11 @@ importers:
         specifier: 'catalog:'
         version: 1.87.0(oxlint-tsgolint@7.0.2003)
 
-  frontend/libraries/orca-design-system:
+  frontend/libraries/orca-skin:
     dependencies:
-      '@lib/agent-ui-contracts':
+      '@lib/skin':
         specifier: workspace:*
-        version: link:../agent-ui-contracts
+        version: link:../skin
       lowlight:
         specifier: 3.3.0
         version: 3.3.0
@@ -575,14 +575,14 @@ importers:
       dependency-cruiser:
         specifier: ^17.4.3
         version: 17.4.3
-  frontend/libraries/tamagui-agent-components:
+  frontend/libraries/tamagui-skin:
     dependencies:
-      '@lib/agent-ui-contracts':
+      '@lib/skin':
         specifier: workspace:*
-        version: link:../agent-ui-contracts
-      '@lib/orca-design-system':
+        version: link:../skin
+      '@lib/orca-skin':
         specifier: workspace:*
-        version: link:../orca-design-system
+        version: link:../orca-skin
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../tamagui-design-system
@@ -1044,9 +1044,9 @@ importers:
       '@app/remote-chat-agent-contracts':
         specifier: workspace:*
         version: link:../../../libraries/remote-chat-agent-contracts
-      '@lib/agent-ui-contracts':
+      '@lib/skin':
         specifier: workspace:*
-        version: link:../../../libraries/agent-ui-contracts
+        version: link:../../../libraries/skin
       '@lib/app-config':
         specifier: workspace:*
         version: link:../../../libraries/app-config
@@ -1056,12 +1056,12 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../../../libraries/logging
-      '@lib/orca-design-system':
+      '@lib/orca-skin':
         specifier: workspace:*
-        version: link:../../../libraries/orca-design-system
-      '@lib/tamagui-agent-components':
+        version: link:../../../libraries/orca-skin
+      '@lib/tamagui-skin':
         specifier: workspace:*
-        version: link:../../../libraries/tamagui-agent-components
+        version: link:../../../libraries/tamagui-skin
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../../../libraries/tamagui-design-system

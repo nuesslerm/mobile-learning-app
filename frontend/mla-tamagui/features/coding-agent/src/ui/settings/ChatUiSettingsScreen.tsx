@@ -1,9 +1,9 @@
 import { useCodingAgentPorts } from '../../state/ports';
 import {
-  useAgentComponents,
-  useAgentTheme,
+  useSkin,
+  useSkinTheme,
   useChatText,
-} from '@lib/agent-ui-contracts';
+} from '@lib/skin';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,8 +39,8 @@ export function ChatUiSettingsScreen() {
     HomeSettingsGroup,
     HomeSettingsRow,
     HomeSettingsNote,
-  } = useAgentComponents();
-  const { colors } = useAgentTheme();
+  } = useSkin();
+  const { colors } = useSkinTheme();
   const { bottom } = useSafeAreaInsets();
   const [picking, setPicking] = useState(false);
   const sectionTitle = [styles.heading, { color: colors.textSecondary }];

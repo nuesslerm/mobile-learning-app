@@ -1,5 +1,5 @@
 import type { WorkspaceTabsPort } from './workspaceTabs/tabs';
-import type { ChatTextPreference } from '@lib/agent-ui-contracts';
+import type { ChatTextPreference } from '@lib/skin';
 import type { ChatImageFile, ImageActions } from './imageActions';
 import type { T3MobilePort } from './t3Mobile';
 import type { MobilePort } from './mobile';
@@ -91,7 +91,7 @@ export type TokenStorePort = {
 export type AppearancePreference = 'system' | 'light' | 'dark';
 
 /** Which design system draws the coding agent. */
-export type ComponentSetPreference = 'tamagui' | 'orca';
+export type SkinPreference = 'tamagui' | 'orca';
 
 /** The settings this app keeps on the device. */
 export interface SettingsPreferencesPort {
@@ -99,8 +99,8 @@ export interface SettingsPreferencesPort {
   writeChatText(value: ChatTextPreference | null): Promise<void>;
   readAppearance(): Promise<AppearancePreference>;
   writeAppearance(preference: AppearancePreference): Promise<void>;
-  readComponentSet(): Promise<ComponentSetPreference>;
-  writeComponentSet(preference: ComponentSetPreference): Promise<void>;
+  readSkin(): Promise<SkinPreference>;
+  writeSkin(preference: SkinPreference): Promise<void>;
   /** Whether the user asked for agent notifications. */
   readNotificationsEnabled(): Promise<boolean>;
   writeNotificationsEnabled(enabled: boolean): Promise<void>;

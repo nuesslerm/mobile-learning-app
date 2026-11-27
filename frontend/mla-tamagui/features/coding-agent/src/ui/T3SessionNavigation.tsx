@@ -1,7 +1,7 @@
 import { useCodingAgentPorts } from '../state/ports';
 import type { WorkspaceTab } from '../domain/workspaceTabs/tabs';
 import { workspaceTabRoute, chatRoute, type CheckoutRow } from '../domain/workspaceCatalog';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { AvailabilityNotice } from './AvailabilityNotice';
 import { Logger } from '@lib/logging';
 import { router, useFocusEffect } from 'expo-router';
@@ -35,7 +35,7 @@ export function T3SessionNavigation({
   onReconnect: () => void;
   onMissingChange: (missing: boolean) => void;
 }) {
-  const { SessionHeader, SessionTabsSheet } = useAgentComponents();
+  const { SessionHeader, SessionTabsSheet } = useSkin();
   const { top, bottom } = useSafeAreaInsets();
   const [context, setContext] = useState<SessionContext>();
   const [missing, setMissing] = useState(false);

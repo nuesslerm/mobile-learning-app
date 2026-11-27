@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { getNativeChatMessageDay, getNativeChatMessageTimeFormatter } from '../domain/chatMessageTime';
 import { useCodingAgentPorts } from '../state/ports';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { chatTranscript, type ToolGroup } from '../domain/chatTranscript';
 import type {
   T3Conversation,
@@ -46,7 +46,7 @@ const display = (value: unknown) =>
       : JSON.stringify(value, null, 2);
 
 function Activity({ group, session }: { group: ToolGroup; session?: T3Conversation }) {
-  const { ChatToolActivity } = useAgentComponents();
+  const { ChatToolActivity } = useSkin();
   const working = group.tools.some((tool) => tool.status === 'running');
   return (
     <ChatToolActivity
@@ -67,7 +67,7 @@ function Activity({ group, session }: { group: ToolGroup; session?: T3Conversati
 
 export function T3Transcript({ snapshot, session }: { snapshot: T3Snapshot; session?: T3Conversation }) {
   const { copyMessage } = useCodingAgentPorts();
-  const { MessageBubble, ChatMessageText, ChatMessageMeta } = useAgentComponents();
+  const { MessageBubble, ChatMessageText, ChatMessageMeta } = useSkin();
   const rows = useMemo(() => chatTranscript(snapshot), [snapshot]);
   const today = getNativeChatMessageDay(Date.now());
   const formatter = getNativeChatMessageTimeFormatter(undefined, today);

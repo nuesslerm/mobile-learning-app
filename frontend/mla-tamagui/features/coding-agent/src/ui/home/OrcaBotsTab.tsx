@@ -1,7 +1,7 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 
 export function OrcaBotsTab({ computer }: { computer: string | null | undefined }) {
-  const { HomeTabHeader, HomeEmptyState } = useAgentComponents();
+  const { HomeTabHeader, HomeEmptyState } = useSkin();
   return (
     <>
       <HomeTabHeader title="Bots" />

@@ -5,15 +5,15 @@ import { copyMessage } from '../data/copyMessage';
 import { pairingCamera } from '../data/pairingCamera';
 import { createT3MobileApi } from '../data/t3/mobileApi';
 import {
-  AgentComponentsProvider,
+  SkinProvider,
   AppearancePreferenceContextProvider,
-  type AgentComponents,
-} from '@lib/agent-ui-contracts';
-import { OrcaThemeProvider, orcaComponents } from '@lib/orca-design-system';
+  type Skin,
+} from '@lib/skin';
+import { OrcaThemeProvider, orcaSkin } from '@lib/orca-skin';
 import {
   TamaguiThemeProvider,
-  tamaguiComponents,
-} from '@lib/tamagui-agent-components';
+  tamaguiSkin,
+} from '@lib/tamagui-skin';
 import { appConfig } from '@lib/app-config';
 import { overrideKey, useDependencyOverrides } from '@lib/app-di';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -29,16 +29,16 @@ import { createWsOrchestration } from '../data/wsOrchestration';
 import type {
   AppearancePreference,
   CodingAgentPorts,
-  ComponentSetPreference,
+  SkinPreference,
 } from '../domain/ports';
-import { ComponentSetProvider, useComponentSet } from '../state/componentSet';
+import { SkinPreferenceProvider, useSkinPreference } from '../state/skinPreference';
 import { CodingAgentPortsProvider, useCodingAgentPorts } from '../state/ports';
 
 export const CODING_AGENT_OVERRIDES =
   overrideKey<CodingAgentPorts>('coding-agent');
 
 export const CODING_AGENT_UI_OVERRIDES =
-  overrideKey<AgentComponents>('coding-agent-ui');
+  overrideKey<Skin>('coding-agent-ui');
 
 const devicePreferences = createAsyncStorageSettingsPreferences();
 
@@ -67,9 +67,9 @@ export function createDefaultPorts(
   };
 }
 
-const COMPONENT_SETS = {
-  tamagui: { components: tamaguiComponents, Theme: TamaguiThemeProvider },
-  orca: { components: orcaComponents, Theme: OrcaThemeProvider },
+const SKINS = {
+  tamagui: { components: tamaguiSkin, Theme: TamaguiThemeProvider },
+  orca: { components: orcaSkin, Theme: OrcaThemeProvider },
 };
 
 /** A device choice: read once, then kept in step with what the user picks. */
@@ -113,16 +113,16 @@ function AppearanceGate({ children }: { children: ReactNode }) {
     preferences.readAppearance,
     preferences.writeAppearance
   );
-  const componentSet = useStoredPreference<ComponentSetPreference>(
+  const skin = useStoredPreference<SkinPreference>(
     'tamagui',
-    preferences.readComponentSet,
-    preferences.writeComponentSet
+    preferences.readSkin,
+    preferences.writeSkin
   );
   return (
     <AppearancePreferenceContextProvider value={appearance}>
-      <ComponentSetProvider value={componentSet}>
-        {componentSet.loaded ? children : null}
-      </ComponentSetProvider>
+      <SkinPreferenceProvider value={skin}>
+        {skin.loaded ? children : null}
+      </SkinPreferenceProvider>
     </AppearancePreferenceContextProvider>
   );
 }
@@ -134,16 +134,16 @@ export function CodingAgentContainer({ children }: { children: ReactNode }) {
     <CodingAgentPortsProvider value={ports}>
       <AppearanceGate>
         <ChatTextGate>
-          <ComponentSetGate>{children}</ComponentSetGate>
+          <SkinGate>{children}</SkinGate>
         </ChatTextGate>
       </AppearanceGate>
     </CodingAgentPortsProvider>
   );
 }
 
-function ComponentSetGate({ children }: { children: ReactNode }) {
-  const { preference } = useComponentSet();
-  const { components: base, Theme } = COMPONENT_SETS[preference];
+function SkinGate({ children }: { children: ReactNode }) {
+  const { preference } = useSkinPreference();
+  const { components: base, Theme } = SKINS[preference];
   const uiOverrides = useDependencyOverrides(CODING_AGENT_UI_OVERRIDES);
   const components = useMemo(
     () => ({ ...base, ...uiOverrides }),
@@ -151,9 +151,9 @@ function ComponentSetGate({ children }: { children: ReactNode }) {
   );
   return (
     <Theme>
-      <AgentComponentsProvider value={components}>
+      <SkinProvider value={components}>
         {children}
-      </AgentComponentsProvider>
+      </SkinProvider>
     </Theme>
   );
 }

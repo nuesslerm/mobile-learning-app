@@ -1,4 +1,4 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { useEffect, type ReactNode } from 'react';
 import { BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { OrcaBotsTab } from './home/OrcaBotsTab';
 import { OrcaUsageTab } from './home/OrcaUsageTab';
 
 export function OrcaHome({ feed, computer, api, pair }: { feed: ReactNode; computer: string | null | undefined; api?: T3MobilePort; pair?: Pairing }) {
-  const { HomeSurface, HomeTabBar, HomeTabHeader } = useAgentComponents();
+  const { HomeSurface, HomeTabBar, HomeTabHeader } = useSkin();
   const { bottom } = useSafeAreaInsets();
   const { entries, active, visited, select } = useHomeNavigation();
 

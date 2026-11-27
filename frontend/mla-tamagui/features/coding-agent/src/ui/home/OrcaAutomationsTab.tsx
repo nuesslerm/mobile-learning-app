@@ -1,4 +1,4 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { ScrollView } from 'react-native';
 
 /**
@@ -8,7 +8,7 @@ import { ScrollView } from 'react-native';
  * original's empty state.
  */
 export function OrcaAutomationsTab() {
-  const { HomeTabHeader, HomeEmptyState } = useAgentComponents();
+  const { HomeTabHeader, HomeEmptyState } = useSkin();
   return (
     <>
       <HomeTabHeader title="Automations" />

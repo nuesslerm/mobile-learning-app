@@ -1,6 +1,6 @@
 import { useCodingAgentPorts } from '../state/ports';
 import { AvailabilityNotice } from './AvailabilityNotice';
-import { useAgentComponents, type HostWorkspaceListProps } from '@lib/agent-ui-contracts';
+import { useSkin, type HostWorkspaceListProps } from '@lib/skin';
 import { Logger } from '@lib/logging';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -42,7 +42,7 @@ export function T3HostWorkspaces({
   onBack: () => void;
 }) {
   const { workspaceTabs } = useCodingAgentPorts();
-  const { HostWorkspaceList, WorkspaceActions } = useAgentComponents();
+  const { HostWorkspaceList, WorkspaceActions } = useSkin();
   const [preferences, setPreferences] = useState<WorkspacePreferences>();
   const disclosure = useWorkspaceDisclosure(api, pair);
   const [search, setSearch] = useState('');

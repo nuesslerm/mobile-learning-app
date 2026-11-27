@@ -6,14 +6,14 @@
 
 import {
   HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
-  useAgentComponents,
-} from '@lib/agent-ui-contracts';
+  useSkin,
+} from '@lib/skin';
 
 import { useAppInfo } from '../../state/useAppInfo';
 import { OrcaSettingsScreen } from './OrcaSettingsScreen';
 
 export function AboutSettingsScreen() {
-  const { HomeSettingsGroup, HomeSettingsRow } = useAgentComponents();
+  const { HomeSettingsGroup, HomeSettingsRow } = useSkin();
   const { version, build } = useAppInfo();
   const label = version === null ? null : build === null ? `v${version}` : `v${version} (${build})`;
   return (

@@ -1,4 +1,4 @@
-import type { ComposerSendButtonProps } from '@lib/agent-ui-contracts';
+import type { ComposerSendButtonProps } from '@lib/skin';
 import { screen, userEvent, waitFor } from '@lib/flow-test-harness';
 import { Pressable, Text } from 'react-native';
 import { describe, expect, it } from 'vitest';

@@ -7,11 +7,11 @@ module.exports = {
   forbidden: [
     ...base.forbidden,
     {
-      name: 'only-di-picks-a-component-set',
-      comment: 'screens read components and colors through @lib/agent-ui-contracts; di/ alone names a design system',
+      name: 'only-di-picks-a-skin',
+      comment: 'screens read components and colors through @lib/skin; di/ alone names a design system',
       severity: 'error',
       from: { path: '^src/', pathNot: ['^src/di/'] },
-      to: { path: '(^|/)(orca-design-system|tamagui-agent-components)/' },
+      to: { path: '(^|/)(orca-skin|tamagui-skin)/' },
     },
   ],
 };

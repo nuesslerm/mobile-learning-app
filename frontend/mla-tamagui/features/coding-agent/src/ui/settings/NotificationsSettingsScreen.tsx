@@ -6,15 +6,15 @@
 
 import {
   HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
-  useAgentComponents,
-} from '@lib/agent-ui-contracts';
+  useSkin,
+} from '@lib/skin';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useCodingAgentPorts } from '../../state/ports';
 import { OrcaSettingsScreen } from './OrcaSettingsScreen';
 
 export function NotificationsSettingsScreen() {
-  const { HomeSettingsGroup, HomeSettingsRow, HomeSettingsNote } = useAgentComponents();
+  const { HomeSettingsGroup, HomeSettingsRow, HomeSettingsNote } = useSkin();
   const { preferences } = useCodingAgentPorts();
   const [enabled, setEnabled] = useState(false);
 

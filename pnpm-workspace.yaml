@@ -10,9 +10,9 @@ packages:
   - frontend/mla-tamagui/features/settings
   - infra/oracle-cloud/watchdog
   - frontend/libraries/app-config
-  - frontend/libraries/agent-ui-contracts
-  - frontend/libraries/orca-design-system
-  - frontend/libraries/tamagui-agent-components
+  - frontend/libraries/skin
+  - frontend/libraries/orca-skin
+  - frontend/libraries/tamagui-skin
   - frontend/libraries/app-di
   - frontend/libraries/code-editor-api
   - libraries/browser-client

@@ -1,10 +1,10 @@
-import type { ChatTextPreference } from '@lib/agent-ui-contracts';
+import type { ChatTextPreference } from '@lib/skin';
 import type {
   AppearancePreference,
   AppInfoPort,
   AppUpdateCheck,
   AppUpdatePort,
-  ComponentSetPreference,
+  SkinPreference,
   ExternalLinksPort,
   SettingsPreferencesPort,
 } from '../domain/ports';
@@ -17,7 +17,7 @@ export interface SettingsPortDoubles {
   /** What the doubles were asked to do, so a test can assert it. */
   recorded: {
     appearance: AppearancePreference;
-    componentSet: ComponentSetPreference;
+    skin: SkinPreference;
     notificationsEnabled: boolean;
     lastUpdateCheckAt: number | null;
     checks: number;
@@ -28,12 +28,12 @@ export interface SettingsPortDoubles {
 
 /** The settings ports as in-memory doubles that record what they were asked to do. */
 export function createSettingsPortDoubles(
-  options: { update?: AppUpdateCheck; componentSet?: ComponentSetPreference } = {}
+  options: { update?: AppUpdateCheck; skin?: SkinPreference } = {}
 ): SettingsPortDoubles {
   let chatText: ChatTextPreference | null = null;
   const recorded: SettingsPortDoubles['recorded'] = {
     appearance: 'system',
-    componentSet: options.componentSet ?? 'tamagui',
+    skin: options.skin ?? 'tamagui',
     notificationsEnabled: false,
     lastUpdateCheckAt: null,
     checks: 0,
@@ -47,9 +47,9 @@ export function createSettingsPortDoubles(
     writeAppearance: async (preference) => {
       recorded.appearance = preference;
     },
-    readComponentSet: async () => recorded.componentSet,
-    writeComponentSet: async (preference) => {
-      recorded.componentSet = preference;
+    readSkin: async () => recorded.skin,
+    writeSkin: async (preference) => {
+      recorded.skin = preference;
     },
     readNotificationsEnabled: async () => recorded.notificationsEnabled,
     writeNotificationsEnabled: async (enabled) => {

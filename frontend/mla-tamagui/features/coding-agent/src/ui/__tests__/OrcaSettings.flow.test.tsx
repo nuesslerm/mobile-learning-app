@@ -9,10 +9,10 @@ import { createSettingsPortDoubles } from '../../testing/settingsPorts';
 
 /** The staged home with the settings ports as doubles. */
 const settings = (
-  componentSet: 'tamagui' | 'orca',
+  skin: 'tamagui' | 'orca',
   options: Parameters<typeof createSettingsPortDoubles>[0] = {}
 ) => {
-  const doubles = createSettingsPortDoubles({ ...options, componentSet });
+  const doubles = createSettingsPortDoubles({ ...options, skin });
   return {
     doubles,
     overrides: {
@@ -134,7 +134,7 @@ describe('The settings screens', () => {
       })
     );
 
-    expect(doubles.recorded.componentSet).toBe(other);
+    expect(doubles.recorded.skin).toBe(other);
   });
 
   it('Given saved chat text, when font and spacing change and then reset, the device keeps the edits until reset', async () => {

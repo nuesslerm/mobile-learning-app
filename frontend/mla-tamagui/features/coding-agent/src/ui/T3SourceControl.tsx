@@ -1,6 +1,6 @@
 import { RcaUnavailable, WorktreeMissing } from '../domain/t3Mobile';
 import { BackHandler, Linking, Platform } from 'react-native';
-import { useAgentComponents, type SourceCommit } from '@lib/agent-ui-contracts';
+import { useSkin, type SourceCommit } from '@lib/skin';
 import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -32,7 +32,7 @@ export function T3SourceControl({
   backLabel?: string;
   onBack: (branchMayHaveChanged: boolean) => void;
 }) {
-  const { SourceControl } = useAgentComponents();
+  const { SourceControl } = useSkin();
   const [page, setPage] = useState<'changes' | 'commits' | 'detail'>('changes');
   const [tab, setTab] = useState<'changes' | 'pr'>('changes');
   const [pullRequest, setPullRequest] = useState<CheckoutPullRequest>();

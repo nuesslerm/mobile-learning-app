@@ -11,7 +11,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { useAgentComponents, useAgentTheme } from '@lib/agent-ui-contracts';
+import { useSkin, useSkinTheme } from '@lib/skin';
 import { Logger } from '@lib/logging';
 import { chatRoute } from '../../domain/workspaceCatalog';
 import type { Pairing } from '../../domain/mobile';
@@ -59,9 +59,9 @@ export function WorkspaceTabsScreen({
   const [chats, setChats] = useState<{ id: string; title: string }[]>([]);
   const [agentError, setAgentError] = useState('');
   const { top, bottom } = useSafeAreaInsets();
-  const color = useAgentTheme().tabs.headerInk;
+  const color = useSkinTheme().tabs.headerInk;
   const { ChatSurface, SessionHeader, SessionTabsSheet, NewTabSheet } =
-    useAgentComponents();
+    useSkin();
   useEffect(() => {
     if (showNew) setSheet('new');
   }, [showNew]);

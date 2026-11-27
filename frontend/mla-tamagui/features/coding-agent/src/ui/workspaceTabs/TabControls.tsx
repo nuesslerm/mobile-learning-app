@@ -1,14 +1,14 @@
 import {
-  useAgentComponents,
-  useAgentTheme,
+  useSkin,
+  useSkinTheme,
   type WorkspaceTabControlProps,
-} from '@lib/agent-ui-contracts';
+} from '@lib/skin';
 
 export function useTabColors() {
-  return useAgentTheme().tabs;
+  return useSkinTheme().tabs;
 }
 
 export function TabControl(props: WorkspaceTabControlProps) {
-  const { WorkspaceTabControl } = useAgentComponents();
+  const { WorkspaceTabControl } = useSkin();
   return <WorkspaceTabControl {...props} />;
 }

@@ -1,4 +1,4 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { useWindowDimensions } from 'react-native';
 
 const steps = [
@@ -22,7 +22,7 @@ const steps = [
 ];
 
 export function UnpairedFeed({ onPairDesktop }: { onPairDesktop: () => void }) {
-  const { UnpairedHome } = useAgentComponents();
+  const { UnpairedHome } = useSkin();
   const { width, height } = useWindowDimensions();
   return (
     <UnpairedHome

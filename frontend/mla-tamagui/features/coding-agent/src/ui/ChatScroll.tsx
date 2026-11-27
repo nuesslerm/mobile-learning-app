@@ -1,4 +1,4 @@
-import { useChatText } from '@lib/agent-ui-contracts';
+import { useChatText } from '@lib/skin';
 import { useRef, type ReactNode } from 'react';
 import {
   ScrollView,

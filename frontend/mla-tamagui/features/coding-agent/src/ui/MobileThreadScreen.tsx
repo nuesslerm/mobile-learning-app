@@ -1,4 +1,4 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { useMemo, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
@@ -28,7 +28,7 @@ function RequestCard({ request, respond }: { request: Pending; respond: (value: 
 }
 
 export function MobileThreadScreen({ api, id, orca = false }: { api: MobilePort; id: string; orca?: boolean }) {
-  const { Composer, MessageBubble } = useAgentComponents();
+  const { Composer, MessageBubble } = useSkin();
   const state = useMobileThread(api, id);
   const { rows, pending, children } = useMemo(() => conversation(state.events), [state.events]);
   if (state.legacy) return <ThreadScreen threadId={id} />;

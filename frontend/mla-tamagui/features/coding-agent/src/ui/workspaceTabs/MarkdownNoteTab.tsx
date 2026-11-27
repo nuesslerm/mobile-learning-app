@@ -1,4 +1,4 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Keyboard, Pressable, Text, View } from 'react-native';
 import type { Pairing } from '../../domain/mobile';
@@ -29,7 +29,7 @@ export function MarkdownNoteTab({
   directory,
 }: Props) {
   const { copyMessage } = useCodingAgentPorts();
-  const { BottomSheet } = useAgentComponents();
+  const { BottomSheet } = useSkin();
   const c = useTabColors();
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draft, setDraft] = useState<NoteDraft>();

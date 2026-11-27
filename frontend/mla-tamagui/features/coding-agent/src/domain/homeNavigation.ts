@@ -4,7 +4,7 @@
 // bar shows, in the order it shows them. Pure data, no IO: the shell that owns
 // the bar reads this table.
 
-import type { HomeTabId } from '@lib/agent-ui-contracts';
+import type { HomeTabId } from '@lib/skin';
 
 export interface HomeTabEntry {
   id: HomeTabId;

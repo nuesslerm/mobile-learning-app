@@ -2,7 +2,7 @@ import { Logger } from '@lib/logging';
 import type { ImageActions } from '../domain/imageActions';
 import { useCodingAgentPorts } from '../state/ports';
 import { useEffect, useState } from 'react';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type {
@@ -18,7 +18,7 @@ function ImageAttachment({
   attachment: T3Attachment;
   session?: T3Conversation;
 }) {
-  const { ChatImage, ChatImageViewer } = useAgentComponents();
+  const { ChatImage, ChatImageViewer } = useSkin();
   const insets = useSafeAreaInsets();
   const { imageActionsFor } = useCodingAgentPorts();
   const [source, setSource] = useState<T3ImageSource>();

@@ -1,10 +1,10 @@
 import { Logger } from '@lib/logging';
 import { useEffect, useRef, useState } from 'react';
 import {
-  useAgentComponents,
+  useSkin,
   type WorkspaceOptionGroup,
   type WorkspaceOptionRow,
-} from '@lib/agent-ui-contracts';
+} from '@lib/skin';
 import type { Pairing } from '../domain/mobile';
 import type { T3MobilePort, T3Shell } from '../domain/t3Mobile';
 import type {
@@ -109,7 +109,7 @@ export function T3WorkspaceOptions({
   projects: T3Shell['projects'];
   onChanged: (settings: WorkspacePreferences) => void;
 }) {
-  const { WorkspaceOptions } = useAgentComponents();
+  const { WorkspaceOptions } = useSkin();
   const [visible, setVisible] = useState(false);
   const [page, setPage] = useState<Page>();
   const [value, setValue] = useState<WorkspacePreferences>();
