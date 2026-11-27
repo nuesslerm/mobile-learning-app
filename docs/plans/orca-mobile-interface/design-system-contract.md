@@ -1,31 +1,41 @@
-# One skin contract, two private skins
+# One skin contract, two private skins, app-wide
 
 ## Context
 
-The coding agent can be drawn by two component sets, Orca and Tamagui, chosen in `di/CodingAgentContainer.tsx`. Three gaps keep the swap from being rigorous:
+The coding agent can be drawn by two component sets, Orca and Tamagui, chosen in `di/CodingAgentContainer.tsx`. The rest of the app cannot: LeetCode, Tamil, settings, dashboards, the service report and the app shell import `@lib/tamagui-design-system` directly.
 
-- The contract (`@lib/agent-ui-contracts`) covers 41 composite components but no plain controls, so screens reach for React Native's own: `Button` in 5 production files, `TextInput` in 3, `ActivityIndicator` in 1, `Text` in 11. Those draw the platform's look under both sets.
-- 28 production files in the feature import `@lib/tamagui-design-system` directly. Those screens look the same under both sets.
-- Nothing proves the two sets behave alike. The first Tamagui settings screens copied Orca's layout instead of using the design system's own row and header, and no test would have noticed either way.
+| Area | Files importing the design system |
+|---|---:|
+| LeetCode | 68 |
+| Coding agent | 28 |
+| App and app shell | 22 |
+| Tamil | 17 |
+| Settings | 10 |
+| Dashboards, service report | 8 |
 
-Goal: every control and every styled surface of a coding-agent screen comes from the contract, both sets implement every contract entry, the existing flow tests run under both sets, and a gallery shows both looks.
+54 of those files lay out with Tamagui's `XStack`/`YStack`, and 502 lines use its tokens (`gap="$3"`, `bg="$color2"`). In the coding agent, 34 files also import `react-native` components, among them `Button` (5), `TextInput` (3) and `Text` (11), which draw the platform's look under both sets.
+
+Goal: every screen in the app is built only from components injected through one skin contract. Both skins implement every entry. No feature can import a design system, and no feature can use a React Native control or text.
 
 ## Decisions
 
-1. Both designs ship for good as a user setting, so parity is enforced by tests permanently and every new screen is built for both.
-2. Scope is the coding-agent feature. LeetCode, Tamil, settings and the app shell keep importing `@lib/tamagui-design-system` directly; they have no second set. Extending the contract app-wide is a later decision.
-3. "Private" means three things: each set's package exports only its component set and theme provider; only `di/` of the feature may import a set; `@lib/tamagui-design-system` is importable from `tamagui-skin` but not from the feature.
-4. The contract gains only what the design system already has: `Button`, `TextField`, `Switch`, `Spinner`, `Text` (the sheet is already an entry). There are no layout primitives: `View`, `ScrollView`, `FlatList`, `Pressable` and `Image` stay allowed for arranging contract components, with colors read from `useSkinTheme()`.
-5. The Tamagui set is built from the design system's existing composites (`ListItem`, `InsetGroup`, screen header, `Sheet`, `TextField`), and its reference for "looks good" is the app's own `/settings` and LeetCode screens, not Orca's metrics.
-6. The Orca set stays pixel-identical to stock Orca. Its parity baselines are the gate for every step.
-7. Non-visual `react-native` APIs stay allowed in the feature: `Platform`, `Keyboard`, `Dimensions`, `useWindowDimensions`, `PanResponder`, and types.
-8. The 28 files that import the Tamagui design system directly (thread, feed, dispatch runs) move behind the contract, each with an Orca and a Tamagui version.
-9. Parity proof is the existing coding-agent flow tests run under both sets, plus a gallery. There is no separate conformance suite.
-10. The contract is called the skin, and a component set is a skin. The rename lands first, on its own, with no other change:
+1. Both skins ship for good as a user setting. Parity is enforced by tests permanently, and every new screen works under both.
+2. Scope is the whole app: coding agent, settings, Tamil, LeetCode, dashboards, service report, app shell.
+3. One contract, `@lib/skin`, provided once at the app root. Generic entries sit at the top level; a feature's own composites sit in a group (`skin.agent.*`). The design setting moves from the agent's Appearance screen to the app's Settings.
+4. The Orca skin gets its own implementation of every generic entry. It does not reuse Tamagui components. There is no stock Orca screen for LeetCode or Tamil, so those Orca looks are derived from Orca's palette, type, radii and spacing, and reviewed by eye.
+5. Layout goes through the contract too: `Row` and `Stack` are entries with semantic props (`gap`, `padding`, `align`, `justify`, `surface`). Tokens such as `$3` and `$color2` do not appear in a feature.
+6. "Private" means: a skin package exports only its skin and theme provider; only the app's composition root imports a skin; `@lib/tamagui-design-system` is importable only from `@lib/tamagui-skin`; `tamagui`, `@tamagui/*` and `lucide-react-native` are importable only from a skin.
+7. Banned in every feature, the app and the app shell: `Text`, `Button`, `TextInput`, `Switch`, `ActivityIndicator`, `Modal` and `Touchable*` from `react-native`. `View`, `ScrollView`, `FlatList`, `Pressable`, `Image` and non-visual APIs (`Platform`, `Keyboard`, `Dimensions`, `PanResponder`, types) stay allowed.
+8. The Tamagui skin is built from the design system's own composites. Its reference for "looks good" is today's app: LeetCode, Tamil and `/settings` must not change under the Tamagui skin.
+9. The Orca skin stays pixel-identical to stock Orca in the coding agent.
+10. Parity proof is every flow test run under both skins, plus a gallery of every entry. There is no separate conformance suite.
+11. Order: the coding agent first, then settings, Tamil, dashboards and service report, LeetCode, app shell. The lint rules land app-wide on day one with shrinking file lists.
+
+## Names
 
 | Today | Becomes |
 |---|---|
-| `@lib/agent-ui-contracts` (`frontend/libraries/agent-ui-contracts`) | `@lib/agent-skin` (`frontend/libraries/agent-skin`) |
+| `@lib/agent-ui-contracts` | `@lib/skin` (`frontend/libraries/skin`) |
 | `@lib/orca-design-system` | `@lib/orca-skin` |
 | `@lib/tamagui-agent-components` | `@lib/tamagui-skin` |
 | `AgentComponents`, `useAgentComponents()`, `AgentComponentsProvider` | `Skin`, `useSkin()`, `SkinProvider` |
@@ -33,94 +43,123 @@ Goal: every control and every styled surface of a coding-agent screen comes from
 | `orcaComponents`, `tamaguiComponents` | `orcaSkin`, `tamaguiSkin` |
 | `ComponentSetPreference`, stored key `componentSet` | `SkinPreference`, stored key `skin` (the old key is read once and migrated) |
 
-The names below are the new ones.
-
 ## Final state
 
 ```text
 frontend/libraries/
-  agent-skin/src/
+  skin/src/
     ports/
-      Controls.ts              NEW  Button, TextField, Switch, Spinner, Text
-      Skin.ts                  composites; every entry documented with its behavior
-      WorkspaceTabComponents.ts  grows: tab strip, terminal keys and input, browser bar, note toolbar
-      SkinTheme.ts             (unchanged)
-    core/                      contexts and preference state (unchanged)
-    testing/
-      gallery.tsx              NEW  every entry with fixed props, for both sets
-  orca-skin/
-    package.json               exports "." only
-    src/index.ts               orcaSkin, OrcaThemeProvider; nothing else
-    src/adapters/controls/     NEW
-  tamagui-skin/
-    package.json               exports "." only; no dependency on orca-skin
-    src/index.ts               tamaguiSkin, TamaguiThemeProvider; nothing else
-    src/adapters/{controls,home,pairing,chat,composer,workspaces,sourceControl,workspaceTabs}/
+      Layout.ts        Row, Stack
+      Controls.ts      Text, Button, IconButton, TextField, Textarea, Switch, Spinner,
+                       SegmentedControl, ToggleGroup, Tabs, Chip, Badge, Icon, Separator
+      Surfaces.ts      Card, ListItem, InsetGroup, StatTile, Admonition, CodeBlock,
+                       Markdown, DiffView
+      Overlays.ts      Sheet, PageSheet, SheetPager, AlertDialog, PromptDialog, MenuPanel
+      Chrome.ts        ScreenHeader, CompactHeader, CompactTabs, FloatingBar, SearchPill,
+                       KeyboardToolbar, ComposerBase
+      Charts.ts        BarChart, LineChart, PieChart, StackedBarChart, TimeSeriesChart
+      agent/           the coding agent's composites (today's AgentComponents)
+      Skin.ts          the whole contract: generic entries + { agent }
+      SkinTheme.ts     colors and type a skin provides
+    core/              SkinProvider, SkinThemeProvider, preference state
+    testing/gallery.tsx  every entry with fixed props
+  orca-skin/           exports ".": orcaSkin, OrcaThemeProvider
+    src/adapters/{layout,controls,surfaces,overlays,chrome,charts,agent}/
+  tamagui-skin/        exports ".": tamaguiSkin, TamaguiThemeProvider
+    src/adapters/{layout,controls,surfaces,overlays,chrome,charts,agent}/
+  tamagui-design-system/  unchanged inside; importable only from tamagui-skin
 
-frontend/mla-tamagui/features/coding-agent/src/
-  ui/        contract components for every control and all text; no design system
-  testing/   the flow app renders under a named set; every flow file runs under both
-  di/        the one place that names a skin
-  routes/gallery.tsx  NEW  dev-only route: the gallery under the selected set
+frontend/mla-tamagui/
+  app/_layout.tsx      the one place that names a skin: reads the stored choice, provides it
+  app/gallery.tsx      dev-only route: the gallery under the selected skin
+  features/*/src/ui/   useSkin() only; no design system; no react-native control or text
+  features/settings/   owns the Design setting
 ```
+
+Icons: a feature names an icon by kind (`icon="chevron-right"`); each skin maps kinds to glyphs.
+
+## Tamagui helpers and the compiler
+
+What the app has today (`frontend/mla-tamagui/babel.config.js`, `metro.config.js`):
+
+- The Tamagui babel plugin runs with `disableExtraction: true`. Extraction was turned off as a correctness fix: with it on, elements carrying a theme token disappeared from the static export. The plugin also lists `components: ['tamagui']`, while the app imports from the single `@tamagui/*` packages through `primitives.tsx`.
+- So no compile-time style extraction or view flattening happens now. Moving components behind the contract takes away no optimisation the app currently gets.
+
+What the contract would cost if extraction were turned back on later:
+
+- The compiler optimises a JSX element only when it can see, at build time, that the element is a Tamagui component and that its style props are constants. A component read from `useSkin()` is a runtime value, so no call site in a feature can be flattened or extracted.
+- Inside `@lib/tamagui-skin` the adapters import Tamagui components directly, so the compiler still works there, but only for styles that are constant in the adapter. A prop passed straight through (`gap={props.gap}`) is dynamic and stays a runtime style.
+
+How the plan keeps the door open:
+
+- `Row`, `Stack`, `Text` and the controls take a small fixed set of semantic values (`gap: 'sm' | 'md' | 'lg'`, `surface: 'plain' | 'group' | 'raised'`). The Tamagui skin implements them as `styled()` variants, which Tamagui resolves without building a style object per render and which the compiler can extract.
+- Tamagui's helpers stay fully usable inside the skin: `styled()`, variants, tokens, `Theme`, `useTheme`, media queries, `pressStyle`. They stop being usable in features, which is the point of the ban.
+- The theme still switches through Tamagui's `Theme`, so a light/dark change does not re-render through the contract.
+
+What is lost for good: token shorthand and responsive props written at the call site in a feature (`$gtSm={{ gap: '$4' }}`), and any future flattening of feature-level layout. Step 1 measures render time on the LeetCode list and editor with one screen converted, before the rest follows.
 
 ## Enforcement
 
 | Rule | Where | Blocks |
 |---|---|---|
-| `only-di-picks-a-skin` (exists as `only-di-picks-a-component-set`) | feature depcruise | either set outside `di/` |
-| `feature-reads-no-design-system` | feature depcruise | `@lib/tamagui-design-system`, `tamagui`, `@tamagui/*`, `lucide-react-native` outside `di/` |
-| `no-react-native-controls` | `.oxlintrc.json` override for `features/coding-agent/src/{ui,routes,state}/**` | `Button`, `TextInput`, `Switch`, `ActivityIndicator`, `Modal`, `Text`, `Touchable*` from `react-native`, each with a message naming the contract entry to use |
-| sets are sealed | each set's `package.json` `exports` and a unit test | deep imports; an export other than the set and its theme provider |
-| sets are complete | TypeScript (`Skin` has no optional entry) and a unit test | a set that falls back to the other set |
-| sets behave alike | every coding-agent flow test runs under both sets | a set that breaks a journey: a missing role, label, callback or disabled state |
+| `only-root-names-a-skin` | depcruise, app and every feature | `@lib/orca-skin`, `@lib/tamagui-skin` outside `app/_layout.tsx` and test harness setup |
+| `no-design-system-outside-a-skin` | depcruise, whole frontend | `@lib/tamagui-design-system`, `tamagui`, `@tamagui/*`, `lucide-react-native` outside the skin packages |
+| `no-react-native-controls` | `.oxlintrc.json`, app, app shell, every feature | the components of decision 7, each message naming the skin entry to use |
+| skins are sealed | each skin's `package.json` `exports` and a unit test | deep imports; an export other than the skin and its theme provider |
+| skins are complete | TypeScript (`Skin` has no optional entry) and a unit test | a skin that reuses the other skin's component |
+| skins behave alike | every flow test runs under both skins | a skin that breaks a journey |
 
-Each rule lands with a list of the files that still break it. The list only shrinks; a rule is done when its list is empty and deleted.
+Each rule lands with a list of the files that still break it. A list only shrinks; a rule is done when its list is empty and deleted.
 
 ## Steps
 
-### 1. Seal and prove (no visual change)
+### 1. Rename, seal and measure (no visual change)
 
-1. Rename the packages, types and hooks as in decision 10, in one commit with no other change.
-1. Make the feature's flow app take the skin, and run all 18 flow files (109 tests) under both sets, as the settings file already does.
-2. Restrict both packages' `exports` to `.`; add the sealed-set unit test.
-3. Add the three lint rules with their file lists (about 20 files with a React Native control or `Text`, 28 design-system files).
-4. Add the gallery and its dev route; capture light and dark baselines of the Orca gallery.
+1. Rename packages, types and hooks as in Names, in one commit with no other change.
+2. Move the provider and the stored choice to the app root; keep the coding agent working as before.
+3. Run every coding-agent flow file under both skins.
+4. Add the three import rules app-wide with their file lists; seal both packages' exports.
+5. Add the gallery route; capture Orca and Tamagui gallery baselines in light and dark.
+6. Spike: add `Row`, `Stack` and `Text`, convert the LeetCode list screen only, and compare render time and bundle size with before. Record the numbers in `docs/audits/2026-09-02-token-diet-decision-log.md`. A regression stops the plan for a decision.
 
-### 2. Controls
+### 2. Coding agent
 
-1. Define `Controls.ts`: `Button`, `TextField`, `Switch`, `Spinner`, `Text`, with the props the design system's own versions take, minus anything Tamagui-specific.
-2. Implement in both sets; add gallery entries. The Tamagui set wraps the design system's components; the Orca set wraps what its composites already use.
-3. Replace the React Native controls and `Text` in about 20 files. The Orca parity baselines move only where a platform button was drawn; recapture those against stock Orca.
+1. Add `Button`, `TextField`, `Switch`, `Spinner` to the contract in both skins.
+2. Area by area (settings, home tabs, pairing, chat and composer, workspaces and source control, workspace tabs, then thread, feed and dispatch runs): move direct design-system imports and Orca-styled views behind entries, keep Orca pixel-identical, build Tamagui from the design system's composites, remove the area from the `orcaSkin` spread in the Tamagui skin.
+3. Rebuild the Tamagui settings entries already shipped so they match `/settings`.
 
-### 3. Empty the lists, one area per batch
+### 3. Generic entries, one family per batch
 
-Order: settings, home tabs, pairing, chat and composer, workspaces and source control, workspace tabs, legacy thread screens (`ThreadScreen`, `ThreadComposer`, `feed/*`, dispatch runs).
+Controls, surfaces, overlays, chrome, charts. Per family: define the port from what the features actually pass today, wrap the design system's component in the Tamagui skin, write the Orca version, add both to the gallery.
 
-Per batch:
+### 4. Features, smallest first
 
-1. Move the area's direct design-system imports and Orca-specific styled views behind contract entries. Plain layout views stay in the screen.
-2. Orca adapter: pixel-identical to before.
-3. Tamagui adapter: built from design-system composites; rebuild the settings entries shipped earlier on `ListItem` and the screen header.
-4. Remove the area's files from the rule lists.
-5. Drop the area's entries from the `...orcaSkin` spread; the batch that empties it removes the dependency of `tamagui-skin` on `orca-skin`.
+Settings (10 files), Tamil (17), dashboards and service report (8), LeetCode (68), app and app shell (22). Per feature:
 
-### 4. Close
+1. Replace design-system imports with `useSkin()` entries, and `XStack`/`YStack` with `Row`/`Stack`.
+2. Run the feature's flow tests under both skins.
+3. Tamagui skin: the feature's existing iOS baselines pass with golden updates disabled.
+4. Orca skin: capture, review and save baselines.
+5. Remove the feature's files from the rule lists.
 
-Delete the empty rule lists, the spread, and any legacy screen that no route reaches. Record the learning with `/cf-compound`.
+### 5. Close
+
+Delete the empty rule lists and the `orcaSkin` spread; remove the dependency of `@lib/tamagui-skin` on `@lib/orca-skin`. Record the learning with `/cf-compound`.
 
 ## Verification, per batch
 
-1. Unit: sealed-set and completeness tests.
-2. Flow: `pnpm --filter mla-tamagui run test:flow`, every coding-agent flow file under both sets.
-3. Orca unchanged: `wf test ios-visual` against the Orca parity baselines and the Orca gallery baseline, golden updates disabled.
-4. Other screens unchanged: the 22 LeetCode and Tamil iOS baselines, golden updates disabled.
-5. Tamagui looks right: gallery and area screens in light and dark on a fresh simulator, reviewed side by side with `/settings` and a LeetCode screen, then saved as baselines.
-6. Device: `wf ship eas --initial-route /coding-agent`, walk the area in both sets on a fresh simulator copied from `rca`, record it.
-7. Land on `dev`, update issue #102.
+1. Unit: sealed and complete tests for both skins.
+2. Flow: `pnpm --filter mla-tamagui run test:flow` with the touched feature's files under both skins.
+3. Tamagui skin unchanged: the 22 LeetCode and Tamil iOS baselines and the Tamagui gallery baseline, golden updates disabled.
+4. Orca skin unchanged in the agent: `wf test ios-visual` against the Orca parity and gallery baselines, golden updates disabled.
+5. New Orca looks: light and dark on a fresh simulator copied from `rca`, reviewed, then saved as baselines.
+6. Device: `wf ship eas --initial-route <route>`, walk the batch in both skins on the fresh simulator, record it.
+7. Bundle size and render time against the step 1 numbers; both skins now ship in one bundle.
+8. Land on `dev`, update issue #102.
 
 ## Risks
 
-- Layout views stay in screens, so a screen can still hardcode a size or color that fits one set only. The gallery and the per-area baselines in both designs are what catch it.
-- The terminal, browser and note tabs carry keyboard and focus fixes that live in the screen. Extraction must move views only.
-- Text lookup on a fresh simulator returned no elements in the last run; device walks need `wf test prepare-ios --build-input` fixed or verified first.
+- Size. This rewrites about 150 files and adds roughly 45 Orca components that exist only to give LeetCode and Tamil a second look. LeetCode alone is 68 files, including the editor and its keyboard toolbar.
+- `Row`/`Stack` with semantic props cannot express everything 502 token lines do today. Where they cannot, the answer is a named entry, not a style escape hatch; expect the contract to grow during the LeetCode batch.
+- Native header and keyboard toolbar are tied to navigation and focus. They move last, and only their views move.
+- Text lookup on a fresh simulator returned no elements in the last run; fix or verify `wf test prepare-ios --build-input` before the first device walk.
