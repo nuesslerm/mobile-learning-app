@@ -59,7 +59,8 @@ local function flash()
 end
 local function played(id, label)
   tap(id)
-  device:assert_visible({id=id, text=label .. ", recording played"})
+  -- the label changes when the recording ends: on the hosted emulator both flash cases met it 0.7 s after the default 10 s (run 46037745674)
+  device:assert_visible({id=id, text=label .. ", recording played"}, {timeout=30000})
 end
 
 local cases = {}
