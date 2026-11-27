@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "catalog:"
+    "lucide-react-native": "^1.17.0",
+    "react": "catalog:",
+    "react-native": "catalog:",
+    "react-native-safe-area-context": "~5.11.1"
   },
   "devDependencies": {
     "@types/react": "catalog:",
@@ -20,7 +23,8 @@
   },
   "dependencies": {
     "@lib/agent-ui-contracts": "workspace:*",
-    "@lib/orca-design-system": "workspace:*"
+    "@lib/orca-design-system": "workspace:*",
+    "@lib/tamagui-design-system": "workspace:*"
   },
   "arch": {
     "type": "component-library"

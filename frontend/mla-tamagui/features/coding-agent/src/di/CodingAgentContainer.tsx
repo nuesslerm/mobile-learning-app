@@ -77,14 +77,16 @@ function useStoredPreference<T>(
   initial: T,
   read: () => Promise<T>,
   write: (next: T) => Promise<void>
-): { preference: T; select: (next: T) => void } {
+): { preference: T; loaded: boolean; select: (next: T) => void } {
   const [preference, setPreference] = useState(initial);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     void read().then((stored) => {
       if (active) {
         setPreference(stored);
+        setLoaded(true);
       }
     });
     return () => {
@@ -100,7 +102,7 @@ function useStoredPreference<T>(
     [write]
   );
 
-  return { preference, select };
+  return { preference, loaded, select };
 }
 
 /** Hands the theme and design choices to the screens, once the ports are in place. */
@@ -118,7 +120,9 @@ function AppearanceGate({ children }: { children: ReactNode }) {
   );
   return (
     <AppearancePreferenceContextProvider value={appearance}>
-      <ComponentSetProvider value={componentSet}>{children}</ComponentSetProvider>
+      <ComponentSetProvider value={componentSet}>
+        {componentSet.loaded ? children : null}
+      </ComponentSetProvider>
     </AppearancePreferenceContextProvider>
   );
 }

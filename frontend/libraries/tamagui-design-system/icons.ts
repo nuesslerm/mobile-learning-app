@@ -106,7 +106,17 @@ import LightbulbIcon from 'lucide-react-native/dist/esm/icons/lightbulb.mjs';
 import Building2Icon from 'lucide-react-native/dist/esm/icons/building-2.mjs';
 import ThumbsUpIcon from 'lucide-react-native/dist/esm/icons/thumbs-up.mjs';
 import ThumbsDownIcon from 'lucide-react-native/dist/esm/icons/thumbs-down.mjs';
+import CalendarClockIcon from 'lucide-react-native/dist/esm/icons/calendar-clock.mjs';
+import GaugeIcon from 'lucide-react-native/dist/esm/icons/gauge.mjs';
+import LifeBuoyIcon from 'lucide-react-native/dist/esm/icons/life-buoy.mjs';
+import ShieldIcon from 'lucide-react-native/dist/esm/icons/shield.mjs';
+import SunMoonIcon from 'lucide-react-native/dist/esm/icons/sun-moon.mjs';
 
+export const CalendarClock: LucideIcon = CalendarClockIcon;
+export const Gauge: LucideIcon = GaugeIcon;
+export const LifeBuoy: LucideIcon = LifeBuoyIcon;
+export const Shield: LucideIcon = ShieldIcon;
+export const SunMoon: LucideIcon = SunMoonIcon;
 export const ArrowLeft: LucideIcon = ArrowLeftIcon;
 export const ArrowLeftToLine: LucideIcon = ArrowLeftToLineIcon;
 export const ArrowRight: LucideIcon = ArrowRightIcon;

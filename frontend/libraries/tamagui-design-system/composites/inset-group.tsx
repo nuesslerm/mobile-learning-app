@@ -7,6 +7,8 @@ export type InsetGroupProps = {
   testID: string;
   surface?: 'solid' | 'transparent';
   inset?: boolean;
+  /** Where the hairlines start, in points from the group's left edge. */
+  separatorInset?: number;
 };
 
 /**
@@ -21,6 +23,7 @@ export function InsetGroup({
   testID,
   surface = 'solid',
   inset = true,
+  separatorInset,
 }: InsetGroupProps) {
   const rows = Children.toArray(children);
   const transparent = surface === 'transparent';
@@ -37,7 +40,7 @@ export function InsetGroup({
           {row}
           {i < rows.length - 1 ? (
             <Separator
-              ml="$4"
+              ml={separatorInset ?? '$4'}
               borderColor={
                 transparent ? 'rgba(127, 127, 127, 0.22)' : '$borderColor'
               }

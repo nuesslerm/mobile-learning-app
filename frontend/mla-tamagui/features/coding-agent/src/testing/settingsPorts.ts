@@ -28,12 +28,12 @@ export interface SettingsPortDoubles {
 
 /** The settings ports as in-memory doubles that record what they were asked to do. */
 export function createSettingsPortDoubles(
-  options: { update?: AppUpdateCheck } = {}
+  options: { update?: AppUpdateCheck; componentSet?: ComponentSetPreference } = {}
 ): SettingsPortDoubles {
   let chatText: ChatTextPreference | null = null;
   const recorded: SettingsPortDoubles['recorded'] = {
     appearance: 'system',
-    componentSet: 'tamagui',
+    componentSet: options.componentSet ?? 'tamagui',
     notificationsEnabled: false,
     lastUpdateCheckAt: null,
     checks: 0,
