@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 74,
+  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-workspace-options&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-workspace-options&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-sheet-workspace-options"
+    ],
+    "text": "Reset\nWorkspace options\nSynced across your devices\nDone\nGroup by\nProject\nStatus\nShow archived\nSort\nRecent"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 193924,
+    "capture_ms": 105
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-dark-sheet-workspace-options",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

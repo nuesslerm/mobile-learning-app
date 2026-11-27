@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 62,
+  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=onboarding&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=onboarding&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-onboarding"
+    ],
+    "text": "PairDesktopButton\nPair desktop\nOnboardingChoice: primary, plain, busy, disabled\nContinue\nNot now\nUnavailable\nNotificationChoices\nEnable notifications\nNot now"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 161234,
+    "capture_ms": 111
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-dark-onboarding",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

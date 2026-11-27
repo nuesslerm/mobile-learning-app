@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 61,
+  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=unpaired&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=unpaired&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-unpaired"
+    ],
+    "text": "Connect your desktop\nPair with your computer to check on your agents and drive work from your phone.\n1\nOpen the desktop app\nGo to Settings, then Mobile, and generate a pairing code.\n2\nScan the code\nTap Pair desktop below and point your camera at the code.\n3\nYou're connected\nYour desktop appears here.\nPair desktop"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 158705,
+    "capture_ms": 102
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-dark-unpaired",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "platform": "browser",
+  "step": 79,
+  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=search&scheme=light'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=search&scheme=light",
+    "title": "",
+    "testids": [
+      "SkinGallery-search",
+      "HomeSearchField"
+    ],
+    "text": "Agents"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 204266,
+    "capture_ms": 94
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-tamagui-light-search",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 70,
+  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-new-tab&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-new-tab&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-sheet-new-tab"
+    ],
+    "text": "New Tab\nmobile-app\nAgents\nClaude\nCodex\nOpenCode\nTerminal\nBrowser\nMarkdown Note"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 181527,
+    "capture_ms": 117
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-dark-sheet-new-tab",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

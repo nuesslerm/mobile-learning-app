@@ -1,0 +1,34 @@
+{
+  "platform": "browser",
+  "step": 3,
+  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=settings&scheme=light'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=settings&scheme=light",
+    "title": "",
+    "testids": [
+      "SkinGallery-settings",
+      "agent-settings-group",
+      "agent-settings-switch"
+    ],
+    "text": "Settings\nA note explains the group beneath it.\nOpens a screen\nShows a value\nMenlo\nCarries a switch\nOffers an action\nUpdate\nPicked option\nOther option\nDisabled row\nText size\nDefault\nA\nA\nLine spacing\nCompact\nDefault\nRelaxed"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 5882,
+    "capture_ms": 108
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-tamagui-light-settings",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}
