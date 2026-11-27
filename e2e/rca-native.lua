@@ -62,7 +62,9 @@ cases.skin = function()
     for _ = 1, 3 do
       choose(label)
       open("/coding-agent/native-chat-settings")
-      if device:extended_wait_until{visible={text=sign}, timeout=15000, optional=true} then return end
+      text("Chat UI", 30000)
+      -- on a short screen the control sits under the preview
+      if device:scroll_until_visible{element={text=sign}, direction='DOWN', timeout=15000, optional=true} then return end
     end
     text(sign)
   end
