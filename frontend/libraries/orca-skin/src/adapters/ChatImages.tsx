@@ -1,7 +1,8 @@
 import { ViewerActions } from './image/ViewerActions';
-import type {
-  ChatImageProps,
-  ChatImageViewerProps,
+import {
+  PanZoomImage,
+  type ChatImageProps,
+  type ChatImageViewerProps,
 } from '@lib/skin';
 import { X } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -17,7 +18,6 @@ import {
   View,
 } from 'react-native';
 import { useChatPalette } from './chatPalette';
-import { PanZoomImage } from './image/PanZoomImage';
 import { useReducedMotionEnabled } from './useReducedMotion';
 
 export function ChatSurface({ children }: { children: ReactNode }) {

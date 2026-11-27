@@ -1,13 +1,14 @@
 {
   "platform": "browser",
-  "step": 20,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=image-viewer&scheme=light'}",
+  "step": 24,
+  "last_action": "open_link{link='http://127.0.0.1:55069/mla-tamagui/gallery?section=image-viewer&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=image-viewer&scheme=light",
+    "url": "http://127.0.0.1:55069/mla-tamagui/gallery?section=image-viewer&scheme=light",
     "title": "",
     "testids": [
-      "SkinGallery-image-viewer"
+      "SkinGallery-image-viewer",
+      "skin-image-close"
     ],
     "text": ""
   },
@@ -16,12 +17,12 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 52329,
-    "capture_ms": 107
+    "since_start_ms": 61843,
+    "capture_ms": 103
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-light-image-viewer",

@@ -1,33 +1,16 @@
 import { BottomSheet } from '../BottomSheet';
-import type { ChatImageViewerProps } from '@lib/skin';
+import { useImageActions, type ChatImageViewerProps } from '@lib/skin';
 import { Copy, Download, Share } from 'lucide-react-native';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useChatPalette } from '../chatPalette';
 
-const rows = [
-  {
-    id: 'copy',
-    label: 'Copy image',
-    Icon: Copy,
-    success: 'Image copied',
-    failure: "Couldn't copy image",
-  },
-  {
-    id: 'save',
-    label: 'Save image',
-    Icon: Download,
-    success: 'Image saved',
-    failure: "Couldn't save image",
-  },
-  {
-    id: 'share',
-    label: 'Share…',
-    Icon: Share,
-    success: '',
-    failure: "Couldn't share image",
-  },
-] as const;
+const icons = { copy: Copy, save: Download, share: Share } as const;
+
+function ActionIcon({ id, color }: { id: keyof typeof icons; color: string }) {
+  const Icon = icons[id];
+  return <Icon size={16} strokeWidth={1.8} color={color} />;
+}
 
 export function ViewerActions({
   actions,
@@ -44,33 +27,8 @@ export function ViewerActions({
   setOpen: (open: boolean) => void;
 }) {
   const colors = useChatPalette();
-  const running = useRef(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
-  useEffect(() => {
-    if (!message) return;
-    const timer = setTimeout(() => setMessage(''), 2400);
-    return () => clearTimeout(timer);
-  }, [message]);
-  if (!actions || !rows.some((row) => actions[row.id])) return null;
-
-  async function run(row: (typeof rows)[number]) {
-    const action = actions?.[row.id];
-    if (running.current || !action) return;
-    running.current = true;
-    setBusy(true);
-    setOpen(false);
-    setMessage('');
-    try {
-      await action();
-      setMessage(row.success);
-    } catch {
-      setMessage(row.failure);
-    } finally {
-      running.current = false;
-      setBusy(false);
-    }
-  }
+  const { busy, message, offered, run } = useImageActions(actions, setOpen);
+  if (!offered.length) return null;
   return (
     <>
       <Pressable
@@ -122,9 +80,7 @@ export function ViewerActions({
                 style={[styles.handle, { backgroundColor: colors.textMuted }]}
               />
               <View style={[styles.group, { backgroundColor: colors.bgGroup }]}>
-                {rows
-                  .filter((row) => actions[row.id])
-                  .map((row, index) => (
+                {offered.map((row, index) => (
                     <Fragment key={row.id}>
                       {index > 0 && (
                         <View
@@ -137,15 +93,11 @@ export function ViewerActions({
                       )}
                       <Pressable
                         accessibilityRole="button"
-                        onPress={() => dismiss(() => void run(row))}
+                        onPress={() => dismiss(() => run(row))}
                         style={styles.row}
                       >
                         <View style={styles.leading}>
-                          <row.Icon
-                            size={16}
-                            strokeWidth={1.8}
-                            color={colors.textSecondary}
-                          />
+                          <ActionIcon id={row.id} color={colors.textSecondary} />
                         </View>
                         <Text
                           style={{ fontSize: 15, color: colors.textPrimary }}
