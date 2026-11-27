@@ -51,7 +51,8 @@ local function capture(skin, sections)
         device:open_link(("%s/gallery?section=%s&scheme=%s"):format(base, section, scheme))
         device:assert_visible({id='SkinGallery-' .. section}, {timeout=60000})
         settled()
-        device:assert_screenshot(("gallery-%s-%s-%s"):format(skin, scheme, section))
+        -- recorded on macOS, replayed on the Linux runners: a screen of large text differs by a little over the default 5 % there
+        device:assert_screenshot(("gallery-%s-%s-%s"):format(skin, scheme, section), {threshold_percentage=92})
       end)
     end
   end
