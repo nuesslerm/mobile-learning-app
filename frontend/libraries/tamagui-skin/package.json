@@ -15,7 +15,8 @@
     "lucide-react-native": "^1.17.0",
     "react": "catalog:",
     "react-native": "catalog:",
-    "react-native-safe-area-context": "~5.11.1"
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-svg": "15.16.0"
   },
   "devDependencies": {
     "@types/react": "catalog:",

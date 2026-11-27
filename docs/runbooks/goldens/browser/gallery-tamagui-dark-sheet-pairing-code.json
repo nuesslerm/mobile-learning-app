@@ -1,14 +1,19 @@
 {
   "platform": "browser",
-  "step": 82,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark'}",
+  "step": 98,
+  "last_action": "open_link{link='http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark",
+    "url": "http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark",
     "title": "",
     "testids": [
       "SkinGallery-sheet-pairing-code",
-      "MobilePairCode"
+      "skin-pairing-code",
+      "MobilePairCode-Field",
+      "MobilePairCode",
+      "skin-pairing-code-cancel",
+      "skin-pairing-code-save",
+      "skin-pairing-codeHandle"
     ],
     "text": "Paste pairing code\nCopy the code shown under the QR on your computer.\nCancel\nSave"
   },
@@ -17,8 +22,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 212996,
-    "capture_ms": 100
+    "since_start_ms": 259248,
+    "capture_ms": 102
   },
   "tolerance": {
     "threshold": 0.1,

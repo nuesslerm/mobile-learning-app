@@ -1,23 +1,28 @@
 {
   "platform": "browser",
   "step": 7,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=pairing&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:65014/mla-tamagui/gallery?section=pairing&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=pairing&scheme=light",
+    "url": "http://127.0.0.1:65014/mla-tamagui/gallery?section=pairing&scheme=light",
     "title": "",
     "testids": [
-      "SkinGallery-pairing"
+      "SkinGallery-pairing",
+      "skin-pairing-header",
+      "skin-pairing-headerBack",
+      "skin-pairing-headerTitle",
+      "skin-pairing-camera",
+      "skin-pairing-paste"
     ],
-    "text": "Pair with desktop\nScan the QR code from Orca on your desktop, or paste the pairing code instead.\nContinue\nPaste code instead"
+    "text": "Pairing\nPair with desktop\nScan the QR code from Orca on your desktop, or paste the pairing code instead.\nContinue\nPaste code instead"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 15708,
-    "capture_ms": 92
+    "since_start_ms": 16533,
+    "capture_ms": 106
   },
   "tolerance": {
     "threshold": 0.1,

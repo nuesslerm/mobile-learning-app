@@ -11,6 +11,8 @@ import { HomeTabHeader } from './adapters/home/HomeTabHeader';
 import { HomeActionSheet, HomeAgentSection, HomeEmptyState, HomeSearchField } from './adapters/home/homeTabExtras';
 import { ChatTextPreview, HomeSettingsSectionTitle, HomeSettingsSpacer, OptionSheet } from './adapters/home/settingsExtras';
 import { Row, Stack, Text } from './adapters/layout/layout';
+import { BrandMark } from './adapters/pairing/BrandMark';
+import { NotificationChoices, OnboardingChoice, PairDesktopButton, PairedDesktops, PairingCodeSheet, PairingScreen, UnpairedHome } from './adapters/pairing/pairing';
 import { Button, Notice, Spinner, Switch, TextField } from './adapters/controls/controls';
 
 // Starts as the Orca set; each area replaces its entries with Tamagui ones.
@@ -23,6 +25,14 @@ export const tamaguiSkin: Skin = {
   HomeSearchField,
   HomeAgentSection,
   HomeActionSheet,
+  BrandMark,
+  PairingScreen,
+  PairingCodeSheet,
+  PairedDesktops,
+  PairDesktopButton,
+  UnpairedHome,
+  OnboardingChoice,
+  NotificationChoices,
   HomeSettingsGroup,
   HomeSettingsNote,
   HomeSettingsRow,

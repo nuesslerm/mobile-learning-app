@@ -1,13 +1,16 @@
 {
   "platform": "browser",
-  "step": 23,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=unpaired&scheme=dark'}",
+  "step": 27,
+  "last_action": "open_link{link='http://127.0.0.1:65014/mla-tamagui/gallery?section=unpaired&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=unpaired&scheme=dark",
+    "url": "http://127.0.0.1:65014/mla-tamagui/gallery?section=unpaired&scheme=dark",
     "title": "",
     "testids": [
-      "SkinGallery-unpaired"
+      "SkinGallery-unpaired",
+      "skin-unpaired-steps",
+      "skin-unpaired-step",
+      "skin-pair-desktop"
     ],
     "text": "Connect your desktop\nPair with your computer to check on your agents and drive work from your phone.\n1\nOpen the desktop app\nGo to Settings, then Mobile, and generate a pairing code.\n2\nScan the code\nTap Pair desktop below and point your camera at the code.\n3\nYou're connected\nYour desktop appears here.\nPair desktop"
   },
@@ -16,8 +19,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 59626,
-    "capture_ms": 102
+    "since_start_ms": 73553,
+    "capture_ms": 101
   },
   "tolerance": {
     "threshold": 0.1,

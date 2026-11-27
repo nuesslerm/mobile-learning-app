@@ -52,6 +52,7 @@ export type { BottomSheetProps } from './ports/BottomSheet';
 export type { WorkspaceTabControlProps } from './ports/WorkspaceTabComponents';
 export type { SkinPreference, SkinPreferenceValue } from './core/skinPreference';
 export { ActiveSkinThemeProvider, SkinPreferenceProvider, SkinThemeBoundary, useSkinPreference } from './core/skinPreference';
+export { BRAND_MARK } from './core/brandMark';
 export { GALLERY_ENTRIES, GALLERY_SECTIONS, SkinGallery } from './core/gallery';
 export type { GallerySection } from './core/gallery';
 export type { LayoutProps, Space, Surface, TextProps } from './ports/Layout';

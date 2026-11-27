@@ -1,13 +1,15 @@
 {
   "platform": "browser",
   "step": 6,
-  "last_action": "open_link{link='http://127.0.0.1:56817/mla-tamagui/gallery?section=onboarding&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:65014/mla-tamagui/gallery?section=onboarding&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:56817/mla-tamagui/gallery?section=onboarding&scheme=light",
+    "url": "http://127.0.0.1:65014/mla-tamagui/gallery?section=onboarding&scheme=light",
     "title": "",
     "testids": [
-      "SkinGallery-onboarding"
+      "SkinGallery-onboarding",
+      "skin-pair-desktop",
+      "skin-onboarding-choice"
     ],
     "text": "PairDesktopButton\nPair desktop\nOnboardingChoice: primary, plain, busy, disabled\nContinue\nNot now\nUnavailable\nNotificationChoices\nEnable notifications\nNot now"
   },
@@ -16,8 +18,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 13757,
-    "capture_ms": 115
+    "since_start_ms": 14130,
+    "capture_ms": 114
   },
   "tolerance": {
     "threshold": 0.1,
