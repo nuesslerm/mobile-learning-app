@@ -1,7 +1,8 @@
 import { useChatText, useSkin, type ChatTextPreviewProps, type HomeSettingsSectionTitleProps, type OptionSheetProps } from '@lib/skin';
 import { Icon, InsetGroup, ListItem, Text, View } from '@lib/tamagui-design-system';
 import { Check } from '@lib/tamagui-design-system/icons';
-import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
+
+import { ScreenSheet } from '../sheet/ScreenSheet';
 
 /** A caption above a group, as the app's Settings writes "PREFERENCES". */
 export function HomeSettingsSectionTitle(props: HomeSettingsSectionTitleProps) {
@@ -35,7 +36,7 @@ export function ChatTextPreview(props: ChatTextPreviewProps) {
 
 export function OptionSheet(props: OptionSheetProps) {
   return (
-    <Sheet open onOpenChange={(open) => !open && props.onClose()} snapPoints={[45]} handleLabel={props.dismissLabel} testID="skin-option-sheet">
+    <ScreenSheet onClose={props.onClose} handleLabel={props.dismissLabel} testID="skin-option-sheet">
       <View gap="$3" pb={props.bottomInset}>
         <Text variant="muted" role="heading" mx="$4">
           {props.title}
@@ -65,6 +66,6 @@ export function OptionSheet(props: OptionSheetProps) {
           ))}
         </InsetGroup>
       </View>
-    </Sheet>
+    </ScreenSheet>
   );
 }

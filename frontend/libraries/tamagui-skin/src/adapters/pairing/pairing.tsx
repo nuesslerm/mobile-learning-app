@@ -11,15 +11,18 @@ import {
 import { Button, Icon, InsetGroup, ListItem, ScreenHeader, Spinner, Text, TextField } from '@lib/tamagui-design-system';
 import { Clipboard, Monitor, Plus, QrCode } from '@lib/tamagui-design-system/icons';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
-import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import type { LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
+
+import { ScreenSheet } from '../sheet/ScreenSheet';
 
 export function OnboardingChoice(props: OnboardingChoiceProps) {
   return (
     <Button
       variant={props.primary ? 'default' : 'ghost'}
+      // a plain choice is text, not a glass capsule
+      glass={Boolean(props.primary)}
       accessibilityLabel={props.accessibilityLabel}
       disabled={props.disabled}
       pressLog="off"
@@ -170,7 +173,7 @@ export function PairingScreen(props: PairingScreenProps) {
   const intro = props.permission !== 'granted' && props.status === 'scanning';
   const denied = props.permission === 'denied';
   const paste = (label: string) => (
-    <Button variant="ghost" icon={Clipboard} pressLog="off" onPress={props.onPaste} testID="skin-pairing-paste">
+    <Button variant="ghost" glass={false} self="center" icon={Clipboard} pressLog="off" onPress={props.onPaste} testID="skin-pairing-paste">
       {label}
     </Button>
   );
@@ -249,7 +252,7 @@ export function PairingScreen(props: PairingScreenProps) {
                   <Button pressLog="off" onPress={props.onRetry} testID="skin-pairing-retry">
                     Try Again
                   </Button>
-                  <Button variant="ghost" pressLog="off" onPress={props.onPaste} testID="skin-pairing-paste-again">
+                  <Button variant="ghost" glass={false} pressLog="off" onPress={props.onPaste} testID="skin-pairing-paste-again">
                     Paste code instead
                   </Button>
                 </>
@@ -280,7 +283,7 @@ function CodeEntry(props: Omit<PairingCodeSheetProps, 'visible'>) {
     if (code) props.onSubmit(code);
   };
   return (
-    <Sheet open onOpenChange={(open) => !open && props.onCancel()} snapPoints={[45]} handleLabel="Close" testID="skin-pairing-code">
+    <ScreenSheet onClose={props.onCancel} handleLabel="Close" testID="skin-pairing-code">
       <YStack gap="$3" px="$4" pb={Math.max(props.bottomInset, 16)}>
         <YStack gap="$1">
           <Text variant="large">Paste pairing code</Text>
@@ -300,7 +303,7 @@ function CodeEntry(props: Omit<PairingCodeSheetProps, 'visible'>) {
           placeholderTextColor="$color10"
         />
         <XStack gap="$3" justify="flex-end">
-          <Button variant="ghost" pressLog="off" onPress={props.onCancel} testID="skin-pairing-code-cancel">
+          <Button variant="ghost" glass={false} pressLog="off" onPress={props.onCancel} testID="skin-pairing-code-cancel">
             Cancel
           </Button>
           <Button disabled={!code} pressLog="off" onPress={save} testID="skin-pairing-code-save">
@@ -308,6 +311,6 @@ function CodeEntry(props: Omit<PairingCodeSheetProps, 'visible'>) {
           </Button>
         </XStack>
       </YStack>
-    </Sheet>
+    </ScreenSheet>
   );
 }

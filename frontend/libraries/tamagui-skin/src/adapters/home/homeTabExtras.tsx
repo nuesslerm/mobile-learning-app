@@ -2,8 +2,8 @@ import type { HomeActionSheetProps, HomeAgentSectionProps, HomeEmptyStateProps, 
 import { Icon, Input, InsetGroup, ListItem, Text } from '@lib/tamagui-design-system';
 import { Bell, Check, CircleX, Search } from '@lib/tamagui-design-system/icons';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
-import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 
+import { ScreenSheet } from '../sheet/ScreenSheet';
 import { homeIcons } from './homeIcons';
 
 /** What a tab shows when it has nothing to show; the sizes a caller passes are the other skin's. */
@@ -104,7 +104,7 @@ export function HomeAgentSection(props: HomeAgentSectionProps) {
 export function HomeActionSheet(props: HomeActionSheetProps) {
   if (!props.visible) return null;
   return (
-    <Sheet open onOpenChange={(open) => !open && props.onClose()} snapPoints={[45]} handleLabel="Close" testID="skin-home-actions">
+    <ScreenSheet onClose={props.onClose} handleLabel="Close" testID="skin-home-actions">
       <YStack gap="$3" pb="$4">
         {props.groups.map((group, index) => (
           <InsetGroup key={index} testID="skin-home-actions-group">
@@ -128,6 +128,6 @@ export function HomeActionSheet(props: HomeActionSheetProps) {
           </InsetGroup>
         ))}
       </YStack>
-    </Sheet>
+    </ScreenSheet>
   );
 }
