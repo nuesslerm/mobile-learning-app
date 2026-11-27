@@ -48,6 +48,7 @@ export function HomeTabBar(props: HomeTabBarProps) {
       {props.tabs.map((tab) => (
         <TabButton
           key={tab.id}
+          id={tab.id}
           icon={TAB_ICONS[tab.id]}
           label={tab.label}
           selected={tab.id === props.active}
@@ -60,6 +61,7 @@ export function HomeTabBar(props: HomeTabBarProps) {
 }
 
 function TabButton(props: {
+  id: HomeTabId;
   icon: LucideIcon;
   label: string;
   selected: boolean;
@@ -74,6 +76,7 @@ function TabButton(props: {
   return (
     <Pressable
       style={styles.tab}
+      testID={`HomeTab-${props.id}`}
       accessibilityRole="tab"
       accessibilityLabel={props.badge > 0 ? `${props.label}, ${props.badge}` : props.label}
       accessibilityState={{ selected: props.selected }}

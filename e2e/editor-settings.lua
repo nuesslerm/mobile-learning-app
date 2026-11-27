@@ -102,7 +102,11 @@ run_flow("Symbol Bar opens its sheet and Done closes it", function()
   device:tap_on({id='EditorSettingsSymbolBar'})
   device:assert_visible({id='SymbolBarSheetHeader'}, {timeout=10000})
   device:tap_on({id='SymbolBarSwitch'})
-  device:tap_on({id='SymbolBarDone'})
+  -- the sheet is still sliding up when its header first shows, and a tap at where Done was then misses it (run 46042356198): repeated until the sheet leaves
+  for _ = 1, 5 do
+    device:tap_on({id='SymbolBarDone'})
+    if device:extended_wait_until{not_visible={id='SymbolBarSheetHeader'}, timeout=3000, optional=true} then break end
+  end
   device:extended_wait_until{not_visible={id='SymbolBarSheetHeader'}, timeout=10000, label='the sheet is gone'}
 end)
 

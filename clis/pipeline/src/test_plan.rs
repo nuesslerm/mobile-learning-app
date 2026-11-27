@@ -603,8 +603,12 @@ fn e2e_reasons(t: &E2eTest, scope: &Scope) -> Option<Vec<String>> {
             }
             why.push("named".into());
         }
-        Scope::Changed(paths) if matches!(t.name.as_str(), "tamil-native" | "leetcode-native") => {
-            let feature = if t.name == "tamil-native" { "tamil-writing" } else { "leetcode" };
+        Scope::Changed(paths) if matches!(t.name.as_str(), "tamil-native" | "leetcode-native" | "rca-native") => {
+            let feature = match t.name.as_str() {
+                "tamil-native" => "tamil-writing",
+                "rca-native" => "coding-agent",
+                _ => "leetcode",
+            };
             let touched = paths.iter().any(|p| {
                 if let Some(relative) = p.strip_prefix("frontend/mla-tamagui/features/") {
                     return relative.split('/').next() == Some(feature);

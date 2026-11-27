@@ -34,6 +34,7 @@ export function HomeTabBar(props: HomeTabBarProps) {
           return (
             <YStack
               key={tab.id}
+              testID={`HomeTab-${tab.id}`}
               role="tab"
               aria-label={badge > 0 ? `${tab.label}, ${badge}` : tab.label}
               aria-selected={selected}
