@@ -68,7 +68,8 @@ cases.skin = function()
     text(sign)
   end
   chosen("App", "Larger text")
-  chosen("Orca", "Chat text size")
+  -- the emulator reads the slider as its name and its value
+  chosen("Orca", "Chat text size.*")
 end
 
 run_flow("Given a phone with no desktop paired, when the user opens " .. env.case .. ", then the coding agent shows it", function()
