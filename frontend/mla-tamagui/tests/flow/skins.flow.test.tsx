@@ -7,7 +7,7 @@ const tamaguiEntries: Record<string, unknown> = { ...tamagui.tamaguiSkin };
 
 // The entries the Tamagui skin has not built yet and still takes from the Orca skin. This list only shrinks.
 const BORROWED_FROM_ORCA = Object.keys(orca.orcaSkin)
-  .filter((entry) => !['HomeSurface', 'HomeSettingsGroup', 'HomeSettingsNote', 'HomeSettingsRow', 'HomeSettingsScreen', 'Row', 'Stack', 'Text'].includes(entry))
+  .filter((entry) => !['HomeSurface', 'HomeSettingsGroup', 'HomeSettingsNote', 'HomeSettingsRow', 'HomeSettingsScreen', 'Row', 'Stack', 'Text', 'Button', 'TextField', 'Switch', 'Spinner', 'Notice'].includes(entry))
   .sort();
 
 describe('The two skins', () => {

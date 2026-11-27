@@ -40,6 +40,7 @@ import { OnboardingChoice } from './adapters/OnboardingChoice';
 import { BottomSheet } from './adapters/BottomSheet';
 import { WorkspaceTabControl } from './adapters/WorkspaceTabControl';
 import { Row, Stack, Text } from './adapters/layout/layout';
+import { Button, Notice, Spinner, Switch, TextField } from './adapters/controls/controls';
 import { ChatSizeControl, ChatSpacingControl } from './adapters/ChatTextControls';
 
 export const orcaSkin: Skin = {
@@ -88,6 +89,11 @@ export const orcaSkin: Skin = {
   Row,
   Stack,
   Text,
+  Button,
+  TextField,
+  Switch,
+  Spinner,
+  Notice,
 };
 
 export { OrcaThemeProvider } from './adapters/OrcaThemeProvider';

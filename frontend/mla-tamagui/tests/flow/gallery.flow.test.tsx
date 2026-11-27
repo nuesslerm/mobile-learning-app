@@ -22,6 +22,6 @@ describe.each(['tamagui', 'orca'] as const)('The skin gallery under the %s skin'
 describe('The gallery and the contract', () => {
   it('Given the contract, when its entries are listed, then every one has a section in the gallery', () => {
     expect(Object.values(GALLERY_ENTRIES).every((section) => GALLERY_SECTIONS.includes(section))).toBe(true);
-    expect(Object.keys(GALLERY_ENTRIES).length).toBeGreaterThanOrEqual(45);
+    expect(Object.keys(GALLERY_ENTRIES).length).toBeGreaterThanOrEqual(50);
   });
 });

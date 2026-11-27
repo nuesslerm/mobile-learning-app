@@ -1,7 +1,8 @@
+import { useSkin } from '@lib/skin';
 import { FullscreenControl } from './FullscreenControl';
 import { pickTerminalImage } from './pickTerminalImage';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Button, Platform, Text, TextInput, View } from 'react-native';
+import { Platform, Text, TextInput, View } from 'react-native';
 import {
   ChevronLeft,
   ChevronRight,
@@ -53,6 +54,7 @@ export function BrowserTab({
   const [error, setError] = useState('');
   const [revision, retry] = useState(0);
   const c = useTabColors();
+  const { Button } = useSkin();
   const [mobile, setMobile] = useState(false);
   const [viewport, setViewport] = useState({ width: 390, height: 680 });
   const [history, setHistory] = useState({ back: false, forward: false });
@@ -268,10 +270,7 @@ export function BrowserTab({
           <Text accessibilityRole="alert" style={{ color }}>
             {error}
           </Text>
-          <Button
-            title="Reconnect browser"
-            onPress={() => retry((n) => n + 1)}
-          />
+          <Button label="Reconnect browser" onPress={() => retry((n) => n + 1)} />
         </>
       )}
     </View>

@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 76,
+  "last_action": "open_link{link='http://127.0.0.1:57471/mla-tamagui/gallery?section=controls&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:57471/mla-tamagui/gallery?section=controls&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-controls"
+    ],
+    "text": "RETRY\nDISCARD\nDISABLED\nWorktree unavailable\nThis worktree may have been deleted or moved on the desktop.\nView workspaces"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 200201,
+    "capture_ms": 105
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-dark-controls",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

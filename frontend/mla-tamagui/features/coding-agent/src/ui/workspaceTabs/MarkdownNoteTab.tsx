@@ -1,6 +1,6 @@
 import { useSkin } from '@lib/skin';
 import { useEffect, useRef, useState } from 'react';
-import { Button, Keyboard, Pressable, Text, View } from 'react-native';
+import { Keyboard, Pressable, Text, View } from 'react-native';
 import type { Pairing } from '../../domain/mobile';
 import type {
   NoteDraft,
@@ -29,7 +29,7 @@ export function MarkdownNoteTab({
   directory,
 }: Props) {
   const { copyMessage } = useCodingAgentPorts();
-  const { BottomSheet } = useSkin();
+  const { BottomSheet, Button } = useSkin();
   const c = useTabColors();
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draft, setDraft] = useState<NoteDraft>();
@@ -188,7 +188,7 @@ export function MarkdownNoteTab({
           <Text accessibilityRole="alert" style={{ color }}>
             {error}
           </Text>
-          <Button title="Retry" onPress={() => refresh((n) => n + 1)} />
+          <Button label="Retry" onPress={() => refresh((n) => n + 1)} />
         </>
       )}
       {confirmDiscard && (
@@ -216,10 +216,10 @@ export function MarkdownNoteTab({
               <View
                 style={{ flexDirection: 'row', justifyContent: 'flex-end' }}
               >
-                <Button title="Cancel" onPress={() => dismiss()} />
+                <Button label="Cancel" onPress={() => dismiss()} />
                 <Button
-                  title="Discard"
-                  color={c.danger}
+                  label="Discard"
+                  tone="danger"
                   onPress={() =>
                     dismiss(() => {
                       setConfirmDiscard(false);

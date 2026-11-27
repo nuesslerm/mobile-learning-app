@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  Button,
   Platform,
   ScrollView,
   Text,
@@ -60,7 +59,7 @@ export function WorkspaceTabsScreen({
   const [agentError, setAgentError] = useState('');
   const { top, bottom } = useSafeAreaInsets();
   const color = useSkinTheme().tabs.headerInk;
-  const { ChatSurface, SessionHeader, SessionTabsSheet, NewTabSheet } =
+  const { Button, ChatSurface, SessionHeader, SessionTabsSheet, NewTabSheet } =
     useSkin();
   useEffect(() => {
     if (showNew) setSheet('new');
@@ -235,7 +234,7 @@ export function WorkspaceTabsScreen({
               }}
             >
               <Button
-                title="New Tab"
+                label="New Tab"
                 disabled={busy}
                 onPress={() => setSheet('new')}
               />

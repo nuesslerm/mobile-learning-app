@@ -272,8 +272,6 @@
       // skin-pending: files that still use a React Native control or Text. The list only shrinks, as above
       "files": [
         "mla-tamagui/app-shell/showcase/items/compactNavigation.tsx",
-        "mla-tamagui/features/coding-agent/src/ui/AvailabilityNotice.tsx",
-        "mla-tamagui/features/coding-agent/src/ui/ChatSourceControl.tsx",
         "mla-tamagui/features/coding-agent/src/ui/T3ChatAttachments.tsx",
         "mla-tamagui/features/coding-agent/src/ui/settings/ChatUiSettingsScreen.tsx",
         "mla-tamagui/features/coding-agent/src/ui/workspaceTabs/BrowserTab.tsx",

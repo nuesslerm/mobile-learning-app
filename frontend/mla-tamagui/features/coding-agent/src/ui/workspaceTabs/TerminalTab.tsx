@@ -1,3 +1,4 @@
+import { useSkin } from '@lib/skin';
 import {
   lazy,
   Suspense,
@@ -7,7 +8,6 @@ import {
   type ComponentRef,
 } from 'react';
 import {
-  Button,
   Keyboard,
   Pressable,
   ScrollView,
@@ -88,6 +88,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
     };
   }, [api, pair, layout, tab, revision]);
   const c = useTabColors();
+  const { Button } = useSkin();
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const [mediaError, setMediaError] = useState('');
   const [focused, setFocused] = useState(false);
@@ -168,7 +169,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
           <Text accessibilityRole="alert" style={{ color: 'white' }}>
             {error}
           </Text>
-          <Button title="Reconnect" onPress={() => retry((n) => n + 1)} />
+          <Button label="Reconnect" onPress={() => retry((n) => n + 1)} />
         </>
       )}
       <View

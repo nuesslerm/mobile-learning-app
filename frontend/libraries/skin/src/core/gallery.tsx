@@ -56,6 +56,11 @@ export const GALLERY_ENTRIES = {
   Row: 'layout',
   Stack: 'layout',
   Text: 'layout',
+  Button: 'controls',
+  TextField: 'controls',
+  Switch: 'controls',
+  Spinner: 'controls',
+  Notice: 'controls',
 } as const satisfies Record<keyof Skin, string>;
 
 export type GallerySection = (typeof GALLERY_ENTRIES)[keyof Skin];
@@ -423,6 +428,31 @@ function Layout() {
   );
 }
 
+function Controls() {
+  const skin = useSkin();
+  const [on, setOn] = useState(true);
+  const [url, setUrl] = useState('http://localhost:3000');
+  return (
+    <skin.HomeSurface>
+      <skin.Stack padding="lg" gap="lg">
+        <skin.Row gap="md" align="center">
+          <skin.Button label="Retry" onPress={noop} />
+          <skin.Button label="Discard" tone="danger" onPress={noop} />
+          <skin.Button label="Disabled" disabled onPress={noop} />
+        </skin.Row>
+        <skin.Row gap="md" align="center">
+          <skin.Switch value={on} onValueChange={setOn} accessibilityLabel="Example switch" />
+          <skin.Switch value={false} onValueChange={noop} accessibilityLabel="Disabled switch" disabled />
+          <skin.Spinner accessibilityLabel="Loading" />
+        </skin.Row>
+        <skin.TextField value={url} onChangeText={setUrl} placeholder="Address" keyboard="url" />
+        <skin.TextField value="" onChangeText={noop} placeholder="An empty field shows its placeholder" />
+      </skin.Stack>
+      <skin.Notice title="Worktree unavailable" detail="This worktree may have been deleted or moved on the desktop." actionLabel="View workspaces" onAction={noop} />
+    </skin.HomeSurface>
+  );
+}
+
 function TabControls() {
   const { WorkspaceTabControl } = useSkin();
   const { tabs } = useSkinTheme();
@@ -641,6 +671,9 @@ export function SkinGallery({ section, topInset, bottomInset, onOpen }: Insets &
       break;
     case 'source-control':
       body = <SourceControlSection />;
+      break;
+    case 'controls':
+      body = <Controls />;
       break;
     case 'layout':
       body = <Layout />;

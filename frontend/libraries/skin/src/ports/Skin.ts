@@ -6,6 +6,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type { BottomSheetProps } from './BottomSheet';
 import type { WorkspaceTabControlProps } from './WorkspaceTabComponents';
 import type { LayoutProps, TextProps } from './Layout';
+import type { ButtonProps, NoticeProps, SpinnerProps, SwitchProps, TextFieldProps } from './Controls';
 import type { ComposerOptionsProps, NewTabSheetProps, SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
 export interface OnboardingChoiceProps {
@@ -264,4 +265,9 @@ export interface Skin {
   /** Lays its children out one under the other. */
   Stack: ComponentType<LayoutProps>;
   Text: ComponentType<TextProps>;
+  Button: ComponentType<ButtonProps>;
+  TextField: ComponentType<TextFieldProps>;
+  Switch: ComponentType<SwitchProps>;
+  Spinner: ComponentType<SpinnerProps>;
+  Notice: ComponentType<NoticeProps>;
 }
