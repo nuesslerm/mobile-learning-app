@@ -1,4 +1,4 @@
-import { createContext, useContext, type ComponentType, type ReactNode } from 'react';
+import { createContext, createElement, useContext, type ComponentType, type ReactNode } from 'react';
 
 /** Which skin draws the app. */
 export type SkinPreference = 'tamagui' | 'orca';
@@ -34,5 +34,5 @@ export function SkinThemeBoundary({ children }: { children: ReactNode }) {
   const Theme = useContext(ActiveSkinThemeContext);
   if (Theme === undefined) throw new Error('ActiveSkinThemeProvider is required');
   if (Theme === null) return null;
-  return <Theme>{children}</Theme>;
+  return createElement(Theme, null, children);
 }
