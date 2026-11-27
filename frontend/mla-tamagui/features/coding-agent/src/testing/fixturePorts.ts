@@ -1,7 +1,11 @@
 import type { ChatTextPreference } from '@lib/agent-ui-contracts';
 import { createFixtureDispatchRunsGateway } from './fixtureDispatchRuns';
 import { createFixtureGateway } from './fixtureGateway';
-import type { AppearancePreference, CodingAgentPorts } from '../domain/ports';
+import type {
+  AppearancePreference,
+  CodingAgentPorts,
+  ComponentSetPreference,
+} from '../domain/ports';
 
 const FIXTURE_DASHBOARD_BASE_URL = 'http://vm-ops-api-main:8080';
 
@@ -10,6 +14,7 @@ export function createFixturePorts(): CodingAgentPorts {
   let token: string | null = null;
   let chatText: ChatTextPreference | null = null;
   let appearance: AppearancePreference = 'system';
+  let componentSet: ComponentSetPreference = 'tamagui';
   let notificationsEnabled = false;
   let lastUpdateCheckAt: number | null = null;
   return {
@@ -39,6 +44,10 @@ export function createFixturePorts(): CodingAgentPorts {
       readAppearance: async () => appearance,
       writeAppearance: async (next) => {
         appearance = next;
+      },
+      readComponentSet: async () => componentSet,
+      writeComponentSet: async (next) => {
+        componentSet = next;
       },
       readNotificationsEnabled: async () => notificationsEnabled,
       writeNotificationsEnabled: async (next) => {

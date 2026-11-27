@@ -4,6 +4,7 @@ import type {
   AppInfoPort,
   AppUpdateCheck,
   AppUpdatePort,
+  ComponentSetPreference,
   ExternalLinksPort,
   SettingsPreferencesPort,
 } from '../domain/ports';
@@ -16,6 +17,7 @@ export interface SettingsPortDoubles {
   /** What the doubles were asked to do, so a test can assert it. */
   recorded: {
     appearance: AppearancePreference;
+    componentSet: ComponentSetPreference;
     notificationsEnabled: boolean;
     lastUpdateCheckAt: number | null;
     checks: number;
@@ -31,6 +33,7 @@ export function createSettingsPortDoubles(
   let chatText: ChatTextPreference | null = null;
   const recorded: SettingsPortDoubles['recorded'] = {
     appearance: 'system',
+    componentSet: 'tamagui',
     notificationsEnabled: false,
     lastUpdateCheckAt: null,
     checks: 0,
@@ -43,6 +46,10 @@ export function createSettingsPortDoubles(
     readAppearance: async () => recorded.appearance,
     writeAppearance: async (preference) => {
       recorded.appearance = preference;
+    },
+    readComponentSet: async () => recorded.componentSet,
+    writeComponentSet: async (preference) => {
+      recorded.componentSet = preference;
     },
     readNotificationsEnabled: async () => recorded.notificationsEnabled,
     writeNotificationsEnabled: async (enabled) => {

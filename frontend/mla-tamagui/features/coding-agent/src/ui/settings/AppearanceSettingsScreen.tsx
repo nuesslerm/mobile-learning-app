@@ -9,7 +9,11 @@ import {
   useAppearancePreference,
 } from '@lib/agent-ui-contracts';
 
-import type { AppearancePreference } from '../../domain/ports';
+import type {
+  AppearancePreference,
+  ComponentSetPreference,
+} from '../../domain/ports';
+import { useComponentSet } from '../../state/componentSet';
 import { OrcaSettingsScreen } from './OrcaSettingsScreen';
 
 const THEMES: readonly { value: AppearancePreference; label: string }[] = [
@@ -18,7 +22,13 @@ const THEMES: readonly { value: AppearancePreference; label: string }[] = [
   { value: 'dark', label: 'Dark' },
 ];
 
+const DESIGNS: readonly { value: ComponentSetPreference; label: string }[] = [
+  { value: 'tamagui', label: 'App design' },
+  { value: 'orca', label: 'Orca design' },
+];
+
 export function AppearanceSettingsScreen() {
+  const design = useComponentSet();
   const { HomeSettingsGroup, HomeSettingsRow, HomeSettingsNote } = useAgentComponents();
   const { preference, select } = useAppearancePreference();
   return (
@@ -33,6 +43,19 @@ export function AppearanceSettingsScreen() {
             label={theme.label}
             selected={preference === theme.value}
             onPress={() => select(theme.value)}
+          />
+        ))}
+      </HomeSettingsGroup>
+      <HomeSettingsNote>
+        App design matches the rest of this app; Orca design mirrors the Orca app.
+      </HomeSettingsNote>
+      <HomeSettingsGroup separatorInset={HOME_SETTINGS_SEPARATOR_INSET_PLAIN}>
+        {DESIGNS.map((option) => (
+          <HomeSettingsRow
+            key={option.value}
+            label={option.label}
+            selected={design.preference === option.value}
+            onPress={() => design.select(option.value)}
           />
         ))}
       </HomeSettingsGroup>

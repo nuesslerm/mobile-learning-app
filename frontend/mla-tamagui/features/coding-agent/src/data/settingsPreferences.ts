@@ -15,6 +15,7 @@ import type {
 export const CODING_AGENT_SETTINGS_STORAGE_KEY = 'coding-agent.settings';
 
 const APPEARANCE_KEY = 'appearance';
+const COMPONENT_SET_KEY = 'componentSet';
 const NOTIFICATIONS_KEY = 'notificationsEnabled';
 const LAST_UPDATE_CHECK_KEY = 'lastUpdateCheckAt';
 
@@ -77,6 +78,12 @@ export function createAsyncStorageSettingsPreferences(
     },
     async writeAppearance(preference) {
       await write(APPEARANCE_KEY, preference);
+    },
+    async readComponentSet() {
+      return (await read(COMPONENT_SET_KEY)) === 'orca' ? 'orca' : 'tamagui';
+    },
+    async writeComponentSet(preference) {
+      await write(COMPONENT_SET_KEY, preference);
     },
     async readNotificationsEnabled() {
       return (await read(NOTIFICATIONS_KEY)) === 'true';

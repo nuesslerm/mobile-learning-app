@@ -10,6 +10,10 @@ import {
   type AgentComponents,
 } from '@lib/agent-ui-contracts';
 import { OrcaThemeProvider, orcaComponents } from '@lib/orca-design-system';
+import {
+  TamaguiThemeProvider,
+  tamaguiComponents,
+} from '@lib/tamagui-agent-components';
 import { appConfig } from '@lib/app-config';
 import { overrideKey, useDependencyOverrides } from '@lib/app-di';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -22,7 +26,12 @@ import { createAsyncStorageSettingsPreferences } from '../data/settingsPreferenc
 import { createAsyncStorageTokenStore } from '../data/tokenStore';
 import { createMobileApi } from '../data/rca/mobileApi';
 import { createWsOrchestration } from '../data/wsOrchestration';
-import type { AppearancePreference, CodingAgentPorts } from '../domain/ports';
+import type {
+  AppearancePreference,
+  CodingAgentPorts,
+  ComponentSetPreference,
+} from '../domain/ports';
+import { ComponentSetProvider, useComponentSet } from '../state/componentSet';
 import { CodingAgentPortsProvider, useCodingAgentPorts } from '../state/ports';
 
 export const CODING_AGENT_OVERRIDES =
@@ -58,17 +67,22 @@ export function createDefaultPorts(
   };
 }
 
-/** The device's theme choice: read once, then kept in step with what the user picks. */
-function useAppearancePreferenceState(): {
-  preference: AppearancePreference;
-  select: (preference: AppearancePreference) => void;
-} {
-  const { preferences } = useCodingAgentPorts();
-  const [preference, setPreference] = useState<AppearancePreference>('system');
+const COMPONENT_SETS = {
+  tamagui: { components: tamaguiComponents, Theme: TamaguiThemeProvider },
+  orca: { components: orcaComponents, Theme: OrcaThemeProvider },
+};
+
+/** A device choice: read once, then kept in step with what the user picks. */
+function useStoredPreference<T>(
+  initial: T,
+  read: () => Promise<T>,
+  write: (next: T) => Promise<void>
+): { preference: T; select: (next: T) => void } {
+  const [preference, setPreference] = useState(initial);
 
   useEffect(() => {
     let active = true;
-    void preferences.readAppearance().then((stored) => {
+    void read().then((stored) => {
       if (active) {
         setPreference(stored);
       }
@@ -76,27 +90,35 @@ function useAppearancePreferenceState(): {
     return () => {
       active = false;
     };
-  }, [preferences]);
+  }, [read]);
 
   const select = useCallback(
-    (next: AppearancePreference) => {
+    (next: T) => {
       setPreference(next);
-      void preferences.writeAppearance(next);
+      void write(next);
     },
-    [preferences]
+    [write]
   );
 
   return { preference, select };
 }
 
-/** Hands the theme choice to the design system, once the ports are in place. */
+/** Hands the theme and design choices to the screens, once the ports are in place. */
 function AppearanceGate({ children }: { children: ReactNode }) {
-  const appearance = useAppearancePreferenceState();
+  const { preferences } = useCodingAgentPorts();
+  const appearance = useStoredPreference<AppearancePreference>(
+    'system',
+    preferences.readAppearance,
+    preferences.writeAppearance
+  );
+  const componentSet = useStoredPreference<ComponentSetPreference>(
+    'tamagui',
+    preferences.readComponentSet,
+    preferences.writeComponentSet
+  );
   return (
-    <AppearancePreferenceContextProvider
-      value={{ preference: appearance.preference, select: appearance.select }}
-    >
-      <OrcaThemeProvider>{children}</OrcaThemeProvider>
+    <AppearancePreferenceContextProvider value={appearance}>
+      <ComponentSetProvider value={componentSet}>{children}</ComponentSetProvider>
     </AppearancePreferenceContextProvider>
   );
 }
@@ -104,20 +126,30 @@ function AppearanceGate({ children }: { children: ReactNode }) {
 export function CodingAgentContainer({ children }: { children: ReactNode }) {
   const overrides = useDependencyOverrides(CODING_AGENT_OVERRIDES);
   const ports = useMemo(() => createDefaultPorts(overrides), [overrides]);
-  const uiOverrides = useDependencyOverrides(CODING_AGENT_UI_OVERRIDES);
-  const components = useMemo(
-    () => ({ ...orcaComponents, ...uiOverrides }),
-    [uiOverrides]
-  );
   return (
     <CodingAgentPortsProvider value={ports}>
       <AppearanceGate>
         <ChatTextGate>
-          <AgentComponentsProvider value={components}>
-            {children}
-          </AgentComponentsProvider>
+          <ComponentSetGate>{children}</ComponentSetGate>
         </ChatTextGate>
       </AppearanceGate>
     </CodingAgentPortsProvider>
+  );
+}
+
+function ComponentSetGate({ children }: { children: ReactNode }) {
+  const { preference } = useComponentSet();
+  const { components: base, Theme } = COMPONENT_SETS[preference];
+  const uiOverrides = useDependencyOverrides(CODING_AGENT_UI_OVERRIDES);
+  const components = useMemo(
+    () => ({ ...base, ...uiOverrides }),
+    [base, uiOverrides]
+  );
+  return (
+    <Theme>
+      <AgentComponentsProvider value={components}>
+        {children}
+      </AgentComponentsProvider>
+    </Theme>
   );
 }

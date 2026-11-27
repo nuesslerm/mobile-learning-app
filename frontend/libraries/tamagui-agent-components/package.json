@@ -1,0 +1,28 @@
+{
+  "name": "@lib/tamagui-agent-components",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@lib/agent-ui-contracts": "workspace:*",
+    "@lib/orca-design-system": "workspace:*"
+  },
+  "arch": {
+    "type": "component-library"
+  }
+}

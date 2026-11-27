@@ -575,6 +575,24 @@ importers:
       dependency-cruiser:
         specifier: ^17.4.3
         version: 17.4.3
+  frontend/libraries/tamagui-agent-components:
+    dependencies:
+      '@lib/agent-ui-contracts':
+        specifier: workspace:*
+        version: link:../agent-ui-contracts
+      '@lib/orca-design-system':
+        specifier: workspace:*
+        version: link:../orca-design-system
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
 
   frontend/libraries/tamagui-design-system:
     dependencies:
@@ -1029,6 +1047,9 @@ importers:
       '@lib/orca-design-system':
         specifier: workspace:*
         version: link:../../../libraries/orca-design-system
+      '@lib/tamagui-agent-components':
+        specifier: workspace:*
+        version: link:../../../libraries/tamagui-agent-components
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../../../libraries/tamagui-design-system

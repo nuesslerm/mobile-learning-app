@@ -12,6 +12,7 @@ packages:
   - frontend/libraries/app-config
   - frontend/libraries/agent-ui-contracts
   - frontend/libraries/orca-design-system
+  - frontend/libraries/tamagui-agent-components
   - frontend/libraries/app-di
   - frontend/libraries/code-editor-api
   - libraries/browser-client

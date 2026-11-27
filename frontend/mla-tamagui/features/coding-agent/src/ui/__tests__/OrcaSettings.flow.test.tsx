@@ -119,6 +119,15 @@ describe('The settings screens', () => {
     expect(doubles.recorded.appearance).toBe('dark');
   });
 
+  it('Given the appearance screen, when the user picks the Orca design, then the device keeps it', async () => {
+    const { doubles, overrides } = settings();
+    await app.render('/coding-agent/appearance-settings', { overrides });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Orca design' }));
+
+    expect(doubles.recorded.componentSet).toBe('orca');
+  });
+
   it('Given saved chat text, when font and spacing change and then reset, the device keeps the edits until reset', async () => {
     const { doubles, overrides } = settings();
     await doubles.preferences.writeChatText({size:19, font:'system', lineSpacing:'default'});
