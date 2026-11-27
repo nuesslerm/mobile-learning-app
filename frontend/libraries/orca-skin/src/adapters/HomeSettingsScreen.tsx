@@ -14,6 +14,7 @@ export function HomeSettingsScreen(props: HomeSettingsScreenProps) {
   const { bottom } = useSafeAreaInsets();
   const colors = homePalettes[useOrcaScheme()];
   return (
+    <View style={{ flex: 1, paddingTop: props.topInset, backgroundColor: colors.bgBase }}>
     <View style={[styles.settingsScreen, { backgroundColor: colors.bgBase }]}>
       <View style={styles.settingsNavBar}>
         <Pressable
@@ -34,6 +35,7 @@ export function HomeSettingsScreen(props: HomeSettingsScreenProps) {
       >
         {props.children}
       </ScrollView>
+    </View>
     </View>
   );
 }

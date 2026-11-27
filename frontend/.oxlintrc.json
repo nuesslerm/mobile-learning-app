@@ -273,7 +273,6 @@
       "files": [
         "mla-tamagui/app-shell/showcase/items/compactNavigation.tsx",
         "mla-tamagui/features/coding-agent/src/ui/T3ChatAttachments.tsx",
-        "mla-tamagui/features/coding-agent/src/ui/settings/ChatUiSettingsScreen.tsx",
         "mla-tamagui/features/coding-agent/src/ui/workspaceTabs/BrowserTab.tsx",
         "mla-tamagui/features/coding-agent/src/ui/workspaceTabs/MarkdownNoteTab.tsx",
         "mla-tamagui/features/coding-agent/src/ui/workspaceTabs/RichNoteEditor.tsx",

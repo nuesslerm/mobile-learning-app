@@ -15,6 +15,11 @@ export type ListItemProps = {
   /** Suppress the automatic press log -- e.g. a log-viewer row, which would recurse. */
   pressLog?: 'off';
   testID: string;
+  /** Makes a pressable row a button with this name for assistive tech. */
+  accessibilityLabel?: string;
+  /** The row is the picked one of a set. */
+  selected?: boolean;
+  disabled?: boolean;
   /** Grouped rows sit flush inside an InsetGroup; standalone rows carry their own surface. */
   variant?: 'standalone' | 'grouped';
 };
@@ -36,6 +41,9 @@ export function ListItem({
   pressLog,
   testID,
   variant = 'standalone',
+  accessibilityLabel,
+  selected,
+  disabled,
 }: ListItemProps) {
   const handlePress = () => {
     if (!onPress) return;
@@ -52,9 +60,14 @@ export function ListItem({
       py="$3"
       bg={variant === 'grouped' ? 'transparent' : '$color2'}
       rounded={variant === 'grouped' ? 0 : '$4'}
+      {...(disabled ? { opacity: 0.4 } : {})}
       {...(onPress
         ? {
             onPress: handlePress,
+            disabled,
+            ...(accessibilityLabel
+              ? { role: 'button' as const, 'aria-label': accessibilityLabel, 'aria-selected': selected, 'aria-disabled': Boolean(disabled) }
+              : {}),
             pressStyle: { bg: '$color3' },
             cursor: 'pointer',
           }

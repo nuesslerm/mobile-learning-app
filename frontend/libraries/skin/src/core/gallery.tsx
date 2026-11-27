@@ -61,6 +61,10 @@ export const GALLERY_ENTRIES = {
   Switch: 'controls',
   Spinner: 'controls',
   Notice: 'controls',
+  HomeSettingsSectionTitle: 'chat-settings',
+  HomeSettingsSpacer: 'chat-settings',
+  ChatTextPreview: 'chat-settings',
+  OptionSheet: 'sheet-options',
 } as const satisfies Record<keyof Skin, string>;
 
 export type GallerySection = (typeof GALLERY_ENTRIES)[keyof Skin];
@@ -94,11 +98,11 @@ function Stage({ children, padded = true }: { children: ReactNode; padded?: bool
   return <View style={{ gap: 12, padding: padded ? 16 : 0 }}>{children}</View>;
 }
 
-function Settings() {
+function Settings({ topInset }: { topInset: number }) {
   const skin = useSkin();
   const [on, setOn] = useState(true);
   return (
-    <skin.HomeSettingsScreen title="Settings" onBack={noop}>
+    <skin.HomeSettingsScreen title="Settings" topInset={topInset} onBack={noop}>
       <skin.HomeSettingsNote>A note explains the group beneath it.</skin.HomeSettingsNote>
       <skin.HomeSettingsGroup separatorInset={52}>
         <skin.HomeSettingsRow icon="appearance" label="Opens a screen" navigates onPress={noop} />
@@ -116,6 +120,24 @@ function Settings() {
       <skin.HomeSettingsGroup separatorInset={16}>
         <skin.ChatSizeControl label="Text size" />
         <skin.ChatSpacingControl label />
+      </skin.HomeSettingsGroup>
+    </skin.HomeSettingsScreen>
+  );
+}
+
+function ChatSettings({ topInset }: { topInset: number }) {
+  const skin = useSkin();
+  return (
+    <skin.HomeSettingsScreen title="Chat UI" topInset={topInset} onBack={noop}>
+      <skin.ChatTextPreview question="Why is the resume test flaky?" activity="Read 3 files · Ran pnpm test" answer={ANSWER} copyCode={async () => true} />
+      <skin.HomeSettingsSectionTitle>TEXT</skin.HomeSettingsSectionTitle>
+      <skin.HomeSettingsGroup separatorInset={16}>
+        <skin.HomeSettingsRow label="Font" value="System" navigates onPress={noop} />
+      </skin.HomeSettingsGroup>
+      <skin.HomeSettingsNote>Pinch in a chat to change it; it saves here.</skin.HomeSettingsNote>
+      <skin.HomeSettingsSpacer size="lg" />
+      <skin.HomeSettingsGroup>
+        <skin.HomeSettingsRow label="Reset text settings" disabled onPress={noop} />
       </skin.HomeSettingsGroup>
     </skin.HomeSettingsScreen>
   );
@@ -592,6 +614,21 @@ function Overlay({ section, topInset, bottomInset }: Insets & { section: Gallery
           onRetry={noop}
         />
       );
+    case 'sheet-options':
+      return (
+        <skin.OptionSheet
+          title="Chat font"
+          dismissLabel="Dismiss Chat font"
+          bottomInset={bottomInset}
+          options={[
+            { id: 'system', label: 'System', subtitle: 'SF Pro', selected: true },
+            { id: 'serif', label: 'Serif', subtitle: 'New York' },
+            { id: 'mono', label: 'Monospace', subtitle: 'Same as code' },
+          ]}
+          onSelect={noop}
+          onClose={noop}
+        />
+      );
     case 'sheet-plain':
       return (
         <skin.BottomSheet label="Dismiss sheet" onClose={noop} style={{ backgroundColor: colors.sheetSurface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 16, paddingBottom: bottomInset + 16 }}>
@@ -619,10 +656,10 @@ function Overlay({ section, topInset, bottomInset }: Insets & { section: Gallery
   }
 }
 
-function Index({ onOpen }: { onOpen: (section: GallerySection) => void }) {
+function Index({ onOpen, topInset }: { onOpen: (section: GallerySection) => void; topInset: number }) {
   const skin = useSkin();
   return (
-    <skin.HomeSettingsScreen title="Skin gallery" onBack={noop}>
+    <skin.HomeSettingsScreen title="Skin gallery" topInset={topInset} onBack={noop}>
       <skin.HomeSettingsNote>Every entry of the skin contract, drawn by the selected skin.</skin.HomeSettingsNote>
       <skin.HomeSettingsGroup separatorInset={16}>
         {GALLERY_SECTIONS.map((section) => (
@@ -641,10 +678,13 @@ export function SkinGallery({ section, topInset, bottomInset, onOpen }: Insets &
   let body: ReactNode;
   switch (known) {
     case undefined:
-      body = <Index onOpen={onOpen} />;
+      body = <Index onOpen={onOpen} topInset={topInset} />;
       break;
     case 'settings':
-      body = <Settings />;
+      body = <Settings topInset={topInset} />;
+      break;
+    case 'chat-settings':
+      body = <ChatSettings topInset={topInset} />;
       break;
     case 'home':
       body = <Home bottomInset={bottomInset} />;
@@ -684,7 +724,7 @@ export function SkinGallery({ section, topInset, bottomInset, onOpen }: Insets &
     default:
       body = <Overlay section={known} {...insets} />;
   }
-  const ownsTopInset = known === 'chat';
+  const ownsTopInset = known === undefined || known === 'chat' || known === 'settings' || known === 'chat-settings';
   return (
     <View testID={`SkinGallery-${known ?? 'index'}`} style={{ flex: 1, paddingTop: ownsTopInset ? 0 : topInset, backgroundColor: colors.bgBase }}>
       {body}

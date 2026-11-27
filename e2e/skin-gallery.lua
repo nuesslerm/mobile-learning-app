@@ -12,9 +12,9 @@ features: *
 local base = env.base or "http://127.0.0.1:8800/mla-tamagui"
 
 local SECTIONS = {
-  "settings", "home", "unpaired", "onboarding", "pairing", "chat", "suggestions", "workspaces", "source-control", "tab-controls", "layout", "controls",
+  "settings", "home", "unpaired", "onboarding", "pairing", "chat", "suggestions", "workspaces", "source-control", "tab-controls", "layout", "controls", "chat-settings",
   "sheet-home-actions", "sheet-new-tab", "sheet-session-tabs", "sheet-composer-options",
-  "sheet-workspace-actions", "sheet-workspace-options", "sheet-plain", "image-viewer",
+  "sheet-workspace-actions", "sheet-workspace-options", "sheet-plain", "sheet-options", "image-viewer",
 }
 -- These two focus a field, which raises the keyboard, and the browser frame keeps it up for every later page: they run last.
 local WITH_KEYBOARD = { "search", "sheet-pairing-code" }

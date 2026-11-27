@@ -202,6 +202,8 @@ export interface HomeSettingsGroupProps {
 /** A settings screen: the bar with its back button and title, then its rows. */
 export interface HomeSettingsScreenProps {
   title: string;
+  /** The safe area above the screen; the skin decides what sits in it. */
+  topInset: number;
   onBack: () => void;
   children: ReactNode;
 }
@@ -209,6 +211,35 @@ export interface HomeSettingsScreenProps {
 /** Grey text under a group: what the group means, or why it is empty. */
 export interface HomeSettingsNoteProps {
   children: ReactNode;
+}
+
+/** A caption above a settings group, e.g. "TEXT". */
+export interface HomeSettingsSectionTitleProps {
+  children: string;
+}
+
+/** Room between two settings groups where a skin does not space them itself. */
+export interface HomeSettingsSpacerProps {
+  size?: 'md' | 'lg';
+}
+
+/** A sample exchange in the chat's current text settings. */
+export interface ChatTextPreviewProps {
+  question: string;
+  activity: string;
+  answer: string;
+  copyCode?: (text: string) => Promise<boolean>;
+}
+
+/** A sheet that offers one choice out of a few. */
+export interface OptionSheetProps {
+  title: string;
+  /** The accessible name of the way out without choosing. */
+  dismissLabel: string;
+  options: readonly { id: string; label: string; subtitle?: string; selected?: boolean }[];
+  bottomInset: number;
+  onSelect: (id: string) => void;
+  onClose: () => void;
 }
 
 export interface PairedDesktopsProps {
@@ -270,4 +301,8 @@ export interface Skin {
   Switch: ComponentType<SwitchProps>;
   Spinner: ComponentType<SpinnerProps>;
   Notice: ComponentType<NoticeProps>;
+  HomeSettingsSectionTitle: ComponentType<HomeSettingsSectionTitleProps>;
+  HomeSettingsSpacer: ComponentType<HomeSettingsSpacerProps>;
+  ChatTextPreview: ComponentType<ChatTextPreviewProps>;
+  OptionSheet: ComponentType<OptionSheetProps>;
 }

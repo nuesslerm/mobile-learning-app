@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 91,
+  "last_action": "open_link{link='http://127.0.0.1:56817/mla-tamagui/gallery?section=sheet-options&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:56817/mla-tamagui/gallery?section=sheet-options&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-sheet-options"
+    ],
+    "text": "Chat font\nSystem\nSF Pro\n✓\nSerif\nNew York\nMonospace\nSame as code"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 243483,
+    "capture_ms": 106
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-dark-sheet-options",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

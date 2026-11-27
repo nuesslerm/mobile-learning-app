@@ -1,10 +1,10 @@
 {
   "platform": "browser",
   "step": 6,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=onboarding&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:56817/mla-tamagui/gallery?section=onboarding&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=onboarding&scheme=light",
+    "url": "http://127.0.0.1:56817/mla-tamagui/gallery?section=onboarding&scheme=light",
     "title": "",
     "testids": [
       "SkinGallery-onboarding"
@@ -16,8 +16,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 13406,
-    "capture_ms": 114
+    "since_start_ms": 13757,
+    "capture_ms": 115
   },
   "tolerance": {
     "threshold": 0.1,

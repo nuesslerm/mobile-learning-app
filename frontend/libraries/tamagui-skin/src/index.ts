@@ -6,6 +6,7 @@ import { HomeSettingsNote } from './adapters/home/HomeSettingsNote';
 import { HomeSettingsRow } from './adapters/home/HomeSettingsRow';
 import { HomeSettingsScreen } from './adapters/home/HomeSettingsScreen';
 import { HomeSurface } from './adapters/home/HomeSurface';
+import { ChatTextPreview, HomeSettingsSectionTitle, HomeSettingsSpacer, OptionSheet } from './adapters/home/settingsExtras';
 import { Row, Stack, Text } from './adapters/layout/layout';
 import { Button, Notice, Spinner, Switch, TextField } from './adapters/controls/controls';
 
@@ -25,6 +26,10 @@ export const tamaguiSkin: Skin = {
   Switch,
   Spinner,
   Notice,
+  HomeSettingsSectionTitle,
+  HomeSettingsSpacer,
+  ChatTextPreview,
+  OptionSheet,
 };
 
 export { TamaguiThemeProvider } from './adapters/theme/TamaguiThemeProvider';

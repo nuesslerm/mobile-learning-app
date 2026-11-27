@@ -19,6 +19,10 @@ export type {
   HomeSettingsGroupProps,
   HomeSettingsScreenProps,
   HomeSettingsNoteProps,
+  HomeSettingsSectionTitleProps,
+  HomeSettingsSpacerProps,
+  ChatTextPreviewProps,
+  OptionSheetProps,
 } from './ports/Skin';
 export {
   HOME_SETTINGS_SEPARATOR_INSET,

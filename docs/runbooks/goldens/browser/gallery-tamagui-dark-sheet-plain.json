@@ -1,10 +1,10 @@
 {
   "platform": "browser",
-  "step": 37,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-plain&scheme=dark'}",
+  "step": 44,
+  "last_action": "open_link{link='http://127.0.0.1:56817/mla-tamagui/gallery?section=sheet-plain&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-plain&scheme=dark",
+    "url": "http://127.0.0.1:56817/mla-tamagui/gallery?section=sheet-plain&scheme=dark",
     "title": "",
     "testids": [
       "SkinGallery-sheet-plain"
@@ -16,8 +16,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 98331,
-    "capture_ms": 91
+    "since_start_ms": 117988,
+    "capture_ms": 111
   },
   "tolerance": {
     "threshold": 0.1,

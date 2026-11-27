@@ -1,15 +1,20 @@
 {
   "platform": "browser",
-  "step": 21,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=settings&scheme=dark'}",
+  "step": 25,
+  "last_action": "open_link{link='http://127.0.0.1:56817/mla-tamagui/gallery?section=settings&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=settings&scheme=dark",
+    "url": "http://127.0.0.1:56817/mla-tamagui/gallery?section=settings&scheme=dark",
     "title": "",
     "testids": [
       "SkinGallery-settings",
-      "agent-settings-group",
-      "agent-settings-switch"
+      "skin-settings-screen",
+      "skin-settings-header",
+      "skin-settings-headerBack",
+      "skin-settings-headerTitle",
+      "skin-settings-group",
+      "skin-settings-row",
+      "skin-settings-switch"
     ],
     "text": "Settings\nA note explains the group beneath it.\nOpens a screen\nShows a value\nMenlo\nCarries a switch\nOffers an action\nUpdate\nPicked option\nOther option\nDisabled row\nText size\nDefault\nA\nA\nLine spacing\nCompact\nDefault\nRelaxed"
   },
@@ -18,8 +23,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 54655,
-    "capture_ms": 105
+    "since_start_ms": 66338,
+    "capture_ms": 123
   },
   "tolerance": {
     "threshold": 0.1,
