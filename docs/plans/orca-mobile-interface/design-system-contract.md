@@ -96,6 +96,8 @@ How the plan keeps the door open:
 - Tamagui's helpers stay fully usable inside the skin: `styled()`, variants, tokens, `Theme`, `useTheme`, media queries, `pressStyle`. They stop being usable in features, which is the point of the ban.
 - The theme still switches through Tamagui's `Theme`, so a light/dark change does not re-render through the contract.
 
+The alternative that keeps call-site optimisation is to pick the skin at build time: `@lib/skin` becomes a module the bundler resolves to one skin, features import components statically, and the compiler sees every element. The price is that the design stops being a user setting; each skin is its own bundle or EAS channel. Decision 1 chose the runtime setting, so this plan injects at runtime and keeps the optimisation inside the skin. The step 1 spike measures the difference; if it is large, revisit decision 1.
+
 What is lost for good: token shorthand and responsive props written at the call site in a feature (`$gtSm={{ gap: '$4' }}`), and any future flattening of feature-level layout. Step 1 measures render time on the LeetCode list and editor with one screen converted, before the rest follows.
 
 ## Enforcement
@@ -112,6 +114,15 @@ What is lost for good: token shorthand and responsive props written at the call 
 Each rule lands with a list of the files that still break it. A list only shrinks; a rule is done when its list is empty and deleted.
 
 ## Steps
+
+### 0. Turn the compiler back on, before any skin work
+
+1. Reproduce the failure that made `disableExtraction: true` necessary (elements with a theme token missing from the web export), with Metro's cache cleared.
+2. Suspects to test, one at a time: the babel plugin lists `components: ['tamagui']` while Metro's `withTamagui` lists `['tamagui', '@lib/tamagui-design-system']`, so two compiler passes run with different settings; the app imports from single `@tamagui/*` packages, not the `tamagui` barrel; the installed 2.7.7 against the current release.
+3. Gate: extraction on, `expo export --platform web` renders every route (`e2e/app-routes.lua`), the 22 iOS baselines pass, and the plugin's timing log reports optimised and flattened elements on the LeetCode list.
+4. Record render time and bundle size as the baseline every later step is compared with.
+
+If extraction cannot be made correct on this version, say so in issue #102 and continue: the skin work does not depend on it.
 
 ### 1. Rename, seal and measure (no visual change)
 
