@@ -38,3 +38,11 @@ export type { WorkspaceOptionGroup, WorkspaceOptionRow, WorkspaceOptionsProps } 
 export type { HostWorkspaceListProps, WorkspaceActionsProps } from './ports/HostWorkspaceList';
 
 export type { SourceControlProps, SourceCommit, SourceFile, SourceCodeLine, SourceFileReview } from './ports/SourceControl';
+
+export type { AgentTheme, AgentColors, AgentSyntaxColors, AgentTabColors } from './ports/AgentTheme';
+export { AgentThemeProvider, useAgentTheme } from './core/AgentThemeContext';
+export type { AppearancePreference, AppearancePreferenceValue } from './core/appearance';
+export { AppearancePreferenceContextProvider, useAppearancePreference } from './core/appearance';
+export { ChatTextContext, useChatText } from './core/chatText';
+export type { BottomSheetProps } from './ports/BottomSheet';
+export type { WorkspaceTabControlProps } from './ports/WorkspaceTabComponents';

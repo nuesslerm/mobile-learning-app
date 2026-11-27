@@ -6,8 +6,8 @@
 import {
   HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
   useAgentComponents,
+  useAppearancePreference,
 } from '@lib/agent-ui-contracts';
-import { useAppearancePreference } from '@lib/orca-design-system';
 
 import type { AppearancePreference } from '../../domain/ports';
 import { OrcaSettingsScreen } from './OrcaSettingsScreen';

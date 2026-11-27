@@ -5,14 +5,13 @@ import {
   ScrollView,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { router } from 'expo-router';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useAgentComponents, useAgentTheme } from '@lib/agent-ui-contracts';
 import { Logger } from '@lib/logging';
 import { chatRoute } from '../../domain/workspaceCatalog';
 import type { Pairing } from '../../domain/mobile';
@@ -60,7 +59,7 @@ export function WorkspaceTabsScreen({
   const [chats, setChats] = useState<{ id: string; title: string }[]>([]);
   const [agentError, setAgentError] = useState('');
   const { top, bottom } = useSafeAreaInsets();
-  const color = useColorScheme() === 'dark' ? '#fafafa' : '#0a0a0a';
+  const color = useAgentTheme().tabs.headerInk;
   const { ChatSurface, SessionHeader, SessionTabsSheet, NewTabSheet } =
     useAgentComponents();
   useEffect(() => {

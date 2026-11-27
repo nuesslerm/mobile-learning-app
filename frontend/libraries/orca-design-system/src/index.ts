@@ -37,6 +37,9 @@ import { BrandMark } from './adapters/BrandMark';
 import type { AgentComponents } from '@lib/agent-ui-contracts';
 import { NotificationChoices } from './core/NotificationChoices';
 import { OnboardingChoice } from './adapters/OnboardingChoice';
+import { BottomSheet } from './adapters/BottomSheet';
+import { WorkspaceTabControl } from './adapters/WorkspaceTabControl';
+import { ChatSizeControl, ChatSpacingControl } from './adapters/ChatTextControls';
 
 export const orcaComponents: AgentComponents = {
   SourceControl,
@@ -77,21 +80,10 @@ export const orcaComponents: AgentComponents = {
   UnpairedHome,
   NotificationChoices,
   OnboardingChoice,
-};
-
-export { homePalettes, useOrcaScheme } from './adapters/appearance';
-export type { AppearancePreference } from './adapters/appearance';
-export {
-  AppearancePreferenceContextProvider,
-  useAppearancePreference,
-} from './adapters/appearance';
-
-export { ChatTextContext, useChatText } from './adapters/chatText';
-export {
+  BottomSheet,
   ChatSizeControl,
   ChatSpacingControl,
-} from './adapters/ChatTextControls';
+  WorkspaceTabControl,
+};
 
-export { useChatPalette } from './adapters/chatPalette';
-
-export { BottomSheet } from './adapters/BottomSheet';
+export { OrcaThemeProvider } from './adapters/OrcaThemeProvider';

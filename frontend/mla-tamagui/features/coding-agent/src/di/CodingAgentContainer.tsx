@@ -6,12 +6,10 @@ import { pairingCamera } from '../data/pairingCamera';
 import { createT3MobileApi } from '../data/t3/mobileApi';
 import {
   AgentComponentsProvider,
+  AppearancePreferenceContextProvider,
   type AgentComponents,
 } from '@lib/agent-ui-contracts';
-import {
-  AppearancePreferenceContextProvider,
-  orcaComponents,
-} from '@lib/orca-design-system';
+import { OrcaThemeProvider, orcaComponents } from '@lib/orca-design-system';
 import { appConfig } from '@lib/app-config';
 import { overrideKey, useDependencyOverrides } from '@lib/app-di';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -98,7 +96,7 @@ function AppearanceGate({ children }: { children: ReactNode }) {
     <AppearancePreferenceContextProvider
       value={{ preference: appearance.preference, select: appearance.select }}
     >
-      {children}
+      <OrcaThemeProvider>{children}</OrcaThemeProvider>
     </AppearancePreferenceContextProvider>
   );
 }

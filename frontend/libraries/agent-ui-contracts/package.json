@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "catalog:"
+    "react": "catalog:",
+    "react-native": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",

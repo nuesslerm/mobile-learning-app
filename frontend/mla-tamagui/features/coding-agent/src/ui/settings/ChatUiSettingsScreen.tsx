@@ -1,12 +1,9 @@
 import { useCodingAgentPorts } from '../../state/ports';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
 import {
-  BottomSheet,
-  ChatSizeControl,
-  ChatSpacingControl,
-  useChatPalette,
+  useAgentComponents,
+  useAgentTheme,
   useChatText,
-} from '@lib/orca-design-system';
+} from '@lib/agent-ui-contracts';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,12 +32,15 @@ export function ChatUiSettingsScreen() {
   const { copyMessage } = useCodingAgentPorts();
   const { value, update, reset, stored } = useChatText();
   const {
+    BottomSheet,
+    ChatSizeControl,
+    ChatSpacingControl,
     ChatMessageText,
     HomeSettingsGroup,
     HomeSettingsRow,
     HomeSettingsNote,
   } = useAgentComponents();
-  const colors = useChatPalette();
+  const { colors } = useAgentTheme();
   const { bottom } = useSafeAreaInsets();
   const [picking, setPicking] = useState(false);
   const sectionTitle = [styles.heading, { color: colors.textSecondary }];

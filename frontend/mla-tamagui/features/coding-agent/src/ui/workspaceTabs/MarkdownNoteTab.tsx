@@ -1,4 +1,4 @@
-import { BottomSheet } from '@lib/orca-design-system';
+import { useAgentComponents } from '@lib/agent-ui-contracts';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Keyboard, Pressable, Text, View } from 'react-native';
 import type { Pairing } from '../../domain/mobile';
@@ -29,6 +29,7 @@ export function MarkdownNoteTab({
   directory,
 }: Props) {
   const { copyMessage } = useCodingAgentPorts();
+  const { BottomSheet } = useAgentComponents();
   const c = useTabColors();
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draft, setDraft] = useState<NoteDraft>();
@@ -218,7 +219,7 @@ export function MarkdownNoteTab({
                 <Button title="Cancel" onPress={() => dismiss()} />
                 <Button
                   title="Discard"
-                  color="#c42d36"
+                  color={c.danger}
                   onPress={() =>
                     dismiss(() => {
                       setConfirmDiscard(false);

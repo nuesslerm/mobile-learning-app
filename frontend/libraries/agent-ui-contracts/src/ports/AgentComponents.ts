@@ -3,6 +3,8 @@ import type { HostWorkspaceListProps, WorkspaceActionsProps } from './HostWorksp
 import type { WorkspaceOptionsProps } from './WorkspaceOptions';
 import type { PairingScreenProps, PairingCodeSheetProps } from './PairingComponents';
 import type { ComponentType, ReactNode } from 'react';
+import type { BottomSheetProps } from './BottomSheet';
+import type { WorkspaceTabControlProps } from './WorkspaceTabComponents';
 import type { ComposerOptionsProps, NewTabSheetProps, SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
 export interface OnboardingChoiceProps {
@@ -252,4 +254,8 @@ export interface AgentComponents {
   UnpairedHome: ComponentType<UnpairedHomeProps>;
   OnboardingChoice: ComponentType<OnboardingChoiceProps>;
   NotificationChoices: ComponentType<NotificationChoicesProps>;
+  BottomSheet: ComponentType<BottomSheetProps>;
+  ChatSizeControl: ComponentType<{ label: string }>;
+  ChatSpacingControl: ComponentType<{ label?: boolean }>;
+  WorkspaceTabControl: ComponentType<WorkspaceTabControlProps>;
 }

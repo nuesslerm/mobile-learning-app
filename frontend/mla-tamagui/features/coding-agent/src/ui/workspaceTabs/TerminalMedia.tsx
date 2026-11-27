@@ -171,7 +171,7 @@ export function TerminalMedia({
         {busy ? (
           <Text style={{ color: c.muted }}>…</Text>
         ) : recording ? (
-          <Square size={14} color="#d00" />
+          <Square size={14} color={c.recording} />
         ) : (
           <Mic size={17} color={c.muted} />
         )}

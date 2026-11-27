@@ -1,4 +1,4 @@
-import { useChatPalette } from '@lib/orca-design-system';
+import { useAgentTheme } from '@lib/agent-ui-contracts';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export function AvailabilityNotice({ missing, reconnecting, onAction }: {
@@ -6,7 +6,7 @@ export function AvailabilityNotice({ missing, reconnecting, onAction }: {
   reconnecting?: boolean;
   onAction: () => void;
 }) {
-  const colors = useChatPalette();
+  const { colors } = useAgentTheme();
   return (
     <View style={[styles.card, { backgroundColor: colors.bgRaised }]}>
       <View accessibilityLiveRegion="polite" accessibilityRole="alert">

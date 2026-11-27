@@ -129,7 +129,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#191b26' }}>
+    <View style={{ flex: 1, backgroundColor: c.terminal.background }}>
       <View
         style={{ flex: 1 }}
         onLayout={(e) => {
@@ -154,10 +154,11 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
             cols={size.cols}
             rows={size.rows}
             fontSize={fontSize}
+            theme={c.terminal}
             dom={{
               useExpoDOMWebView: false,
               scrollEnabled: false,
-              style: { flex: 1, backgroundColor: '#191b26' },
+              style: { flex: 1, backgroundColor: c.terminal.background },
             }}
           />
         </Suspense>
@@ -271,7 +272,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
               alignItems: 'center',
               gap: 8,
               borderWidth: focused ? 2 : 1,
-              borderColor: focused ? '#3875ff' : c.border,
+              borderColor: focused ? c.focus : c.border,
               borderRadius: 12,
               minHeight: 46,
               paddingHorizontal: 10,
