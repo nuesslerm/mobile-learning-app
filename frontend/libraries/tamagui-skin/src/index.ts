@@ -10,6 +10,8 @@ import { HomeTabBar } from './adapters/home/HomeTabBar';
 import { HomeTabHeader } from './adapters/home/HomeTabHeader';
 import { HomeActionSheet, HomeAgentSection, HomeEmptyState, HomeSearchField } from './adapters/home/homeTabExtras';
 import { ChatTextPreview, HomeSettingsSectionTitle, HomeSettingsSpacer, OptionSheet } from './adapters/home/settingsExtras';
+import { ChatMessageMeta, ChatMessageText, ChatSurface, ChatToolActivity, MessageBubble } from './adapters/chat/messages';
+import { ChatSizeControl, ChatSpacingControl } from './adapters/chat/textControls';
 import { Row, Stack, Text } from './adapters/layout/layout';
 import { BrandMark } from './adapters/pairing/BrandMark';
 import { NotificationChoices, OnboardingChoice, PairDesktopButton, PairedDesktops, PairingCodeSheet, PairingScreen, UnpairedHome } from './adapters/pairing/pairing';
@@ -33,6 +35,13 @@ export const tamaguiSkin: Skin = {
   UnpairedHome,
   OnboardingChoice,
   NotificationChoices,
+  ChatSurface,
+  MessageBubble,
+  ChatMessageText,
+  ChatMessageMeta,
+  ChatToolActivity,
+  ChatSizeControl,
+  ChatSpacingControl,
   HomeSettingsGroup,
   HomeSettingsNote,
   HomeSettingsRow,

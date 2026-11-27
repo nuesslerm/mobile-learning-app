@@ -9,6 +9,10 @@ import { CodeBlock } from '../ui/code-block';
 export type MarkdownProps = {
   content: string;
   onLinkPress?: MarkdownPropsBase['onLinkPress'];
+  /** Overrides of the body text, for a reader's own size, spacing and face. */
+  bodyStyle?: { fontSize?: number; lineHeight?: number; fontFamily?: string };
+  /** When provided, every fenced block carries a copy button that hands its code here. */
+  onCopyCode?: (code: string) => void;
 };
 
 /**
@@ -24,6 +28,8 @@ export type MarkdownProps = {
 export function Markdown({
   content,
   onLinkPress,
+  bodyStyle,
+  onCopyCode,
 }: MarkdownProps): React.ReactElement {
   const theme = useTheme();
   const fg = theme.color?.val ?? '#ffffff';
@@ -34,7 +40,7 @@ export function Markdown({
 
   const styles = React.useMemo(
     () => ({
-      body: { color: fg, fontSize: 15, lineHeight: 22 },
+      body: { color: fg, fontSize: 15, lineHeight: 22, ...bodyStyle },
       heading1: {
         color: fg,
         fontSize: 20,
@@ -103,25 +109,27 @@ export function Markdown({
       td: { padding: 6, borderColor: border, borderWidth: 1 },
       text: { color: muted },
     }),
-    [fg, muted, codeBg, border, link]
+    [fg, muted, codeBg, border, link, bodyStyle]
   );
 
   const rules = React.useMemo(
     () => ({
       fence: (
-        node: { content: string; attributes?: { lang?: string } },
+        node: { content: string; attributes?: { lang?: string }; sourceInfo?: string },
         _children: React.ReactNode[]
       ) => (
         <CodeBlock
           code={(node.content || '').replace(/\n$/, '')}
-          language={node.attributes?.lang}
+          // the parser names a fence's language in sourceInfo; a block with a copy button has a header to show it in
+          language={node.attributes?.lang ?? (onCopyCode ? node.sourceInfo?.trim().split(/\s+/, 1)[0] || undefined : undefined)}
+          onCopy={onCopyCode}
         />
       ),
       code_block: (node: { content: string }, _children: React.ReactNode[]) => (
-        <CodeBlock code={(node.content || '').replace(/\n$/, '')} />
+        <CodeBlock code={(node.content || '').replace(/\n$/, '')} onCopy={onCopyCode} />
       ),
     }),
-    []
+    [onCopyCode]
   );
 
   return (
