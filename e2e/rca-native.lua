@@ -9,7 +9,6 @@ features: coding-agent
 -- The coding agent on a phone with no desktop paired: the home and its tabs, its settings, the way to the pairing code, and the choice of skin.
 -- wf android|ios test e2e/rca-native.lua --device <id> --env base=exp://u.expo.dev/<projectId>/group/<group>/-- --env case=<case> [--env relaunch=1]
 local open_library = dofile("e2e/support/native-learner.lua")
-local function show(id, timeout) device:assert_visible({id=id}, {timeout=timeout or 12000}) end
 local function tap(id) device:tap_on({id=id}) end
 local function text(label, timeout) device:assert_visible({text=label}, {timeout=timeout or 12000}) end
 local function open(route)
@@ -44,8 +43,8 @@ cases.pairing = function()
   local paste = "(Paste code instead|Or paste pairing code)"
   text(paste, 30000)
   device:tap_on({text=paste})
-  text("Paste pairing code")
-  show("MobilePairCode")
+  -- the sheet's buttons: on the simulator its title and field do not reach the tree under the sheet's own element
+  text("Save")
   device:tap_on({text="Cancel"})
   text(paste)
 end

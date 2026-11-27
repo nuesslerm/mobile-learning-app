@@ -2,7 +2,7 @@
 platform: android, ios
 against: update
 timeout: 180
-units: case=search; case=python; case=javascript; case=custom-input; case=draft
+units: case=search; case=neetcode; case=python; case=javascript; case=custom-input
 focus: true
 features: leetcode
 ---]]
@@ -100,14 +100,16 @@ cases["custom-input"] = function()
   device:assert_visible({text="Output"}, {timeout=60000})
   device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text="27"})
 end
-cases.draft = function()
-  open("/leetcode/two-sum", "ConsoleBarRun")
-  input.type_in_starter("return 64", 4)
-  output("64")
-  -- a relaunch ends the XCTest session on the simulator ("Lost connection to the application"), so there the learner leaves for the library and comes back
-  open_library(device, env.base, device.platform == "android")
-  open("/leetcode/two-sum", "ConsoleBarRun")
-  output("64")
+cases.neetcode = function()
+  local category = assert(device:get_element({id="LibraryCategory-All Topics"}), "category row missing").bounds
+  local screen = device:get_device_state("screen")
+  device:swipe(("%d,%d"):format(math.floor(screen.width*.9), category.cy), ("%d,%d"):format(math.floor(screen.width*.15),category.cy), {duration=400})
+  tap("LibraryCategory-NeetCode 150")
+  visible("AlgorithmsSearch")
+  search("car fleet", "car-fleet")
+  device:assert_visible({text="853\\. Car Fleet"})
+  visible("ProblemOpenLesson")
+  device:assert_visible({text=".*There are n cars at given miles.*"})
 end
 local function enable_list_setting(id)
   open("/blind75", "LeetcodeListMenuButton(Compact)?")
