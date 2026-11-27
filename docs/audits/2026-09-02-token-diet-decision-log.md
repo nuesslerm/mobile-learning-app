@@ -3842,3 +3842,19 @@ One T3 0.1.9 preview viewer per build, through the loopback recording proxy. The
 ### Workspace browser rotation on iOS
 
 One landscape rotation on the booted rca simulator took 0.41 seconds through the active XCTest session. The Expo accessibility tree measured 956 × 440 points and the desktop browser fixture remained visible. Keep the session operation for device rotation checks.
+
+## 2026-11-27 · Skin contract baseline, Tamagui 3 and extraction ([#106](https://github.com/nuesslerm/mobile-learning-app/issues/106))
+
+Baseline on `dev` at `6fa073f2`, Tamagui 2.7.7, extraction off. Later skin work is compared with these.
+
+| Measure | Value | How |
+|---|---|---|
+| Web export, all JS | 17,180,380 bytes | `wf test prepare --web`, then the byte total of `dist/_expo/**/*.js` |
+| LeetCode list `/`, warm render | 27 ms median (27, 27, 27, 30, 31) | flow harness in jsdom, `app.render(path, { prerender: false })`, 7 runs, first 2 dropped |
+| LeetCode editor `/leetcode/two-sum`, warm render | 69 ms median (58, 63, 69, 73, 117) | same |
+
+The render numbers are jsdom on a Mac, n=5 after warm-up: good for a before/after ratio on the same machine, not a device figure.
+
+Tamagui 3.3.3 (n=1 attempt). It typechecks and passes flow (938) and unit (1,683) tests, but 9 of 21 exported routes still moved elements against 2.7.7 after three fixes, so it did not land. Decision: stay on 2.7.7; the attempt is kept as a patch.
+
+Extraction on 2.7.7 (n=3 exports). With `components: ['tamagui']`, turning extraction on is a no-op: the same 17,180,380 bytes. Naming the modules the screens import from engages the compiler and the static render then fails with `ReferenceError: Cannot access 'h' before initialization`. Decision: extraction stays off.
