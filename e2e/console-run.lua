@@ -102,7 +102,7 @@ local function open_editor(code)
 end
 
 local function choose_device()
-  open("/", 'LeetcodeListRunnerRow')
+  open("/blind75", 'LeetcodeListRunnerRow')
   if android then
     device:tap_on({id='LeetcodeListRunnerDevice'})
     return

@@ -46,7 +46,7 @@ local function buffer() local e = device:get_element({id='CodeEditorInput'}) ret
 
 local function choose_device()
   device:clear_logs()
-  device:open_link(base .. "/")
+  device:open_link(base .. "/blind75")
   device:assert_visible({id='LeetcodeListRunnerRow'}, {timeout=60000})
   -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: the first route.change is awaited
   device:extended_wait_until{condition=function() return logged('route.change') end, timeout=60000, interval=250, label='the page hydrated'}

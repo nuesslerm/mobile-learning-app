@@ -99,7 +99,7 @@ local function run_seed(problem, code, expect_text, secs, button)
 end
 
 local function choose_device()
-  open("/", 'LeetcodeListRunnerRow')
+  open("/blind75", 'LeetcodeListRunnerRow')
   if android then
     device:tap_on({id='LeetcodeListRunnerDevice'})
     return

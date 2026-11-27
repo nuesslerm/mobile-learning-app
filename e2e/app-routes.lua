@@ -11,7 +11,8 @@ local base = env.base or "http://127.0.0.1:8800/mla-tamagui"
 local out = env.out or ".agents/tmp/app-routes"
 os.execute("mkdir -p " .. out)
 local ROUTES = {
-  { path = "/", sel = {id='LeetcodeListScreen'} },
+  { path = "/", sel = {id='LibraryHome'} },
+  { path = "/blind75", sel = {id='LeetcodeListScreen'} },
   { path = "/leetcode/two-sum", sel = {id='ProblemEditorScreen'} },
   { path = "/tamil", sel = {id='TamilCourseScreen'} },
   -- dynamic routes the export holds a page per id for (generateStaticParams), and one id it has none for
