@@ -1,13 +1,14 @@
 {
   "platform": "browser",
-  "step": 79,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=search&scheme=light'}",
+  "step": 95,
+  "last_action": "open_link{link='http://127.0.0.1:61902/mla-tamagui/gallery?section=search&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=search&scheme=light",
+    "url": "http://127.0.0.1:61902/mla-tamagui/gallery?section=search&scheme=light",
     "title": "",
     "testids": [
       "SkinGallery-search",
+      "skin-home-header",
       "HomeSearchField"
     ],
     "text": "Agents"
@@ -17,8 +18,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 204266,
-    "capture_ms": 94
+    "since_start_ms": 265471,
+    "capture_ms": 95
   },
   "tolerance": {
     "threshold": 0.1,

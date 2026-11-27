@@ -1,23 +1,28 @@
 {
   "platform": "browser",
-  "step": 22,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=home&scheme=dark'}",
+  "step": 26,
+  "last_action": "open_link{link='http://127.0.0.1:61902/mla-tamagui/gallery?section=home&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=home&scheme=dark",
+    "url": "http://127.0.0.1:61902/mla-tamagui/gallery?section=home&scheme=dark",
     "title": "",
     "testids": [
-      "SkinGallery-home"
+      "SkinGallery-home",
+      "skin-home-header",
+      "skin-home-agents",
+      "skin-home-agent",
+      "skin-home-empty",
+      "skin-home-tab-bar"
     ],
-    "text": "Agents\nDesktops\nStudio Mac\n3 workspaces · 2 agents working\nPair a desktop\nWorking 3\nFix the flaky resume test\n2m\nmobile-app · main\nWants to run pnpm test\n8m\nmobile-app · feed\nTypecheck failed\n1h\nbackend · api\nNo automations yet\nAutomations you create on the desktop appear here.\nFeed\nBots\n2\nAgents\nUsage\nAutomations"
+    "text": "Agents\nDesktops\nStudio Mac\n3 workspaces · 2 agents working\nPair a desktop\nWORKING 3\nFix the flaky resume test\n2m\nmobile-app · main\nWants to run pnpm test\n8m\nmobile-app · feed\nTypecheck failed\n1h\nbackend · api\nNo automations yet\nAutomations you create on the desktop appear here.\nFeed\nBots\n2\nAgents\nUsage\nAutomations"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 57208,
-    "capture_ms": 115
+    "since_start_ms": 85166,
+    "capture_ms": 107
   },
   "tolerance": {
     "threshold": 0.1,

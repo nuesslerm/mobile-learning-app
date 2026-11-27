@@ -77,6 +77,7 @@ function TabButton(props: {
       accessibilityRole="tab"
       accessibilityLabel={props.badge > 0 ? `${props.label}, ${props.badge}` : props.label}
       accessibilityState={{ selected: props.selected }}
+      aria-selected={props.selected}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={props.onPress}

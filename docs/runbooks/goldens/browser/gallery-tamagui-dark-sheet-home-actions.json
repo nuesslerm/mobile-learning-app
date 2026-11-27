@@ -1,23 +1,29 @@
 {
   "platform": "browser",
-  "step": 31,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-home-actions&scheme=dark'}",
+  "step": 38,
+  "last_action": "open_link{link='http://127.0.0.1:61902/mla-tamagui/gallery?section=sheet-home-actions&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-home-actions&scheme=dark",
+    "url": "http://127.0.0.1:61902/mla-tamagui/gallery?section=sheet-home-actions&scheme=dark",
     "title": "",
     "testids": [
-      "SkinGallery-sheet-home-actions"
+      "SkinGallery-sheet-home-actions",
+      "skin-home-actions",
+      "skin-home-actions-group",
+      "skin-home-action-all",
+      "skin-home-action-unread",
+      "skin-home-action-archive",
+      "skin-home-actionsHandle"
     ],
-    "text": "All agents\n✓\nUnread only\nArchive finished"
+    "text": "All agents\nUnread only\nArchive finished"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 79519,
-    "capture_ms": 109
+    "since_start_ms": 114371,
+    "capture_ms": 100
   },
   "tolerance": {
     "threshold": 0.1,

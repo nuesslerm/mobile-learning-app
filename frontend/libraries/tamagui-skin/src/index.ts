@@ -6,6 +6,9 @@ import { HomeSettingsNote } from './adapters/home/HomeSettingsNote';
 import { HomeSettingsRow } from './adapters/home/HomeSettingsRow';
 import { HomeSettingsScreen } from './adapters/home/HomeSettingsScreen';
 import { HomeSurface } from './adapters/home/HomeSurface';
+import { HomeTabBar } from './adapters/home/HomeTabBar';
+import { HomeTabHeader } from './adapters/home/HomeTabHeader';
+import { HomeActionSheet, HomeAgentSection, HomeEmptyState, HomeSearchField } from './adapters/home/homeTabExtras';
 import { ChatTextPreview, HomeSettingsSectionTitle, HomeSettingsSpacer, OptionSheet } from './adapters/home/settingsExtras';
 import { Row, Stack, Text } from './adapters/layout/layout';
 import { Button, Notice, Spinner, Switch, TextField } from './adapters/controls/controls';
@@ -14,6 +17,12 @@ import { Button, Notice, Spinner, Switch, TextField } from './adapters/controls/
 export const tamaguiSkin: Skin = {
   ...orcaSkin,
   HomeSurface,
+  HomeTabBar,
+  HomeTabHeader,
+  HomeEmptyState,
+  HomeSearchField,
+  HomeAgentSection,
+  HomeActionSheet,
   HomeSettingsGroup,
   HomeSettingsNote,
   HomeSettingsRow,
