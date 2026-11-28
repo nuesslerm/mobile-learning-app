@@ -1,27 +1,30 @@
 {
   "platform": "browser",
-  "step": 35,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-workspace-actions&scheme=dark'}",
+  "step": 42,
+  "last_action": "open_link{link='http://127.0.0.1:55256/mla-tamagui/gallery?section=sheet-workspace-actions&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-workspace-actions&scheme=dark",
+    "url": "http://127.0.0.1:55256/mla-tamagui/gallery?section=sheet-workspace-actions&scheme=dark",
     "title": "",
     "testids": [
-      "SkinGallery-sheet-workspace-actions"
+      "SkinGallery-sheet-workspace-actions",
+      "skin-workspace-actions",
+      "skin-workspace-statuses",
+      "skin-workspace-actionsHandle"
     ],
-    "text": "Move to Status\nWorking\nIn review"
+    "text": "MOVE TO STATUS\nWorking\nIn review"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 91996,
-    "capture_ms": 109
+    "since_start_ms": 108806,
+    "capture_ms": 92
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-dark-sheet-workspace-actions",

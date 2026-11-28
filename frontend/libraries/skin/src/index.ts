@@ -56,6 +56,7 @@ export { BRAND_MARK } from './core/brandMark';
 export { PanZoomImage } from './core/image/PanZoomImage';
 export { IMAGE_ACTIONS, useImageActions, type ImageAction } from './core/imageActions';
 export { useComposerOptions } from './core/composerOptions';
+export { useHeldTouchGuard, useWorkspaceRename } from './core/workspaceActions';
 export { fileName, sessionStatus, tabCountLabel, useFilePreview, useFileTree, useSessionMenu, useTabStrip } from './core/sessionHeader';
 export type { FileTreeRow, SessionFileEntry, SessionFileSource, SessionMenuPage } from './core/sessionHeader';
 export { ADD_CHOICES, fileToken, suggestionTrigger, useComposerEditing, useComposerSuggestionRows } from './core/composer';

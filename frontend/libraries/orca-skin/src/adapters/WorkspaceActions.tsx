@@ -1,6 +1,6 @@
 import { BottomSheet } from './BottomSheet';
-import type { WorkspaceActionsProps } from '@lib/skin';
-import { type ComponentRef, useEffect, useRef, useState } from 'react';
+import { useHeldTouchGuard, useWorkspaceRename, type WorkspaceActionsProps } from '@lib/skin';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -29,40 +29,9 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
   const colors = useChatPalette();
   const ReadIcon = props.unread ? BellOff : Bell;
   const { bottom } = useSafeAreaInsets();
-  const [renaming, setRenaming] = useState(false);
+  const { renaming, start, draft, setDraft, save } = useWorkspaceRename(props);
   const input = useRef<TextInputInstance>(null);
-  const [sheet, setSheet] = useState<ComponentRef<typeof View> | null>(null);
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !(sheet instanceof HTMLElement)) return;
-    const element = sheet;
-    let pressed: Element | null = null;
-    const control = (event: Event) =>
-      event.target instanceof Element
-        ? event.target.closest('[role="button"], [role="radio"], button, input')
-        : null;
-    const down = (event: PointerEvent) => {
-      pressed = control(event);
-    };
-    const cancel = () => {
-      pressed = null;
-    };
-    const click = (event: MouseEvent) => {
-      // A touch held on a checkout can release over a newly mounted menu action.
-      if (event.detail > 0 && (!pressed || pressed !== control(event))) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      pressed = null;
-    };
-    element.addEventListener('pointerdown', down, true);
-    element.addEventListener('pointercancel', cancel, true);
-    element.addEventListener('click', click, true);
-    return () => {
-      element.removeEventListener('pointerdown', down, true);
-      element.removeEventListener('pointercancel', cancel, true);
-      element.removeEventListener('click', click, true);
-    };
-  }, [sheet]);
+  const guard = useHeldTouchGuard();
   const [focused, setFocused] = useState(false);
   const [keyboardShowing, setKeyboardShowing] = useState(false);
   useEffect(() => {
@@ -78,18 +47,14 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
       hide.remove();
     };
   }, []);
-  const [draft, setDraft] = useState(props.name);
   const ink = { color: colors.textPrimary };
   const muted = { color: colors.textSecondary };
   const PinIcon = props.pinned ? PinOff : Pin;
-  const save = () => {
-    if (!props.saving) props.onRename(draft.trim());
-  };
   return (
     <BottomSheet
       onClose={props.onClose}
       avoidKeyboard
-      panelRef={Platform.OS === 'web' ? setSheet : undefined}
+      panelRef={guard}
       style={[
         styles.sheet,
         {
@@ -262,7 +227,7 @@ export function WorkspaceActions(props: WorkspaceActionsProps) {
                   accessibilityRole="button"
                   disabled={props.saving}
                   style={styles.row}
-                  onPress={() => setRenaming(true)}
+                  onPress={start}
                 >
                   <Pencil size={16} color={colors.textSecondary} />
                   <Text style={[styles.rowLabel, ink]}>Rename</Text>
