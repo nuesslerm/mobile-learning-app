@@ -231,12 +231,14 @@ def prepare_android_learner(device, base, manifest):
     if saved.exists():
         try:
             snapshot("load")
-            subprocess.run([*adb, "wait-for-device"], check=True, timeout=30)
+            # after a load the device was offline for more than 30 s three times, and every later case then found it unreachable at once:
+            # whether it was slow or gone is not known yet, so it gets what a case's own 180 s leave and a gone one is named below
+            subprocess.run([*adb, "wait-for-device"], check=True, timeout=120)
         except (RuntimeError, subprocess.SubprocessError):
-            # twice the emulator was gone for good after a load and adb could say nothing: its own log is the only witness
             log = Path(os.environ["RUNNER_TEMP"]) / "emulator.log"
             lines = log.read_text(errors="replace").splitlines()[-60:] if log.exists() else ["no emulator.log"]
-            print("The emulator after the snapshot load:", *lines, sep="\n", file=sys.stderr, flush=True)
+            alive = subprocess.run(["pgrep", "-fl", "qemu-system"], capture_output=True, text=True).stdout.strip() or "no emulator process"
+            print("The emulator after the snapshot load:", *lines, "Its process: " + alive, sep="\n", file=sys.stderr, flush=True)
             raise
         return
     shell = [*adb, "shell"]
