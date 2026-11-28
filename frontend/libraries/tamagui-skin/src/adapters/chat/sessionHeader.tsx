@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 
+import { longPress } from '../longPress';
 import { ScreenSheet } from '../sheet/ScreenSheet';
 import { SELECTABLE, SessionMenuSheet } from './sessionFiles';
 
@@ -115,7 +116,7 @@ export function SessionHeader(props: SessionHeaderProps) {
                     pressStyle={{ opacity: 0.7 }}
                     cursor="pointer"
                     onPress={() => props.onSelectTab?.(tab.id)}
-                    onLongPress={props.onShowTabs}
+                    {...longPress(props.onShowTabs)}
                   >
                     <Icon as={TAB_ICONS[tab.kind ?? ''] ?? MessageSquare} size={14} color={ink} />
                     <Text fontSize={13} numberOfLines={1} shrink={1} color={ink}>

@@ -1,13 +1,16 @@
 {
   "platform": "browser",
-  "step": 28,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=workspaces&scheme=dark'}",
+  "step": 32,
+  "last_action": "open_link{link='http://127.0.0.1:52632/mla-tamagui/gallery?section=workspaces&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=workspaces&scheme=dark",
+    "url": "http://127.0.0.1:52632/mla-tamagui/gallery?section=workspaces&scheme=dark",
     "title": "",
     "testids": [
-      "SkinGallery-workspaces"
+      "SkinGallery-workspaces",
+      "skin-workspaces-back",
+      "skin-workspaces-rows",
+      "skin-workspaces-search"
     ],
     "text": "Studio Mac\nmacOS\nPinned\n1\nfix/resume-test\nmobile-app\nWorking · 2m\nmobile-app\n2\nmain\nIdle · 1h\nfeed/pinned-rows\nWaiting for approval"
   },
@@ -16,12 +19,12 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 71757,
-    "capture_ms": 104
+    "since_start_ms": 85174,
+    "capture_ms": 103
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-dark-workspaces",
