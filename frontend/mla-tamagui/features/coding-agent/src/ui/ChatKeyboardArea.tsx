@@ -22,6 +22,14 @@ export function ChatKeyboardArea({
       </View>
     );
   }
+  if (Platform.OS === 'android') {
+    // the window does not shrink for the keyboard here (edge to edge), and Android's keyboard height leaves out the navigation bar it also covers
+    return (
+      <View style={{ flex: 1, minHeight: 0, paddingBottom: frame.visible ? frame.height + bottom : (restingBottom ?? bottom) }}>
+        {children}
+      </View>
+    );
+  }
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}

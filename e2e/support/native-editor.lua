@@ -56,6 +56,7 @@ end
 -- Typing on a simulator brings the app back to the front and the keyboard rises again: a tap before the control has moved above it
 -- lands on a key (Tamil's Check became a typed "t"). The simulator gives its keyboard no frame, so the top row of keys stands in.
 local function tap_above_keyboard(sel)
+  if device.platform ~= "ios" then return device:tap_on(sel) end
   device:extended_wait_until{condition=function()
     local control = device:get_element(sel)
     if not control then return false end
