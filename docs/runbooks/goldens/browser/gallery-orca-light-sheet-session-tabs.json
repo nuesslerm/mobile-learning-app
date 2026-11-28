@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 53,
+  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-session-tabs&scheme=light'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-session-tabs&scheme=light",
+    "title": "",
+    "testids": [
+      "SkinGallery-sheet-session-tabs"
+    ],
+    "text": "2 tabs\nmobile-app\nFix the flaky resume test\nTerminal"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 136532,
+    "capture_ms": 107
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-light-sheet-session-tabs",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

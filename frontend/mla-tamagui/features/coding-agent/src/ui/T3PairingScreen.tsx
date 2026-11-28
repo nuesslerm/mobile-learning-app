@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet } from 'react-native';
-import { useKeyboardFrame } from '@lib/tamagui-design-system';
+import { useKeyboardFrame } from '@lib/keyboard';
 import { CameraView } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  useAgentComponents,
+  useSkin,
   type PairingScreenProps,
-} from '@lib/agent-ui-contracts';
+} from '@lib/skin';
 import type { PairingCameraPermission } from '../domain/ports';
 import { useCodingAgentPorts } from '../state/ports';
 import { parseT3PairingInvite } from '../domain/t3PairingInvite';
@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function T3PairingScreen({ onBack, onPair }: Props) {
-  const { PairingScreen } = useAgentComponents();
+  const { PairingScreen } = useSkin();
   const { pairingCamera } = useCodingAgentPorts();
   const [permission, setPermission] = useState<PairingCameraPermission>();
 

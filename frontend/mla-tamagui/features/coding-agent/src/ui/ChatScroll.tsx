@@ -1,4 +1,4 @@
-import { useChatText } from '@lib/orca-design-system';
+import { useChatText } from '@lib/skin';
 import { useRef, type ReactNode } from 'react';
 import {
   ScrollView,

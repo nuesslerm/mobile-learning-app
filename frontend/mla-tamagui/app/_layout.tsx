@@ -10,7 +10,6 @@ import { appConfig } from '@lib/app-config';
 import {
   resolveActiveThemeName,
   useHeaderHeightStore,
-  useOpenSheetStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
@@ -20,6 +19,9 @@ import { Platform, useColorScheme } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
+import { FullWindowOverlay } from 'react-native-screens';
+import { buoyEnabled } from '../app-shell/buoyEnabled';
+import { SkinRoot } from '../app-shell/skin/SkinRoot';
 import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
 import { DeviceRunnerRoot, editorPageSource, PreparedEditorPages } from '@/features/leetcode';
@@ -56,19 +58,18 @@ if (process.env.EXPO_PUBLIC_DEVICE_LAB === '1' && Platform.OS === 'web') {
  */
 // Reanimated on web only runs predefined entering/exiting animations; sonner's custom worklets log a warning.
 const WEB_TOAST_ANIMATION = { enter: FadeIn.duration(200), exit: FadeOut.duration(200) };
-const FloatingDevTools = __DEV__ && Platform.OS !== 'web'
-  ? (require('@buoy-gg/core') as typeof import('@buoy-gg/core')).FloatingDevTools
+const PreviewTools = buoyEnabled
+  ? (require('../app-shell/BuoyPreviewTools') as typeof import('../app-shell/BuoyPreviewTools')).BuoyPreviewTools
   : null;
-const BuoyRouterStore = FloatingDevTools
+const BuoyRouterStore = PreviewTools
   ? (require('../app-shell/buoyRouterStore') as typeof import('../app-shell/buoyRouterStore')).BuoyRouterStore
   : null;
-const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
 
 function BuoyDevTools() {
   const { visualCapture } = useGlobalSearchParams<{ visualCapture?: string }>();
-  return FloatingDevTools
-    ? <FloatingDevTools hidden={visualCapture === '1'} zustandStores={buoyStores} />
-    : null;
+  if (!PreviewTools || visualCapture === '1') return null;
+  const tools = <PreviewTools />;
+  return Platform.OS === 'ios' ? <FullWindowOverlay>{tools}</FullWindowOverlay> : tools;
 }
 
 // On a bare Expo Go update link SDK 58 resolves an empty path and skips +native-intent.
@@ -118,6 +119,7 @@ export default function RootLayout() {
                 and header buttons via Stack.Screen -- the editor's Info button
                 is the only way into the problem description. Only the drawer
                 group hides its header, because its screens carry their own. */}
+            <SkinRoot>
             <DeviceRunnerRoot>
             <PreparedEditorPages getSource={editorPageSource}>
             <ThemeProvider value={navigationTheme}>
@@ -152,6 +154,7 @@ export default function RootLayout() {
             </ThemeProvider>
             </PreparedEditorPages>
             </DeviceRunnerRoot>
+            </SkinRoot>
             <NativeChromeBridge />
             <RouteLogger />
             {Platform.OS !== 'web' && appConfig.initialRoute && appConfig.initialRoute !== '/' &&
@@ -167,7 +170,7 @@ export default function RootLayout() {
                   list -- not the stacked pile sonner is known for. Opt in. */}
             <HeaderClearToaster />
             {BuoyRouterStore && <BuoyRouterStore />}
-            {FloatingDevTools && <BuoyDevTools />}
+            {PreviewTools && <BuoyDevTools />}
           </Theme>
         </TamaguiProvider>
       </NavigationTouchBoundary>

@@ -1633,6 +1633,24 @@ impl Attached {
             .unwrap_or(false))
     }
 
+    /// Whether the focused control requests a software keyboard, including editors in child frames.
+    pub fn software_keyboard_focus(&mut self) -> Result<bool, String> {
+        const CHECK: &str = r#"(() => {
+            let el = document.activeElement;
+            while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
+            if (!document.hasFocus() || !el || el.inputMode === 'none') return false;
+            if (el.isContentEditable) return true;
+            return !el.disabled && !el.readOnly && (el.tagName === 'TEXTAREA' ||
+                (el.tagName === 'INPUT' && ['text','email','number','password','search','tel','url'].includes(el.type)));
+        })()"#;
+        for frame in self.frames()? {
+            if self.eval_in_frame(&frame.id, CHECK).ok().and_then(|v| v.as_bool()) == Some(true) {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     /// One key press (down and up) to the focused element; `Control+End` holds Ctrl, as the page's key handlers expect.
     pub fn press_key(&mut self, key: &str) -> Result<(), String> {
         let (key, modifiers) = match key {

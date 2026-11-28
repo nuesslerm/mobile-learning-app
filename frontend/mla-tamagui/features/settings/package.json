@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@lib/logging": "workspace:*",
+    "@lib/skin": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "lucide-react-native": "^1.17.0"
   },

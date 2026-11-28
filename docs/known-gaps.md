@@ -22,7 +22,6 @@ Pre-2026-10 history: [archive](archive/README.md).
 - ci · The Android e2e shard fails on an STT model download · 0d · [ci-stt-model-download-503-fails-android-shard](gaps/ci-stt-model-download-503-fails-android-shard.md)
 - ci · The gate budget scan walks .claude/worktrees · 0d · [gate-budget-scan-walks-worktrees](gaps/gate-budget-scan-walks-worktrees.md)
 - ci · The staged gate replayed nx tasks from the cache for test-only changes · 0d · [staged-gate-replays-nx-for-test-only-changes](gaps/staged-gate-replays-nx-for-test-only-changes.md)
-- coding-agent · The Build/Plan segmented control overlaps its neighbours at 393 px · 50d · [coding-agent-segmented-control-overlap](gaps/coding-agent-segmented-control-overlap.md)
 - device-lab · device-lab: the live agent is unreachable from the sandbox (blocked) · 49d · [device-lab-live-agent-unreachable](gaps/device-lab-live-agent-unreachable.md)
 - device-lab · `wf browser draw-strokes-on --source template` does not follow the template on the Tamil write pad · 45d · [device-lab-tamil-template-trace](gaps/device-lab-tamil-template-trace.md)
 - device-lab · Android waits sample because the emulator offers no change feed · 42d · [android-wait-has-no-push-source](gaps/android-wait-has-no-push-source.md)

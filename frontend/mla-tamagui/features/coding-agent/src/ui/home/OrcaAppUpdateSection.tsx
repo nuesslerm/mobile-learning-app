@@ -7,8 +7,8 @@
 
 import {
   HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
-  useAgentComponents,
-} from '@lib/agent-ui-contracts';
+  useSkin,
+} from '@lib/skin';
 import { useEffect, useState } from 'react';
 
 import { useAppInfo } from '../../state/useAppInfo';
@@ -51,7 +51,7 @@ function checkRowValue(
 
 /** The menu's middle group: what this build is, and whether a newer one exists. */
 export function OrcaAppUpdateSection() {
-  const { HomeSettingsGroup, HomeSettingsRow } = useAgentComponents();
+  const { HomeSettingsGroup, HomeSettingsRow } = useSkin();
   const { version } = useAppInfo();
   const { status, availableUpdateId, lastCheckedAt, check, install } = useAppUpdate();
   // Tick only when the relative label can age past just now.

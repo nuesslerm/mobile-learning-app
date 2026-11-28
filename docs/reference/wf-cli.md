@@ -2905,6 +2905,27 @@ Options:
 
 </details>
 
+## content
+
+### `wf content`
+
+Generate the bundled offline Tamil course from the approved Anki deck.
+
+Usage: `wf content import-tamil <deck.apkg> [--check]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf content import-tamil <deck.apkg> [--check]
+
+Generate the bundled offline Tamil course from the approved Anki deck.
+Use --check to compare the checked-in curriculum and Tamil audio byte for byte.
+Prints JSON with notes, topics, tamilAudio and audioBytes.
+Requires Python 3.11 or newer.
+```
+
+</details>
+
 ## device commands
 
 The device verbs of `wf browser` and `wf android`, Maestro's commands in kebab-case, generated from the command table (`clis/harness-core/src/device/api.rs`): `wf <noun> <verb> --help` prints one in full, `wf <noun> test --api` the Lua side (`--json` the table itself). Each prints one JSON line: `{ok, command, platform, device, ms, result}` and exit 0; a failure `{ok:false, error, evidence, verdict, met_after_ms, next}` and exit 1; a usage error exit 2; an Android lease conflict exit 3. The browser's own verbs (devices, hierarchy, check-taps, the debugger, the tailnet and the daemon) are under [browser](#browser), Android's (devices, hierarchy, lease, adb) under [android](#android).
@@ -3130,6 +3151,32 @@ each screenshot to <report dir>/out/<suite>/<name>.<scheme>.actual.png and compa
 
 Output: {"ok","scheme","report","counts":{match,updated,mismatch,missing,errors},"unused":[..],"errors":[..],
 "goldens":[{"name","verdict","ok","message","golden","actual","expected","diff","differing_pixels","ratio"}],"next"}
+```
+
+</details>
+
+## ios
+
+### `wf ios`
+
+The iOS harness: one booted iOS simulator, driven through idb and an XCTest session.
+
+Usage: `wf ios <command> [options]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ios <command> [options]
+
+The iOS harness: one booted iOS simulator, driven through idb and an XCTest session. Every verb needs the simulator
+named with --device <UDID>; `wf test prepare-ios` provisions or verifies one (`--fresh NAME --apps-from DEVICE` copies
+a simulator of its own for one piece of work). Every verb prints one JSON line: {ok, command, platform, device, ms,
+result} with exit 0; a failure {ok:false, ..., error, next} with exit 1; a usage error {ok:false, error, usage} with
+exit 2. `wf ios <command> --help` prints one in full.
+
+Tests:
+  test <file.lua> --device <UDID> [options]
+                         runs a Lua test on the simulator (`wf ios test --api` lists the script API)
 ```
 
 </details>
@@ -5749,6 +5796,25 @@ Options:
 
 </details>
 
+### `wf agent-config save-memory`
+
+Encrypt local Basic Memory Markdown notes into .agents/basic-memory.enc for Git.
+
+Usage: `wf agent-config save-memory`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf agent-config save-memory
+
+Encrypt local Basic Memory Markdown notes into .agents/basic-memory.enc for Git.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
 ## run
 
 ### `wf run api`
@@ -7250,7 +7316,7 @@ Actions:
                          plain URLs and flags as they are and anything else as set:<8 hex of its hash>, memory is the build's largest
                          process and, with WF_VM_SAMPLE_SECS, the VM's low MemAvailable; or {ok: false, error, next}. `wf test run` refuses
                          an export whose inputs differ from the tree's; a run's result names the baked keys and a digest, never the values.
-  backends up [--only stt,opencode-server,rca-service,leetcode-backend] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>] [--stt-port <n>] [--opencode-port <n>]
+  backends up [--only stt,opencode-server,rca-service,leetcode-backend,agent-desktop] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>] [--stt-port <n>] [--opencode-port <n>]
   backends down [--dir <dir>]
                          the services the e2e tests need, on this machine, so no test reaches a deployed one. up builds rca-service
                          and leetcode-backend-rs (`cargo build --locked` into <CARGO_TARGET_DIR or target>/<name>-build; RCA_SERVICE_BIN or
@@ -7264,7 +7330,12 @@ Actions:
                          OPENCODE_GO_API_KEY of the caller's environment as its only key (given to the child alone, never printed or written; a missing one fails
                          naming it), asked at /app; stt is the faster-whisper sidecar (STT_SERVER names the script, STT_PYTHON the python that has its
                          requirements, STT_MODEL the model, default tiny.en). Started before rca-service, they are the OPENCODE_SERVER_URL, OPENCODE_CWD and
-                         STT_URL it is started with. The same
+                         STT_URL it is started with. agent-desktop is a desktop a phone pairs with: the chain of clis/t3-serve/examples/chain.rs
+                         (t3-serve over an rca service and executor of its own, AGENT_DESKTOP_BIN names a built one), whose Claude answers every
+                         message with one fixed text, so a chat needs no model. It picks its port, keeps the caller's environment (it builds what
+                         T3_SERVE_BIN, RCA_SERVICE_BIN, RCA_EXEC_BIN and EXEC_TESTKIT_CLI do not name; t3-serve and rca-exec are taken from beside wf,
+                         the rca service from the one started before it), gets 900 s for that first start, and its entry adds mint (the command that
+                         mints a pairing link: add --base-url <url>) and reply (the text its agent answers). The same
                          JSON is the state file <dir>/backends.json (default .agents/tmp/e2e-backends, mode 0600: it holds the secrets) with each log
                          beside it. A backend that ends or does not answer stops the ones already started and prints {ok: false, error, next}, exit 1; a second
                          up while they run is refused. down stops each recorded process that is still the program that was started (SIGTERM to its group,

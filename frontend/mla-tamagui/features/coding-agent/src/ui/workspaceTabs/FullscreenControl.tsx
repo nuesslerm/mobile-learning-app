@@ -1,3 +1,4 @@
+import { useSkinTheme } from '@lib/skin';
 import { useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, View } from 'react-native';
 import { Maximize2, Minimize2 } from 'lucide-react-native';
@@ -15,6 +16,7 @@ const inset = 12;
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
 
 export function FullscreenControl(props: Props) {
+  const { scrim } = useSkinTheme().tabs;
   const [position, setPosition] = useState({ x: 1, y: 1 });
   const spanX = Math.max(0, props.viewport.width - diameter - 2 * inset);
   const spanY = Math.max(0, props.viewport.height - diameter - 2 * inset);
@@ -70,7 +72,7 @@ export function FullscreenControl(props: Props) {
           width: diameter,
           height: diameter,
           borderRadius: diameter / 2,
-          backgroundColor: 'rgba(0,0,0,0.74)',
+          backgroundColor: scrim,
           alignItems: 'center',
           justifyContent: 'center',
         }}

@@ -1,4 +1,4 @@
-import { useKeyboardFrame } from '@lib/tamagui-design-system';
+import { useKeyboardFrame } from '@lib/keyboard';
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 
@@ -18,6 +18,14 @@ export function ChatKeyboardArea({
   if (alignToScreenBottom && Platform.OS === 'ios') {
     return (
       <View style={{ flex: 1, minHeight: 0, paddingBottom: frame.visible ? frame.height : (restingBottom ?? bottom) }}>
+        {children}
+      </View>
+    );
+  }
+  if (Platform.OS === 'android') {
+    // the window does not shrink for the keyboard here (edge to edge), and Android's keyboard height leaves out the navigation bar it also covers
+    return (
+      <View style={{ flex: 1, minHeight: 0, paddingBottom: frame.visible ? frame.height + bottom : (restingBottom ?? bottom) }}>
         {children}
       </View>
     );

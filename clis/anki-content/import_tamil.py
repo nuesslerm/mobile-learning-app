@@ -1,7 +1,6 @@
 """Convert the approved Tamil Anki deck into the app's offline curriculum."""
 
 import argparse
-import base64
 from collections import defaultdict
 import hashlib
 from html.parser import HTMLParser
@@ -9,6 +8,8 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+import subprocess
+from tempfile import TemporaryDirectory
 import unicodedata
 from zipfile import ZipFile
 
@@ -26,7 +27,8 @@ NUMBER_LABEL = re.compile(r"^\d+\s*[-–:]\s*")
 SOUND = re.compile(r"\[sound:([^\]]+)\]")
 TAMIL_CORRECTIONS = {"mtw$JQ`*ON": "சாத்துக்குடி"}
 TAMIL = re.compile(r"[\u0b80-\u0bff]")
-PACKED_AUDIO_COUNT = 128
+SAMPLE_RATE = 44_100
+GAP_SAMPLES = SAMPLE_RATE // 2
 
 
 class PlainText(HTMLParser):
@@ -132,6 +134,40 @@ def curate(topic, notes):
         start += size
 
 
+def section_track(section, archive, emit):
+    """Index decoded samples on the same timeline that is fed to the MP3 encoder."""
+    cues = {}
+    samples = 0
+    with TemporaryDirectory() as directory:
+        work = Path(directory)
+        clip = work / "clip.mp3"
+        raw = work / "track.pcm"
+        track = work / "track.mp3"
+        with raw.open("wb") as pcm:
+            for topic in section["topics"]:
+                for task in topic["tasks"]:
+                    for exercise in task["exercises"]:
+                        clip.write_bytes(archive.read(exercise.pop("asset")))
+                        decoded = subprocess.check_output([
+                            "ffmpeg", "-v", "error", "-i", str(clip), "-map", "0:a:0",
+                            "-ar", str(SAMPLE_RATE), "-ac", "1", "-f", "s16le", "-",
+                        ])
+                        if not decoded or len(decoded) % 2:
+                            raise ValueError(f"Invalid decoded recording: {exercise['id']}")
+                        end = samples + len(decoded) // 2
+                        cues[exercise["id"]] = [round(samples * 1000 / SAMPLE_RATE), round(end * 1000 / SAMPLE_RATE)]
+                        pcm.write(decoded)
+                        pcm.write(bytes(GAP_SAMPLES * 2))
+                        samples = end + GAP_SAMPLES
+        subprocess.run([
+            "ffmpeg", "-v", "error", "-f", "s16le", "-ar", str(SAMPLE_RATE), "-ac", "1",
+            "-i", str(raw), "-c:a", "libmp3lame", "-b:a", "96k", "-fflags", "+bitexact",
+            "-map_metadata", "-1", str(track),
+        ], check=True)
+        emit(f"audio/{section['id']}.mp3", track.read_bytes())
+    return cues
+
+
 def generate(package, output, check):
     files = set()
 
@@ -154,28 +190,18 @@ def generate(package, output, check):
             raise ValueError("Expected all 1,014 notes from the approved deck")
 
         sections = []
-        audio_lines = []
-        audio = {}
-        for section, topics in SECTIONS.items():
-            section_topics = []
-            for topic in topics:
-                tasks = list(curate(topic, notes[topic]))
-                section_topics.append({"id": slug(topic), "title": topic, "tasks": tasks})
-                for task in tasks:
-                    for exercise in task["exercises"]:
-                        contents = archive.read(exercise.pop("asset"))
-                        relative = f"audio/{exercise['id']}.mp3"
-                        emit(relative, contents)
-                        audio[exercise["id"]] = contents
-            sections.append({"id": slug(section), "title": section, "topics": section_topics})
-
-    packed_ids = set(sorted(audio, key=lambda key: (len(audio[key]), key))[:PACKED_AUDIO_COUNT])
-    packed = {}
-    for exercise_id, contents in audio.items():
-        if exercise_id in packed_ids:
-            packed[exercise_id] = base64.b64encode(contents).decode("ascii")
-        else:
-            audio_lines.append(f"  '{exercise_id}': () => require('./audio/{exercise_id}.mp3') as number,")
+        tracks = []
+        cues = {}
+        for title, topics in SECTIONS.items():
+            section = {"id": slug(title), "title": title, "topics": [
+                {"id": slug(topic), "title": topic, "tasks": list(curate(topic, notes[topic]))}
+                for topic in topics
+            ]}
+            sections.append(section)
+            track_id = section["id"]
+            for exercise_id, (start, end) in section_track(section, archive, emit).items():
+                cues[exercise_id] = [track_id, start, end]
+            tracks.append(f"  '{track_id}': () => require('./audio/{track_id}.mp3') as number,")
 
     with package.open("rb") as original:
         checksum = hashlib.file_digest(original, "sha256").hexdigest()
@@ -186,17 +212,18 @@ def generate(package, output, check):
     }
     emit("course.json", (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode())
     emit("audio.generated.ts", (
-        "export const tamilAudio: Readonly<Record<string, () => number>> = {\n"
-        + "\n".join(audio_lines) + "\n};\n"
+        "export const sectionTracks = {\n" + "\n".join(tracks) + "\n};\n\n"
+        + "export const audioCues: Readonly<Partial<Record<string, readonly [keyof typeof sectionTracks, number, number]>>> = {\n"
+        + "".join(f"  '{key}': ['{track}', {start}, {end}],\n" for key, (track, start, end) in cues.items())
+        + "};\n"
     ).encode())
-    emit("audio.packed.json", (json.dumps(packed, indent=2) + "\n").encode())
     actual = {file.relative_to(output).as_posix() for file in (output / "audio").glob("*.mp3")}
     extra = actual - files
     if extra:
         raise ValueError(f"Remove stale media files: {', '.join(sorted(extra))}")
     print(json.dumps({
-        "notes": 1014, "topics": len(notes), "tamilAudio": len(audio),
-        "audioBytes": sum(map(len, audio.values())), "packedAudio": len(packed),
+        "notes": 1014, "topics": len(notes), "tamilAudio": len(cues),
+        "sectionTracks": len(tracks),
     }))
 
 

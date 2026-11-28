@@ -5,8 +5,8 @@
 
 import {
   HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
-  useAgentComponents,
-} from '@lib/agent-ui-contracts';
+  useSkin,
+} from '@lib/skin';
 
 import type { SettingsCapability } from '../../domain/settingsCapabilities';
 import { OrcaSettingsScreen } from './OrcaSettingsScreen';
@@ -16,7 +16,7 @@ export function OpenCapabilitySettingsScreen(props: {
   note: string;
   capabilities: readonly SettingsCapability[];
 }) {
-  const { HomeSettingsGroup, HomeSettingsRow, HomeSettingsNote } = useAgentComponents();
+  const { HomeSettingsGroup, HomeSettingsRow, HomeSettingsNote } = useSkin();
   return (
     <OrcaSettingsScreen title={props.title}>
       <HomeSettingsNote>{props.note}</HomeSettingsNote>

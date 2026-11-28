@@ -7,6 +7,10 @@ const { withTamagui } = require('@tamagui/metro-plugin');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname, { isCSSEnabled: true });
+config.transformer.assetPlugins = [
+  require.resolve('./buoyIconAsset.cjs'),
+  ...(config.transformer.assetPlugins ?? []),
+];
 
 // The transform cache does not key on inlined EXPO_PUBLIC_* values: an export reused modules folded with the
 // last build's values (the lab flag, the backend token). Hashed, as some values are credentials.

@@ -182,7 +182,7 @@
       "requiredFiles": ["index.ts|index.tsx"],
       "requiredAnyOf": [["domain"], ["state"], ["ui"], ["di"], ["routes"]],
       "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],
-      "mayDependOn": ["component-library"],
+      "mayDependOn": ["component-library", "hexagonal-library"],
       "mayDevDependOn": []
     },
     "presentation-feature": {
@@ -194,7 +194,7 @@
       "requiredAnyOf": [["ui"], ["routes"]],
       "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],
       "forbiddenDirs": ["domain", "data", "di"],
-      "mayDependOn": [],
+      "mayDependOn": ["component-library", "hexagonal-library"],
       "mayDevDependOn": []
     },
     "component-library": {

@@ -2,7 +2,7 @@ import { backOrReplace, useRouteNavigation } from '../useRouteAction';
 import { CompactHeader, CompactIconButton, CompactTabs, FloatingBar, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { ChevronDown, Lightbulb, Play, Share, Star, Tag } from '@lib/tamagui-design-system/icons';
 import { Link, router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +12,8 @@ import { useLeetCodePorts } from '../../state/ports';
 import { NeetCodeLesson } from './NeetCodeLesson';
 import { problemUrl, shareProblem } from './libraryShare';
 import { ProblemInformationSheet, type ProblemInformation } from './ProblemInformationSheets';
+
+const subscribeNever = () => () => undefined;
 
 const tabs = [
   { id: 'description', label: 'Description' },
@@ -23,14 +25,16 @@ export function ProblemDetailScreen({ id }: { id: string }) {
   const colors = useCompactColors();
   const { top, bottom } = useSafeAreaInsets();
   const { libraryContent } = useLeetCodePorts();
-  const problem = libraryContent.problem(id);
+  // The export holds one template page for every id: hydrate as that page, then look the problem up.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const problem = hydrated ? libraryContent.problem(id) : undefined;
   const { lists, actions } = useLibrary();
   const favorited = lists.some((list) => list.id === 'favorite' && list.problemIds.includes(id));
   const [tab, setTab] = useState<(typeof tabs)[number]['id']>('description');
   const [information, setInformation] = useState<ProblemInformation>();
   const [scrolled, setScrolled] = useState(false);
   const title = problem ? `${problem.leetcodeId}. ${problem.title}` : 'Problem';
-  const study = libraryContent.studyPlan.find((entry) => entry.id === id);
+  const study = hydrated ? libraryContent.studyPlan.find((entry) => entry.id === id) : undefined;
   const lesson = useMemo(() => tab === 'lesson' ? libraryContent.lesson(id) : undefined, [id, libraryContent, tab]);
   const hasProblem = Boolean(problem);
   useFocusEffect(useCallback(() => {

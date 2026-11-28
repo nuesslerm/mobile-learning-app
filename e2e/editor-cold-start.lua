@@ -32,7 +32,7 @@ end
 local function choose(runner)
   local id = runner == 'device' and 'LeetcodeListRunnerDevice' or 'LeetcodeListRunnerBackend'
   device:clear_logs()
-  device:open_link(base .. "/")
+  device:open_link(base .. "/blind75")
   device:assert_visible({id='LeetcodeListRunnerRow'}, {timeout=60000})
   device:extended_wait_until{condition=function() return logged_line('route.change') ~= nil end, timeout=60000, interval=250, label='the page hydrated'}
   device:scroll_until_visible{element={id=id}, direction='DOWN'}
@@ -45,7 +45,7 @@ for _, runner in ipairs({'device', 'backend'}) do
     choose(runner)
     local mounts, hydrate = {}, {}
     for i = 1, RELOADS do
-      device:open_link(base .. "/")
+      device:open_link(base .. "/blind75")
       device:assert_visible({id='LeetcodeListRunnerRow'}, {timeout=60000})
       device:clear_logs()
       device:open_link(base .. "/leetcode/two-sum")

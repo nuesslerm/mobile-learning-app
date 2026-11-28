@@ -1,0 +1,44 @@
+{
+  "platform": "browser",
+  "step": 25,
+  "last_action": "open_link{link='http://127.0.0.1:61628/mla-tamagui/gallery?section=settings&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:61628/mla-tamagui/gallery?section=settings&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-settings",
+      "skin-settings-screen",
+      "skin-settings-header",
+      "skin-settings-headerBack",
+      "skin-settings-headerTitle",
+      "skin-settings-group",
+      "skin-settings-row",
+      "skin-settings-switch",
+      "skin-chat-size-smaller",
+      "skin-chat-size-larger",
+      "skin-chat-spacing-compact",
+      "skin-chat-spacing-default",
+      "skin-chat-spacing-relaxed"
+    ],
+    "text": "Settings\nA note explains the group beneath it.\nOpens a screen\nShows a value\nMenlo\nCarries a switch\nOffers an action\nUpdate\nPicked option\nOther option\nDisabled row\nText size\nDefault\nLine spacing\nCompact\nDefault\nRelaxed"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 64623,
+    "capture_ms": 121
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.07999999999999996,
+    "ignore": []
+  },
+  "name": "gallery-tamagui-dark-settings",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

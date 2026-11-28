@@ -24,6 +24,9 @@ enum Kind {
     Opencode,
     /// The faster-whisper sidecar (`backend/remote-chat-agent/stt/server.py`, run by STT_PYTHON or python3), for rca-service's transcription.
     Stt,
+    /// A desktop a phone pairs with: the integration tests' chain (`clis/t3-serve/examples/chain.rs`), t3-serve over an rca service and executor of
+    /// its own with a scripted Claude, so a chat answers with no model. It picks its port and says it, with the command that mints a pairing link.
+    Desktop,
 }
 
 /// A backend: where its crate is, which binary it makes, the variable that names a prebuilt one, and how it is asked if it is up.
@@ -40,12 +43,18 @@ struct Def {
 }
 
 // the order is the start order: rca-service reads the urls of the two before it
-const DEFS: [Def; 4] = [
+const DEFS: [Def; 5] = [
     Def { name: "stt", kind: Kind::Stt, manifest: "", package: "stt", bin_env: "STT_SERVER", port_flag: "stt-port", health: "/health", default: false },
     Def { name: "opencode-server", kind: Kind::Opencode, manifest: "", package: "opencode", bin_env: "OPENCODE_BIN", port_flag: "opencode-port", health: "/app", default: false },
     Def { name: "rca-service", kind: Kind::Cargo, manifest: "backend/remote-chat-agent/Cargo.toml", package: "rca-service", bin_env: "RCA_SERVICE_BIN", port_flag: "rca-port", health: "/health", default: true },
     Def { name: "leetcode-backend", kind: Kind::Cargo, manifest: "backend/leetcode-backend/Cargo.toml", package: "leetcode-backend-rs", bin_env: "LEETCODE_BACKEND_BIN", port_flag: "leetcode-port", health: "/health", default: true },
+    Def { name: "agent-desktop", kind: Kind::Desktop, manifest: "clis/Cargo.toml", package: "t3-serve", bin_env: "AGENT_DESKTOP_BIN", port_flag: "", health: "/.well-known/t3/environment", default: false },
 ];
+
+/// What the scripted Claude of `agent-desktop` answers every message with (`e2e/rca-native.lua` waits for it).
+const DESKTOP_REPLY: &str = "Hello from the scripted agent";
+/// The desktop's first start builds the programs of its chain that no variable names.
+const DESKTOP_BUILD_WAIT: Duration = Duration::from_secs(900);
 
 fn fail(error: impl Into<String>, next: &str) -> i32 {
     println!("{}", json!({ "ok": false, "error": error.into(), "next": next }));
@@ -66,7 +75,7 @@ pub fn run(args: &[String]) -> i32 {
 fn up(p: &wf_kit::args::Parsed, dir: &Path) -> i32 {
     let wanted: Vec<&str> = p.val("only").map(|v| v.split(',').map(str::trim).filter(|s| !s.is_empty()).collect()).unwrap_or_else(|| DEFS.iter().filter(|d| d.default).map(|d| d.name).collect());
     if let Some(bad) = wanted.iter().find(|w| !DEFS.iter().any(|d| d.name == **w)) {
-        return fail(format!("unknown backend '{bad}'"), "wf test backends up [--only stt,opencode-server,rca-service,leetcode-backend]");
+        return fail(format!("unknown backend '{bad}'"), "wf test backends up [--only stt,opencode-server,rca-service,leetcode-backend,agent-desktop]");
     }
     if let Some(state) = read_state(dir) {
         let alive: Vec<String> = recorded(&state).into_iter().filter(is_ours).map(|r| format!("{} (pid {})", r.name, r.pid)).collect();
@@ -99,6 +108,9 @@ fn up(p: &wf_kit::args::Parsed, dir: &Path) -> i32 {
 
 fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration, peers: &[Value]) -> Result<Value, String> {
     let bin = binary(def, p.flag("no-build"))?;
+    if def.kind == Kind::Desktop {
+        return start_desktop(def, &bin, dir, wait.max(DESKTOP_BUILD_WAIT), peers);
+    }
     let port = match p.val(def.port_flag) {
         Some(v) => v.parse::<u16>().map_err(|_| format!("--{} wants a port number, got '{v}'", def.port_flag))?,
         None => free_port()?,
@@ -120,6 +132,7 @@ fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration, pe
             c.arg(&bin);
             c
         }
+        Kind::Desktop => unreachable!("start_desktop starts it"),
     };
     command.env_clear().env("PATH", std::env::var_os("PATH").unwrap_or_default()).env("HOME", &home).current_dir(&home).envs(server_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
     // its own process group, so `down` stops it with whatever it started and it outlives this command
@@ -147,6 +160,67 @@ fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration, pe
         "name": def.name, "url": url, "host": "127.0.0.1", "port": port, "pid": pid, "health": format!("{url}{}", def.health),
         "bin": bin.display().to_string(), "log": log.display().to_string(),
         "env": consumer_env.into_iter().map(|(k, v)| (k, Value::String(v))).collect::<serde_json::Map<String, Value>>(),
+    }))
+}
+
+/// A program of the chain that sits beside this `wf` (CI installs `t3-serve` and `rca-exec` there), unless its variable already names one.
+fn beside_wf(var: &str, program: &str) -> Option<(String, String)> {
+    if std::env::var_os(var).is_some_and(|v| !v.is_empty()) {
+        return None;
+    }
+    let found = std::env::current_exe().ok()?.parent()?.join(program);
+    found.is_file().then(|| (var.to_string(), found.display().to_string()))
+}
+
+/// Starts the desktop and waits for the line it says when it listens. It keeps the caller's environment: the chain builds what no variable names,
+/// and takes the rca service this run already built.
+fn start_desktop(def: &Def, bin: &Path, dir: &Path, wait: Duration, peers: &[Value]) -> Result<Value, String> {
+    let log = dir.join(format!("{}.log", def.name));
+    let said = dir.join(format!("{}.json", def.name));
+    let open = |path: &Path| std::fs::File::create(path).map_err(|e| format!("{}: {e}", path.display()));
+    let mut command = Command::new(bin);
+    command.args(["--claude-says", DESKTOP_REPLY, "--stay"]);
+    // the server is the one built with the chain (a runner may hold `wf` alone); the executor is taken from beside `wf` where it is
+    if std::env::var_os("T3_SERVE_BIN").is_none_or(|v| v.is_empty()) {
+        if let Some(server) = bin.parent().and_then(Path::parent).map(|debug| debug.join("t3-serve")).filter(|p| p.is_file()) {
+            command.env("T3_SERVE_BIN", server);
+        }
+    }
+    command.envs(beside_wf("RCA_EXEC_BIN", "rca-exec"));
+    if let Some(service) = peers.iter().find(|p| p["name"] == "rca-service").and_then(|p| p["bin"].as_str()) {
+        command.env("RCA_SERVICE_BIN", service);
+    }
+    command.process_group(0).stdin(Stdio::null()).stdout(open(&said)?).stderr(open(&log)?);
+    let mut child = command.spawn().map_err(|e| format!("cannot start {}: {e}", bin.display()))?;
+    let pid = child.id();
+    let deadline = Instant::now() + wait;
+    let listening = loop {
+        if let Ok(Some(status)) = child.try_wait() {
+            return Err(format!("{} ended with {status} before it listened; log {}:\n{}", def.name, log.display(), tail(&log)));
+        }
+        let line = std::fs::read_to_string(&said).unwrap_or_default();
+        if let Some(value) = line.lines().next().and_then(|l| serde_json::from_str::<Value>(l).ok()) {
+            break value;
+        }
+        if Instant::now() >= deadline {
+            kill_group(pid, true);
+            let _ = child.wait();
+            return Err(format!("{} did not listen within {}s; log {}:\n{}", def.name, wait.as_secs(), log.display(), tail(&log)));
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    };
+    let addr: SocketAddr = listening["addr"].as_str().and_then(|a| a.parse().ok()).ok_or_else(|| format!("{} said no address: {listening}", def.name))?;
+    if !health(addr, def.health) {
+        kill_group(pid, true);
+        let _ = child.wait();
+        return Err(format!("{} listens on {addr} but {} does not answer; log {}:\n{}", def.name, def.health, log.display(), tail(&log)));
+    }
+    let url = format!("http://{addr}");
+    Ok(json!({
+        "name": def.name, "url": url, "host": addr.ip().to_string(), "port": addr.port(), "pid": pid, "health": format!("{url}{}", def.health),
+        "bin": bin.display().to_string(), "log": log.display().to_string(), "env": {},
+        // the command that mints a pairing link on this desktop; `--base-url <url>` makes the link one a phone on this machine opens
+        "mint": listening["mint"], "reply": DESKTOP_REPLY,
     }))
 }
 
@@ -238,7 +312,7 @@ fn binary(def: &Def, no_build: bool) -> Result<PathBuf, String> {
             let path = std::env::var_os(def.bin_env).filter(|v| !v.is_empty()).map(PathBuf::from).unwrap_or_else(|| wf_kit::root::repo_root().join("backend/remote-chat-agent/stt/server.py"));
             return if path.is_file() { Ok(path) } else { Err(format!("{} is no file", path.display())) };
         }
-        Kind::Cargo => {}
+        Kind::Cargo | Kind::Desktop => {}
     }
     if let Some(named) = std::env::var_os(def.bin_env).filter(|v| !v.is_empty()) {
         let path = PathBuf::from(named);
@@ -246,13 +320,16 @@ fn binary(def: &Def, no_build: bool) -> Result<PathBuf, String> {
     }
     let repo = wf_kit::root::repo_root();
     let target = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from).unwrap_or_else(|| repo.join("target")).join(format!("{}-build", def.name));
-    let built = target.join("debug").join(def.package);
+    let desktop = def.kind == Kind::Desktop;
+    let built = if desktop { target.join("debug/examples/chain") } else { target.join("debug").join(def.package) };
     if no_build {
         return if built.is_file() { Ok(built) } else { Err(format!("--no-build: {} is not built (name a binary in {})", built.display(), def.bin_env)) };
     }
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let status = Command::new(cargo)
-        .args(["build", "--locked", "--quiet", "-p", def.package, "--bin", def.package, "--manifest-path"])
+        .args(["build", "--locked", "--quiet", "-p", def.package])
+        .args(if desktop { vec!["--example", "chain", "--bin", def.package] } else { vec!["--bin", def.package] })
+        .arg("--manifest-path")
         .arg(repo.join(def.manifest))
         .arg("--target-dir")
         .arg(&target)

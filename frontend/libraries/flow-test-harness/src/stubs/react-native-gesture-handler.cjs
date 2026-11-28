@@ -223,9 +223,12 @@ const GestureDetector = ({ gesture, children }) => {
   );
 };
 
-const GestureHandlerRootView = React.forwardRef(({ children, ...props }, ref) =>
-  React.createElement('div', { ...props, ref }, children)
-);
+// The real root view is a React Native View: it takes responder props, which a div would warn about.
+const isResponderProp = (name) => /^on(Start|Move)ShouldSetResponder|^onResponder/.test(name);
+const GestureHandlerRootView = React.forwardRef(({ children, ...props }, ref) => {
+  const domProps = Object.fromEntries(Object.entries(props).filter(([name]) => !isResponderProp(name)));
+  return React.createElement('div', { ...domProps, ref }, children);
+});
 GestureHandlerRootView.displayName = 'GestureHandlerRootView';
 
 module.exports = {

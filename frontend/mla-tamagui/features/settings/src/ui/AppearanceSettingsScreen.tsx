@@ -1,3 +1,4 @@
+import { useSkinPreference } from '@lib/skin';
 import { Logger } from '@lib/logging';
 import {
   Icon,
@@ -118,6 +119,7 @@ function ThemeTile({
 
 export function AppearanceSettingsScreen() {
   const scrollUnder = useScrollUnder(true);
+  const skin = useSkinPreference();
   const themeMode = usePresetThemeStore((s) => s.themeMode);
   const setThemeMode = usePresetThemeStore((s) => s.setThemeMode);
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
@@ -190,6 +192,23 @@ export function AppearanceSettingsScreen() {
             ]}
             value={nativeHeaders ? 'on' : 'off'}
             onChange={(value) => setNativeHeaders(value === 'on')}
+          />
+        </View>
+        <View gap="$2" testID="AppearanceSettingsScreen-Design">
+          <Text variant="strong" testID="AppearanceSettingsScreen-DesignLabel">
+            Design
+          </Text>
+          <Text variant="muted" testID="AppearanceSettingsScreen-DesignHint">
+            App is this app's own look. Orca mirrors the Orca app where a screen has an Orca version.
+          </Text>
+          <SegmentedControl
+            testID="AppearanceSettingsScreen-DesignControl"
+            options={[
+              { value: 'tamagui', label: 'App' },
+              { value: 'orca', label: 'Orca' },
+            ]}
+            value={skin.preference}
+            onChange={(value) => skin.select(value === 'orca' ? 'orca' : 'tamagui')}
           />
         </View>
         <View

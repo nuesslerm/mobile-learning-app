@@ -15,9 +15,9 @@ pub fn is_verb(verb: &str) -> bool {
 /// The device part of the help engine: the verb list of a device noun's page and the page of one verb of the command table.
 pub fn help_hooks() -> wf_kit::help::Hooks {
     wf_kit::help::Hooks {
-        noun_section: |noun| matches!(noun, "browser" | "android").then(|| api::noun_section(noun)),
+        noun_section: |noun| matches!(noun, "browser" | "android" | "ios").then(|| api::noun_section(noun)),
         verb_help: |noun, verb| {
-            let cmd = api::by_verb(verb).filter(|_| matches!(noun, "browser" | "android"))?;
+            let cmd = api::by_verb(verb).filter(|_| matches!(noun, "browser" | "android" | "ios"))?;
             Some(api::verb_help(noun, cmd))
         },
     }

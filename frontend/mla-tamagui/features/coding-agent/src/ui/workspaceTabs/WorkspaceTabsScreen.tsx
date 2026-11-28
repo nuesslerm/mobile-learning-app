@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
 import {
-  Button,
   Platform,
   ScrollView,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { router } from 'expo-router';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin, useSkinTheme } from '@lib/skin';
 import { Logger } from '@lib/logging';
 import { chatRoute } from '../../domain/workspaceCatalog';
 import type { Pairing } from '../../domain/mobile';
@@ -60,9 +58,9 @@ export function WorkspaceTabsScreen({
   const [chats, setChats] = useState<{ id: string; title: string }[]>([]);
   const [agentError, setAgentError] = useState('');
   const { top, bottom } = useSafeAreaInsets();
-  const color = useColorScheme() === 'dark' ? '#fafafa' : '#0a0a0a';
-  const { ChatSurface, SessionHeader, SessionTabsSheet, NewTabSheet } =
-    useAgentComponents();
+  const color = useSkinTheme().tabs.headerInk;
+  const { Button, ChatSurface, SessionHeader, SessionTabsSheet, NewTabSheet } =
+    useSkin();
   useEffect(() => {
     if (showNew) setSheet('new');
   }, [showNew]);
@@ -236,7 +234,7 @@ export function WorkspaceTabsScreen({
               }}
             >
               <Button
-                title="New Tab"
+                label="New Tab"
                 disabled={busy}
                 onPress={() => setSheet('new')}
               />

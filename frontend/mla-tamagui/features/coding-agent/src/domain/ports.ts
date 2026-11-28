@@ -1,5 +1,5 @@
 import type { WorkspaceTabsPort } from './workspaceTabs/tabs';
-import type { ChatTextPreference } from '@lib/agent-ui-contracts';
+import type { ChatTextPreference } from '@lib/skin';
 import type { ChatImageFile, ImageActions } from './imageActions';
 import type { T3MobilePort } from './t3Mobile';
 import type { MobilePort } from './mobile';

@@ -5,9 +5,9 @@
 
 import {
   HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
-  useAgentComponents,
-} from '@lib/agent-ui-contracts';
-import { useAppearancePreference } from '@lib/orca-design-system';
+  useSkin,
+  useAppearancePreference,
+} from '@lib/skin';
 
 import type { AppearancePreference } from '../../domain/ports';
 import { OrcaSettingsScreen } from './OrcaSettingsScreen';
@@ -19,7 +19,7 @@ const THEMES: readonly { value: AppearancePreference; label: string }[] = [
 ];
 
 export function AppearanceSettingsScreen() {
-  const { HomeSettingsGroup, HomeSettingsRow, HomeSettingsNote } = useAgentComponents();
+  const { HomeSettingsGroup, HomeSettingsRow, HomeSettingsNote } = useSkin();
   const { preference, select } = useAppearancePreference();
   return (
     <OrcaSettingsScreen title="Appearance">

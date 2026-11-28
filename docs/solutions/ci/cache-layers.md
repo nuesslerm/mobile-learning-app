@@ -47,6 +47,8 @@ The Oracle bucket is gone, so hosted CI uses `actions/cache` (pinned by SHA) unt
 | `blob` | skipped | on: the stores in `BUILD_CACHE_READ_STORES` and `BUILD_CACHE_WRITE_STORES` |
 | `gha,blob` | on | on: reads take the first hit, writes go to every store |
 
+A called workflow does not take its caller's `env`, so `e2e-tests.yml` and `ios-e2e-tests.yml` set the same two values on their job: without them the shim of `wf test run` reads the old bucket's link from the vault, every write answers 404, and `wf ci cache-health` fails the report job on `rejected-write` (28 Nov, run 46112825591).
+
 Moving to R2 or Hetzner Object Storage is the variable plus the two store lists (`clis/blob-cache/src/stores.rs`), with no workflow edit. The sccache layer is the one exception to `gha,blob`: sccache has a single backend, so while the blob shim owns `RUSTC_WRAPPER` the directory cache stays out (`sccache-cache` does nothing when `WF_BLOB_CACHE` is not `off`). `CACHE_PNPM=on` brings the pnpm store back; it is off because it does not pay.
 
 What each layer is worth, measured on 14 Nov (run 43558013495, `docs/benchmarks/reports/2026-11-14-ci-cache-bench/evidence/2026-11-14-ci-cache-bench.md`): sccache 96 s per use for 268 MB, metro 70 s for 17 MB, nx 38 s (identical rerun) for 1 MB, the pnpm store 13 to 17 s for 705 MB (and none in the real jobs), the rust target directory 86 s for 348 MB (sccache beats it), toolchain 4 s, cargo registry 0.5 s. Together the layers kept hold about 0.6 GB: the 10 GB quota is not the constraint, key churn is.

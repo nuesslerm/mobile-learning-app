@@ -23,7 +23,7 @@ fn given_two_jobs_rows_when_merged_into_the_sealed_database_then_each_row_is_kep
     let merged = run_wf(&["ci", "db", "merge", "--sealed-file", &sealed_arg, &a.display().to_string(), &b.display().to_string()], &opts(&a));
     // Then two distinct rows went in, and the file is sealed (no SQLite header readable)
     assert_eq!((merged.exit_code, last_json(&merged)["merged"].clone()), (0, json!(2)), "{}{}", merged.stdout, merged.stderr);
-    assert!(std::fs::read(&sealed).unwrap().starts_with(b"WFCIDB1\n"));
+    assert!(std::fs::read(&sealed).unwrap().starts_with(b"WFCIDB2\n"));
     // And a query reads each table's row once, by its JSON fields
     let q = run_wf(&["ci", "db", "query", "--sealed-file", &sealed_arg, "SELECT (SELECT COUNT(*) FROM TEST_RESULTS) AS runs, (SELECT COMMAND FROM WF_USAGE) AS cmd"], &opts(&a));
     assert_eq!(last_json(&q)["rows"], json!([{"runs": 1, "cmd": "test run"}]), "{}{}", q.stdout, q.stderr);

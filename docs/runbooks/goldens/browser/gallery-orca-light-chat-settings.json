@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 61,
+  "last_action": "open_link{link='http://127.0.0.1:56817/mla-tamagui/gallery?section=chat-settings&scheme=light'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:56817/mla-tamagui/gallery?section=chat-settings&scheme=light",
+    "title": "",
+    "testids": [
+      "SkinGallery-chat-settings"
+    ],
+    "text": "Chat UI\nWhy is the resume test flaky?\nRead 3 files · Ran pnpm test\nThe test waits on setTimeout(0) while the stream is still flushing.\nTS\n1\n2\nawait vi.waitFor(() =>\n  expect(rows).toHaveLength(3))\nTEXT\nFont\nSystem\nPinch in a chat to change it; it saves here.\nReset text settings"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 158213,
+    "capture_ms": 111
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "gallery-orca-light-chat-settings",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

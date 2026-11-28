@@ -18,6 +18,7 @@
     "rca.executor.read_chunk": 400
   },
   "min_change_ms": {
+    "t3.thread.projection": 3,
     "rca.executor.artifact_stat": 3,
     "rca.executor.read_chunk": 3
   }

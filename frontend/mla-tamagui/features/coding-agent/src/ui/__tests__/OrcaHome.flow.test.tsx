@@ -23,13 +23,7 @@ describe('The default Orca home', () => {
       'Usage',
       'Automations',
     ]);
-    // The active tab wears the heavier glyph, the way the original marks it.
-    expect(tabs[0].querySelector('svg')?.getAttribute('stroke-width')).toBe(
-      '2.2'
-    );
-    expect(tabs[1].querySelector('svg')?.getAttribute('stroke-width')).toBe(
-      '1.8'
-    );
+    expect(tabs.map((tab) => tab.getAttribute('aria-selected') === 'true')).toEqual([true, false, false, false, false]);
     expect(screen.getByRole('heading', { name: 'Connect your desktop' })).toBeTruthy();
   });
 

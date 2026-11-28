@@ -1,4 +1,4 @@
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import { useState } from 'react';
 import type { Pairing } from '../../domain/mobile';
 import type { T3MobilePort } from '../../domain/t3Mobile';
@@ -14,7 +14,7 @@ import { ScrollView } from 'react-native';
  */
 export function OrcaAgentsTab({ active, api, pair, computer }: {active: boolean; api?: T3MobilePort; pair?: Pairing; computer?: string | null}) {
   const { HomeTabHeader, HomeEmptyState, HomeSearchField, HomeActionSheet } =
-    useAgentComponents();
+    useSkin();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState<'closed' | 'options' | 'group-by'>('closed');

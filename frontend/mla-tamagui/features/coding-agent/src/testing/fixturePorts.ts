@@ -1,4 +1,4 @@
-import type { ChatTextPreference } from '@lib/agent-ui-contracts';
+import type { ChatTextPreference } from '@lib/skin';
 import { createFixtureDispatchRunsGateway } from './fixtureDispatchRuns';
 import { createFixtureGateway } from './fixtureGateway';
 import type { AppearancePreference, CodingAgentPorts } from '../domain/ports';

@@ -1,6 +1,7 @@
 import noDirectScreenHeader from '@/rules/no-direct-screen-header.js';
 import noHermesUnsupportedApi from '@/rules/no-hermes-unsupported-api.js';
 import noUnhandledCatch from '@/rules/no-unhandled-catch.js';
+import { noDesignSystemOutsideASkin, noReactNativeControls, onlyRootNamesASkin } from '@/rules/skin-imports.js';
 import type { Node } from 'estree';
 
 export interface RuleMeta {
@@ -31,6 +32,9 @@ const rules: Record<string, Rule> = {
   'no-direct-screen-header': noDirectScreenHeader,
   'no-hermes-unsupported-api': noHermesUnsupportedApi,
   'no-unhandled-catch': noUnhandledCatch,
+  'no-design-system-outside-a-skin': noDesignSystemOutsideASkin,
+  'no-react-native-controls': noReactNativeControls,
+  'only-root-names-a-skin': onlyRootNamesASkin,
 };
 
 export default rules;

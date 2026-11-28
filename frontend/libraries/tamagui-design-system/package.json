@@ -29,6 +29,7 @@
     "@gluestack-ui/core": "^5.0.15",
     "@gluestack-ui/utils": "^5.0.6",
     "@gorhom/bottom-sheet": "^5.2.14",
+    "@lib/keyboard": "workspace:*",
     "@lib/logging": "workspace:*",
     "@tamagui/alert-dialog": "^2.7.7",
     "@tamagui/button": "^2.7.7",

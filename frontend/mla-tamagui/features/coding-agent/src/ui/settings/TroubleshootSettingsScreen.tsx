@@ -6,8 +6,8 @@
 
 import {
   HOME_SETTINGS_SEPARATOR_INSET_PLAIN,
-  useAgentComponents,
-} from '@lib/agent-ui-contracts';
+  useSkin,
+} from '@lib/skin';
 import { appConfig } from '@lib/app-config';
 import { Logger } from '@lib/logging';
 import { useEffect, useState } from 'react';
@@ -32,7 +32,7 @@ function serverHost(): string {
 }
 
 export function TroubleshootSettingsScreen() {
-  const { HomeSettingsGroup, HomeSettingsRow } = useAgentComponents();
+  const { HomeSettingsGroup, HomeSettingsRow } = useSkin();
   const { tokenStore } = useCodingAgentPorts();
   const status = useGatewayStore((state) => state.status);
   const transport = useGatewayStore((state) => state.transport);

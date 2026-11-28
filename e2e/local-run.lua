@@ -104,7 +104,7 @@ local function open_editor(problem, code)
 end
 
 local function choose(runner)
-  open("/", 'LeetcodeListRunnerRow')
+  open("/blind75", 'LeetcodeListRunnerRow')
   local id = runner == 'device' and 'LeetcodeListRunnerDevice' or 'LeetcodeListRunnerBackend'
   if android then
     device:tap_on({id=id})

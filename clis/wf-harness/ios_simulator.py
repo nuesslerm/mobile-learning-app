@@ -7,11 +7,13 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import shlex
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 import uuid
 import xml.etree.ElementTree as ET
@@ -26,7 +28,24 @@ SHA256 = "17ab20f856c72690a750e79826ab5c90550a1441b1d1d67db6cd252af979b903"
 
 
 def sim(*args):
-    return subprocess.check_output(["xcrun", "simctl", *args], text=True).strip()
+    # simctl aborts before it runs its verb when it reads the device set while CoreSimulator rewrites the device pairs
+    # ("Invalid parameter not satisfying: devicePair"): that is no answer from the simulator, so the command is asked again
+    for attempt in range(3):
+        try:
+            return subprocess.check_output(["xcrun", "simctl", *args], text=True).strip()
+        except subprocess.CalledProcessError as error:
+            if error.returncode != -signal.SIGABRT or attempt == 2:
+                raise
+            time.sleep(2)
+
+
+def quiet_dev_menu(udid):
+    """Expo Go's own developer button floats over the app's top right corner and its first-run sheet over everything: both off."""
+    prefs = Path(sim("get_app_container", udid, EXPO, "data")) / "Library/Preferences" / (EXPO + ".plist")
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
+    settings.update(EXDevMenuShowFloatingActionButton=False, EXDevMenuIsOnboardingFinished=True)
+    prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
 
 
 def device_info(udid):
@@ -69,11 +88,7 @@ def prepare(udid):
         # CoreSimulatorBridge opens update links. Its first-open prompt belongs to SpringBoard.
         sim("spawn", udid, "defaults", "write", "com.apple.launchservices.schemeapproval",
             "com.apple.CoreSimulator.CoreSimulatorBridge-->exp", "-string", EXPO)
-        prefs = Path(sim("get_app_container", udid, EXPO, "data")) / "Library/Preferences" / (EXPO + ".plist")
-        prefs.parent.mkdir(parents=True, exist_ok=True)
-        settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
-        settings.update(EXDevMenuShowFloatingActionButton=False, EXDevMenuIsOnboardingFinished=True)
-        prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
+        quiet_dev_menu(udid)
         sim("launch", udid, EXPO)
     manifest = simulator_manifest(udid)
     if os.getenv("WF_IOS_XCTEST_DRIVER") == "1":
@@ -117,6 +132,8 @@ def fresh(name, source, bundles, schemes=(), reset=()):
             print(f"Installing {bundle} {version} on {name}", file=sys.stderr, flush=True)
             sim("install", udid, str(app))
         apps.append({"bundle": bundle, "version": version})
+    if EXPO in bundles:
+        quiet_dev_menu(udid)
     for key in ("AccessibilityEnabled", "ApplicationAccessibilityEnabled"):
         sim("spawn", udid, "defaults", "write", "com.apple.Accessibility", key, "-bool", "true")
     # CoreSimulatorBridge opens links. Its first-open prompt per scheme belongs to SpringBoard, where no test can tap it.
@@ -212,8 +229,17 @@ def prepare_android_learner(device, base, manifest):
             raise RuntimeError(f"Could not {operation} learner snapshot: {result}")
 
     if saved.exists():
-        snapshot("load")
-        subprocess.run([*adb, "wait-for-device"], check=True, timeout=30)
+        try:
+            snapshot("load")
+            # after a load the device was offline for more than 30 s three times, and every later case then found it unreachable at once:
+            # whether it was slow or gone is not known yet, so it gets what a case's own 180 s leave and a gone one is named below
+            subprocess.run([*adb, "wait-for-device"], check=True, timeout=120)
+        except (RuntimeError, subprocess.SubprocessError):
+            log = Path(os.environ["RUNNER_TEMP"]) / "emulator.log"
+            lines = log.read_text(errors="replace").splitlines()[-60:] if log.exists() else ["no emulator.log"]
+            alive = subprocess.run(["pgrep", "-fl", "qemu-system"], capture_output=True, text=True).stdout.strip() or "no emulator process"
+            print("The emulator after the snapshot load:", *lines, "Its process: " + alive, sep="\n", file=sys.stderr, flush=True)
+            raise
         return
     shell = [*adb, "shell"]
     # Expo Go’s ScopedContext puts learner files and preferences under the encoded experience key.
@@ -245,6 +271,21 @@ rm -f -- databases/RKStorage*
     saved.touch()
 
 
+def paired_desktop(args):
+    """A pairing link of the desktop `wf test backends up --only agent-desktop` started, for the case that pairs with one."""
+    if "case=paired" not in args.command:
+        return []
+    state = Path(__file__).resolve().parents[2] / ".agents/tmp/e2e-backends/backends.json"
+    desktop = next((b for b in json.loads(state.read_text())["backends"] if b["name"] == "agent-desktop"), None) if state.exists() else None
+    if desktop is None:
+        raise ValueError("case=paired needs a desktop: wf test backends up --only agent-desktop")
+    if args.platform == "android":
+        # the app takes plain http only from this device, so the emulator's own port is sent on to the runner's
+        subprocess.run(["adb", "-s", args.device, "reverse", f"tcp:{desktop['port']}", f"tcp:{desktop['port']}"], check=True)
+    minted = subprocess.check_output([*shlex.split(desktop["mint"]), "--base-url", desktop["url"]], text=True)
+    return ["--env", "pair_url=" + json.loads(minted)["url"], "--env", "reply=" + desktop["reply"]]
+
+
 def run_case(args):
     if args.platform == "ios":
         prepared = os.getenv("WF_NATIVE_DEVICE_INFO")
@@ -259,7 +300,7 @@ def run_case(args):
             # LaunchServices can time out while dispatching a URL to a terminated Expo Go.
             sim("launch", args.device, EXPO)
             env = {**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)}
-            return subprocess.call(args.command, env=env)
+            return subprocess.call([*args.command, *paired_desktop(args)], env=env)
     if not (os.getenv("GITHUB_ACTIONS") == "true" and args.device.startswith("emulator-")):
         raise ValueError("Android learner suites require a hosted emulator")
     adb = ["adb", "-s", args.device, "shell"]
@@ -270,7 +311,7 @@ def run_case(args):
     manifest = {"udid": args.device, "model": prop("ro.product.model"), "runtime": prop("ro.build.version.release"),
                 "sdk": prop("ro.build.version.sdk"), "expoGo": version}
     prepare_android_learner(args.device, os.environ["WF_NATIVE_UPDATE_BASE"], manifest)
-    status = subprocess.call(args.command, env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)})
+    status = subprocess.call([*args.command, *paired_desktop(args)], env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)})
     if status and os.getenv("WF_RUN_TIMING"):
         diagnostics = Path(os.environ["WF_RUN_TIMING"]).with_name("android-process.log")
         with diagnostics.open("w") as output:

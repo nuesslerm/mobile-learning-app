@@ -1,5 +1,4 @@
-import type { ChatTextPreference } from '@lib/agent-ui-contracts';
-import { ChatTextContext } from '@lib/orca-design-system';
+import { ChatTextContext, type ChatTextPreference } from '@lib/skin';
 import { Logger } from '@lib/logging';
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import { Dimensions, useWindowDimensions } from 'react-native';

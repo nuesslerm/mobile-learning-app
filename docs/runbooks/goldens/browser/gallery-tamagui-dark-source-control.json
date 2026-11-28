@@ -1,0 +1,33 @@
+{
+  "platform": "browser",
+  "step": 33,
+  "last_action": "open_link{link='http://127.0.0.1:54480/mla-tamagui/gallery?section=source-control&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:54480/mla-tamagui/gallery?section=source-control&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-source-control",
+      "skin-source-back"
+    ],
+    "text": "Source Control\nfix/resume-test\nChanges\nPull request\nfix/resume-test\n2 commits\nOn this branch 3\nvs main\nM\nThreadFeed.tsx\nsrc/feed\n+18\n−4\nA\nempty.png\nsrc/feed/assets\nD\nREADME.md\n−12"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 84100,
+    "capture_ms": 106
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.07999999999999996,
+    "ignore": []
+  },
+  "name": "gallery-tamagui-dark-source-control",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

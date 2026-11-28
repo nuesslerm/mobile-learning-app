@@ -10,6 +10,7 @@ import {
 } from '@lib/tamagui-design-system';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { useSkinStore } from '../../app-shell/skin/skinStore';
 import { app } from './app';
 
 const ROWS: { label: string; href: string }[] = [
@@ -122,5 +123,19 @@ describe('the Native headers row on the Appearance screen', () => {
 
     expect(hint.textContent).toContain('iOS system header');
     expect(hint.textContent).toContain("app's own header");
+  });
+});
+
+describe('the Design choice on the Appearance screen', () => {
+  beforeEach(() => {
+    useSkinStore.setState({ skin: 'tamagui' });
+  });
+
+  it('given the Appearance screen on the App design, when Orca is chosen, then the app keeps the Orca skin', async () => {
+    await app.render('/settings/appearance');
+
+    await userEvent.click(screen.getByTestId('AppearanceSettingsScreen-DesignControl-orca'));
+
+    await waitFor(() => expect(useSkinStore.getState().skin).toBe('orca'));
   });
 });

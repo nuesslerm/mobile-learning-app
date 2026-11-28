@@ -1,0 +1,438 @@
+import { BottomSheet } from './BottomSheet';
+import { ChatSizeControl, ChatSpacingControl } from './ChatTextControls';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  fileName,
+  useFilePreview,
+  useFileTree,
+  useSessionMenu,
+  type SessionFileEntry,
+  type SessionFileSource,
+  type SessionHeaderProps,
+} from '@lib/skin';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Ellipsis,
+  FileText,
+  Type,
+  Folder,
+  FolderOpen,
+} from 'lucide-react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { homePalettes, useOrcaScheme } from './appearance';
+
+function FileTree({
+  source,
+  onRead,
+}: {
+  source: SessionFileSource;
+  onRead: (path: string) => void;
+}) {
+  const colors = homePalettes[useOrcaScheme()];
+  const { loading, rows, expanded, load, toggle } = useFileTree(source);
+  function open(entry: SessionFileEntry) {
+    if (entry.kind === 'file') onRead(entry.path);
+    else toggle(entry.path);
+  }
+  if (loading)
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.textSecondary} />
+        <Text style={{ color: colors.textSecondary }}>Loading files…</Text>
+      </View>
+    );
+  return (
+    <FlatList
+      data={rows}
+      contentContainerStyle={{ paddingVertical: 8 }}
+      keyExtractor={(row) =>
+        'entry' in row ? row.entry.path : 'status:' + row.parent
+      }
+      renderItem={({ item }) => {
+        const paddingLeft = 12 + item.depth * 16;
+        if ('status' in item)
+          return (
+            <Pressable
+              disabled={!item.retry}
+              accessibilityRole={item.retry ? 'button' : undefined}
+              onPress={() => load(item.parent)}
+              style={[styles.row, { paddingLeft }]}
+            >
+              <Text style={{ color: colors.textSecondary }}>{item.status}</Text>
+            </Pressable>
+          );
+        const { entry } = item;
+        const name = fileName(entry.path);
+        const directory = entry.kind === 'directory';
+        const isOpen = expanded.has(entry.path);
+        const Arrow = isOpen ? ChevronDown : ChevronRight;
+        const Icon = directory ? (isOpen ? FolderOpen : Folder) : FileText;
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={name}
+            accessibilityState={directory ? { expanded: isOpen } : {}}
+            onPress={() => open(entry)}
+            style={({ pressed }) => [
+              styles.row,
+              {
+                paddingLeft,
+                backgroundColor: pressed ? colors.bgRaised : undefined,
+              },
+            ]}
+          >
+            {directory ? (
+              <Arrow size={16} color={colors.textSecondary} />
+            ) : (
+              <View style={{ width: 16 }} />
+            )}
+            <Icon size={17} color={colors.textSecondary} />
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, fontSize: 15, color: colors.textPrimary }}
+            >
+              {name}
+            </Text>
+          </Pressable>
+        );
+      }}
+    />
+  );
+}
+
+function Preview({ source, path }: { source: SessionFileSource; path: string }) {
+  const colors = homePalettes[useOrcaScheme()];
+  const { file, failed, retry } = useFilePreview(source, path);
+  if (failed)
+    return (
+      <Pressable
+        accessibilityRole="button"
+        style={styles.center}
+        onPress={retry}
+      >
+        <Text style={{ color: colors.textPrimary }}>
+          Could not read this file. Try again
+        </Text>
+      </Pressable>
+    );
+  if (!file)
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.textSecondary} />
+      </View>
+    );
+  return (
+    <ScrollView contentContainerStyle={{ padding: 12 }}>
+      {file.truncated && (
+        <Text style={{ color: colors.textSecondary }}>
+          Showing the first 1 MiB
+        </Text>
+      )}
+      <Text
+        selectable
+        style={{
+          color: colors.textPrimary,
+          fontSize: 13,
+          fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+        }}
+      >
+        {file.contents}
+      </Text>
+    </ScrollView>
+  );
+}
+
+export function SessionFiles({
+  files,
+  workspace,
+  onOpenTextSettings,
+  topInset,
+}: Pick<
+  SessionHeaderProps,
+  'files' | 'workspace' | 'topInset' | 'onOpenTextSettings'
+>) {
+  const colors = homePalettes[useOrcaScheme()];
+  const { page, setPage, path, setPath, back, backLabel } = useSessionMenu();
+  const { bottom } = useSafeAreaInsets();
+  return (
+    <>
+      <Pressable
+        onPress={() => setPage('menu')}
+        accessibilityLabel="More actions"
+        accessibilityRole="button"
+        style={[
+          styles.circle,
+          styles.more,
+          { backgroundColor: colors.bgRaised },
+        ]}
+      >
+        <Ellipsis size={18} color={colors.textPrimary} />
+      </Pressable>
+      {page === 'text' && (
+        <BottomSheet
+          label="Close Chat text"
+          onClose={back}
+          style={{
+            paddingHorizontal: 12,
+            paddingBottom: bottom + 16,
+            paddingTop: 8,
+            borderTopLeftRadius: 22,
+            borderTopRightRadius: 22,
+            backgroundColor: colors.bgRaised,
+          }}
+        >
+          {(dismiss) => (
+            <>
+              <Pressable
+                onPress={() => dismiss()}
+                accessibilityLabel="Dismiss Chat text"
+                accessibilityRole="button"
+                style={{
+                  alignSelf: 'center',
+                  width: 44,
+                  height: 16,
+                  alignItems: 'center',
+                }}
+              >
+                <View
+                  style={{
+                    width: 36,
+                    height: 5,
+                    borderRadius: 3,
+                    backgroundColor: colors.textMuted,
+                  }}
+                />
+              </Pressable>
+              <View
+                style={{
+                  height: 48,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text
+                  accessibilityRole="header"
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: colors.textPrimary,
+                  }}
+                >
+                  Chat text
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => dismiss()}
+                  style={{ position: 'absolute', right: 8, padding: 8 }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: colors.textPrimary,
+                    }}
+                  >
+                    Done
+                  </Text>
+                </Pressable>
+              </View>
+              <View
+                style={{
+                  borderRadius: 16,
+                  backgroundColor: colors.bgGroup,
+                  overflow: 'hidden',
+                }}
+              >
+                <ChatSizeControl label="Size" />
+                <ChatSpacingControl />
+                {onOpenTextSettings && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      dismiss(() => {
+                        setPage(undefined);
+                        onOpenTextSettings();
+                      })
+                    }
+                    style={[styles.menuItem, { height: 48 }]}
+                  >
+                    <Text style={{ fontSize: 15, color: colors.textPrimary }}>
+                      More text settings
+                    </Text>
+                    <ChevronRight size={16} color={colors.textSecondary} />
+                  </Pressable>
+                )}
+              </View>
+            </>
+          )}
+        </BottomSheet>
+      )}
+      {page !== undefined && page !== 'text' && (
+        <Modal visible transparent animationType="none" onRequestClose={back}>
+          {page === 'menu' ? (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss menu"
+                onPress={back}
+                style={StyleSheet.absoluteFill}
+              />
+              <View
+                style={[
+                  styles.menu,
+                  {
+                    top: topInset + 50,
+                    backgroundColor: colors.bgPanel,
+                    borderColor: colors.borderSubtle,
+                  },
+                ]}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setPage('files')}
+                  accessibilityLabel="File explorer"
+                  style={styles.menuItem}
+                >
+                  <Text style={{ fontSize: 15, color: colors.textPrimary }}>
+                    File explorer
+                  </Text>
+                  <Folder size={17} color={colors.textPrimary} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Text size"
+                  style={[
+                    styles.menuItem,
+                    {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderColor: colors.borderSubtle,
+                    },
+                  ]}
+                  onPress={() => setPage('text')}
+                >
+                  <Text style={{ fontSize: 15, color: colors.textPrimary }}>
+                    Text size
+                  </Text>
+                  <Type size={17} color={colors.textPrimary} />
+                </Pressable>
+              </View>
+            </>
+          ) : page === 'files' ? (
+            <View
+              style={{
+                flex: 1,
+                paddingTop: topInset,
+                backgroundColor: colors.bgBase,
+              }}
+            >
+              <View style={[styles.bar, { borderColor: colors.borderSubtle }]}>
+                <View style={styles.titles}>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      color: colors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {path ? fileName(path) : 'Files'}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: colors.textSecondary, fontSize: 12 }}
+                  >
+                    {path || workspace}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={backLabel}
+                  onPress={back}
+                  style={[styles.circle, { backgroundColor: colors.bgRaised }]}
+                >
+                  <ChevronLeft size={18} color={colors.textPrimary} />
+                </Pressable>
+              </View>
+              {files ? (
+                <>
+                  <View style={{ flex: 1, display: path ? 'none' : 'flex' }}>
+                    <FileTree source={files} onRead={setPath} />
+                  </View>
+                  {path ? <Preview source={files} path={path} /> : null}
+                </>
+              ) : (
+                <View style={styles.center}>
+                  <Text style={{ color: colors.textSecondary }}>
+                    Waiting for connection…
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : null}
+        </Modal>
+      )}
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  more: { position: 'absolute', right: 12, alignSelf: 'center' },
+  circle: {
+    height: 36,
+    width: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menu: {
+    position: 'absolute',
+    right: 12,
+    width: 252,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  menuItem: {
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  bar: {
+    height: 52,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  titles: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 58,
+  },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  row: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 12,
+  },
+});

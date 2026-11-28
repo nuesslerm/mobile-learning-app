@@ -1,0 +1,41 @@
+{
+  "platform": "browser",
+  "step": 52,
+  "last_action": "tap_on{css='[aria-label=\"File explorer\"]'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:61242/mla-tamagui/gallery?section=chat&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-chat",
+      "MobileT3Header",
+      "skin-session-back",
+      "skin-session-source-control",
+      "skin-session-more",
+      "skin-session-new-tab",
+      "skin-session-menu",
+      "skin-session-files-back",
+      "skin-session-menuHandle",
+      "skin-composer-add"
+    ],
+    "text": "mobile-app\nfix/resume-test\nFix the flaky resume test\nTerminal\nFiles\nmobile-app\ndocs\nsrc\npackage.json\nREADME.md\nWhy is the resume test flaky?\n09:41\nRead 3 files · Ran pnpm test\nThe test waits on setTimeout(0) while the stream is still flushing.\nts\nawait vi.waitFor(() =>\n  expect(rows).toHaveLength(3))\n🖼 screenshot.png"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 132147,
+    "capture_ms": 116
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.07999999999999996,
+    "ignore": []
+  },
+  "name": "gallery-tamagui-dark-sheet-session-files",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

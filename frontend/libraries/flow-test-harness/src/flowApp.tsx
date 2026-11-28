@@ -41,7 +41,7 @@ export type FlowApp = {
 type StaticParams = Record<string, string | string[]>;
 type RouteModule = {
   default: ComponentType;
-  generateStaticParams?: (props: { params?: StaticParams }) => StaticParams[];
+  generateStaticParams?: (props: { params?: StaticParams }) => StaticParams[] | Promise<StaticParams[]>;
 };
 type RouteLoader = () => Promise<RouteModule>;
 type RouteValue = RouteLoader | RouteModule;
@@ -51,6 +51,8 @@ export type CreateFlowAppConfig = {
   routesRoot: string;
   basePath?: string;
   includeRootLayout?: boolean;
+  /** What the app's root provides to every route, when the routes under test are not the whole app. */
+  wrapper?: ComponentType<{ children: ReactNode }>;
 };
 
 type ParsedRoute = {
@@ -175,10 +177,10 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
   };
 
   // The page the export holds for a path: the route's own when `generateStaticParams` lists its params, else the template.
-  const exportedPage = (resolved: Resolved, mod: RouteModule, path: string): ServerPage => {
+  const exportedPage = async (resolved: Resolved, mod: RouteModule, path: string): Promise<ServerPage> => {
     const { pattern } = resolved.screen;
     const names = pattern.filter(isDynamic).map((segment) => segment.slice(1, -1));
-    const listed = mod.generateStaticParams?.({ params: {} }) ?? [];
+    const listed = (await mod.generateStaticParams?.({ params: {} })) ?? [];
     if (names.length === 0 || listed.some((entry) => names.every((name) => entry[name] === resolved.params[name]))) {
       return { params: resolved.params, pathname: normalizePathname(path) };
     }
@@ -190,6 +192,8 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
     };
   };
 
+  const withRoot = (children: ReactNode) => (cfg.wrapper ? <cfg.wrapper>{children}</cfg.wrapper> : children);
+
   return {
     async render(path, opts: FlowRenderOptions = {}) {
       const resolved = resolveRoute(routes, splitPath(path), includeRootLayout);
@@ -200,7 +204,7 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
       ]);
       const Wrapper = ({ children }: { children: ReactNode }) => (
         <DependencyOverridesProvider overrides={opts.overrides ?? {}}>
-          {children}
+          {withRoot(children)}
         </DependencyOverridesProvider>
       );
       const routeOpts = {
@@ -213,7 +217,7 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
       };
       const prerender = opts.prerender ?? true;
       if (prerender) {
-        const server = prerender === 'export' ? exportedPage(resolved, screen, path) : undefined;
+        const server = prerender === 'export' ? await exportedPage(resolved, screen, path) : undefined;
         return act(async () => createSession(await prerenderRoute(routeOpts, server)));
       }
       return act(() => createSession(renderRoute(routeOpts)));
@@ -224,7 +228,7 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
         wrapper: ({ children }) => (
           <FlowProviders>
             <DependencyOverridesProvider overrides={opts.overrides ?? {}}>
-              {Wrapper ? <Wrapper>{children}</Wrapper> : children}
+              {withRoot(Wrapper ? <Wrapper>{children}</Wrapper> : children)}
             </DependencyOverridesProvider>
           </FlowProviders>
         ),

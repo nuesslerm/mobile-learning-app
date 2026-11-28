@@ -11,6 +11,7 @@ type Props = {
   fontSize: number;
   cols: number;
   rows: number;
+  theme: { background: string; foreground: string; cursor: string };
   dom?: DOMProps;
 };
 
@@ -20,6 +21,7 @@ export default function TerminalScreen({
   fontSize,
   cols,
   rows,
+  theme,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
@@ -32,11 +34,7 @@ export default function TerminalScreen({
       cursorBlink: false,
       allowTransparency: false,
       scrollback: 5000,
-      theme: {
-        background: '#191b26',
-        foreground: '#e1e4ed',
-        cursor: '#c3cbdf',
-      },
+      theme,
     });
     terminal.current = screen;
     screen.open(host.current);
@@ -69,7 +67,7 @@ export default function TerminalScreen({
         position: 'absolute',
         inset: 0,
         overflow: 'hidden',
-        background: '#191b26',
+        background: theme.background,
       }}
     />
   );

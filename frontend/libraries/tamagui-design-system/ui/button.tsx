@@ -77,7 +77,8 @@ export function Button({
 }: ButtonProps) {
   const theme = useTheme();
   const tints: Partial<Record<ButtonVariant, string>> = { default: theme.blue9?.val, destructive: theme.red9?.val, success: theme.success?.val };
-  const nativeGlass = glass && supportsGlassControl();
+  // a link is text in a sentence: it has no surface, glass or other
+  const nativeGlass = glass && variant !== 'link' && supportsGlassControl();
   const handlePress = (event: GestureResponderEvent) => {
     if (pressLog !== 'off') Logger.info('ds.button.press', { testID, variant });
     onPress?.(event);
@@ -97,7 +98,8 @@ export function Button({
       disabledStyle={{ opacity: 0.4 }}
       {...VARIANT_PROPS[variant]}
       {...rest}
-      {...(nativeGlass ? { style: [rest.style, { backgroundColor: 'transparent', borderWidth: 0 }] } : {})}
+      // the glass is the button's surface: a fill or an outline of its own under it drew a second shape (an outlined button showed a box around its capsule)
+      {...(nativeGlass ? { bg: 'transparent', borderWidth: 0 } : {})}
       // Tamagui hands RN's accessibilityLabel to the DOM as an unknown attribute on web; aria-label works on both
       aria-label={rest['aria-label'] ?? accessibilityLabel}
     >

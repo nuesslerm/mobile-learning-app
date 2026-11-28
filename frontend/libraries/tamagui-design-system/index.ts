@@ -127,10 +127,9 @@ export {
   type KeyboardToolbarTargetProps,
   type UseKeyboardToolbarTargetOptions,
 } from './composites/keyboard-toolbar';
-export { useKeyboardFrame } from './lib/keyboard/useKeyboardFrame';
+export { useKeyboardFrame, useKeyboardStore } from '@lib/keyboard';
 export { useReducedMotion } from './lib/reducedMotion/useReducedMotion';
-export type { KeyboardFrame } from './lib/keyboard/types';
-export { useKeyboardStore } from './lib/keyboardStore';
+export type { KeyboardFrame } from '@lib/keyboard';
 export { createOverlayRequestStore } from './lib/overlayRequestStore';
 export {
   BarChart,

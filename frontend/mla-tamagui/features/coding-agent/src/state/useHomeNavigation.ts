@@ -4,7 +4,7 @@
 // tabs have been visited. A tab mounts on its first visit and then stays
 // mounted, so it keeps its scroll position and its data.
 
-import type { HomeTabId } from '@lib/agent-ui-contracts';
+import type { HomeTabId } from '@lib/skin';
 import { useCallback, useState } from 'react';
 
 import {

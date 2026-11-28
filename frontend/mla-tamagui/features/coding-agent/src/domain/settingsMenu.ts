@@ -8,7 +8,7 @@
 // `980c0024741812bd7ae934c0c22144d9926a784e` (Orca, MIT, Lovecast Inc.).
 // Pure data, no IO: the tab reads this table and pushes what it names.
 
-import type { HomeIconKind } from '@lib/agent-ui-contracts';
+import type { HomeIconKind } from '@lib/skin';
 
 /** The screens the settings menu opens, named as Orca names them. */
 export type OrcaSettingsDestination =

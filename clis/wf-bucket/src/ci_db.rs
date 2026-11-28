@@ -6,11 +6,14 @@ use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 pub use rusqlite::Connection;
 use serde_json::{Map, Value};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 pub const STATE_PATH: &str = "ci/ci.sqlite.sealed";
 pub const KEY: &str = "CI_DB_KEY";
 const MAGIC: &[u8] = b"WFCIDB1\n";
+/// The same sealing over the database compressed first. Plain, the file passed the 100 MB GitHub takes for one file, and every push of it was refused.
+const MAGIC_COMPRESSED: &[u8] = b"WFCIDB2\n";
 /// The tables a JSON row goes to; the ledger's own tables (`NX_TASKS`, `CI_JOBS`) are typed and made by `ensure_ledger`.
 pub const ROW_TABLES: [&str; 3] = ["TEST_RESULTS", "WF_USAGE", "HEALTH_REPORTS"];
 
@@ -827,20 +830,33 @@ pub(crate) fn decode_key(text: &str) -> Result<[u8; 32], String> {
 }
 
 pub fn seal(key: &[u8; 32], plain: &[u8]) -> Result<Vec<u8>, String> {
+    let mut packer = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+    packer.write_all(plain).map_err(|e| e.to_string())?;
+    let packed = packer.finish().map_err(|e| e.to_string())?;
     let mut nonce = [0u8; 24];
     getrandom::fill(&mut nonce).map_err(|e| e.to_string())?;
     let cipher = XChaCha20Poly1305::new(key.into());
-    let sealed = cipher.encrypt(XNonce::from_slice(&nonce), plain).map_err(|_| "ci database: sealing failed".to_string())?;
-    Ok([MAGIC, &nonce, &sealed].concat())
+    let sealed = cipher.encrypt(XNonce::from_slice(&nonce), packed.as_slice()).map_err(|_| "ci database: sealing failed".to_string())?;
+    Ok([MAGIC_COMPRESSED, &nonce, &sealed].concat())
 }
 
+/// Opens a sealed database of either format: the one sealed plain is still on the state ref until the next merge writes it again.
 pub fn unseal(key: &[u8; 32], bytes: &[u8]) -> Result<Vec<u8>, String> {
-    let body = bytes.strip_prefix(MAGIC).ok_or("ci database: not a sealed database")?;
+    let (body, compressed) = match bytes.strip_prefix(MAGIC_COMPRESSED) {
+        Some(body) => (body, true),
+        None => (bytes.strip_prefix(MAGIC).ok_or("ci database: not a sealed database")?, false),
+    };
     if body.len() < 24 {
         return Err("ci database: the sealed file is cut short".into());
     }
     let (nonce, sealed) = body.split_at(24);
-    XChaCha20Poly1305::new(key.into()).decrypt(XNonce::from_slice(nonce), sealed).map_err(|_| format!("ci database: it does not open with {KEY} (another key, or changed)"))
+    let opened = XChaCha20Poly1305::new(key.into()).decrypt(XNonce::from_slice(nonce), sealed).map_err(|_| format!("ci database: it does not open with {KEY} (another key, or changed)"))?;
+    if !compressed {
+        return Ok(opened);
+    }
+    let mut plain = Vec::new();
+    flate2::read::ZlibDecoder::new(opened.as_slice()).read_to_end(&mut plain).map_err(|e| format!("ci database: the sealed file does not unpack ({e})"))?;
+    Ok(plain)
 }
 
 /// A working copy of the shared database: unsealed into a private temporary directory (empty when the state ref has none yet).
@@ -908,6 +924,29 @@ mod tests {
 
     /// `WF_CI_DB` is the process's: the tests that set it run one at a time.
     static ENV: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn given_a_database_of_many_like_rows_when_sealed_then_it_is_a_fraction_of_its_size_and_opens_to_the_same_bytes() {
+        // Given a database as a merge leaves it: megabytes of rows that repeat each other
+        let key = [7u8; 32];
+        let plain: Vec<u8> = (0..40_000).flat_map(|i| format!("crate-pipeline cargo-flow passed {} \n", i % 50).into_bytes()).collect();
+        // When it is sealed
+        let sealed = seal(&key, &plain).unwrap();
+        // Then the file the state ref keeps is far smaller, and opens to what went in
+        assert!(sealed.len() * 5 < plain.len(), "{} of {}", sealed.len(), plain.len());
+        assert_eq!(unseal(&key, &sealed).unwrap(), plain);
+    }
+
+    #[test]
+    fn given_a_database_sealed_before_compression_when_opened_then_its_bytes_are_read_as_they_were() {
+        // Given the file as the state ref holds it today: sealed plain under the first format
+        let key = [7u8; 32];
+        let nonce = [3u8; 24];
+        let body = XChaCha20Poly1305::new((&key).into()).encrypt(XNonce::from_slice(&nonce), b"SQLite format 3".as_slice()).unwrap();
+        let old = [MAGIC, &nonce, &body].concat();
+        // When it is opened, Then the bytes are the database's
+        assert_eq!(unseal(&key, &old).unwrap(), b"SQLite format 3");
+    }
 
     fn task(hash: &str) -> LedgerTask {
         LedgerTask { run: "1".into(), sha: "abc".into(), ts: 10, job: "flow-tests (1/6)".into(), task: "app:test".into(), hash: hash.into(), outcome: "ran".into(), ms: 4200, passed: true, started_ms: 1_000, ended_ms: 5_200, cpu_s: 3.5, ..Default::default() }

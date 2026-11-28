@@ -17,6 +17,9 @@ const PLANTED: Record<string, { file: string; code: string }> = {
     code: 'const Stack = { Screen: (_: object) => null };\nexport const s = <Stack.Screen name="x" options={{ unstable_headerRightItems: () => [] }} />;\n',
   },
   'no-hermes-unsupported-api': { file: 'hermes.ts', code: 'export const s = AbortSignal.timeout(5);\n' },
+  'only-root-names-a-skin': { file: 'screen-skin.ts', code: "export { orcaSkin } from '@lib/orca-skin';\n" },
+  'no-design-system-outside-a-skin': { file: 'screen-ds.ts', code: "export { Button } from '@lib/tamagui-design-system';\n" },
+  'no-react-native-controls': { file: 'screen-rn.ts', code: "import { Text } from 'react-native';\nexport const T = Text;\n" },
   'no-unhandled-catch': { file: 'catch.ts', code: 'export function f(g: () => void) {\n  try {\n    g();\n  } catch (e) {\n    void e;\n  }\n}\n' },
 };
 

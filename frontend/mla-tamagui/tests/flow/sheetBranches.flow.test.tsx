@@ -118,4 +118,24 @@ describe('Sheet platform branches', () => {
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it('Given a finger down on the handle, When the screen behind the sheet re-renders before it lifts, Then the same handle takes the press and the sheet is asked to close', async () => {
+    // Given an open sheet whose caller passes a new callback on every render, as a screen does
+    const closed = vi.fn();
+    const Scene = ({ tick }: { tick: number }) => (
+      <Sheet open onOpenChange={(open) => closed(open, tick)} handleLabel="Close console" testID="ConsoleSheet">
+        <></>
+      </Sheet>
+    );
+    const view = renderScreen(<Scene tick={1} />);
+    const handle = await waitFor(() => view.getByTestId('ConsoleSheetHandle'));
+
+    // When the screen re-renders while the finger is still down
+    view.rerender(<Scene tick={2} />);
+
+    // Then the handle was not replaced under the finger, and lifting it closes the sheet with the current callback
+    expect(view.getByTestId('ConsoleSheetHandle')).toBe(handle);
+    fireEvent.click(handle);
+    expect(closed).toHaveBeenCalledWith(false, 2);
+  });
 });

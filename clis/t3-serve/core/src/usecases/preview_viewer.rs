@@ -219,9 +219,10 @@ impl Viewer {
                         self.image_picker_armed = self.page("browser.eval", json!({"expression":script}))?["value"] == true;
                     }
                 }
-                self.page(
+                let report_focus = action == "mouse_up" && msg["reportFocus"] == true;
+                let input = self.page(
                     "browser.input",
-                    json!({"kind":action,"button":msg["button"]}),
+                    json!({"kind":action,"button":msg["button"],"report_focus":report_focus}),
                 )?;
                 if action == "mouse_up" && std::mem::take(&mut self.image_picker_armed) {
                     let request = self.page("browser.eval", json!({"expression":"window.rcaImageRequest?.id ?? null"}))?;
@@ -232,7 +233,11 @@ impl Viewer {
                         }
                     }
                 }
-                if action == "mouse_up" && msg["reportFocus"] == true {
+                if report_focus {
+                    if let Some(editable) = input["editable"].as_bool() {
+                        return Ok(Some(json!({"type":"textFocus","editable":editable})));
+                    }
+                    // Older executors report only the pointer position.
                     let focus = self.page("browser.eval", json!({"expression":
                         "(() => { const e = document.activeElement; return !!e && (e.isContentEditable || (!e.disabled && !e.readOnly && (e.tagName === 'TEXTAREA' || (e.tagName === 'INPUT' && ['text','email','number','password','search','tel','url'].includes(e.type))))); })()"
                     }))?;

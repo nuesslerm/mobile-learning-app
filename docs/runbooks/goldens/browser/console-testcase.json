@@ -1,17 +1,19 @@
 {
   "platform": "browser",
-  "step": 12,
+  "step": 9,
   "last_action": "tap_on{id='ConsoleChip-3'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:38745/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgaWYgZ2xvYmFscygpLmdldCgnSEFORycpOgogICAgICAgICAgICB3aGlsZSBUcnVlOgogICAgICAgICAgICAgICAgcGFzcwogICAgICAgIHBhaXJzID0geycpJzogJygnLCAnXSc6ICdbJywgJ30nOiAneyd9CiAgICAgICAgc3RhY2sgPSBbXQogICAgICAgIGZvciBjIGluIHM6CiAgICAgICAgICAgIGlmIGMgaW4gcGFpcnM6CiAgICAgICAgICAgICAgICBpZiBub3Qgc3RhY2sgb3Igc3RhY2sucG9wKCkgIT0gcGFpcnNbY106CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIEZhbHNlCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICBzdGFjay5hcHBlbmQoYykKICAgICAgICByZXR1cm4gbm90IHN0YWNrCg",
+    "url": "http://127.0.0.1:58339/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgaWYgZ2xvYmFscygpLmdldCgnSEFORycpOgogICAgICAgICAgICB3aGlsZSBUcnVlOgogICAgICAgICAgICAgICAgcGFzcwogICAgICAgIHBhaXJzID0geycpJzogJygnLCAnXSc6ICdbJywgJ30nOiAneyd9CiAgICAgICAgc3RhY2sgPSBbXQogICAgICAgIGZvciBjIGluIHM6CiAgICAgICAgICAgIGlmIGMgaW4gcGFpcnM6CiAgICAgICAgICAgICAgICBpZiBub3Qgc3RhY2sgb3Igc3RhY2sucG9wKCkgIT0gcGFpcnNbY106CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIEZhbHNlCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICBzdGFjay5hcHBlbmQoYykKICAgICAgICByZXR1cm4gbm90IHN0YWNrCg",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemEditorScreen",
@@ -20,9 +22,16 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "CodeEditorText",
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ConsoleSheet",
       "ConsoleTabs",
       "SegmentedThumb",
@@ -57,19 +66,17 @@
       "ConsoleFooter",
       "ConsoleFooterReset",
       "ConsoleFooterRun",
-      "ConsoleFooterSubmit",
-      "ConsoleSheetHandle",
-      "PyodideHostWebView"
+      "ConsoleFooterSubmit"
     ],
-    "text": "Valid Parentheses\nStack · Easy\nPython\nTestcase\nRun Result\nCase 1\nCase 2\nCase 3\nCase 4\nCase 5\nCase 6\nCase 7\nCase 8\nCase 9\nCase 10\nCase 11\nCase 12\nCase 13\nCase 14\nCase 15\ns\n\"(]\"\nReset\nSubmit"
+    "text": "Valid Parentheses\nStack · Easy\nclass Solution:\n    def isValid(self, s: str) -> bool:\n        if globals().get('HANG'):\n            while True:\n                pass\n        pairs = {')': '(', ']': '[', '}': '{'}\n        stack = []\n        for c in s:\n            if c in pairs:\n                if not stack or stack.pop() != pairs[c]:\n                    return False\n            else:\n              "
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 12068,
-    "capture_ms": 272
+    "since_start_ms": 7513,
+    "capture_ms": 113
   },
   "tolerance": {
     "threshold": 0.1,

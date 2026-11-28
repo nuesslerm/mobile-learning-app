@@ -21,7 +21,7 @@ The worked example is [Learn Tamil Quickly English to Tamil by Charu Mamun](http
    wf content import-tamil '/path/to/Learn_Tamil_Quickly_English_to_Tamil.apkg' --check
    ```
 
-   A successful check reports 1,014 source notes, 31 topics, 1,014 Tamil audio clips, and total audio bytes. It compares the regenerated manifest and each clip byte for byte and rejects stale files. The importer embeds the 128 smallest recordings as base64 alongside the regular assets to stay within the EAS Update asset count. Exercise IDs and MP3 bytes are identical in both representations.
+   Run with FFmpeg and its libmp3lame encoder installed. A successful check reports 1,014 notes, 31 topics, 1,014 cues, and five section tracks. It compares the regenerated course, cue index, and MP3s byte for byte and rejects stale tracks. See [Package offline lesson audio by section](../solutions/mobile-app/section-audio-tracks.md) for the cue format and how to add recordings.
 
 ## Verify the experience
 

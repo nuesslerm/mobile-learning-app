@@ -5,13 +5,12 @@ import { copyMessage } from '../data/copyMessage';
 import { pairingCamera } from '../data/pairingCamera';
 import { createT3MobileApi } from '../data/t3/mobileApi';
 import {
-  AgentComponentsProvider,
-  type AgentComponents,
-} from '@lib/agent-ui-contracts';
-import {
   AppearancePreferenceContextProvider,
-  orcaComponents,
-} from '@lib/orca-design-system';
+  SkinProvider,
+  SkinThemeBoundary,
+  useSkin,
+  type Skin,
+} from '@lib/skin';
 import { appConfig } from '@lib/app-config';
 import { overrideKey, useDependencyOverrides } from '@lib/app-di';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -31,7 +30,7 @@ export const CODING_AGENT_OVERRIDES =
   overrideKey<CodingAgentPorts>('coding-agent');
 
 export const CODING_AGENT_UI_OVERRIDES =
-  overrideKey<AgentComponents>('coding-agent-ui');
+  overrideKey<Skin>('coding-agent-ui');
 
 const devicePreferences = createAsyncStorageSettingsPreferences();
 
@@ -60,17 +59,17 @@ export function createDefaultPorts(
   };
 }
 
-/** The device's theme choice: read once, then kept in step with what the user picks. */
-function useAppearancePreferenceState(): {
-  preference: AppearancePreference;
-  select: (preference: AppearancePreference) => void;
-} {
-  const { preferences } = useCodingAgentPorts();
-  const [preference, setPreference] = useState<AppearancePreference>('system');
+/** A device choice: read once, then kept in step with what the user picks. */
+function useStoredPreference<T>(
+  initial: T,
+  read: () => Promise<T>,
+  write: (next: T) => Promise<void>
+): { preference: T; select: (next: T) => void } {
+  const [preference, setPreference] = useState(initial);
 
   useEffect(() => {
     let active = true;
-    void preferences.readAppearance().then((stored) => {
+    void read().then((stored) => {
       if (active) {
         setPreference(stored);
       }
@@ -78,27 +77,30 @@ function useAppearancePreferenceState(): {
     return () => {
       active = false;
     };
-  }, [preferences]);
+  }, [read]);
 
   const select = useCallback(
-    (next: AppearancePreference) => {
+    (next: T) => {
       setPreference(next);
-      void preferences.writeAppearance(next);
+      void write(next);
     },
-    [preferences]
+    [write]
   );
 
   return { preference, select };
 }
 
-/** Hands the theme choice to the design system, once the ports are in place. */
+/** Hands the theme choice to the skin, once the ports are in place. */
 function AppearanceGate({ children }: { children: ReactNode }) {
-  const appearance = useAppearancePreferenceState();
+  const { preferences } = useCodingAgentPorts();
+  const appearance = useStoredPreference<AppearancePreference>(
+    'system',
+    preferences.readAppearance,
+    preferences.writeAppearance
+  );
   return (
-    <AppearancePreferenceContextProvider
-      value={{ preference: appearance.preference, select: appearance.select }}
-    >
-      {children}
+    <AppearancePreferenceContextProvider value={appearance}>
+      <SkinThemeBoundary>{children}</SkinThemeBoundary>
     </AppearancePreferenceContextProvider>
   );
 }
@@ -106,20 +108,21 @@ function AppearanceGate({ children }: { children: ReactNode }) {
 export function CodingAgentContainer({ children }: { children: ReactNode }) {
   const overrides = useDependencyOverrides(CODING_AGENT_OVERRIDES);
   const ports = useMemo(() => createDefaultPorts(overrides), [overrides]);
-  const uiOverrides = useDependencyOverrides(CODING_AGENT_UI_OVERRIDES);
-  const components = useMemo(
-    () => ({ ...orcaComponents, ...uiOverrides }),
-    [uiOverrides]
-  );
   return (
     <CodingAgentPortsProvider value={ports}>
       <AppearanceGate>
         <ChatTextGate>
-          <AgentComponentsProvider value={components}>
-            {children}
-          </AgentComponentsProvider>
+          <SkinGate>{children}</SkinGate>
         </ChatTextGate>
       </AppearanceGate>
     </CodingAgentPortsProvider>
   );
+}
+
+/** The app's skin, with the entries a test replaces. */
+function SkinGate({ children }: { children: ReactNode }) {
+  const skin = useSkin();
+  const overrides = useDependencyOverrides(CODING_AGENT_UI_OVERRIDES);
+  const withOverrides = useMemo(() => ({ ...skin, ...overrides }), [skin, overrides]);
+  return <SkinProvider value={withOverrides}>{children}</SkinProvider>;
 }

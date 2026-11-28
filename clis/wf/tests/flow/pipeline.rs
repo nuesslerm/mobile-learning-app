@@ -723,7 +723,7 @@ fn android_units_load_the_update_ci_published() {
         ("the publish succeeded but the pointer is behind".into(), "success", old_update.clone(), vec![], format!("latest-dev.json names commit {behind}, but this push published {head}"), publish),
         ("no publish and the app changed since the update".into(), "skipped", old_update.clone(), vec![("STUB_AFFECTED", app_changed)], "the app changed since: mla-tamagui changed since".into(), publish),
         ("a dispatch (no eas-update job) and the app changed since the update".into(), "", old_update.clone(), vec![("STUB_AFFECTED", app_changed)], "this push published none (no eas-update job ran)".into(), publish),
-        ("an update without Android".into(), "success", no_android, vec![], "latest-dev.json names an update without Android: group g-1 from commit".into(), publish),
+        ("an update without Android".into(), "success", no_android, vec![], "latest-dev.json names an update without android: group g-1 from commit".into(), publish),
         ("an update that opens on another route".into(), "success", routed, vec![], "opens on \"/leetcode/two-sum\", not on /".into(), publish),
         ("a pointer with no commit".into(), "success", no_commit, vec![], "latest-dev.json names no usable update".into(), publish),
         ("a group that is no manifest id".into(), "success", bad_group, vec![], "latest-dev.json names no usable update".into(), publish),

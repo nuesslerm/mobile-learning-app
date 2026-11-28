@@ -265,11 +265,14 @@ importers:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
 
-  frontend/libraries/agent-ui-contracts:
+  frontend/libraries/skin:
     dependencies:
       react:
         specifier: 19.3.0
         version: 19.3.0
+      react-native:
+        specifier: 'catalog:'
+        version: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
     devDependencies:
       '@types/react':
         specifier: 'catalog:'
@@ -453,6 +456,40 @@ importers:
         specifier: ^17.4.3
         version: 17.4.3
 
+  frontend/libraries/keyboard:
+    dependencies:
+      '@lib/logging':
+        specifier: workspace:*
+        version: link:../logging
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-native:
+        specifier: 'catalog:'
+        version: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
+      zustand:
+        specifier: ^5.0.14
+        version: 5.0.14(@types/react@19.2.17)(immer@11.1.8)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.1
+        version: 22.19.19
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
+      '@typescript/native':
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+      dependency-cruiser:
+        specifier: ^17.4.3
+        version: 17.4.3
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@24.13.1)(jiti@2.7.0)(jsdom@30.0.1(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0)
+
   frontend/libraries/lint-rules:
     devDependencies:
       '@types/estree':
@@ -514,11 +551,11 @@ importers:
         specifier: 'catalog:'
         version: 1.87.0(oxlint-tsgolint@7.0.2003)
 
-  frontend/libraries/orca-design-system:
+  frontend/libraries/orca-skin:
     dependencies:
-      '@lib/agent-ui-contracts':
+      '@lib/skin':
         specifier: workspace:*
-        version: link:../agent-ui-contracts
+        version: link:../skin
       lowlight:
         specifier: 3.3.0
         version: 3.3.0
@@ -572,6 +609,42 @@ importers:
       dependency-cruiser:
         specifier: ^17.4.3
         version: 17.4.3
+  frontend/libraries/tamagui-skin:
+    dependencies:
+      '@lib/skin':
+        specifier: workspace:*
+        version: link:../skin
+      '@lib/orca-skin':
+        specifier: workspace:*
+        version: link:../orca-skin
+      '@lib/tamagui-design-system':
+        specifier: workspace:*
+        version: link:../tamagui-design-system
+      lucide-react-native:
+        specifier: ^1.17.0
+        version: 1.17.0(patch_hash=1fc755e52ddf964b0b56abb493918a46a9aa864211172430e73e84612caaf841)(react-native-svg@15.16.0(patch_hash=25fc56347bda395745988e57491ce58c6e978a07aa371a402c12d06bb2a55f5b)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-native:
+        specifier: 'catalog:'
+        version: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
+      react-native-gesture-handler:
+        specifier: ~3.3.0
+        version: 3.3.0(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      react-native-safe-area-context:
+        specifier: ~5.11.1
+        version: 5.11.1(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      react-native-svg:
+        specifier: 15.16.0
+        version: 15.16.0(patch_hash=25fc56347bda395745988e57491ce58c6e978a07aa371a402c12d06bb2a55f5b)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
+      typescript:
+        specifier: 'catalog:'
+        version: '@typescript/typescript6@6.0.2'
 
   frontend/libraries/tamagui-design-system:
     dependencies:
@@ -587,6 +660,9 @@ importers:
       '@gorhom/bottom-sheet':
         specifier: ^5.2.14
         version: 5.2.14(patch_hash=95207956157e962a74019be937430549b7dcdd1706ef0184f76a83311472f261)(85c8bd537ed074cef6a97b2f3d149d39)
+      '@lib/keyboard':
+        specifier: workspace:*
+        version: link:../keyboard
       '@lib/logging':
         specifier: workspace:*
         version: link:../logging
@@ -764,9 +840,18 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../libraries/logging
+      '@lib/orca-skin':
+        specifier: workspace:*
+        version: link:../libraries/orca-skin
+      '@lib/skin':
+        specifier: workspace:*
+        version: link:../libraries/skin
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../libraries/tamagui-design-system
+      '@lib/tamagui-skin':
+        specifier: workspace:*
+        version: link:../libraries/tamagui-skin
       '@lib/voice-edit-dsl':
         specifier: workspace:*
         version: link:../libraries/voice-edit-dsl
@@ -915,6 +1000,9 @@ importers:
       '@buoy-gg/image-overlay':
         specifier: 7.0.103
         version: 7.0.103(71684509be0c64173acb9e7287024beb)
+      '@buoy-gg/license':
+        specifier: 7.0.103
+        version: 7.0.103(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
       '@buoy-gg/network':
         specifier: 7.0.103
         version: 7.0.103(71684509be0c64173acb9e7287024beb)
@@ -924,6 +1012,9 @@ importers:
       '@buoy-gg/route-events':
         specifier: 7.0.103
         version: 7.0.103(37e9b79924a9ca9b74207ee35dd71570)
+      '@buoy-gg/shared-ui':
+        specifier: 7.0.103
+        version: 7.0.103(71684509be0c64173acb9e7287024beb)
       '@buoy-gg/storage':
         specifier: 7.0.103
         version: 7.0.103(dfd3d17c002e07a4d16fbf94ec278ba4)
@@ -1005,21 +1096,21 @@ importers:
       '@app/remote-chat-agent-contracts':
         specifier: workspace:*
         version: link:../../../libraries/remote-chat-agent-contracts
-      '@lib/agent-ui-contracts':
+      '@lib/skin':
         specifier: workspace:*
-        version: link:../../../libraries/agent-ui-contracts
+        version: link:../../../libraries/skin
       '@lib/app-config':
         specifier: workspace:*
         version: link:../../../libraries/app-config
       '@lib/app-di':
         specifier: workspace:*
         version: link:../../../libraries/app-di
+      '@lib/keyboard':
+        specifier: workspace:*
+        version: link:../../../libraries/keyboard
       '@lib/logging':
         specifier: workspace:*
         version: link:../../../libraries/logging
-      '@lib/orca-design-system':
-        specifier: workspace:*
-        version: link:../../../libraries/orca-design-system
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../../../libraries/tamagui-design-system
@@ -1111,6 +1202,12 @@ importers:
       '@lib/lint-rules':
         specifier: workspace:*
         version: link:../../../libraries/lint-rules
+      '@lib/orca-skin':
+        specifier: workspace:*
+        version: link:../../../libraries/orca-skin
+      '@lib/tamagui-skin':
+        specifier: workspace:*
+        version: link:../../../libraries/tamagui-skin
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.2.7(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1205,6 +1302,9 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../../../libraries/logging
+      '@lib/skin':
+        specifier: workspace:*
+        version: link:../../../libraries/skin
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../../../libraries/tamagui-design-system

@@ -1,10 +1,10 @@
 {
   "platform": "browser",
-  "step": 2,
+  "step": 4,
   "last_action": "tap_on{id='EditorSettingsButton'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:8818/mla-tamagui/leetcode/two-sum",
+    "url": "http://127.0.0.1:41809/mla-tamagui/leetcode/two-sum",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
@@ -32,6 +32,8 @@
       "ConsoleBarRun",
       "ConsoleBarSubmit",
       "PyodideHostWebView",
+      "DebugFabWrap",
+      "DebugFab",
       "EditorSettingsButtonBackdrop",
       "EditorSettingsButtonContent",
       "EditorSettingsViewSection",
@@ -51,8 +53,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 10282,
-    "capture_ms": 138
+    "since_start_ms": 7712,
+    "capture_ms": 430
   },
   "tolerance": {
     "threshold": 0.1,

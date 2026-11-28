@@ -160,6 +160,37 @@ fn base64_decode(text: &str) -> Vec<u8> {
 }
 
 #[test]
+fn software_keyboard_follows_the_focused_frame() {
+    let _serial = SERIAL.lock().unwrap_or_else(|p| p.into_inner());
+    let rig = rig(Duration::from_secs(60), 3);
+    typed::<PageInfo>(&rig.ex, BROWSER_OPEN, json!({"key":"t1","url":rig.url("/")}));
+    // Given a regular text field, a button, and an editor isolated in its own document
+    eval(&rig.ex, "t1", r#"document.body.innerHTML = '<button style="position:fixed;top:10px;left:10px">Close</button><input style="position:fixed;top:100px;left:10px">'; true"#);
+    // When a sandboxed editor takes focus, the phone can request its keyboard without reading the frame.
+    eval(&rig.ex, "t1", r#"new Promise(resolve => {
+        const frame = document.createElement('iframe');
+        frame.sandbox = 'allow-scripts';
+        frame.srcdoc = '<main contenteditable style="height:100px">Note</main>';
+        frame.style = 'position:fixed;left:250px;top:0';
+        frame.onload = () => resolve(true);
+        document.body.append(frame);
+    })"#);
+    let input = |mut args: Value| -> Inputted {
+        args["key"] = json!("t1");
+        typed(&rig.ex, BROWSER_INPUT, args)
+    };
+    let tap_focus = |x: u32, y: u32| {
+        input(json!({"kind":"mouse_move","x":x,"y":y}));
+        input(json!({"kind":"mouse_down"}));
+        input(json!({"kind":"mouse_up","report_focus":true})).editable
+    };
+    // Then the nested editor and ordinary field request text entry; the button dismisses it.
+    assert_eq!(tap_focus(280, 25), Some(true));
+    assert_eq!(tap_focus(30, 106), Some(true));
+    assert_eq!(tap_focus(25, 18), Some(false));
+}
+
+#[test]
 fn given_a_page_with_a_button_and_a_field_when_the_pointer_and_keyboard_are_driven_then_the_page_receives_each_input_where_it_was_aimed() {
     let _serial = SERIAL.lock().unwrap_or_else(|p| p.into_inner());
     // Given a page with a button at the top left, a field, and a document tall enough to scroll
@@ -174,10 +205,10 @@ fn given_a_page_with_a_button_and_a_field_when_the_pointer_and_keyboard_are_driv
         typed(&rig.ex, BROWSER_INPUT, all)
     };
     // When the pointer clicks the button, then moves onto it and presses and releases, then clicks it with ctrl held
-    assert_eq!(input(json!({"kind": "mouse_click", "x": 20, "y": 20})), Inputted { x: 20.0, y: 20.0, buttons: 0 });
+    assert_eq!(input(json!({"kind": "mouse_click", "x": 20, "y": 20})), Inputted { x: 20.0, y: 20.0, buttons: 0, editable: None });
     input(json!({"kind": "mouse_move", "x": 30, "y": 30}));
-    assert_eq!(input(json!({"kind": "mouse_down"})), Inputted { x: 30.0, y: 30.0, buttons: 1 });
-    assert_eq!(input(json!({"kind": "mouse_up"})), Inputted { x: 30.0, y: 30.0, buttons: 0 });
+    assert_eq!(input(json!({"kind": "mouse_down"})), Inputted { x: 30.0, y: 30.0, buttons: 1, editable: None });
+    assert_eq!(input(json!({"kind": "mouse_up"})), Inputted { x: 30.0, y: 30.0, buttons: 0, editable: None });
     input(json!({"kind": "mouse_click", "x": 20, "y": 20, "modifiers": ["ctrl"]}));
     // Then the page saw each, in order, with the position the executor kept for the press and release
     assert_eq!(eval(&rig.ex, "t1", "window.clicks"), json!(["down0", "up0", "click", "down0", "up0", "click", "down0", "up0", "click+ctrl"]));

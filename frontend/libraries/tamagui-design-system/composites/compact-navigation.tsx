@@ -22,21 +22,24 @@ export function useCompactColors() {
   return (mode === 'system' ? system : mode) === 'dark' ? darkColors : lightColors;
 }
 
-export function FloatingSurface({ children, style, testID, tone = 'regular', interactive, tintColor }: {
+export function FloatingSurface({ children, style, testID, tone = 'regular', interactive, tintColor, glass: wantsGlass = true }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   testID?: string;
   interactive?: boolean;
   tintColor?: string;
   tone?: 'regular' | 'subtle' | 'overlay';
+  /** False for a card of content: glass is for what floats over content (a bar, a control), and a glass control inside a glass card reads as mud. */
+  glass?: boolean;
 }) {
   const colors = useCompactColors();
-  const glass = supportsGlassControl();
+  const glass = wantsGlass && supportsGlassControl();
+  const radius = StyleSheet.flatten([styles.surface, style])?.borderRadius;
   const subtleFill = colors === darkColors ? 'rgba(16,16,18,0.82)' : colors.surface;
   const fill = glass ? 'transparent' : tone === 'regular' ? colors.surface : subtleFill;
   return (
     <View testID={testID} style={[styles.surface, { backgroundColor: fill, borderColor: colors.line }, style]}>
-      {glass && <GlassControlBackground interactive={interactive} tintColor={tintColor} />}
+      {glass && <GlassControlBackground interactive={interactive} tintColor={tintColor} radius={typeof radius === 'number' ? radius : undefined} />}
       {children}
     </View>
   );

@@ -40,7 +40,7 @@ function TaskPractice({ topic, task, progress, save }: {
         <ScrollView contentContainerStyle={styles.body}>
           <Text style={[styles.heading, { color: colors.foreground }]}>{task.title}</Text>
           <Text style={[styles.label, { color: colors.muted }]}>Worked example</Text>
-          <FloatingSurface style={styles.card}>
+          <FloatingSurface glass={false} style={styles.card}>
             <Text style={[styles.prompt, { color: colors.foreground }]}>{example.english}</Text>
             <Text style={[styles.prompt, { color: colors.foreground }]} accessibilityLanguage="ta-IN">{example.tamil}</Text>
             <Text style={[styles.label, { color: colors.muted }]}>{example.transliteration}</Text>
@@ -64,7 +64,7 @@ function TaskPractice({ topic, task, progress, save }: {
   return (
     <ScrollView contentContainerStyle={[styles.body, { paddingBottom: bottom + 20 }]} testID="TamilTaskSummary">
       <Text style={[styles.heading, { color: colors.foreground }]}>Task complete</Text>
-      <FloatingSurface style={styles.card}>
+      <FloatingSurface glass={false} style={styles.card}>
         <Text style={[styles.prompt, { color: colors.green }]}>{correct} correct</Text>
         <Text style={[styles.label, { color: colors.foreground }]}>{missed} missed · {skipped} skipped</Text>
       </FloatingSurface>
@@ -122,7 +122,7 @@ function Prompt({ exercise, practice }: { exercise: Exercise; practice: ReturnTy
           </View>
         )}
         {exercise.kind === 'translate' && (
-          <FloatingSurface style={styles.card}><Text style={[styles.prompt, { color: colors.foreground }]}>{exercise.english}</Text></FloatingSurface>
+          <FloatingSurface glass={false} style={styles.card}><Text style={[styles.prompt, { color: colors.foreground }]}>{exercise.english}</Text></FloatingSurface>
         )}
         {exercise.kind === 'fill' && <Text style={[styles.label, { color: colors.muted }]}>{exercise.english}</Text>}
         {exercise.kind === 'fill' ? (
@@ -155,7 +155,7 @@ function Prompt({ exercise, practice }: { exercise: Exercise; practice: ReturnTy
           <CourseButton label="Can’t listen now" testID="TamilSkipListening" disabled={pending} onPress={() => { void practice.skip(); }} />
         )}
         {feedback && (
-          <FloatingSurface style={styles.card} testID="TamilAnswerFeedback">
+          <FloatingSurface glass={false} style={styles.card} testID="TamilAnswerFeedback">
             <Text accessibilityLiveRegion="polite" style={[styles.prompt, { color: feedback.correct ? colors.green : colors.red }]}>
               {feedback.correct ? 'Correct' : 'Incorrect'}
             </Text>

@@ -24,7 +24,7 @@ local function logged(level, needle)
 end
 
 run_flow("turn suggestions on from the list", function()
-  device:open_link(base .. "/")
+  device:open_link(base .. "/blind75")
   device:assert_visible({id='LeetcodeListAutocompleteOn'}, {timeout=60000})
   -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
   device:extended_wait_until{condition=function() return logged('info', 'route.change') end, timeout=60000, interval=250, label='the page hydrated'}

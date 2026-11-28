@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAgentComponents } from '@lib/agent-ui-contracts';
+import { useSkin } from '@lib/skin';
 import type {
   T3Conversation,
   T3Effort,
@@ -29,7 +29,7 @@ export function T3ComposerOptions({
   session: T3Conversation;
   newId: () => string;
 }) {
-  const { ComposerOptions } = useAgentComponents();
+  const { ComposerOptions } = useSkin();
   const provider =
     thread.modelSelection?.instanceId ?? thread.providerInstanceId;
   const loadModels = useCallback(

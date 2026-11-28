@@ -18,15 +18,15 @@
     "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run --passWithNoTests",
     "test:unit": "vitest run --passWithNoTests",
-    "test:flow": "vitest run --config vitest.flow.config.ts --configLoader runner"
+    "test:flow": "vitest run --config vitest.flow.config.ts --configLoader runner && FLOW_SKIN=orca vitest run --config vitest.flow.config.ts --configLoader runner"
   },
   "dependencies": {
     "@app/remote-chat-agent-contracts": "workspace:*",
-    "@lib/agent-ui-contracts": "workspace:*",
+    "@lib/skin": "workspace:*",
     "@lib/app-config": "workspace:*",
     "@lib/app-di": "workspace:*",
+    "@lib/keyboard": "workspace:*",
     "@lib/logging": "workspace:*",
-    "@lib/orca-design-system": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@xterm/xterm": "6.0.0",
@@ -49,6 +49,8 @@
   "devDependencies": {
     "@lib/flow-test-harness": "workspace:*",
     "@lib/lint-rules": "workspace:*",
+    "@lib/orca-skin": "workspace:*",
+    "@lib/tamagui-skin": "workspace:*",
     "@testing-library/react": "^16.3.3",
     "@typescript/native": "catalog:",
     "dependency-cruiser": "^17.4.3",

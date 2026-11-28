@@ -172,6 +172,10 @@ impl Area for WorkspaceArea {
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let agent = ctx.agent;
         if matches!(method, FILES_CREATE_FILE | FILES_WRITE_TERMINAL_ARTIFACT | MARKDOWN_SAVE_TAB) {
+            // the host answers selector_not_found for an unknown worktree before it compares the caller's view of the host and connection
+            if method == FILES_CREATE_FILE {
+                files::known_target(agent, params)?;
+            }
             if params.get("expectedExecutionHostId").is_some_and(|host| host != "local") {
                 return Err(files::plain("Workspace host changed; refresh and try again"));
             }

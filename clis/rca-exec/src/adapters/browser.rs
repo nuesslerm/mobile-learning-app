@@ -227,6 +227,7 @@ impl BrowserTable {
     pub fn input(&self, key: &str, input: &Input) -> ExecResult<Inputted> {
         self.drive(key, |d| {
             let pointer = |d: &mut Drive, params: serde_json::Value| d.page.mouse_event(params).map_err(io);
+            let mut editable = None;
             match input {
                 Input::MouseMove { x, y } => {
                     (d.x, d.y) = (*x, *y);
@@ -237,10 +238,11 @@ impl BrowserTable {
                     d.buttons |= mask(button);
                     pointer(d, serde_json::json!({"type": "mousePressed", "x": d.x, "y": d.y, "button": button, "buttons": d.buttons, "clickCount": 1}))?;
                 }
-                Input::MouseUp { button } => {
+                Input::MouseUp { button, report_focus } => {
                     let button = button.clone().unwrap_or_else(|| if d.buttons & 2 != 0 && d.buttons & 1 == 0 { "right" } else if d.buttons & 4 != 0 && d.buttons & 1 == 0 { "middle" } else { "left" }.to_string());
                     d.buttons &= !mask(&button);
                     pointer(d, serde_json::json!({"type": "mouseReleased", "x": d.x, "y": d.y, "button": button, "buttons": d.buttons, "clickCount": 1}))?;
+                    if *report_focus { editable = Some(d.page.software_keyboard_focus().map_err(io)?); }
                 }
                 Input::MouseClick { x, y, button, modifiers } => {
                     (d.x, d.y) = (*x, *y);
@@ -260,7 +262,7 @@ impl BrowserTable {
                 }
                 Input::InsertText { text } => d.page.insert_text(text).map_err(io)?,
             }
-            Ok(Inputted { x: d.x, y: d.y, buttons: d.buttons })
+            Ok(Inputted { x: d.x, y: d.y, buttons: d.buttons, editable })
         })
     }
 

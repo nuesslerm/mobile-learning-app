@@ -603,8 +603,12 @@ fn e2e_reasons(t: &E2eTest, scope: &Scope) -> Option<Vec<String>> {
             }
             why.push("named".into());
         }
-        Scope::Changed(paths) if matches!(t.name.as_str(), "tamil-native" | "leetcode-native") => {
-            let feature = if t.name == "tamil-native" { "tamil-writing" } else { "leetcode" };
+        Scope::Changed(paths) if matches!(t.name.as_str(), "tamil-native" | "leetcode-native" | "rca-native") => {
+            let feature = match t.name.as_str() {
+                "tamil-native" => "tamil-writing",
+                "rca-native" => "coding-agent",
+                _ => "leetcode",
+            };
             let touched = paths.iter().any(|p| {
                 if let Some(relative) = p.strip_prefix("frontend/mla-tamagui/features/") {
                     return relative.split('/').next() == Some(feature);
@@ -1058,8 +1062,10 @@ fn run_e2e_stage(nx: &Path, root: &Path, stage: &str, names: &[String], rest: &[
     let fresh = benchmark || !flags.is_empty() || own.iter().any(|a| a == "--fresh") || trailer.lines().map(str::trim).any(|v| v == platform || v == "all");
     let shim = if fresh { None } else { wf_bucket::cache::Shim::start(root, stage_scope()) };
     let shim_env = wf_bucket::cache::env_of(&shim);
+    // a native test is keyed by the commit whose update it loads: Nx must hash the probe with the commit the run will carry
+    let probe_env: Vec<(&str, String)> = shim_env.iter().cloned().chain([("WF_E2E_SHA", sha.clone())]).collect();
     let misses = if !fresh {
-        match crate::nx::e2e_misses(nx, root, platform, names, &shim_env) {
+        match crate::nx::e2e_misses(nx, root, platform, names, &probe_env) {
             Ok(m) => m,
             Err(e) => {
                 println!("{}", json!({ "ok": false, "stage": stage, "error": e }));

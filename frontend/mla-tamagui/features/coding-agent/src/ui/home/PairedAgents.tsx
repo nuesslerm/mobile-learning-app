@@ -1,7 +1,7 @@
 import {
-  useAgentComponents,
+  useSkin,
   type HomeAgentSectionProps,
-} from '@lib/agent-ui-contracts';
+} from '@lib/skin';
 import { Logger } from '@lib/logging';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -52,7 +52,7 @@ export function PairedAgents({
   unreadOnly: boolean;
   groupBy: string;
 }) {
-  const { HomeEmptyState, HomeAgentSection } = useAgentComponents();
+  const { HomeEmptyState, HomeAgentSection } = useSkin();
   const [catalog, setCatalog] = useState<DesktopAgents>();
   const [error, setError] = useState('');
   const selection = useRef<AbortController | undefined>(undefined);

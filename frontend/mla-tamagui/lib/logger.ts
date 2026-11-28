@@ -10,7 +10,7 @@ import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { appLogFields } from '../app-shell/runId';
 import { LogLayer, type LogLayerTransport, type LogLayerTransportParams } from 'loglayer';
-import { Platform } from 'react-native';
+import { buoyEnabled } from '../app-shell/buoyEnabled';
 
 type AppLogEntry = {
   level: string;
@@ -20,7 +20,7 @@ type AppLogEntry = {
   ts: number;
 };
 
-if (__DEV__ && Platform.OS !== 'web') {
+if (buoyEnabled) {
   (require('@buoy-gg/console') as typeof import('@buoy-gg/console')).installConsoleCapture();
 }
 

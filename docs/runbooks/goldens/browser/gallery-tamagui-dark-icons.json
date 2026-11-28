@@ -1,0 +1,32 @@
+{
+  "platform": "browser",
+  "step": 48,
+  "last_action": "open_link{link='http://127.0.0.1:55453/mla-tamagui/gallery?section=icons&scheme=dark'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:55453/mla-tamagui/gallery?section=icons&scheme=dark",
+    "title": "",
+    "testids": [
+      "SkinGallery-icons"
+    ],
+    "text": "Tones"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 125315,
+    "capture_ms": 107
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.07999999999999996,
+    "ignore": []
+  },
+  "name": "gallery-tamagui-dark-icons",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

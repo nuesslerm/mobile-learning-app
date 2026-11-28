@@ -6,6 +6,9 @@ describe('eslint-plugin ("./src/index.ts")', () => {
     'no-direct-screen-header',
     'no-hermes-unsupported-api',
     'no-unhandled-catch',
+    'no-design-system-outside-a-skin',
+    'no-react-native-controls',
+    'only-root-names-a-skin',
   ];
   const eslintPluginRuleKeys = Object.keys(rules);
 

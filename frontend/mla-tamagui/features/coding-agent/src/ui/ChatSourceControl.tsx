@@ -1,8 +1,8 @@
+import { useSkin } from '@lib/skin';
 import { Logger } from '@lib/logging';
 import { Button, ScreenHeader, Text } from '@lib/tamagui-design-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RcaUnavailable, WorktreeMissing } from '../domain/t3Mobile';
 import type { Pairing } from '../domain/mobile';
@@ -11,6 +11,7 @@ import { useCodingAgentPorts } from '../state/ports';
 import { T3SourceControl } from './T3SourceControl';
 
 export function ChatSourceControl() {
+  const { Spinner } = useSkin();
   const { t3Mobile: api } = useCodingAgentPorts();
   const { thread, checkoutId } = useLocalSearchParams<{
     thread?: string;
@@ -82,7 +83,7 @@ export function ChatSourceControl() {
           <Button onPress={() => retry((n) => n + 1)}>Try again</Button>
         </>
       ) : (
-        <ActivityIndicator accessibilityLabel="Loading checkout" />
+        <Spinner accessibilityLabel="Loading checkout" />
       )}
     </SafeAreaView>
   );

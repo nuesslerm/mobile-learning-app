@@ -71,31 +71,42 @@ run_flow("open the editor and the menu", function()
   device:assert_screenshot("editor-settings-menu")
 end)
 
-run_flow("Line wrap and Show Whitespace keep the menu open", function()
+-- a selection applies and dismisses the menu (918ca611)
+local function menu_closed()
+  device:extended_wait_until{not_visible={id='EditorSettingsButtonContent'}, timeout=10000, label='the menu is closed'}
+end
+
+run_flow("Line wrap and Show Whitespace each apply and dismiss the menu", function()
   assert_true(present('.cm-lineWrapping'), "line wrap is on by default")
   device:tap_on({id='EditorSettingsWrap'})
   device:extended_wait_until{condition=function() return not present('.cm-lineWrapping') end, timeout=10000, label='line wrap is off'}
-  device:assert_visible({id='EditorSettingsButtonContent'})
+  menu_closed()
   assert_true(not present('.cm-highlightSpace'), "whitespace marks before the toggle")
+  open_menu()
   device:tap_on({id='EditorSettingsWhitespace'})
   device:extended_wait_until{condition=function() return present('.cm-highlightSpace') end, timeout=10000, label='whitespace marks'}
-  device:assert_visible({id='EditorSettingsButtonContent'})
+  menu_closed()
 end)
 
-run_flow("Font size 16px returns to the root and the lines grow", function()
+run_flow("Font size 16px dismisses the menu and the lines grow", function()
   local before = line_height()
+  open_menu()
   device:tap_on({id='EditorSettingsFontSize'})
   device:tap_on({id='EditorSettingsFontSize-16'})
-  device:assert_visible({id='EditorSettingsWrap'}, {timeout=10000})
-  device:assert_not_visible({id='EditorSettingsFontSize-16'})
+  menu_closed()
   device:extended_wait_until{condition=function() return line_height() > before end, timeout=10000, label='the lines grew'}
 end)
 
 run_flow("Symbol Bar opens its sheet and Done closes it", function()
+  open_menu()
   device:tap_on({id='EditorSettingsSymbolBar'})
   device:assert_visible({id='SymbolBarSheetHeader'}, {timeout=10000})
   device:tap_on({id='SymbolBarSwitch'})
-  device:tap_on({id='SymbolBarDone'})
+  -- the sheet is still sliding up when its header first shows, and a tap at where Done was then misses it (run 46042356198): repeated until the sheet leaves
+  for _ = 1, 5 do
+    device:tap_on({id='SymbolBarDone'})
+    if device:extended_wait_until{not_visible={id='SymbolBarSheetHeader'}, timeout=3000, optional=true} then break end
+  end
   device:extended_wait_until{not_visible={id='SymbolBarSheetHeader'}, timeout=10000, label='the sheet is gone'}
 end)
 
@@ -116,8 +127,7 @@ run_flow("Tabs 2 indents the line after a colon by two", function()
   device:tap_on({id='EditorSettingsTabs'})
   device:tap_on({id='EditorSettingsTabs-2'})
   device:extended_wait_until{condition=function() return logged('leetcode.editor_prefs.set') end, timeout=10000, label='the preference was set'}
-  device:tap_on({id='EditorSettingsButton'})
-  device:extended_wait_until{not_visible={id='EditorSettingsButtonContent'}, timeout=10000, label='the menu is closed'}
+  menu_closed()
   -- a tap on the line's right edge puts the caret at its end
   local line = device:get_element({css='.cm-line'})
   device:tap_on({point=('%d,%d'):format(line.bounds.right - 4, (line.bounds.top + line.bounds.bottom) // 2)})

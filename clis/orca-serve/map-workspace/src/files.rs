@@ -239,6 +239,11 @@ pub(crate) fn paths_exist(agent: &dyn AgentApi, params: &Value) -> Result<Value,
     Ok(Value::Array(answers.collect()))
 }
 
+/// Fails as the handlers do when the worktree the caller names is not one of the agent's.
+pub(crate) fn known_target(agent: &dyn AgentApi, params: &Value) -> Result<(), Failure> {
+    resolve(agent, selector(params)?).map(|_| ())
+}
+
 pub(crate) fn create_file(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let t = resolve(agent, selector(params)?)?;
     let path = clean(path_param(params, "relativePath")?, false)?;

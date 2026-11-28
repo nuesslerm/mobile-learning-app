@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 const BROWSER: [&str; 4] = ["app-routes", "editor-typing", "tamil-writing", "voice-edit"];
-const ANDROID: [&str; 1] = ["tamil-writing"];
+const ANDROID: [&str; 1] = ["tamil-native"];
 const HARNESS: [&str; 5] = ["@cli/harness-contracts", "@cli/harness-data", "@cli/harness-use-cases", "@cli/harness-di", "@tooling/device-frame-ui"];
 const SERVICES: [&str; 5] = ["@app/leetcode-auth-cookie-capture", "@app/leetcode-backend", "@app/remote-chat-agent", "@backend/reporting-service", "@infra/watchdog"];
 const CRATES: [&str; 17] = ["agent-config-sync", "cdp", "cli-http", "harness-flow", "knowledge", "rca-core", "rca-ladder", "wf", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"];
@@ -136,10 +136,15 @@ echo "{\"ok\":true,\"sha\":\"seeded\",\"units\":[{\"test\":\"$test\",\"verdict\"
         self.plan(&format!("{platform}-e2e-tests"), names.iter().map(|n| json!({ "kind": "e2e", "name": n })).collect())
     }
 
-    /// The e2e tests the stage would run now (`--probe`: Nx's verdict, nothing runs).
+    /// The e2e tests the stage would run now (`--probe`: Nx's verdict, nothing runs), at the commit the stages ran at.
     fn would_run(&self, platform: &str) -> BTreeSet<String> {
+        self.would_run_at(platform, "seeded")
+    }
+
+    /// The same at `sha`: a native test is keyed by the commit whose update it loads, and a trailer is read from that commit.
+    fn would_run_at(&self, platform: &str, sha: &str) -> BTreeSet<String> {
         let plan = self.e2e_plan(platform);
-        let r = self.wf(&["test", "run", "--stage", &format!("{platform}-e2e-tests"), "--plan", plan.to_str().unwrap(), "--probe"], &[]);
+        let r = self.wf(&["test", "run", "--stage", &format!("{platform}-e2e-tests"), "--plan", plan.to_str().unwrap(), "--sha", sha, "--probe"], &[]);
         assert_eq!(r.exit_code, 0, "probe {platform}: {}\n{}", r.stdout, r.stderr);
         let v: Value = serde_json::from_str(r.stdout.trim().lines().last().unwrap()).unwrap();
         v["ran"].as_array().unwrap().iter().map(|t| t.as_str().unwrap().to_string()).collect()
@@ -230,9 +235,9 @@ fn nx_runs_an_e2e_test_exactly_when_its_feature_code_test_case_or_the_app_shell_
 
     let (all_b, all_a) = (set(&BROWSER), set(&ANDROID));
     let cases: Vec<(&str, &str, BTreeSet<String>, BTreeSet<String>)> = vec![
-        ("an in-app feature's code", "frontend/mla-tamagui/features/tamil-writing/data/tamilCourse.ts", set(&["app-routes", "tamil-writing"]), set(&["tamil-writing"])),
+        ("an in-app feature's code", "frontend/mla-tamagui/features/tamil-writing/data/tamilCourse.ts", set(&["app-routes", "tamil-writing"]), set(&["tamil-native"])),
         ("the leetcode feature's code", "frontend/mla-tamagui/features/leetcode/auth/LeetCodeBridge.tsx", set(&["app-routes", "editor-typing", "voice-edit"]), set(&[])),
-        ("a new file in a feature", "frontend/mla-tamagui/features/tamil-writing/data/added.ts", set(&["app-routes", "tamil-writing"]), set(&["tamil-writing"])),
+        ("a new file in a feature", "frontend/mla-tamagui/features/tamil-writing/data/added.ts", set(&["app-routes", "tamil-writing"]), set(&["tamil-native"])),
         ("a feature package's code", "frontend/mla-tamagui/features/coding-agent/src/contracts/dispatchRuns.ts", set(&["app-routes", "voice-edit"]), set(&[])),
         // the whole-app test is app-routes in the browser; no focused Android test is, so an app change none of them names publishes an update
         // no Android run loads (progress ledger, 22 Oct S3 stage 1: open items)
@@ -258,9 +263,9 @@ fn nx_runs_an_e2e_test_exactly_when_its_feature_code_test_case_or_the_app_shell_
         ("the browser's page finder", "clis/harness-browser/src/browser_find.js", all_b.clone(), set(&[])),
         ("the server of the web export the browser tests load", "clis/pipeline/src/export_site.rs", all_b.clone(), set(&[])),
         ("the HTTP listener that server answers through", "clis/harness-core/src/staticd.rs", all_b.clone(), set(&[])),
-        // the stage runner only starts units and hands each its base; what a unit does is in the harness files above
-        ("the runner that picks each unit's target", "clis/pipeline/src/e2e_run.rs", set(&[]), set(&[])),
-        ("the resolver of the update an Android unit loads", "clis/pipeline/src/device_run.rs", set(&[]), set(&[])),
+        // the stage runner only starts browser units and hands each its base; a native unit also gets the update it loads from it
+        ("the runner that picks each unit's target", "clis/pipeline/src/e2e_run.rs", set(&[]), all_a.clone()),
+        ("the resolver of the update an Android unit loads", "clis/pipeline/src/device_run.rs", set(&[]), all_a.clone()),
         ("the CDP crate the browser driver runs on", "clis/cdp/src/attached.rs", all_b.clone(), set(&[])),
         ("a feature's unit test", "frontend/mla-tamagui/features/leetcode/auth/__tests__/webBridgeClient.test.ts", set(&[]), set(&[])),
         ("a doc", "docs/plans/nx-cache/plan.md", set(&[]), set(&[])),
@@ -283,13 +288,13 @@ fn nx_runs_an_e2e_test_exactly_when_its_feature_code_test_case_or_the_app_shell_
     // Given a test fails after its feature changed, When it is run again unchanged, Then it runs again: a failure is never replayed
     w.with_edit("frontend/mla-tamagui/features/tamil-writing/data/tamilCourse.ts", || {
         let plan = w.e2e_plan("android");
-        let (r, did) = w.run_stage("android-e2e-tests", &plan, &[("FAIL_TEST", "tamil-writing")]);
-        assert_eq!((r.exit_code, did), (1, set(&["e2e android tamil-writing"])), "{}", r.stdout);
-        assert_eq!(w.would_run("android"), set(&["tamil-writing"]), "the failure is not cached");
+        let (r, did) = w.run_stage("android-e2e-tests", &plan, &[("FAIL_TEST", "tamil-native")]);
+        assert_eq!((r.exit_code, did), (1, set(&["e2e android tamil-native"])), "{}", r.stdout);
+        assert_eq!(w.would_run("android"), set(&["tamil-native"]), "the failure is not cached");
         let (r, did) = w.run_stage("android-e2e-tests", &plan, &[]);
-        assert_eq!((r.exit_code, did), (0, set(&["e2e android tamil-writing"])));
+        assert_eq!((r.exit_code, did), (0, set(&["e2e android tamil-native"])));
         let summary: Value = serde_json::from_str(r.stdout.trim().lines().last().unwrap()).unwrap();
-        assert_eq!((summary["ran"].clone(), summary["cached"].as_array().unwrap().len()), (json!(["tamil-writing"]), ANDROID.len() - 1), "the others are replayed with their earlier runs");
+        assert_eq!((summary["ran"].clone(), summary["cached"].as_array().unwrap().len()), (json!(["tamil-native"]), ANDROID.len() - 1), "the others are replayed with their earlier runs");
         assert_eq!(w.would_run("android"), set(&[]), "the pass is cached");
     });
 
@@ -319,18 +324,18 @@ fn an_e2e_fresh_trailer_runs_the_stage_fresh() {
     // When the head commit carries `E2E-Fresh: android` and changes nothing
     let sha = w.commit("Measure the Android units again\n\nE2E-Fresh: android");
     // Then the Android probe names every test, and the browser stage stays replayed: the trailer names one platform
-    assert_eq!((w.would_run("browser"), w.would_run("android")), (set(&[]), set(&ANDROID)));
+    assert_eq!((w.would_run("browser"), w.would_run_at("android", &sha)), (set(&[]), set(&ANDROID)));
     // When the Android stage runs at that commit, Then every test ran though its inputs are unchanged, and the summary says why
     let (r, did) = w.run_stage_at("android-e2e-tests", &w.e2e_plan("android"), &sha, &[]);
     assert_eq!((r.exit_code, did), (0, ANDROID.iter().map(|t| format!("e2e android {t}")).collect()), "{}", r.stdout);
     assert_eq!(last_line(&r)["fresh"], json!(true), "{}", r.stdout);
 
     // When the trailer says `all`, Then both stages run fresh
-    w.commit("Measure everything\n\nE2E-Fresh: all");
-    assert_eq!((w.would_run("browser"), w.would_run("android")), (set(&BROWSER), set(&ANDROID)));
-    // And a later commit without it is replayed again
-    w.commit("An ordinary commit");
-    assert_eq!((w.would_run("browser"), w.would_run("android")), (set(&[]), set(&[])));
+    let all = w.commit("Measure everything\n\nE2E-Fresh: all");
+    assert_eq!((w.would_run_at("browser", &all), w.would_run_at("android", &all)), (set(&BROWSER), set(&ANDROID)));
+    // And at a later commit without it the browser tests are replayed again, and the Android ones run: each loads the update of its own commit
+    let later = w.commit("An ordinary commit");
+    assert_eq!((w.would_run_at("browser", &later), w.would_run_at("android", &later)), (set(&[]), set(&ANDROID)));
 }
 
 #[test]
@@ -435,7 +440,7 @@ fn nx_reruns_a_package_or_crate_task_exactly_when_its_sources_or_a_dependency_s_
     }
     let flow_cases: Vec<(&str, &str, BTreeSet<String>)> = vec![
         ("the crate every service takes from the registry: no service flow test reruns", "backend/service-kit/src/heartbeat.rs", flow(&[], &[])),
-        ("a crate the CLIs build, and the agent service reaches through its own dependencies", "clis/http/src/lib.rs", flow(&["@app/remote-chat-agent"], &["cli-http", "cdp", "harness-flow", "knowledge", "wf", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"])),
+        ("a crate the CLIs build, and the agent service reaches through its own dependencies", "clis/http/src/lib.rs", flow(&["@app/remote-chat-agent"], &["cli-http", "agent-config-sync", "cdp", "harness-flow", "knowledge", "wf", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"])),
         ("a library a CLI and a service take from the registry", "libraries/rca-core/src/file_store.rs", flow(&[], &["rca-core", "rca-ladder"])),
         ("one crate's flow test", "clis/cdp/tests/flow.rs", flow(&[], &["cdp"])),
         ("a wf crate with a flow test of its own", "clis/pipeline/src/ci_comment.rs", flow(&[], &["pipeline", "deploy", "wf"])),
@@ -448,9 +453,9 @@ fn nx_reruns_a_package_or_crate_task_exactly_when_its_sources_or_a_dependency_s_
         ("the crate of `wf rca ask` and the worker", "clis/rca/src/dispatch.rs", flow(&[], &["rca", "wf-bench", "wf"])),
         ("the device harness crate", "clis/harness-core/src/device/lua.rs", flow(&[], &["harness-flow", "wf-harness", "wf-bench", "pipeline", "deploy", "wf"])),
         ("the crate of `wf bench`", "clis/wf-bench/src/bench.rs", flow(&[], &["wf-bench", "wf"])),
-        ("the secrets crate every wf crate that reads a value builds", "clis/secrets/src/secrets/util.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
+        ("the secrets crate every wf crate that reads a value builds", "clis/secrets/src/secrets/util.rs", flow(&["@app/remote-chat-agent"], &["agent-config-sync", "harness-flow", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
         ("the kit every wf crate builds, and rca-exec, whose binary the agent service's flow tests run", "clis/wf-kit/src/args.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "knowledge", "agent-config-sync", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
-        ("a double the flow tests share (in src, so its users rerun)", "clis/wf-testkit/src/stubs.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "knowledge", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
+        ("a double the flow tests share (in src, so its users rerun)", "clis/wf-testkit/src/stubs.rs", flow(&["@app/remote-chat-agent"], &["agent-config-sync", "harness-flow", "knowledge", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
         ("the flow test of a crate inside a service", "backend/leetcode-backend/rs/tests/flow.rs", flow(&["@app/leetcode-backend"], &[])),
         ("the flow test of the crate a package runs", "backend/watchdog/rs/tests/flow.rs", flow(&["@infra/watchdog"], &[])),
         ("the CLIs' lockfile, which an edit that does not parse makes the whole file (the agent service's flow tests run rca-exec from it)", "clis/Cargo.lock", flow(&["@app/remote-chat-agent"], &CRATES.iter().copied().filter(|c| *c != "rca-core" && *c != "rca-ladder").collect::<Vec<_>>())),
@@ -575,9 +580,10 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
     // When a file of the kit, the secrets crate or the shared doubles changes, Then every crate with tests is planned, which is every
     // one that builds it, the planner and the bucket through the crates they depend on
     let (builds_kit, builds_testkit) = (crates_that_build("wf-kit"), crates_that_build("wf-testkit"));
-    assert_eq!(planned("clis/wf-kit/src/args.rs"), with(dependants("wf-kit", &builds_kit.iter().map(String::as_str).collect::<Vec<_>>()), &flow_runners_of("wf-kit").iter().map(String::as_str).collect::<Vec<_>>()));
-    // The crates that build the shared doubles, and the ones whose flow tests run a binary built from them: which dependency the plan names as the reason depends on the graph's order, so the crates are compared
+    // Which dependency the plan names as the reason depends on the graph's order (rca-serve reaches the kit through t3-serve), so the crates are compared
     let crate_of = |plan: BTreeSet<String>| -> BTreeSet<String> { plan.into_iter().filter_map(|entry| entry.split(' ').next().map(str::to_string)).collect() };
+    assert_eq!(crate_of(planned("clis/wf-kit/src/args.rs")), crate_of(with(dependants("wf-kit", &builds_kit.iter().map(String::as_str).collect::<Vec<_>>()), &flow_runners_of("wf-kit").iter().map(String::as_str).collect::<Vec<_>>())));
+    // The crates that build the shared doubles, and the ones whose flow tests run a binary built from them
     let expected: BTreeSet<String> = builds_testkit.iter().cloned().chain(flow_runners_of("wf-testkit").into_iter().filter_map(|entry| entry.split(' ').next().map(str::to_string))).collect();
     assert_eq!(crate_of(planned("clis/wf-testkit/src/stubs.rs")), expected);
     // The crates the plan names for the secrets, VM and bucket crates: compared by crate, as which dependency is named as the reason depends on the graph's order
@@ -586,7 +592,7 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
         (got != want).then(|| format!("{file}\n  got      {got:?}\n  expected {want:?}"))
     };
     let wrong: Vec<String> = [
-        by_crate("clis/secrets/src/secrets/util.rs", &["secrets", "rca", "wf-bucket", "wf-lib", "wf-login", "deploy", "wf-vmops", "wf", "pipeline", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
+        by_crate("clis/secrets/src/secrets/util.rs", &["secrets", "agent-config-sync", "rca", "wf-bucket", "wf-lib", "wf-login", "deploy", "wf-vmops", "wf", "pipeline", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
         by_crate("clis/wf-vmops/src/vm_exec.rs", &["wf-vmops", "rca", "wf-bench", "wf-harness", "wf-login", "pipeline", "deploy", "wf", "harness-flow", "wf-bucket", "wf-mimic", "orca-map-mobile"]),
         by_crate("clis/wf-bucket/src/cache_runs.rs", &["wf-bucket", "pipeline", "deploy", "wf", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
     ].into_iter().flatten().collect();
@@ -604,8 +610,8 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
     assert_eq!(planned("clis/wf-bench/src/bench.rs"), with(dependants("wf-bench", &["wf"]), &["wf-bench changed"]));
     // When a file of wf itself changes, Then only wf's tests are planned
     assert_eq!(planned("clis/wf/src/main.rs"), set(&["wf changed"]));
-    // When a file of a crate wf runs as a separate binary changes, Then only that crate's tests are planned: wf does not build it
-    assert_eq!(planned("clis/t3-serve/src/verbs.rs"), set(&["t3-serve changed"]));
+    // When a file of a crate wf runs as a separate binary changes, Then that crate's tests are planned and those of rca-serve, which builds it: wf does not
+    assert_eq!(planned("clis/t3-serve/src/verbs.rs"), set(&["t3-serve changed", "rca-serve depends on t3-serve (cargo)"]));
     // wf-mimic builds rca-exec (its GitHub Projects recording verb runs the hosted project actions), so a change there plans wf-mimic and the crates whose flow tests run it
     assert_eq!(planned("clis/rca-exec/src/verbs.rs"), set(&["rca-exec changed", "wf-mimic depends on rca-exec (cargo)", "orca-map-mobile its flow tests run wf-mimic"]));
     // When a file that shapes the Nx graph changes, Then the planner's tests, which hold the cache's contract, are planned, and the ship
@@ -1246,9 +1252,9 @@ fn the_chromium_a_browser_test_hashes_on_follows_the_pinned_playwright_not_the_i
 
 #[test]
 fn a_task_reruns_when_a_file_its_test_reads_outside_the_project_changes_and_not_when_a_flow_run_leaves_goldens() {
-    // Given the repository's real graph, and the hashes of the app's unit tests and export, the logging integration test and the browser tests
+    // Given the repository's real graph, and the hashes of the app's unit tests and export and the browser tests
     let w = Workspace::copy();
-    let (projects, targets) = ("mla-tamagui,@lib/logging,e2e-tamil-writing", "test:unit,test:integration,export:web,e2e-browser");
+    let (projects, targets) = ("mla-tamagui,e2e-tamil-writing", "test:unit,export:web,e2e-browser");
     let table = w.aside.path().join("hashes.json");
     let saved = w.wf(&["test", "drift", "--projects", projects, "--targets", targets, "--save", table.to_str().unwrap()], &[]);
     assert_eq!(saved.exit_code, 0, "{}{}", saved.stdout, saved.stderr);
@@ -1261,8 +1267,6 @@ fn a_task_reruns_when_a_file_its_test_reads_outside_the_project_changes_and_not_
 
     // When the doc the app's unit test reads changes, Then that test reruns and the export does not
     w.with_edit("docs/solutions/workflow/eas-publishing.md", || assert_eq!(drifted_by(&w), set(&["mla-tamagui:test:unit"])));
-    // When the contract the logging integration test reads changes, Then that test reruns
-    w.with_edit("clis/telemetry/contract/callsite.json", || assert_eq!(drifted_by(&w), set(&["@lib/logging:test:integration"])));
     // When a flow run left golden screenshots in the app, Then no task reruns
     w.with_edit("frontend/mla-tamagui/.flow-goldens/light/snapshots/a/final.png", || assert_eq!(drifted_by(&w), set(&[])));
     // When the app's own source changes, Then the export and the tests that load it rerun

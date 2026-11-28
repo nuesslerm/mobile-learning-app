@@ -8,7 +8,7 @@ import BottomSheet, {
 import { Logger } from '@lib/logging';
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable, type GlassColorScheme } from 'expo-glass-effect';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   Platform,
@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { X } from '../icons';
 import { useOpenSheetStore } from '../lib/openSheetStore';
-import { useKeyboardFrame } from '../lib/keyboard/useKeyboardFrame';
+import { useKeyboardFrame } from '@lib/keyboard';
 import { useTheme } from '../primitives';
 
 import { Icon } from './icon';
@@ -246,10 +246,16 @@ export function Sheet({
   // (`if (nextIndex !== animatedCurrentIndex.get())`), while `onClose` is
   // called unconditionally at -1 -- so inferring closure from onChange drops
   // exactly the dismissals that matter.
+  // The caller's callback is read at call time: gorhom mounts `handleComponent` as a component, so a handle whose identity followed
+  // the callback was unmounted on every render of the screen, and a press that began before one was lost.
+  const onOpenChangeRef = useRef(onOpenChange);
+  useLayoutEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  }, [onOpenChange]);
   const handleClose = useCallback(() => {
     Logger.info('ds.sheet.dismissed', { testID });
-    onOpenChange(false);
-  }, [onOpenChange, testID]);
+    onOpenChangeRef.current(false);
+  }, [testID]);
 
   useEffect(() => {
     if (open) ref.current?.snapToIndex(openIndex);

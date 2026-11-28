@@ -1,3 +1,4 @@
+import { useSkin } from '@lib/skin';
 import {
   lazy,
   Suspense,
@@ -7,7 +8,6 @@ import {
   type ComponentRef,
 } from 'react';
 import {
-  Button,
   Keyboard,
   Pressable,
   ScrollView,
@@ -88,6 +88,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
     };
   }, [api, pair, layout, tab, revision]);
   const c = useTabColors();
+  const { Button } = useSkin();
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const [mediaError, setMediaError] = useState('');
   const [focused, setFocused] = useState(false);
@@ -129,7 +130,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#191b26' }}>
+    <View style={{ flex: 1, backgroundColor: c.terminal.background }}>
       <View
         style={{ flex: 1 }}
         onLayout={(e) => {
@@ -154,10 +155,11 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
             cols={size.cols}
             rows={size.rows}
             fontSize={fontSize}
+            theme={c.terminal}
             dom={{
               useExpoDOMWebView: false,
               scrollEnabled: false,
-              style: { flex: 1, backgroundColor: '#191b26' },
+              style: { flex: 1, backgroundColor: c.terminal.background },
             }}
           />
         </Suspense>
@@ -167,7 +169,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
           <Text accessibilityRole="alert" style={{ color: 'white' }}>
             {error}
           </Text>
-          <Button title="Reconnect" onPress={() => retry((n) => n + 1)} />
+          <Button label="Reconnect" onPress={() => retry((n) => n + 1)} />
         </>
       )}
       <View
@@ -271,7 +273,7 @@ export function TerminalTab({ api, pair, layout, tab }: Props) {
               alignItems: 'center',
               gap: 8,
               borderWidth: focused ? 2 : 1,
-              borderColor: focused ? '#3875ff' : c.border,
+              borderColor: focused ? c.focus : c.border,
               borderRadius: 12,
               minHeight: 46,
               paddingHorizontal: 10,

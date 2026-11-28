@@ -107,6 +107,9 @@ jobs:
       cancel-in-progress: false
     env:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      # a called workflow does not take the caller's env: unset, the build-cache shim writes to the Oracle bucket that is gone (pipeline.yml has the switch)
+      CACHE_BACKENDS: ${{ vars.CACHE_BACKENDS || 'gha' }}
+      WF_BLOB_CACHE: ${{ contains(vars.CACHE_BACKENDS || 'gha', 'blob') && 'on' || 'off' }}
       PLATFORM: ${{ inputs.platform }}
       WF_NATIVE_SAMPLE: ${{ inputs.sample }}
       WF_E2E_SHA: ${{ inputs.sha || github.sha }}
@@ -197,11 +200,24 @@ jobs:
         if: steps.pick.outputs.any == 'true'
         with:
           opencode: 'true'
-      - name: The speech sidecar's python packages
+      # the sidecar loads its model from the Hub's local cache; a runner the Hub refuses has nothing to load unless the cache came with it
+      - name: The speech model, kept between runs
+        if: steps.pick.outputs.any == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha')
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/huggingface/hub
+          key: stt-model-tiny.en-v1
+      - name: The speech sidecar's python packages and model
         if: steps.pick.outputs.any == 'true'
         run: |
           python3 -m venv "$RUNNER_TEMP/stt-venv"
           "$RUNNER_TEMP/stt-venv/bin/pip" install --quiet -r backend/remote-chat-agent/stt/requirements.txt
+          # a download is a network call: asked three times here, so the sidecar's start never is one
+          for attempt in 1 2 3; do
+            "$RUNNER_TEMP/stt-venv/bin/python" -c 'from faster_whisper.utils import download_model; download_model("tiny.en")' && break
+            [ "$attempt" = 3 ] && { echo "::error::the Hub gave no speech model in three tries"; exit 1; }
+            sleep $((attempt * 20))
+          done
       - name: The backends on this runner
         if: steps.pick.outputs.any == 'true'
         timeout-minutes: 25
@@ -212,11 +228,13 @@ jobs:
           OPENCODE_GO_API_KEY=$(wf secret get OPENCODE_GO_API_KEY --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no OPENCODE_GO_API_KEY for the opencode server"; exit 1; }
           echo "::add-mask::$OPENCODE_GO_API_KEY"
           export OPENCODE_GO_API_KEY
-          # the model loads (and, cold, downloads) at the sidecar's start
+          # the model loads at the sidecar's start, from the cache the step above filled
           # the Android update dials the runner as 10.0.2.2 on the production ports, so those are the ports there
           ports=$([ "$PLATFORM" = android ] && echo "--rca-port 8787 --leetcode-port 8789" || true)
           # shellcheck disable=SC2086
-          wf test backends up --only stt,opencode-server,rca-service,leetcode-backend $ports --wait 240 | tee "$RUNNER_TEMP/backends.json"
+          # the device suite's paired case pairs the app with a desktop on this runner; a page has no such case
+          desktop=$([ "$PLATFORM" = android ] && echo ",agent-desktop" || true)
+          wf test backends up --only "stt,opencode-server,rca-service,leetcode-backend$desktop" $ports --wait 240 | tee "$RUNNER_TEMP/backends.json"
           jq -e '.ok' "$RUNNER_TEMP/backends.json" >/dev/null
       - name: The emulator's host setup
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'

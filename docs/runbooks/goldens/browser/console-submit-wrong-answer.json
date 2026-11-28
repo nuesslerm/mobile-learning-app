@@ -1,17 +1,19 @@
 {
   "platform": "browser",
-  "step": 27,
+  "step": 23,
   "last_action": "tap_on{id='ConsoleBarSubmit'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:38745/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgcmV0dXJuIFRydWUK",
+    "url": "http://127.0.0.1:58339/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgcmV0dXJuIFRydWUK",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemEditorScreen",
@@ -20,9 +22,16 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "CodeEditorText",
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ConsoleSheet",
       "ConsoleTabs",
       "SegmentedThumb",
@@ -52,15 +61,15 @@
       "ConsoleSheetHandle",
       "PyodideHostWebView"
     ],
-    "text": "Valid Parentheses\nStack · Easy\nPython\nTestcase\nRun Result\nWrong Answer\n8 / 15 testcases passed\ns\n\"(]\"\nOutput\ntrue\nExpected\nfalse\nReset\nSubmit"
+    "text": "Valid Parentheses\nStack · Easy\nclass Solution:\n    def isValid(self, s: str) -> bool:\n        return True\n\nPython\nConsole\nSubmit\nTestcase\nRun Result\nWrong Answer\n8 / 15 testcases passed\ns\n\"(]\"\nOutput\ntrue\nExpected\nfalse\nReset\nSubmit"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 33584,
-    "capture_ms": 285
+    "since_start_ms": 23948,
+    "capture_ms": 118
   },
   "tolerance": {
     "threshold": 0.1,

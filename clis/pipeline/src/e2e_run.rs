@@ -26,7 +26,7 @@ pub struct Unit {
 
 impl Unit {
     fn is_native_learner(&self) -> bool {
-        matches!(self.test.as_str(), "leetcode-native" | "tamil-native")
+        matches!(self.test.as_str(), "leetcode-native" | "tamil-native" | "rca-native")
     }
 }
 
