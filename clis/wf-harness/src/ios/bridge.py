@@ -117,7 +117,8 @@ def preserve_accessibility(udid):
     finally:
         for key, value in saved.items():
             if read(key) != value:
-                command = ["delete", domain, key] if value is None else ["write", domain, key, "-bool", value]
+                # defaults prints a boolean as 1 or 0 and takes it back only as a word
+                command = ["delete", domain, key] if value is None else ["write", domain, key, "-bool", "true" if value == "1" else "false"]
                 subprocess.run([*defaults, *command], check=True, stdout=sys.stderr)
 
 

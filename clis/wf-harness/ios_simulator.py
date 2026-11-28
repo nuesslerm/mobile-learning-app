@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 import uuid
 import xml.etree.ElementTree as ET
@@ -26,7 +27,15 @@ SHA256 = "17ab20f856c72690a750e79826ab5c90550a1441b1d1d67db6cd252af979b903"
 
 
 def sim(*args):
-    return subprocess.check_output(["xcrun", "simctl", *args], text=True).strip()
+    # simctl aborts before it runs its verb when it reads the device set while CoreSimulator rewrites the device pairs
+    # ("Invalid parameter not satisfying: devicePair"): that is no answer from the simulator, so the command is asked again
+    for attempt in range(3):
+        try:
+            return subprocess.check_output(["xcrun", "simctl", *args], text=True).strip()
+        except subprocess.CalledProcessError as error:
+            if error.returncode != -signal.SIGABRT or attempt == 2:
+                raise
+            time.sleep(2)
 
 
 def device_info(udid):
