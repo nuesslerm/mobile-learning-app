@@ -96,7 +96,8 @@ cases["custom-input"] = function()
     device:press_key("Ctrl+End")
     device:input_text("7")
   end
-  tap("ConsoleFooterRun")
+  -- on the simulator a tap straight after typing landed on the "j" key (the field read 27j)
+  input.tap_above_keyboard({id="ConsoleFooterRun"})
   device:assert_visible({text="Output"}, {timeout=60000})
   device:assert_visible({id="ConsoleResultOutput(-Toggle)?", text="27"})
 end
