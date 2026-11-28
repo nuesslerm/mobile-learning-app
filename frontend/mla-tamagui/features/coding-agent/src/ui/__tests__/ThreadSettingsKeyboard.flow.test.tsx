@@ -1,8 +1,8 @@
 import { createFixturePorts } from '@feature/coding-agent/testing';
-import { act, screen, userEvent, waitFor } from '@lib/flow-test-harness';
+import { act, screen, waitFor } from '@lib/flow-test-harness';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { app } from '../../__tests__/legacyFlowApp';
+import { app } from '../../__tests__/flowApp';
 
 const KEYBOARD_HEIGHT = 300;
 const FX_THREAD_BASIC = 'fx-thread-fx-basic';
@@ -21,10 +21,8 @@ afterEach(() => act(async () => setKeyboard(0)));
 describe('the thread settings sheet and the keyboard', () => {
   it('given the sheet is open, when the keyboard rises for its API token field, then the sheet rises above it, and it settles when the field lets go', async () => {
     // Given a thread with its settings sheet open and the keyboard down
-    await app.render(`/coding-agent/${FX_THREAD_BASIC}`, { overrides: { 'coding-agent': createFixturePorts() } });
-    await waitFor(() => expect(screen.getByTestId('ThreadFeed')).toBeTruthy(), { timeout: 12_000 });
-    await userEvent.click(screen.getByTestId('ThreadSettingsButton'));
-    const field = await screen.findByTestId('ThreadSettingsToken');
+    await app.render(`/coding-agent/${FX_THREAD_BASIC}/settings`, { overrides: { 'coding-agent': createFixturePorts() } });
+    const field = await screen.findByTestId('ThreadSettingsToken', undefined, { timeout: 12_000 });
     expect(inset()).toBe('0');
 
     // When the person taps the token field and the keyboard rises
