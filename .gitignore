@@ -62,7 +62,7 @@ frontend/libraries/*/dist/
 frontend/libraries/*/dist/**
 frontend/*/dist/
 backend/*/target*/
-/target/leetcode-backend-build/
+/target/*-build/
 clis/telemetry/target/
 clis/mimic/script/target/
 clis/mimic/core/target/

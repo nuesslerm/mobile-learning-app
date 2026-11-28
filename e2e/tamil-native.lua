@@ -7,6 +7,7 @@ focus: true
 features: tamil-writing
 ---]]
 local open_library = dofile("e2e/support/native-learner.lua")
+local input = dofile("e2e/support/native-editor.lua")
 local file = assert(io.open("frontend/mla-tamagui/features/tamil-writing/data/lessons/course.json"))
 local curriculum = json.decode(file:read("*a"))
 file:close()
@@ -91,7 +92,7 @@ cases.typed = function()
     device:tap_on({text=headings.translate})
     device:extended_wait_until{condition=function() return not device:get_device_state("keyboard").visible end}
   end
-  tap("TamilCheck")
+  input.tap_above_keyboard({id="TamilCheck"})
   text("Correct")
 end
 local function trace(redraw)

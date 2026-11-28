@@ -267,3 +267,30 @@ fn given_a_backend_that_logs_when_down_runs_then_the_last_80_lines_print_in_a_gr
     assert!(!out.contains(secret), "{out}");
     assert!(out.contains("::endgroup::"));
 }
+
+/// A stand-in for the chain: it picks its port, says the line the chain says when it listens, and answers the environment descriptor.
+const DESKTOP: &str = "#!/usr/bin/env python3\nimport http.server, json, os, sys\nopen('@SEEN@', 'w').write(json.dumps({'argv': sys.argv[1:], 'service': os.environ.get('RCA_SERVICE_BIN')}))\nclass H(http.server.BaseHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200 if self.path == '/.well-known/t3/environment' else 404)\n        self.end_headers()\n        self.wfile.write(b'{}')\n    def log_message(self, *a): pass\nserver = http.server.HTTPServer(('127.0.0.1', 0), H)\nprint(json.dumps({'ok': True, 'event': 'listening', 'addr': '127.0.0.1:%d' % server.server_port, 'mint': 't3-serve t3 pair --state-dir /tmp/x'}), flush=True)\nserver.serve_forever()\n";
+
+#[test]
+fn given_the_agent_desktop_when_up_runs_then_it_serves_with_a_scripted_reply_and_its_address_and_mint_command_are_printed() {
+    let sb = Sandbox::new();
+    let (rca, leetcode) = (sb.stub("rca", SERVER), sb.stub("leetcode", SERVER));
+    let seen = sb.root.path().join("desktop.seen");
+    let desktop = sb.stub("desktop", &DESKTOP.replace("@SEEN@", &seen.display().to_string()));
+    // When the rca service and the desktop are asked for
+    let (code, out) = sb.wf_env(&["up", "--only", "rca-service,agent-desktop"], &rca, &leetcode, &[("AGENT_DESKTOP_BIN", &desktop.display().to_string())]);
+    // Then the desktop is printed with the address it chose, the command that mints a pairing link and what its agent answers
+    assert_eq!(code, 0, "{out}");
+    let entry = &out["backends"][1];
+    assert_eq!((entry["name"].clone(), entry["mint"].clone(), entry["reply"].clone()), (json!("agent-desktop"), json!("t3-serve t3 pair --state-dir /tmp/x"), json!("Hello from the scripted agent")), "{out}");
+    let url = entry["url"].as_str().unwrap().to_string();
+    assert!(up(&url), "{out}");
+    // And it was told to answer with that text, to stay with no stdin, and to use the rca service this run already has
+    let told: Value = serde_json::from_str(&std::fs::read_to_string(&seen).unwrap()).unwrap();
+    assert_eq!(told, json!({"argv": ["--claude-says", "Hello from the scripted agent", "--stay"], "service": rca.display().to_string()}));
+    // And down stops it with the rest
+    let pid = entry["pid"].as_u64().unwrap();
+    let (code, down) = sb.wf(&["down"], &rca, &leetcode);
+    assert_eq!(code, 0, "{down}");
+    assert!(!alive(pid) && !up(&url), "{down}");
+}

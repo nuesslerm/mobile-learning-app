@@ -53,4 +53,18 @@ local function type_in_starter(text, row)
   if device.platform == "android" then device:assert_visible({id="CodeEditorText", text=".*" .. text .. ".*"}) end
   hide_keyboard()
 end
-return {keyboard=keyboard, focus_end=focus_end, hide_keyboard=hide_keyboard, append=append, type_in_starter=type_in_starter}
+-- Typing on a simulator brings the app back to the front and the keyboard rises again: a tap before the control has moved above it
+-- lands on a key (Tamil's Check became a typed "t"). The simulator gives its keyboard no frame, so the top row of keys stands in.
+local function tap_above_keyboard(sel)
+  device:extended_wait_until{condition=function()
+    local control = device:get_element(sel)
+    if not control then return false end
+    local shown = device:get_device_state("keyboard")
+    if not shown.visible then return true end
+    local key = device:get_element({text="[qQ]"})
+    local top = shown.bounds and shown.bounds.top or key and key.bounds.top
+    return top == nil or control.bounds.bottom <= top + 2
+  end, timeout=10000, label="the control sits above the keyboard"}
+  device:tap_on(sel)
+end
+return {keyboard=keyboard, focus_end=focus_end, hide_keyboard=hide_keyboard, append=append, type_in_starter=type_in_starter, tap_above_keyboard=tap_above_keyboard}

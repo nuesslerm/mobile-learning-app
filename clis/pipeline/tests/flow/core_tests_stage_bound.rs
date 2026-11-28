@@ -207,8 +207,9 @@ fn a_guard_with_a_token_keeps_one_check_run_with_the_machines_state_and_complete
     assert!(!text.contains("add-mask") && !text.contains("ThisIsAMaskedValue"), "{text}");
     assert!(!text.contains("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), "{text}");
 
-    // And it was completed when the job ended, never left running
-    assert!(text.lines().any(|l| l.contains("PATCH") && l.contains("check-runs/77") && l.contains("status=completed") && l.contains("conclusion=neutral")), "{text}");
+    // And it was completed when the job ended, never left running: by an update, or as it was created when the job ended before the first post went out
+    let completed = |l: &str| l.contains("status=completed") && l.contains("conclusion=neutral") && (l.contains("POST") || l.contains("PATCH") && l.contains("check-runs/77"));
+    assert!(text.lines().any(completed), "{text}");
 }
 
 #[test]

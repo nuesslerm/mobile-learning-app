@@ -7316,7 +7316,7 @@ Actions:
                          plain URLs and flags as they are and anything else as set:<8 hex of its hash>, memory is the build's largest
                          process and, with WF_VM_SAMPLE_SECS, the VM's low MemAvailable; or {ok: false, error, next}. `wf test run` refuses
                          an export whose inputs differ from the tree's; a run's result names the baked keys and a digest, never the values.
-  backends up [--only stt,opencode-server,rca-service,leetcode-backend] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>] [--stt-port <n>] [--opencode-port <n>]
+  backends up [--only stt,opencode-server,rca-service,leetcode-backend,agent-desktop] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>] [--stt-port <n>] [--opencode-port <n>]
   backends down [--dir <dir>]
                          the services the e2e tests need, on this machine, so no test reaches a deployed one. up builds rca-service
                          and leetcode-backend-rs (`cargo build --locked` into <CARGO_TARGET_DIR or target>/<name>-build; RCA_SERVICE_BIN or
@@ -7330,7 +7330,12 @@ Actions:
                          OPENCODE_GO_API_KEY of the caller's environment as its only key (given to the child alone, never printed or written; a missing one fails
                          naming it), asked at /app; stt is the faster-whisper sidecar (STT_SERVER names the script, STT_PYTHON the python that has its
                          requirements, STT_MODEL the model, default tiny.en). Started before rca-service, they are the OPENCODE_SERVER_URL, OPENCODE_CWD and
-                         STT_URL it is started with. The same
+                         STT_URL it is started with. agent-desktop is a desktop a phone pairs with: the chain of clis/t3-serve/examples/chain.rs
+                         (t3-serve over an rca service and executor of its own, AGENT_DESKTOP_BIN names a built one), whose Claude answers every
+                         message with one fixed text, so a chat needs no model. It picks its port, keeps the caller's environment (it builds what
+                         T3_SERVE_BIN, RCA_SERVICE_BIN, RCA_EXEC_BIN and EXEC_TESTKIT_CLI do not name; t3-serve and rca-exec are taken from beside wf,
+                         the rca service from the one started before it), gets 900 s for that first start, and its entry adds mint (the command that
+                         mints a pairing link: add --base-url <url>) and reply (the text its agent answers). The same
                          JSON is the state file <dir>/backends.json (default .agents/tmp/e2e-backends, mode 0600: it holds the secrets) with each log
                          beside it. A backend that ends or does not answer stops the ones already started and prints {ok: false, error, next}, exit 1; a second
                          up while they run is refused. down stops each recorded process that is still the program that was started (SIGTERM to its group,

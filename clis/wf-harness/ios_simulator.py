@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import shlex
 import shutil
 import signal
 import subprocess
@@ -221,8 +222,15 @@ def prepare_android_learner(device, base, manifest):
             raise RuntimeError(f"Could not {operation} learner snapshot: {result}")
 
     if saved.exists():
-        snapshot("load")
-        subprocess.run([*adb, "wait-for-device"], check=True, timeout=30)
+        try:
+            snapshot("load")
+            subprocess.run([*adb, "wait-for-device"], check=True, timeout=30)
+        except (RuntimeError, subprocess.SubprocessError):
+            # twice the emulator was gone for good after a load and adb could say nothing: its own log is the only witness
+            log = Path(os.environ["RUNNER_TEMP"]) / "emulator.log"
+            lines = log.read_text(errors="replace").splitlines()[-60:] if log.exists() else ["no emulator.log"]
+            print("The emulator after the snapshot load:", *lines, sep="\n", file=sys.stderr, flush=True)
+            raise
         return
     shell = [*adb, "shell"]
     # Expo Go’s ScopedContext puts learner files and preferences under the encoded experience key.
@@ -254,6 +262,21 @@ rm -f -- databases/RKStorage*
     saved.touch()
 
 
+def paired_desktop(args):
+    """A pairing link of the desktop `wf test backends up --only agent-desktop` started, for the case that pairs with one."""
+    if "case=paired" not in args.command:
+        return []
+    state = Path(__file__).resolve().parents[2] / ".agents/tmp/e2e-backends/backends.json"
+    desktop = next((b for b in json.loads(state.read_text())["backends"] if b["name"] == "agent-desktop"), None) if state.exists() else None
+    if desktop is None:
+        raise ValueError("case=paired needs a desktop: wf test backends up --only agent-desktop")
+    if args.platform == "android":
+        # the app takes plain http only from this device, so the emulator's own port is sent on to the runner's
+        subprocess.run(["adb", "-s", args.device, "reverse", f"tcp:{desktop['port']}", f"tcp:{desktop['port']}"], check=True)
+    minted = subprocess.check_output([*shlex.split(desktop["mint"]), "--base-url", desktop["url"]], text=True)
+    return ["--env", "pair_url=" + json.loads(minted)["url"], "--env", "reply=" + desktop["reply"]]
+
+
 def run_case(args):
     if args.platform == "ios":
         prepared = os.getenv("WF_NATIVE_DEVICE_INFO")
@@ -268,7 +291,7 @@ def run_case(args):
             # LaunchServices can time out while dispatching a URL to a terminated Expo Go.
             sim("launch", args.device, EXPO)
             env = {**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)}
-            return subprocess.call(args.command, env=env)
+            return subprocess.call([*args.command, *paired_desktop(args)], env=env)
     if not (os.getenv("GITHUB_ACTIONS") == "true" and args.device.startswith("emulator-")):
         raise ValueError("Android learner suites require a hosted emulator")
     adb = ["adb", "-s", args.device, "shell"]
@@ -279,7 +302,7 @@ def run_case(args):
     manifest = {"udid": args.device, "model": prop("ro.product.model"), "runtime": prop("ro.build.version.release"),
                 "sdk": prop("ro.build.version.sdk"), "expoGo": version}
     prepare_android_learner(args.device, os.environ["WF_NATIVE_UPDATE_BASE"], manifest)
-    status = subprocess.call(args.command, env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)})
+    status = subprocess.call([*args.command, *paired_desktop(args)], env={**os.environ, "WF_NATIVE_DEVICE_INFO": json.dumps(manifest)})
     if status and os.getenv("WF_RUN_TIMING"):
         diagnostics = Path(os.environ["WF_RUN_TIMING"]).with_name("android-process.log")
         with diagnostics.open("w") as output:

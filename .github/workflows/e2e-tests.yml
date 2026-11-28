@@ -216,7 +216,9 @@ jobs:
           # the Android update dials the runner as 10.0.2.2 on the production ports, so those are the ports there
           ports=$([ "$PLATFORM" = android ] && echo "--rca-port 8787 --leetcode-port 8789" || true)
           # shellcheck disable=SC2086
-          wf test backends up --only stt,opencode-server,rca-service,leetcode-backend $ports --wait 240 | tee "$RUNNER_TEMP/backends.json"
+          # the device suite's paired case pairs the app with a desktop on this runner; a page has no such case
+          desktop=$([ "$PLATFORM" = android ] && echo ",agent-desktop" || true)
+          wf test backends up --only "stt,opencode-server,rca-service,leetcode-backend$desktop" $ports --wait 240 | tee "$RUNNER_TEMP/backends.json"
           jq -e '.ok' "$RUNNER_TEMP/backends.json" >/dev/null
       - name: The emulator's host setup
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'

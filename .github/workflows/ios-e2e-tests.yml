@@ -90,9 +90,10 @@ jobs:
         run: |
           runner=$(wf test prepare-ios --build-input | jq -er .xctestrun)
           echo "WF_IOS_INPUT_RUNNER=$runner" >> "$GITHUB_ENV"
-      - name: Start the LeetCode backend
+      # the desktop is the one the coding agent's paired case pairs the app with
+      - name: Start the LeetCode backend and a desktop to pair with
         if: steps.pick.outputs.run != '0'
-        run: wf test backends up --only leetcode-backend --leetcode-port 8789 --wait 240
+        run: wf test backends up --only leetcode-backend,agent-desktop --leetcode-port 8789 --wait 240
       - name: Install vault client for publishing evidence
         run: |
           release=bws-v2.1.0

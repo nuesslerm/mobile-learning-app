@@ -15,8 +15,9 @@ post() {
   [ -n "${GH_TOKEN:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ] && [ -n "${GITHUB_SHA:-}" ] && [ -n "${HEARTBEAT_NAME:-}" ] || return 0
   local state="$1" text="$2" conclusion=()
   [ "$state" != completed ] || conclusion=(-f conclusion=neutral)
+  # a job that ends before the first post went out creates its check run already completed: created as in progress it stayed so for good
   if [ -z "$check" ]; then
-    check=$(timeout 20 gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" -f "name=heartbeat $HEARTBEAT_NAME" -f "head_sha=$GITHUB_SHA" -f status=in_progress -f "output[title]=$HEARTBEAT_NAME" -f "output[summary]=$text" --jq .id 2> "$errfile") || { check=""; failed; }
+    check=$(timeout 20 gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" -f "name=heartbeat $HEARTBEAT_NAME" -f "head_sha=$GITHUB_SHA" -f "status=$state" "${conclusion[@]}" -f "output[title]=$HEARTBEAT_NAME" -f "output[summary]=$text" --jq .id 2> "$errfile") || { check=""; failed; }
     return 0
   fi
   timeout 20 gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$check" -f "status=$state" "${conclusion[@]}" -f "output[title]=$HEARTBEAT_NAME" -f "output[summary]=$text" > /dev/null 2> "$errfile" || failed
