@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { ICON_NAMES } from '../ports/Icon';
 import type { Skin } from '../ports/Skin';
 import type { SourceCommit, SourceFile } from '../ports/SourceControl';
 import { useSkin } from './SkinContext';
@@ -32,6 +33,7 @@ export const GALLERY_ENTRIES = {
   PairingScreen: 'pairing',
   ChatSurface: 'chat',
   SessionHeader: 'chat',
+  Icon: 'icons',
   MessageBubble: 'chat',
   ChatMessageText: 'chat',
   ChatMessageMeta: 'chat',
@@ -466,6 +468,25 @@ function Layout() {
   );
 }
 
+function Icons() {
+  const { Icon, Text } = useSkin();
+  return (
+    <Stage>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        {ICON_NAMES.map((name) => (
+          <Icon key={name} name={name} size={20} />
+        ))}
+      </View>
+      <Text variant="small">Tones</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {(['default', 'muted', 'accent', 'danger', 'success', 'warning'] as const).map((tone) => (
+          <Icon key={tone} name="circle-check" tone={tone} filled={tone === 'accent'} />
+        ))}
+      </View>
+    </Stage>
+  );
+}
+
 function Controls() {
   const skin = useSkin();
   const [on, setOn] = useState(true);
@@ -730,6 +751,9 @@ export function SkinGallery({ section, topInset, bottomInset, onOpen }: Insets &
       break;
     case 'controls':
       body = <Controls />;
+      break;
+    case 'icons':
+      body = <Icons />;
       break;
     case 'layout':
       body = <Layout />;

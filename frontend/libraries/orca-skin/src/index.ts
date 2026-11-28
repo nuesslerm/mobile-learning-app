@@ -41,6 +41,7 @@ import { BottomSheet } from './adapters/BottomSheet';
 import { WorkspaceTabControl } from './adapters/WorkspaceTabControl';
 import { Row, Stack, Text } from './adapters/layout/layout';
 import { Button, Notice, Spinner, Switch, TextField } from './adapters/controls/controls';
+import { Icon } from './adapters/controls/Icon';
 import { ChatTextPreview, HomeSettingsSectionTitle, HomeSettingsSpacer, OptionSheet } from './adapters/settingsExtras';
 import { ChatSizeControl, ChatSpacingControl } from './adapters/ChatTextControls';
 
@@ -94,6 +95,7 @@ export const orcaSkin: Skin = {
   TextField,
   Switch,
   Spinner,
+  Icon,
   Notice,
   HomeSettingsSectionTitle,
   HomeSettingsSpacer,

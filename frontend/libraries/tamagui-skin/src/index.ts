@@ -28,6 +28,7 @@ import { Row, Stack, Text } from './adapters/layout/layout';
 import { BrandMark } from './adapters/pairing/BrandMark';
 import { NotificationChoices, OnboardingChoice, PairDesktopButton, PairedDesktops, PairingCodeSheet, PairingScreen, UnpairedHome } from './adapters/pairing/pairing';
 import { Button, Notice, Spinner, Switch, TextField } from './adapters/controls/controls';
+import { Icon } from './adapters/controls/icon';
 
 // Starts as the Orca set; each area replaces its entries with Tamagui ones.
 export const tamaguiSkin: Skin = {
@@ -81,6 +82,7 @@ export const tamaguiSkin: Skin = {
   TextField,
   Switch,
   Spinner,
+  Icon,
   Notice,
   HomeSettingsSectionTitle,
   HomeSettingsSpacer,

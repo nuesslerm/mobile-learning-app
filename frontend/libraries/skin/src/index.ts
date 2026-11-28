@@ -65,4 +65,6 @@ export { ADD_CHOICES, fileToken, suggestionTrigger, useComposerEditing, useCompo
 export { GALLERY_ENTRIES, GALLERY_SECTIONS, SkinGallery } from './core/gallery';
 export type { GallerySection } from './core/gallery';
 export type { LayoutProps, Space, Surface, TextProps } from './ports/Layout';
+export { ICON_NAMES } from './ports/Icon';
+export type { IconName, IconProps } from './ports/Icon';
 export type { ButtonProps, NoticeProps, SpinnerProps, SwitchProps, TextFieldProps } from './ports/Controls';

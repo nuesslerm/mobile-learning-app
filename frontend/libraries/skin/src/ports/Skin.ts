@@ -6,6 +6,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type { BottomSheetProps } from './BottomSheet';
 import type { WorkspaceTabControlProps } from './WorkspaceTabComponents';
 import type { LayoutProps, TextProps } from './Layout';
+import type { IconProps } from './Icon';
 import type { ButtonProps, NoticeProps, SpinnerProps, SwitchProps, TextFieldProps } from './Controls';
 import type { ComposerOptionsProps, NewTabSheetProps, SessionTabsSheetProps, SessionHeaderProps, ChatMessageTextProps, ChatMessageMetaProps, ChatToolActivityProps, ChatImageProps, ChatImageViewerProps, ComposerProps, ComposerAddButtonProps, ComposerSuggestionListProps, ComposerSendButtonProps, MessageBubbleProps } from './ChatComponents';
 
@@ -292,6 +293,7 @@ export interface Skin {
   ChatSpacingControl: ComponentType<{ label?: boolean }>;
   WorkspaceTabControl: ComponentType<WorkspaceTabControlProps>;
   /** Lays its children out side by side. */
+  Icon: ComponentType<IconProps>;
   Row: ComponentType<LayoutProps>;
   /** Lays its children out one under the other. */
   Stack: ComponentType<LayoutProps>;

@@ -5,11 +5,6 @@ import { describe, expect, it } from 'vitest';
 const orcaEntries: Record<string, unknown> = { ...orca.orcaSkin };
 const tamaguiEntries: Record<string, unknown> = { ...tamagui.tamaguiSkin };
 
-// The entries the Tamagui skin has not built yet and still takes from the Orca skin. This list only shrinks.
-const BORROWED_FROM_ORCA = Object.keys(orca.orcaSkin)
-  .filter((entry) => !['HomeSurface', 'HomeTabBar', 'HomeTabHeader', 'HomeEmptyState', 'HomeSearchField', 'HomeAgentSection', 'HomeActionSheet', 'BrandMark', 'PairingScreen', 'PairingCodeSheet', 'PairedDesktops', 'PairDesktopButton', 'UnpairedHome', 'OnboardingChoice', 'NotificationChoices', 'ChatSurface', 'MessageBubble', 'ChatMessageText', 'ChatMessageMeta', 'ChatToolActivity', 'ChatSizeControl', 'ChatSpacingControl', 'Composer', 'ComposerAddButton', 'ComposerSuggestionList', 'ComposerSendButton', 'ComposerOptions', 'SessionTabsSheet', 'NewTabSheet', 'ChatImage', 'ChatImageViewer', 'SessionHeader', 'HostWorkspaceList', 'WorkspaceActions', 'WorkspaceOptions', 'SourceControl', 'BottomSheet', 'WorkspaceTabControl', 'HomeSettingsGroup', 'HomeSettingsNote', 'HomeSettingsRow', 'HomeSettingsScreen', 'Row', 'Stack', 'Text', 'Button', 'TextField', 'Switch', 'Spinner', 'Notice', 'HomeSettingsSectionTitle', 'HomeSettingsSpacer', 'ChatTextPreview', 'OptionSheet'].includes(entry))
-  .sort();
-
 describe('The two skins', () => {
   it('Given a skin package, when it is imported, then it exposes its skin and its theme provider and nothing else', () => {
     expect(Object.keys(orca).sort()).toEqual(['OrcaThemeProvider', 'orcaSkin']);
@@ -25,12 +20,12 @@ describe('The two skins', () => {
     }
   });
 
-  it('Given the Tamagui skin, when its entries are compared with the Orca skin, then only the listed ones are still borrowed', () => {
+  it('Given the Tamagui skin, when its entries are compared with the Orca skin, then it borrows none', () => {
     const borrowed = Object.entries(tamaguiEntries)
       .filter(([entry, component]) => component === orcaEntries[entry])
       .map(([entry]) => entry)
       .sort();
 
-    expect(borrowed).toEqual(BORROWED_FROM_ORCA);
+    expect(borrowed).toEqual([]);
   });
 });
