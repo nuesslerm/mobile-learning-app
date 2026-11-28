@@ -38,6 +38,9 @@ jobs:
       E2E_LEETCODE_BEARER: e2e-loopback-bearer
       WF_SITE: ci
       NX_DAEMON: 'false'
+      # a called workflow does not take the caller's env (pipeline.yml has the switch)
+      CACHE_BACKENDS: ${{ vars.CACHE_BACKENDS || 'gha' }}
+      WF_BLOB_CACHE: ${{ contains(vars.CACHE_BACKENDS || 'gha', 'blob') && 'on' || 'off' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -127,6 +130,10 @@ jobs:
           flags=()
           if [[ "$FRESH" == true ]]; then flags+=(--fresh); fi
           WF_PERFORMANCE_DB="$RUNNER_TEMP/harness-spans.sqlite" wf --performance test run --stage ios-e2e-tests --plan "$RUNNER_TEMP/plan.json" --out "$RUNNER_TEMP/e2e-runs" "${flags[@]}"
+      # says why a simulator shut down under a case; copied because an upload path outside the temp folder moves the artifact's root
+      - name: Keep the simulator service's log
+        if: ${{ !cancelled() && env.WF_IOS_UDID != '' }}
+        run: cp ~/Library/Logs/CoreSimulator/CoreSimulator.log "$RUNNER_TEMP/core-simulator.log"
       - name: Close XCTest automation
         if: always() && env.WF_IOS_UDID != ''
         run: wf test prepare-ios --stop-automation "$WF_IOS_UDID"
@@ -137,6 +144,7 @@ jobs:
           name: test-runs-ios-e2e-sample-${{ inputs.sample }}
           path: |
             ${{ runner.temp }}/wf-xcui-*.log
+            ${{ runner.temp }}/core-simulator.log
             ${{ runner.temp }}/ios-device.json
             ${{ runner.temp }}/ios-preflight
             ${{ runner.temp }}/test-runs
