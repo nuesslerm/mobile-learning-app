@@ -1,10 +1,10 @@
 {
   "platform": "browser",
-  "step": 98,
-  "last_action": "open_link{link='http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark'}",
+  "step": 110,
+  "last_action": "open_link{link='http://127.0.0.1:63904/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark",
+    "url": "http://127.0.0.1:63904/mla-tamagui/gallery?section=sheet-pairing-code&scheme=dark",
     "title": "",
     "testids": [
       "SkinGallery-sheet-pairing-code",
@@ -22,12 +22,12 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 259248,
-    "capture_ms": 102
+    "since_start_ms": 265308,
+    "capture_ms": 107
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-dark-sheet-pairing-code",

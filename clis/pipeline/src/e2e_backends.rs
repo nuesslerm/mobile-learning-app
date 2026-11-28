@@ -180,7 +180,13 @@ fn start_desktop(def: &Def, bin: &Path, dir: &Path, wait: Duration, peers: &[Val
     let open = |path: &Path| std::fs::File::create(path).map_err(|e| format!("{}: {e}", path.display()));
     let mut command = Command::new(bin);
     command.args(["--claude-says", DESKTOP_REPLY, "--stay"]);
-    command.envs([beside_wf("T3_SERVE_BIN", "t3-serve"), beside_wf("RCA_EXEC_BIN", "rca-exec")].into_iter().flatten());
+    // the server is the one built with the chain (a runner may hold `wf` alone); the executor is taken from beside `wf` where it is
+    if std::env::var_os("T3_SERVE_BIN").is_none_or(|v| v.is_empty()) {
+        if let Some(server) = bin.parent().and_then(Path::parent).map(|debug| debug.join("t3-serve")).filter(|p| p.is_file()) {
+            command.env("T3_SERVE_BIN", server);
+        }
+    }
+    command.envs(beside_wf("RCA_EXEC_BIN", "rca-exec"));
     if let Some(service) = peers.iter().find(|p| p["name"] == "rca-service").and_then(|p| p["bin"].as_str()) {
         command.env("RCA_SERVICE_BIN", service);
     }
@@ -322,7 +328,7 @@ fn binary(def: &Def, no_build: bool) -> Result<PathBuf, String> {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let status = Command::new(cargo)
         .args(["build", "--locked", "--quiet", "-p", def.package])
-        .args(if desktop { ["--example", "chain"] } else { ["--bin", def.package] })
+        .args(if desktop { vec!["--example", "chain", "--bin", def.package] } else { vec!["--bin", def.package] })
         .arg("--manifest-path")
         .arg(repo.join(def.manifest))
         .arg("--target-dir")

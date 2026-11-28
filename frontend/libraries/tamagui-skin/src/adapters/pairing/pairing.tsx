@@ -283,7 +283,7 @@ function CodeEntry(props: Omit<PairingCodeSheetProps, 'visible'>) {
     if (code) props.onSubmit(code);
   };
   return (
-    <ScreenSheet onClose={props.onCancel} handleLabel="Close" testID="skin-pairing-code">
+    <ScreenSheet onClose={props.onCancel} snapPoints={[70]} handleLabel="Close" testID="skin-pairing-code">
       <YStack gap="$3" px="$4" pb={Math.max(props.bottomInset, 16)}>
         <YStack gap="$1">
           <Text variant="large">Paste pairing code</Text>

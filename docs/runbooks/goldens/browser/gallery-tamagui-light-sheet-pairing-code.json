@@ -1,10 +1,10 @@
 {
   "platform": "browser",
-  "step": 96,
-  "last_action": "open_link{link='http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-pairing-code&scheme=light'}",
+  "step": 108,
+  "last_action": "open_link{link='http://127.0.0.1:63904/mla-tamagui/gallery?section=sheet-pairing-code&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-pairing-code&scheme=light",
+    "url": "http://127.0.0.1:63904/mla-tamagui/gallery?section=sheet-pairing-code&scheme=light",
     "title": "",
     "testids": [
       "SkinGallery-sheet-pairing-code",
@@ -22,12 +22,12 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 253703,
-    "capture_ms": 101
+    "since_start_ms": 259878,
+    "capture_ms": 109
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-light-sheet-pairing-code",

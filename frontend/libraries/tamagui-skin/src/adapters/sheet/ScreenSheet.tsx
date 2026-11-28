@@ -20,7 +20,16 @@ const WEB_WINDOW = { position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, zI
 export function ScreenSheet({ onClose, children, snapPoints = [45], handleLabel, testID }: Props) {
   const sheet = (
     // not one accessibility element: a screen reader, and a device test, reach the controls inside
-    <Sheet open onOpenChange={(open) => !open && onClose()} snapPoints={snapPoints} handleLabel={handleLabel} accessible={false} testID={testID}>
+    <Sheet
+      open
+      onOpenChange={(open) => !open && onClose()}
+      snapPoints={snapPoints}
+      handleLabel={handleLabel}
+      accessible={false}
+      // Android shrinks a Modal's window by the keyboard itself: a sheet that also lifted by the keyboard's height was left a sliver showing its title
+      keyboardOverlay={Platform.OS === 'android'}
+      testID={testID}
+    >
       {children}
     </Sheet>
   );

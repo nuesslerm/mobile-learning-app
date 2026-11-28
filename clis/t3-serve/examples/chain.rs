@@ -44,8 +44,10 @@ fn main() {
     let workspace = std::fs::canonicalize(chain.repo.path()).expect("the repository has a path");
     let said = serde_json::json!({"ok": true, "event": "listening", "addr": chain.addr.to_string(), "workspace": workspace.display().to_string(), "mint": chain.pair_command(&[]), "cli_dir": chain.cli.dir().display().to_string(), "real_clis": chain.real.as_ref().map_or_else(Vec::new, |r| r.names.clone())});
     println!("{said}");
-    while stay {
-        std::thread::park();
+    if stay {
+        loop {
+            std::thread::park();
+        }
     }
     let _ = std::io::stdin().read_to_end(&mut Vec::new());
 }
