@@ -19,6 +19,7 @@ packages:
   - frontend/libraries/lint-rules
   - frontend/libraries/flow-test-harness
   - frontend/libraries/gesture-geometry
+  - frontend/libraries/keyboard
   - libraries/hook-runtime
   - frontend/libraries/logging
   - frontend/libraries/remote-chat-agent-contracts

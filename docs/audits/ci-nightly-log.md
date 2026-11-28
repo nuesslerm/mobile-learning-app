@@ -113,3 +113,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 pinned 0.1.9, latest 0.1.13 (four releases behind). The last track-contracts runs 45806423876 (2026-11-26), 45604322745 (2026-11-25) and 45395025359 (2026-11-24) all failed in "Check the pins" after about 3 min (the registry error is gone, see 2026-11-25; the cause past that point is not read). Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
+
+## 2026-11-28
+
+- Verdict: run 45987266598 (scheduled 2026-11-27 11:03 UTC, about 17 h old), `ok: false`, 610 findings, 49 hard (all `should-have-hit`), 561 `replayed-nothing`. Down from 113 hard on 2026-11-26. Largest waste: `crate-orca-serve:cargo-integration` (117 s, 105 s), `crate-t3-serve:cargo-flow` (108 s); the 500 s `crate-t3-serve:replay-t3-core-core` item is gone. The audit job ran 39 min.
+- Fixes landed: none. The cause of the `should-have-hit` misses is still not traced; `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker, cause found: run 45986472504 (2026-11-27 10:57 UTC) failed at the step "Compare each pin with the newest release" because the plan refused the default marker: `11 sets named: at most 8 per commit, so one trigger cannot hold the runner for a day`. Locally `wf mimic track plan` on `[track t3]` is `ok` with exactly 8 sets (t3 pinned 0.1.9, latest 0.1.13); so orca adds 3 sets and the default `[track t3 orca]` of `track-contracts.yml` exceeds the cap whenever both apps are behind. This is why every scheduled run since 2026-11-16 failed (the earlier `rca-core` registry error is fixed). Fix to decide: split the scheduled default into one marker per app, or raise the cap. Owner item for the workflow change; this session pushes the marker per app by hand (runbook, step 1): `[track t3]` now, `[track orca]` in a later tick. Orca drift could not be checked here (api.github.com answers 403 without `GITHUB_TOKEN`).
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
