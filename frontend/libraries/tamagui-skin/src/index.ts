@@ -14,6 +14,7 @@ import { Composer, ComposerAddButton, ComposerSendButton, ComposerSuggestionList
 import { ComposerOptions } from './adapters/chat/composerOptions';
 import { ChatMessageMeta, ChatMessageText, ChatSurface, ChatToolActivity, MessageBubble } from './adapters/chat/messages';
 import { ChatImageViewer } from './adapters/chat/imageViewer';
+import { SessionHeader } from './adapters/chat/sessionHeader';
 import { NewTabSheet } from './adapters/chat/newTab';
 import { ChatImage, SessionTabsSheet } from './adapters/chat/sessionTabs';
 import { ChatSizeControl, ChatSpacingControl } from './adapters/chat/textControls';
@@ -56,6 +57,7 @@ export const tamaguiSkin: Skin = {
   NewTabSheet,
   ChatImage,
   ChatImageViewer,
+  SessionHeader,
   HomeSettingsGroup,
   HomeSettingsNote,
   HomeSettingsRow,

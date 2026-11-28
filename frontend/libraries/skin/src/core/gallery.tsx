@@ -87,6 +87,21 @@ const TABS = [
   { id: 'term-1', title: 'Terminal', kind: 'terminal' },
 ];
 
+const WORKSPACE_FILES = {
+  listDirectory: async (path: string) => ({
+    entries: path
+      ? [{ path: `${path}/index.ts`, kind: 'file' as const }]
+      : [
+          { path: 'README.md', kind: 'file' as const },
+          { path: 'src', kind: 'directory' as const },
+          { path: 'docs', kind: 'directory' as const },
+          { path: 'package.json', kind: 'file' as const },
+        ],
+    truncated: false,
+  }),
+  readFile: async () => ({ contents: 'export const answer = 42;\n', truncated: false }),
+};
+
 const ANSWER = 'The test waits on `setTimeout(0)` while the stream is still flushing.\n\n```ts\nawait vi.waitFor(() =>\n  expect(rows).toHaveLength(3))\n```';
 
 function Caption({ children }: { children: string }) {
@@ -280,6 +295,7 @@ function Chat({ topInset }: Insets) {
         directory="/Users/ada/mobile-app"
         onOpenSourceControl={noop}
         onOpenTextSettings={noop}
+        files={WORKSPACE_FILES}
         workspace="mobile-app"
         title="Fix the flaky resume test"
         connected

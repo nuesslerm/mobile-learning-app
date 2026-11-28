@@ -1,4 +1,4 @@
-import type { SessionHeaderProps } from '@lib/skin';
+import { sessionStatus, type SessionHeaderProps } from '@lib/skin';
 import { useEffect, useState } from 'react';
 import {
   Animated,
@@ -92,7 +92,7 @@ export function SessionWorkspaceTitle({
               numberOfLines={1}
               style={[styles.subtitle, { color: colors.textSecondary }]}
             >
-              {connected ? (branch ?? 'Connected') : 'Connecting…'}
+              {sessionStatus(connected, branch)}
             </Text>
           </View>
         </Pressable>

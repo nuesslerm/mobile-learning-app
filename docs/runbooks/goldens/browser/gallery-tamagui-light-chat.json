@@ -1,14 +1,18 @@
 {
   "platform": "browser",
   "step": 8,
-  "last_action": "open_link{link='http://127.0.0.1:64083/mla-tamagui/gallery?section=chat&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:61242/mla-tamagui/gallery?section=chat&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:64083/mla-tamagui/gallery?section=chat&scheme=light",
+    "url": "http://127.0.0.1:61242/mla-tamagui/gallery?section=chat&scheme=light",
     "title": "",
     "testids": [
       "SkinGallery-chat",
       "MobileT3Header",
+      "skin-session-back",
+      "skin-session-source-control",
+      "skin-session-more",
+      "skin-session-new-tab",
       "skin-composer-add"
     ],
     "text": "mobile-app\nfix/resume-test\nFix the flaky resume test\nTerminal\nWhy is the resume test flaky?\n09:41\nRead 3 files · Ran pnpm test\nThe test waits on setTimeout(0) while the stream is still flushing.\nts\nawait vi.waitFor(() =>\n  expect(rows).toHaveLength(3))\n🖼 screenshot.png"
@@ -18,8 +22,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 18507,
-    "capture_ms": 109
+    "since_start_ms": 18482,
+    "capture_ms": 123
   },
   "tolerance": {
     "threshold": 0.1,

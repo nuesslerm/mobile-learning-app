@@ -1,7 +1,15 @@
 import { BottomSheet } from './BottomSheet';
 import { ChatSizeControl, ChatSpacingControl } from './ChatTextControls';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { SessionHeaderProps } from '@lib/skin';
+import {
+  fileName,
+  useFilePreview,
+  useFileTree,
+  useSessionMenu,
+  type SessionFileEntry,
+  type SessionFileSource,
+  type SessionHeaderProps,
+} from '@lib/skin';
 import {
   ChevronDown,
   ChevronLeft,
@@ -12,7 +20,6 @@ import {
   Folder,
   FolderOpen,
 } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -26,114 +33,20 @@ import {
 } from 'react-native';
 import { homePalettes, useOrcaScheme } from './appearance';
 
-type Source = NonNullable<SessionHeaderProps['files']>;
-type Listing = Awaited<ReturnType<Source['listDirectory']>>;
-type Entry = Listing['entries'][number];
-type FolderState = { result?: Listing; failed?: boolean };
-
 function FileTree({
   source,
   onRead,
 }: {
-  source: Source;
+  source: SessionFileSource;
   onRead: (path: string) => void;
 }) {
   const colors = homePalettes[useOrcaScheme()];
-  const [folders, setFolders] = useState<Record<string, FolderState>>({});
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  const generation = useRef(0);
-  const requested = useRef(new Set<string>());
-  const load = useCallback(
-    (path: string) => {
-      if (requested.current.has(path)) return;
-      requested.current.add(path);
-      const active = generation.current;
-      setFolders((prev) => ({ ...prev, [path]: {} }));
-      void source.listDirectory(path).then(
-        (result) => {
-          if (active === generation.current)
-            setFolders((prev) => ({ ...prev, [path]: { result } }));
-        },
-        () => {
-          if (active !== generation.current) return;
-          requested.current.delete(path);
-          setFolders((prev) => ({ ...prev, [path]: { failed: true } }));
-        }
-      );
-    },
-    [source]
-  );
-  useEffect(() => {
-    requested.current.clear();
-    setExpanded(new Set());
-    setFolders({});
-    load('');
-    return () => {
-      generation.current++;
-    };
-  }, [load]);
-
-  type Row =
-    | { entry: Entry; depth: number }
-    | { status: string; parent: string; depth: number; retry?: boolean };
-  const rows: Row[] = [];
-  function append(path: string, depth: number) {
-    const folder = folders[path];
-    if (!folder?.result) {
-      rows.push({
-        status: folder?.failed
-          ? 'Could not load files. Try again'
-          : 'Loading files…',
-        parent: path,
-        depth,
-        retry: folder?.failed,
-      });
-      return;
-    }
-    const entries = folder.result.entries
-      .filter((entry) => {
-        const name = entry.path.split('/').pop();
-        return name !== '.git' && name !== 'node_modules';
-      })
-      .sort((a, b) =>
-        a.kind === b.kind
-          ? a.path.localeCompare(b.path, undefined, {
-              numeric: true,
-              sensitivity: 'base',
-            })
-          : a.kind === 'directory'
-            ? -1
-            : 1
-      );
-    for (const entry of entries) {
-      rows.push({ entry, depth });
-      if (entry.kind === 'directory' && expanded.has(entry.path))
-        append(entry.path, depth + 1);
-    }
-    if (folder.result.truncated || entries.length === 0)
-      rows.push({
-        status: folder.result.truncated
-          ? 'Listing truncated'
-          : 'No files found',
-        parent: path,
-        depth,
-      });
+  const { loading, rows, expanded, load, toggle } = useFileTree(source);
+  function open(entry: SessionFileEntry) {
+    if (entry.kind === 'file') onRead(entry.path);
+    else toggle(entry.path);
   }
-  append('', 0);
-  function open(entry: Entry) {
-    if (entry.kind === 'file') {
-      onRead(entry.path);
-      return;
-    }
-    const next = new Set(expanded);
-    if (next.has(entry.path)) next.delete(entry.path);
-    else {
-      next.add(entry.path);
-      load(entry.path);
-    }
-    setExpanded(next);
-  }
-  if (!folders['']?.result && !folders['']?.failed)
+  if (loading)
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.textSecondary} />
@@ -161,7 +74,7 @@ function FileTree({
             </Pressable>
           );
         const { entry } = item;
-        const name = entry.path.split('/').pop() ?? entry.path;
+        const name = fileName(entry.path);
         const directory = entry.kind === 'directory';
         const isOpen = expanded.has(entry.path);
         const Arrow = isOpen ? ChevronDown : ChevronRight;
@@ -199,33 +112,15 @@ function FileTree({
   );
 }
 
-function Preview({ source, path }: { source: Source; path: string }) {
+function Preview({ source, path }: { source: SessionFileSource; path: string }) {
   const colors = homePalettes[useOrcaScheme()];
-  const [file, setFile] = useState<Awaited<ReturnType<Source['readFile']>>>();
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    let active = true;
-    setFile(undefined);
-    setFailed(false);
-    void source.readFile(path).then(
-      (value) => {
-        if (active) setFile(value);
-      },
-      () => {
-        if (active) setFailed(true);
-      }
-    );
-    return () => {
-      active = false;
-    };
-  }, [source, path, attempt]);
+  const { file, failed, retry } = useFilePreview(source, path);
   if (failed)
     return (
       <Pressable
         accessibilityRole="button"
         style={styles.center}
-        onPress={() => setAttempt((value) => value + 1)}
+        onPress={retry}
       >
         <Text style={{ color: colors.textPrimary }}>
           Could not read this file. Try again
@@ -269,13 +164,8 @@ export function SessionFiles({
   'files' | 'workspace' | 'topInset' | 'onOpenTextSettings'
 >) {
   const colors = homePalettes[useOrcaScheme()];
-  const [page, setPage] = useState<'menu' | 'files' | 'text'>();
+  const { page, setPage, path, setPath, back, backLabel } = useSessionMenu();
   const { bottom } = useSafeAreaInsets();
-  const [path, setPath] = useState('');
-  function back() {
-    if (path) setPath('');
-    else setPage(undefined);
-  }
   return (
     <>
       <Pressable
@@ -457,7 +347,7 @@ export function SessionFiles({
                       fontWeight: '600',
                     }}
                   >
-                    {path ? path.split('/').pop() : 'Files'}
+                    {path ? fileName(path) : 'Files'}
                   </Text>
                   <Text
                     numberOfLines={1}
@@ -468,7 +358,7 @@ export function SessionFiles({
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={path ? 'Back to files' : 'Back to chat'}
+                  accessibilityLabel={backLabel}
                   onPress={back}
                   style={[styles.circle, { backgroundColor: colors.bgRaised }]}
                 >

@@ -1,4 +1,3 @@
-import { useEffect, useRef, type ComponentRef } from 'react';
 import {
   ChevronLeft,
   GitBranch,
@@ -9,22 +8,13 @@ import {
   SquareTerminal,
 } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { SessionHeaderProps } from '@lib/skin';
+import { tabCountLabel, useTabStrip, type SessionHeaderProps } from '@lib/skin';
 import { SessionWorkspaceTitle } from './SessionWorkspaceTitle';
 import { SessionFiles } from './SessionFiles';
 import { homePalettes, useOrcaScheme } from './appearance';
 
 export function SessionHeader(props: SessionHeaderProps) {
-  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
-  const positions = useRef(new Map<string, number>());
-  const reveal = () => {
-    const x = props.activeId
-      ? positions.current.get(props.activeId)
-      : undefined;
-    if (x !== undefined)
-      strip.current?.scrollTo({ x: Math.max(0, x - 12), animated: false });
-  };
-  useEffect(reveal, [props.activeId]);
+  const { strip, reveal, place } = useTabStrip(props.activeId);
   const colors = homePalettes[useOrcaScheme()];
   const ink = { color: colors.textPrimary };
   const border = { borderColor: colors.borderSubtle };
@@ -96,10 +86,7 @@ export function SessionHeader(props: SessionHeaderProps) {
               return (
                 <Pressable
                   key={tab.id}
-                  onLayout={(e) => {
-                    positions.current.set(tab.id, e.nativeEvent.layout.x);
-                    if (selected) reveal();
-                  }}
+                  onLayout={(e) => place(tab.id, e.nativeEvent.layout.x)}
                   accessibilityRole="tab"
                   accessibilityLabel={tab.title}
                   accessibilityState={{ selected }}
@@ -163,9 +150,7 @@ export function SessionHeader(props: SessionHeaderProps) {
             <Pressable
               accessibilityRole="button"
               accessibilityHint="Shows all tabs"
-              accessibilityLabel={
-                props.tabCount === 1 ? '1 tab' : props.tabCount + ' tabs'
-              }
+              accessibilityLabel={tabCountLabel(props.tabCount)}
               onPress={props.onShowTabs}
               style={styles.countCell}
             >

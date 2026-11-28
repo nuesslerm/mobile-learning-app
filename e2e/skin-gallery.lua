@@ -58,5 +58,23 @@ local function capture(skin, sections)
   end
 end
 
-for _, skin in ipairs({"tamagui", "orca"}) do capture(skin, SECTIONS) end
+-- The session header opens its file explorer itself: no prop shows it, so this one is reached the way a person reaches it.
+local function capture_explorer(skin)
+  for _, scheme in ipairs({"light", "dark"}) do
+    run_flow(("When the session's file explorer opens in %s, then the %s skin draws it as its golden"):format(scheme, skin), function()
+      device:open_link(("%s/gallery?section=chat&scheme=%s"):format(base, scheme))
+      device:assert_visible({id='SkinGallery-chat'}, {timeout=60000})
+      device:tap_on({css='[aria-label="More actions"]'})
+      device:tap_on({css='[aria-label="File explorer"]'})
+      device:assert_visible({text='package.json'}, {timeout=15000})
+      settled()
+      device:assert_screenshot(("gallery-%s-%s-sheet-session-files"):format(skin, scheme), {threshold_percentage=92})
+    end)
+  end
+end
+
+for _, skin in ipairs({"tamagui", "orca"}) do
+  capture(skin, SECTIONS)
+  capture_explorer(skin)
+end
 for _, skin in ipairs({"tamagui", "orca"}) do capture(skin, WITH_KEYBOARD) end
