@@ -44,7 +44,7 @@ export function HomeSearchField(props: HomeSearchFieldProps) {
         testID="HomeSearchField"
       />
       {props.value.length > 0 ? (
-        <XStack role="button" aria-label="Clear search" p="$1" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={props.onClear}>
+        <XStack role="button" accessible aria-label="Clear search" p="$1" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={props.onClear}>
           <Icon as={CircleX} size={16} color="$color10" />
         </XStack>
       ) : null}

@@ -55,7 +55,7 @@ function FileTree({ source, onRead }: { source: SessionFileSource; onRead: (path
               items="center"
               pl={indent}
               pr="$3"
-              {...(item.retry ? { role: 'button', cursor: 'pointer', pressStyle: { opacity: 0.7 }, onPress: () => load(item.parent) } : {})}
+              {...(item.retry ? { role: 'button', accessible: true, cursor: 'pointer', pressStyle: { opacity: 0.7 }, onPress: () => load(item.parent) } : {})}
             >
               <Text variant="muted">{item.status}</Text>
             </XStack>
@@ -66,7 +66,7 @@ function FileTree({ source, onRead }: { source: SessionFileSource; onRead: (path
         const open = expanded.has(entry.path);
         return (
           <XStack
-            role="button"
+            role="button" accessible
             aria-label={name}
             aria-expanded={directory ? open : undefined}
             minH={ROW_HEIGHT}
@@ -95,7 +95,7 @@ function FilePreview({ source, path }: { source: SessionFileSource; path: string
   const { file, failed, retry } = useFilePreview(source, path);
   if (failed)
     return (
-      <YStack flex={1} items="center" justify="center" role="button" cursor="pointer" pressStyle={{ opacity: 0.7 }} onPress={retry}>
+      <YStack flex={1} items="center" justify="center" role="button" accessible cursor="pointer" pressStyle={{ opacity: 0.7 }} onPress={retry}>
         <Text>Could not read this file. Try again</Text>
       </YStack>
     );

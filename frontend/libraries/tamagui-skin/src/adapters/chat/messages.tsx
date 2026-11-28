@@ -63,7 +63,7 @@ export function ChatMessageMeta({ time, accessibleTime, onCopy }: ChatMessageMet
       ) : null}
       {onCopy ? (
         <XStack
-          role="button"
+          role="button" accessible
           aria-label={copied ? 'Copied' : 'Copy message'}
           width={24}
           height={24}
@@ -92,7 +92,7 @@ export function ChatToolActivity({ summary, working, rows, children }: ChatToolA
   return (
     <YStack gap="$2" mt="$1">
       <XStack
-        role="button"
+        role="button" accessible
         aria-label={summary}
         aria-expanded={open}
         items="center"
@@ -111,7 +111,7 @@ export function ChatToolActivity({ summary, working, rows, children }: ChatToolA
             {rows.map((row) => (
               <YStack key={row.id} gap="$1">
                 <XStack
-                  role="button"
+                  role="button" accessible
                   aria-expanded={detail === row.id}
                   items="center"
                   gap="$1.5"

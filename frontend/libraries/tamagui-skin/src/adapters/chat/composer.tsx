@@ -20,7 +20,7 @@ export function ComposerSendButton({ label, canSend, sending = false, onPress, o
   const enabled = canSend && !sending;
   return (
     <XStack
-      role="button"
+      role="button" accessible
       aria-label={label}
       aria-disabled={!enabled}
       aria-busy={sending}

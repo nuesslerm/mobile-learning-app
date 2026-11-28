@@ -46,7 +46,7 @@ export function SessionTabsSheet(props: SessionTabsSheetProps) {
                 </ListItem>
               </YStack>
               {props.closeableIds?.includes(tab.id) ? (
-                <XStack role="button" aria-label={`Close ${tab.title}`} p="$3" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={() => props.onCloseTab?.(tab.id)}>
+                <XStack role="button" accessible aria-label={`Close ${tab.title}`} p="$3" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={() => props.onCloseTab?.(tab.id)}>
                   <Icon as={X} size={16} color="$color11" />
                 </XStack>
               ) : null}
@@ -54,7 +54,7 @@ export function SessionTabsSheet(props: SessionTabsSheetProps) {
           ))}
         </InsetGroup>
         {props.error ? (
-          <XStack role="button" items="center" justify="center" gap="$2" px="$4" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={props.onRetry}>
+          <XStack role="button" accessible items="center" justify="center" gap="$2" px="$4" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={props.onRetry}>
             <Text variant="muted">{props.error}</Text>
             <Text color="$blue10">Try again</Text>
           </XStack>
@@ -71,7 +71,7 @@ export function ChatImage({ uri, label, onOpen, unavailable }: ChatImageProps) {
   if (unavailable) return <Text variant="muted">🖼 {label}</Text>;
   if (!uri) return <YStack aria-label={label} width={THUMB.width} height={THUMB.height} rounded={THUMB.borderRadius} bg="$color3" borderWidth={1} borderColor="$borderColor" />;
   return (
-    <YStack role="button" aria-label={label} self="flex-start" rounded={THUMB.borderRadius} overflow="hidden" bg="$color3" borderWidth={1} borderColor="$borderColor" pressStyle={{ opacity: 0.6 }} cursor="pointer" onPress={onOpen}>
+    <YStack role="button" accessible aria-label={label} self="flex-start" rounded={THUMB.borderRadius} overflow="hidden" bg="$color3" borderWidth={1} borderColor="$borderColor" pressStyle={{ opacity: 0.6 }} cursor="pointer" onPress={onOpen}>
       <Image source={{ uri }} resizeMode="contain" style={THUMB} />
     </YStack>
   );

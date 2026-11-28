@@ -66,7 +66,7 @@ export function ListItem({
             onPress: handlePress,
             disabled,
             ...(accessibilityLabel
-              ? { role: 'button' as const, 'aria-label': accessibilityLabel, 'aria-selected': selected, 'aria-disabled': Boolean(disabled) }
+              ? { role: 'button' as const, accessible: true, 'aria-label': accessibilityLabel, 'aria-selected': selected, 'aria-disabled': Boolean(disabled) }
               : {}),
             pressStyle: { bg: '$color3' },
             cursor: 'pointer',

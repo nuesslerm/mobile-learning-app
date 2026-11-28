@@ -39,7 +39,7 @@ export function ComposerOptions(props: ComposerOptionsProps) {
           <YStack gap="$3" pb="$4" flex={1}>
             <XStack items="center" px="$4" gap="$2">
               {page !== 'Model' ? (
-                <XStack role="button" aria-label="Back to models" p="$1" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={returnToModels}>
+                <XStack role="button" accessible aria-label="Back to models" p="$1" pressStyle={{ opacity: 0.7 }} cursor="pointer" onPress={returnToModels}>
                   <Icon as={ChevronLeft} size={20} />
                 </XStack>
               ) : null}

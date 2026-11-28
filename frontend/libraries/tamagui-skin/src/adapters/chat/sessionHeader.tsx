@@ -36,7 +36,7 @@ export function SessionHeader(props: SessionHeaderProps) {
           </XStack>
           <YStack flex={1} items="center">
             <YStack
-              role="button"
+              role="button" accessible
               aria-label={props.workspace}
               aria-expanded={details}
               items="center"
@@ -56,7 +56,7 @@ export function SessionHeader(props: SessionHeaderProps) {
               </XStack>
             </YStack>
             {props.connected ? null : (
-              <YStack role="button" aria-label="Reconnect to desktop" position="absolute" l={0} r={0} b={0} height={18} cursor="pointer" onPress={props.onReconnect} />
+              <YStack role="button" accessible aria-label="Reconnect to desktop" position="absolute" l={0} r={0} b={0} height={18} cursor="pointer" onPress={props.onReconnect} />
             )}
           </YStack>
           <XStack width={FLANK_WIDTH} justify="flex-end" gap="$2">
@@ -101,7 +101,7 @@ export function SessionHeader(props: SessionHeaderProps) {
                 return (
                   <XStack
                     key={tab.id}
-                    role="tab"
+                    role="tab" accessible
                     aria-label={tab.title}
                     aria-selected={selected}
                     onLayout={(event) => place(tab.id, event.nativeEvent.layout.x)}

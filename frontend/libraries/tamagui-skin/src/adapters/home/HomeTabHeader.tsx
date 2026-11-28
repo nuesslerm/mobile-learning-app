@@ -33,7 +33,7 @@ export function HomeTabHeader(props: HomeTabHeaderProps) {
             {actions.map((action) => (
               <XStack
                 key={action.id}
-                role="button"
+                role="button" accessible
                 aria-label={action.accessibilityLabel}
                 aria-expanded={Boolean(action.active)}
                 aria-disabled={Boolean(action.disabled)}
