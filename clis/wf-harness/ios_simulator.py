@@ -39,6 +39,15 @@ def sim(*args):
             time.sleep(2)
 
 
+def quiet_dev_menu(udid):
+    """Expo Go's own developer button floats over the app's top right corner and its first-run sheet over everything: both off."""
+    prefs = Path(sim("get_app_container", udid, EXPO, "data")) / "Library/Preferences" / (EXPO + ".plist")
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
+    settings.update(EXDevMenuShowFloatingActionButton=False, EXDevMenuIsOnboardingFinished=True)
+    prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
+
+
 def device_info(udid):
     rows = json.loads(sim("list", "devices", "available", "-j"))["devices"].get(RUNTIME, [])
     found = next((d for d in rows if d["udid"] == udid and d["deviceTypeIdentifier"] == MODEL), None)
@@ -79,11 +88,7 @@ def prepare(udid):
         # CoreSimulatorBridge opens update links. Its first-open prompt belongs to SpringBoard.
         sim("spawn", udid, "defaults", "write", "com.apple.launchservices.schemeapproval",
             "com.apple.CoreSimulator.CoreSimulatorBridge-->exp", "-string", EXPO)
-        prefs = Path(sim("get_app_container", udid, EXPO, "data")) / "Library/Preferences" / (EXPO + ".plist")
-        prefs.parent.mkdir(parents=True, exist_ok=True)
-        settings = plistlib.loads(prefs.read_bytes()) if prefs.exists() else {}
-        settings.update(EXDevMenuShowFloatingActionButton=False, EXDevMenuIsOnboardingFinished=True)
-        prefs.write_bytes(plistlib.dumps(settings, fmt=plistlib.FMT_BINARY))
+        quiet_dev_menu(udid)
         sim("launch", udid, EXPO)
     manifest = simulator_manifest(udid)
     if os.getenv("WF_IOS_XCTEST_DRIVER") == "1":
@@ -127,6 +132,8 @@ def fresh(name, source, bundles, schemes=(), reset=()):
             print(f"Installing {bundle} {version} on {name}", file=sys.stderr, flush=True)
             sim("install", udid, str(app))
         apps.append({"bundle": bundle, "version": version})
+    if EXPO in bundles:
+        quiet_dev_menu(udid)
     for key in ("AccessibilityEnabled", "ApplicationAccessibilityEnabled"):
         sim("spawn", udid, "defaults", "write", "com.apple.Accessibility", key, "-bool", "true")
     # CoreSimulatorBridge opens links. Its first-open prompt per scheme belongs to SpringBoard, where no test can tap it.

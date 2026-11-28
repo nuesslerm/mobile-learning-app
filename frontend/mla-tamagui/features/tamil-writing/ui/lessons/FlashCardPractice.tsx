@@ -34,7 +34,7 @@ export function FlashCardPractice({ task }: { task: Task }) {
       </View>
       <Text style={{ color: colors.muted }}>{queue.due} due · {queue.fresh} new</Text>
       {current ? <>
-        <FloatingSurface style={styles.card}>
+        <FloatingSurface glass={false} style={styles.card}>
           <Text style={[styles.phrase, foreground]} accessibilityLanguage={englishFirst ? 'en' : 'ta-IN'}>
             {englishFirst ? current.english : current.tamil}
           </Text>
