@@ -1,4 +1,4 @@
-import type { SourceControlProps } from '@lib/skin';
+import { pullRequestFacts, type SourceControlProps } from '@lib/skin';
 import {
   ArrowRight,
   CheckCircle2,
@@ -23,14 +23,8 @@ export function CheckoutPullRequestSummary({
 }) {
   const c = useChatPalette();
   const { checks } = pr;
-  const state =
-    pr.state === 'open'
-      ? pr.draft
-        ? 'Draft'
-        : 'Open'
-      : pr.state === 'merged'
-        ? 'Merged'
-        : 'Closed';
+  const facts = pullRequestFacts(pr);
+  const state = facts.state;
   const color =
     pr.state === 'merged'
       ? '#8250df'
@@ -39,21 +33,7 @@ export function CheckoutPullRequestSummary({
         : pr.draft
           ? c.textSecondary
           : c.statusGreen;
-  const checksLabel = !checks
-    ? 'Checks unavailable'
-    : checks.failing
-      ? checks.failing +
-        ' ' +
-        (checks.failing === 1 ? 'check failed' : 'checks failed')
-      : checks.pending
-        ? checks.pending +
-          ' ' +
-          (checks.pending === 1 ? 'check running' : 'checks running')
-        : checks.passing
-          ? checks.passing +
-            ' ' +
-            (checks.passing === 1 ? 'check passed' : 'checks passed')
-          : 'No checks reported';
+  const checksLabel = facts.checks;
   const muted = { color: c.textSecondary };
   const ink = { color: c.textPrimary };
   const RefIcon = pr.state === 'merged' ? GitMerge : GitPullRequest;
@@ -111,11 +91,7 @@ export function CheckoutPullRequestSummary({
         </Pressable>
         {pr.reviewDecision && (
           <Text style={[s.fact, ink]}>
-            {pr.reviewDecision === 'approved'
-              ? 'Approved'
-              : pr.reviewDecision === 'changes_requested'
-                ? 'Changes requested'
-                : 'Review required'}
+            {facts.review}
           </Text>
         )}
         <View style={[s.row, { borderColor: c.borderSubtle }]}>
@@ -126,11 +102,7 @@ export function CheckoutPullRequestSummary({
             }
           />
           <Text style={ink}>
-            {pr.mergeable === 'mergeable'
-              ? 'No conflicts with ' + pr.base
-              : pr.mergeable === 'conflicting'
-                ? 'Conflicts with ' + pr.base
-                : 'Mergeability unknown'}
+            {facts.merge}
           </Text>
         </View>
       </View>
@@ -142,7 +114,7 @@ export function CheckoutPullRequestSummary({
           style={s.row}
         >
           <Text style={[s.grow, ink]}>
-            {pr.files} {pr.files === 1 ? 'file' : 'files'} changed
+            {facts.filesChanged}
           </Text>
           {pr.additions !== null && (
             <Text style={{ color: c.statusGreen }}>+{pr.additions}</Text>

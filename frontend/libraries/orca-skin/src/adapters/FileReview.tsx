@@ -14,63 +14,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { SourceCodeLine, SourceFileReview } from '@lib/skin';
+import { fileReviewHeading, foldedRows, type SourceCodeLine, type SourceFileReview } from '@lib/skin';
 import { BackIcon, ChevronRightIcon } from './homeIcons';
 import { useChatPalette } from './chatPalette';
 import { useOrcaScheme } from './appearance';
 import { highlightCode } from './codeSyntax';
-
-type Row =
-  | { line: SourceCodeLine; index: number }
-  | { fold: number; index: number; scope?: string };
-function foldedRows(
-  lines: SourceCodeLine[],
-  expanded: ReadonlySet<number>
-): Row[] {
-  const rows: Row[] = [];
-  for (let start = 0; start < lines.length; ) {
-    const line = lines[start]!;
-    if (line.kind !== 'context') {
-      rows.push({ index: start, line });
-      start++;
-      continue;
-    }
-    let end = start + 1;
-    while (end < lines.length && lines[end]?.kind === 'context') end++;
-    const from = start === 0 ? start : start + 3;
-    const to = end === lines.length ? end : end - 3;
-    for (let i = start; i < end; i++) {
-      if (i === from && to - from >= 3 && !expanded.has(from)) {
-        rows.push({ index: i, fold: to - from });
-        i = to - 1;
-      } else rows.push({ index: i, line: lines[i]! });
-    }
-    start = end;
-  }
-  const folds = rows.filter((row) => 'fold' in row);
-  const scopes: { indent: number; text: string }[] = [];
-  let nextFold = 0;
-  for (let i = 0; i < lines.length && nextFold < folds.length; i++) {
-    const line = lines[i]!;
-    const text = line.text.trim();
-    if (line.kind === 'delete' || !text) continue;
-    const indent = (line.text.match(/^[ \t]*/)?.[0] ?? '').replace(
-      /\t/g,
-      '    '
-    ).length;
-    while (scopes.length && scopes[scopes.length - 1]!.indent >= indent)
-      scopes.pop();
-    while (
-      folds[nextFold] &&
-      folds[nextFold]!.index + folds[nextFold]!.fold <= i
-    ) {
-      folds[nextFold]!.scope = scopes[scopes.length - 1]?.text;
-      nextFold++;
-    }
-    scopes.push({ indent, text });
-  }
-  return rows;
-}
 
 const CodeRow = memo(function CodeRow({
   line,
@@ -244,17 +192,7 @@ export function FileReview({ review: r }: { review: SourceFileReview }) {
   const c = useChatPalette(),
     insets = useSafeAreaInsets();
   const [picker, showPicker] = useState(false);
-  const file = r.files[r.index]!;
-  const previous = () =>
-      r.select((r.index - 1 + r.files.length) % r.files.length),
-    next = () => r.select((r.index + 1) % r.files.length);
-  const title = file.path.split('/').pop();
-  const subtitle =
-    r.index +
-    1 +
-    ' of ' +
-    r.files.length +
-    (r.branch ? ' · ' + r.viewed.size + ' viewed' : ' in this commit');
+  const { file, title, subtitle, previous, next, advanceLabel, marksViewed } = fileReviewHeading(r);
   const text = { color: c.textPrimary },
     muted = { color: c.textMuted };
   const control = [styles.control, { backgroundColor: c.bgRaised }];
@@ -372,15 +310,13 @@ export function FileReview({ review: r }: { review: SourceFileReview }) {
               onPress={r.advance}
               style={[styles.advance, { backgroundColor: c.textPrimary }]}
             >
-              {r.branch && !r.viewed.has(file.path) ? (
+              {marksViewed ? (
                 <Check size={16} color={c.bgBase} />
               ) : (
                 <ChevronRightIcon size={16} color={c.bgBase} />
               )}
               <Text style={{ fontWeight: '600', color: c.bgBase }}>
-                {r.branch && !r.viewed.has(file.path)
-                  ? 'Viewed · next file'
-                  : 'Next file'}
+                {advanceLabel}
               </Text>
             </Pressable>
             <Pressable

@@ -1,6 +1,6 @@
-import type { SourceControlProps } from '@lib/skin';
+import { useLinkPullRequest, type SourceControlProps } from '@lib/skin';
 import { ChevronRight, GitPullRequest, Link2 } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -62,28 +62,7 @@ function LinkPullRequest({
   cancel: () => void;
 }) {
   const c = useChatPalette();
-  const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const pending = useRef(false);
-  const number = panel.parseReference(input);
-  async function submit() {
-    if (!number || pending.current) return;
-    pending.current = true;
-    setBusy(true);
-    setError('');
-    try {
-      await panel.link(number);
-      cancel();
-    } catch {
-      setError(
-        'Could not link this pull request. Check the number and try again.'
-      );
-    } finally {
-      pending.current = false;
-      setBusy(false);
-    }
-  }
+  const { input, setInput, busy, error, number, submit, submitLabel } = useLinkPullRequest(panel, cancel);
   return (
     <View style={s.form}>
       <View style={s.heading}>
@@ -128,7 +107,7 @@ function LinkPullRequest({
           <ActivityIndicator color={c.bgBase} />
         ) : (
           <Text style={{ color: c.bgBase, fontWeight: '600' }}>
-            {number ? 'Link #' + number : 'Link pull request'}
+            {submitLabel}
           </Text>
         )}
       </Pressable>

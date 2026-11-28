@@ -1,7 +1,11 @@
-import type {
-  SourceControlProps,
-  SourceCommit,
-  SourceFile,
+import {
+  commitAge,
+  fileStatusLetter,
+  fileTotals,
+  sourceControlHeading,
+  type SourceControlProps,
+  type SourceCommit,
+  type SourceFile,
 } from '@lib/skin';
 import GitBranch from 'lucide-react-native/dist/esm/icons/git-branch.mjs';
 import ChevronDown from 'lucide-react-native/dist/esm/icons/chevron-down.mjs';
@@ -23,18 +27,6 @@ import { FileReview } from './FileReview';
 import { useChatPalette } from './chatPalette';
 
 const mono = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
-
-function age(timestamp: number) {
-  const minutes = Math.floor((Date.now() - timestamp) / 60_000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return minutes + 'm';
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return hours + 'h';
-  const days = Math.floor(hours / 24);
-  if (days < 30) return days + 'd';
-  const months = Math.floor(days / 30);
-  return months < 12 ? months + 'mo' : Math.floor(months / 12) + 'y';
-}
 
 function CommitRow({
   commit,
@@ -70,7 +62,7 @@ function CommitRow({
             {commit.subject}
           </Text>
           <Text style={[s.meta, { color: c.textMuted }]} numberOfLines={1}>
-            {[commit.shortSha, commit.author, age(commit.authoredAtMs)]
+            {[commit.shortSha, commit.author, commitAge(commit.authoredAtMs)]
               .filter(Boolean)
               .join(' · ')}
           </Text>
@@ -95,8 +87,7 @@ function FileStats({ added, removed }: { added?: number; removed?: number }) {
 function FileRow({ file, onPress }: { file: SourceFile; onPress: () => void }) {
   const c = useChatPalette();
   const pos = file.path.lastIndexOf('/');
-  const status =
-    file.status === 'type_changed' ? 'T' : file.status[0]?.toUpperCase();
+  const status = fileStatusLetter(file);
   return (
     <Pressable
       accessibilityRole="button"
@@ -140,22 +131,9 @@ function FileRow({ file, onPress }: { file: SourceFile; onPress: () => void }) {
 export function SourceControl(props: SourceControlProps) {
   const c = useChatPalette();
   const { page, selected, detail, comparison } = props;
-  const title =
-    page === 'changes'
-      ? 'Source Control'
-      : page === 'commits'
-        ? 'Commits'
-        : 'Commit';
-  const branch = props.branch ?? props.head?.slice(0, 7);
-  const subtitle = page === 'detail' ? selected?.shortSha : branch;
+  const { title, subtitle, backLabel, branch } = sourceControlHeading(props);
   const text = { color: c.textPrimary };
   const muted = { color: c.textSecondary };
-  const backLabel =
-    page === 'detail'
-      ? 'Back to commits'
-      : page === 'commits'
-        ? 'Back to source control'
-        : props.backLabel ?? 'Back to workspaces';
   const notice = props.error ? (
     <View style={s.notice}>
       <Text style={muted}>{props.error}</Text>
@@ -167,13 +145,7 @@ export function SourceControl(props: SourceControlProps) {
     <ActivityIndicator style={s.notice} color={c.textSecondary} />
   ) : undefined;
   const files = page === 'changes' ? comparison?.files : detail?.files;
-  const total = detail?.files.reduce(
-    (values, f) => ({
-      added: values.added + (f.additions ?? 0),
-      removed: values.removed + (f.deletions ?? 0),
-    }),
-    { added: 0, removed: 0 }
-  );
+  const total = fileTotals(detail?.files);
   const ahead = comparison?.ahead;
   const header =
     page === 'changes' ? (
