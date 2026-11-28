@@ -17,6 +17,7 @@ import { ChatImageViewer } from './adapters/chat/imageViewer';
 import { SessionHeader } from './adapters/chat/sessionHeader';
 import { HostWorkspaceList } from './adapters/workspaces/hostWorkspaceList';
 import { WorkspaceActions } from './adapters/workspaces/workspaceActions';
+import { WorkspaceOptions } from './adapters/workspaces/workspaceOptions';
 import { NewTabSheet } from './adapters/chat/newTab';
 import { ChatImage, SessionTabsSheet } from './adapters/chat/sessionTabs';
 import { ChatSizeControl, ChatSpacingControl } from './adapters/chat/textControls';
@@ -62,6 +63,7 @@ export const tamaguiSkin: Skin = {
   SessionHeader,
   HostWorkspaceList,
   WorkspaceActions,
+  WorkspaceOptions,
   HomeSettingsGroup,
   HomeSettingsNote,
   HomeSettingsRow,

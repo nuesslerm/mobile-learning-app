@@ -1,27 +1,35 @@
 {
   "platform": "browser",
-  "step": 18,
-  "last_action": "open_link{link='http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-workspace-options&scheme=light'}",
+  "step": 21,
+  "last_action": "open_link{link='http://127.0.0.1:62910/mla-tamagui/gallery?section=sheet-workspace-options&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65442/mla-tamagui/gallery?section=sheet-workspace-options&scheme=light",
+    "url": "http://127.0.0.1:62910/mla-tamagui/gallery?section=sheet-workspace-options&scheme=light",
     "title": "",
     "testids": [
-      "SkinGallery-sheet-workspace-options"
+      "SkinGallery-sheet-workspace-options",
+      "skin-workspace-options",
+      "skin-workspace-options-sheet",
+      "skin-workspace-options-reset",
+      "skin-workspace-options-done",
+      "skin-workspace-option-group",
+      "skin-workspace-option-switch",
+      "skin-workspace-option-page",
+      "skin-workspace-options-sheetHandle"
     ],
-    "text": "Reset\nWorkspace options\nSynced across your devices\nDone\nGroup by\nProject\nStatus\nShow archived\nSort\nRecent"
+    "text": "Reset\nWorkspace options\nSynced across your devices\nDone\nGROUP BY\nProject\nStatus\nShow archived\nSort\nRecent"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 46321,
-    "capture_ms": 105
+    "since_start_ms": 53309,
+    "capture_ms": 120
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-light-sheet-workspace-options",
