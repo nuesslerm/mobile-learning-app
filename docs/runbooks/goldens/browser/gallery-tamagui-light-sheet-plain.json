@@ -1,14 +1,16 @@
 {
   "platform": "browser",
   "step": 22,
-  "last_action": "open_link{link='http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-plain&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:62935/mla-tamagui/gallery?section=sheet-plain&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:65014/mla-tamagui/gallery?section=sheet-plain&scheme=light",
+    "url": "http://127.0.0.1:62935/mla-tamagui/gallery?section=sheet-plain&scheme=light",
     "title": "",
     "testids": [
       "SkinGallery-sheet-plain",
-      "skin-onboarding-choice"
+      "skin-bottom-sheet",
+      "skin-onboarding-choice",
+      "skin-bottom-sheetHandle"
     ],
     "text": "A plain bottom sheet holds whatever a screen puts in it.\nDone"
   },
@@ -17,12 +19,12 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 60160,
-    "capture_ms": 108
+    "since_start_ms": 56472,
+    "capture_ms": 97
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-light-sheet-plain",

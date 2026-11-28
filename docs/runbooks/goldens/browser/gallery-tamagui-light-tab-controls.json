@@ -1,10 +1,10 @@
 {
   "platform": "browser",
   "step": 12,
-  "last_action": "open_link{link='http://127.0.0.1:56817/mla-tamagui/gallery?section=tab-controls&scheme=light'}",
+  "last_action": "open_link{link='http://127.0.0.1:62935/mla-tamagui/gallery?section=tab-controls&scheme=light'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:56817/mla-tamagui/gallery?section=tab-controls&scheme=light",
+    "url": "http://127.0.0.1:62935/mla-tamagui/gallery?section=tab-controls&scheme=light",
     "title": "",
     "testids": [
       "SkinGallery-tab-controls"
@@ -16,12 +16,12 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 28142,
-    "capture_ms": 102
+    "since_start_ms": 27762,
+    "capture_ms": 89
   },
   "tolerance": {
     "threshold": 0.1,
-    "max_ratio": 0.050000000000000044,
+    "max_ratio": 0.07999999999999996,
     "ignore": []
   },
   "name": "gallery-tamagui-light-tab-controls",
