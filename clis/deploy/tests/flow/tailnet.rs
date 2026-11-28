@@ -342,6 +342,10 @@ fn net_up_starts_the_userspace_daemon_and_joins_this_machine_with_the_vault_key_
     let r = up("loggedout", &[], &[("UP_FAIL", "backend error: bad key")]);
     assert!(r.exit_code == 1 && r.stderr.contains("tailscale up failed: backend error: bad key") && !r.stderr.contains("tskey-auth-xyz"), "{}", r.stderr);
 
+    // Given tailscale repeating its command line in the refusal, Then the key in it is redacted
+    let r = up("loggedout", &[], &[("UP_FAIL", "use the command below: tailscale up --auth-key=tskey-auth-xyz --hostname=sandbox-agent")]);
+    assert!(r.exit_code == 1 && r.stderr.contains("--auth-key=<redacted> --hostname=sandbox-agent") && !r.stderr.contains("tskey-auth-xyz"), "{}", r.stderr);
+
     // Given no auth key in the vault, Then it fails naming the backend trap
     create_sh_stub(&bin.join("bws"), "printf '%s' '[]'");
     let r = up("loggedout", &[], &[]);

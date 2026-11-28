@@ -126,8 +126,9 @@ fn ensure_joined(hostname: &str, backend_flag: Option<&str>) -> Result<(bool, bo
     };
     let r = run("tailscale", &["up", &format!("--authkey={key}"), &format!("--hostname={hostname}"), "--accept-dns=false", "--timeout=120s"]);
     if r.code != 0 {
-        let stderr = r.stderr.trim();
-        return Err(Fail(format!("tailscale up failed: {}", if stderr.is_empty() { "no stderr" } else { stderr })));
+        // tailscale repeats its own command line, key included, when it refuses to change a machine's settings
+        let stderr = r.stderr.trim().replace(&key, "<redacted>");
+        return Err(Fail(format!("tailscale up failed: {}", if stderr.is_empty() { "no stderr" } else { &stderr })));
     }
     Ok((started, false))
 }
